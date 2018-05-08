@@ -15,6 +15,7 @@ var Bracery = function (rules, config) {
 
 Bracery.prototype.maxExpandCalls = 5  // max number of &eval{} calls per expansion
 Bracery.prototype.maxRecursionDepth = 3  // max number of recursive expansions of the same symbol
+Bracery.prototype.defaultSymbol = 'sentence'
 Bracery.prototype.rng = Math.random
 
 Bracery.prototype.toJSON = function() {
@@ -56,7 +57,7 @@ Bracery.prototype.addRules = function (name, rules) {
   if (arguments.length !== 2 || typeof(rules) === 'string')
     rules = Array.prototype.splice.call (arguments, 1)
   // check types
-  validateSymbolName (name)
+  name = validateSymbolName (name)
   if (!ParseTree.isArray(rules))
     throw new Error ('rules must be an array')
   if (rules.filter (function (rule) { return typeof(rule) !== 'string' }).length)
@@ -67,13 +68,13 @@ Bracery.prototype.addRules = function (name, rules) {
 }
 
 Bracery.prototype.deleteRules = function (name) {
-  validateSymbolName (name)
+  name = validateSymbolName (name)
   delete this.rules[name]
 }
 
 Bracery.prototype._expandSymbol = function (config) {
   var bracery = this
-  var symbolName = config.name
+  var symbolName = config.name.toLowerCase()
   var depth = config.depth || {}
   var symbolDepth = depth[symbolName] || 0
   var expansion
@@ -125,6 +126,7 @@ function validateSymbolName (name) {
     throw new Error ('name must be a string')
   if (!name.match(/^[A-Za-z_][A-Za-z0-9_]*$/))
     throw new Error ('name must be a valid variable name (alphanumeric/underscore, first char non-numeric)')
+  return name.toLowerCase()
 }
 
 function unexpandedSymbols (rhs) {
@@ -211,6 +213,7 @@ Bracery.prototype._expandAndEvaluate = function (config) {
 }
 
 Bracery.prototype.expand = function (braceryText, config) {
+  braceryText = braceryText || ('$' + this.defaultSymbol)
   if (typeof(braceryText) !== 'string')
     throw new Error ('the text to be expanded must be a string')
   var expansion = parseRhs (braceryText)
@@ -218,7 +221,8 @@ Bracery.prototype.expand = function (braceryText, config) {
 }
 
 Bracery.prototype.expandSymbol = function (symbolName, config) {
-  validateSymbolName (symbolName)
+  symbolName = symbolName || this.defaultSymbol
+  symbolName = validateSymbolName (symbolName)
   var expansion = [{ type: 'sym', name: symbolName }]
   return this._expandAndEvaluate (extend (config || {}, { expansion: expansion }))
 }

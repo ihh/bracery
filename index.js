@@ -37,7 +37,7 @@ function parseRhs (rhsText) {
   try {
     result = RhsParser.parse (rhsText)
   } catch (e) {
-    console.warn(e)
+    console.warn ('parse error', e)
     result = [rhsText]
   }
   return result
@@ -166,7 +166,7 @@ function nextEvalOrExpansion (config) {
                                                makeSymbolName: makeSymbolName })
   } catch (e) {
     if (!e.inThrowCallback) {  // disgusting hack
-      console.error (e)
+      console.warn ('makeExpansionText error', e)
       throw e
     }
     return { eval: e }

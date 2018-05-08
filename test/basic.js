@@ -17,9 +17,13 @@ function expectExpand (lhs, rhs, config) {
      function (done) {
        var text
        var maxTries = (config && config.maxTries) || 1
+       var fail = config && config.fail
        for (var n = 0; text !== rhs && n < maxTries; ++n)
          text = b.expand (lhs, config).text
-       assert.equal (text, rhs)
+       if (fail)
+         assert.notEqual (text, rhs)
+       else
+         assert.equal (text, rhs)
        done()
      })
 }
@@ -38,9 +42,12 @@ describe('basic test', function() {
   expectExpand ('$hello $world', 'hello planet', {maxTries:maxTries})
   expectExpand ('$hello $world', 'hi world', {maxTries:maxTries})
   expectExpand ('$hello $world', 'hi planet', {maxTries:maxTries})
+  expectExpand ('$hello $world', 'yo earth', {maxTries:maxTries,fail:true})
 
   // simple expansions
   expectExpand ('$test1', 'testing')
+  expectExpand ('$test1', 'testings', {fail:true})
+  expectExpand ('$test1', 'TESTING', {fail:true})
   expectExpand ('$test2', 'TESTING')
 
   // look out! recursion
@@ -65,6 +72,7 @@ describe('basic test', function() {
   // compromise
   expectExpand ('&plural{child}', 'children')
   expectExpand ('&singular{children}', 'child')
+  expectExpand ('&adjective{love}', 'loveable', {sorry_blame_compromise:true})
   expectExpand ('&future{love}', 'will love')
   expectExpand ('&past{love}', 'loved')
 
@@ -86,5 +94,11 @@ describe('basic test', function() {
   // local scope
   expectExpand ('^a={A}^b={B}^a^b&let^a={x}^b={y}{^a^b}^a^b', 'ABxyAB')
   expectExpand ('^a={a}^b={^{a}b^a}^ab=&quote{^a^b}#[a:3^b][b:5^a]ab#^a^b', '3aba53abaaaba')
+
+  // eval
+  expectExpand ('^a={$}^b={test}^c={1}&eval{^a&cap{^b}^c}', 'Testing')
+  expectExpand ('^a={1}^b={2}^c={3}&let^a={$}^b={test}^c={1}&eval{^a&cap{^b}^c}^a&cap{^b}^c', 'Testing123')
+  expectExpand ('^a={1}^b={2}^c={3}&let^a={$}^b={test}^c={1}{&eval{^a&cap{^b}^c}}^a&cap{^b}^c', 'Testing123')
+  expectExpand ('^a={1}^b={2}^c={3}&let^a={$}^b={test}^c={1}{&eval{^a&cap{^b}^c}^a&cap{^b}^c}', 'Testing$Test1')
 })
 

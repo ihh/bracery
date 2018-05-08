@@ -63,7 +63,8 @@ LocalAssignment
 Function
   = "&" func:FunctionName args:FunctionArg { return makeFunction (func, args) }
 
-FunctionName = "eval" / "quote" / "uc" / "lc" / "cap" / "plural" / "singular" / "a" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive" / "gerund" / "adjective" / "negative" / "positive"
+FunctionName = "eval" / "quote" / "plural" / "singular" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive"
+  / "gerund" / "adjective" / "negative" / "positive" / "a" / "uc" / "lc" / "cap"
 
 FunctionArg
   = "{" args:NodeList "}" { return args }

@@ -58,7 +58,16 @@ describe('basic test', function() {
   expectExpand ('&quote{$Test1}', '$Test1')
   expectExpand ('$TEST1', 'TESTING')
   expectExpand ('$Test1', 'Testing')
-  
+  expectExpand ('&uc{abc}', 'ABC')
+  expectExpand ('&lc{AbC}', 'abc')
+  expectExpand ('&cap{&lc{AbC}}', 'Abc')
+
+  // compromise
+  expectExpand ('&plural{child}', 'children')
+  expectExpand ('&singular{children}', 'child')
+  expectExpand ('&future{love}', 'will love')
+  expectExpand ('&past{love}', 'loved')
+
   // variables
   expectExpand ('^x={aha}^x', 'aha')
   expectExpand ('[x:aha]^x', 'aha')

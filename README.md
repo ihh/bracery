@@ -5,6 +5,7 @@ blending elements of [Tracery](http://tracery.io/) and [regular expression](http
 
 # Usage
 
+Basic Tracery
 ~~~~
 var bracery = require('bracery')
 
@@ -18,6 +19,8 @@ var b = new bracery.Bracery
 console.log (b.expand().text)
 ~~~~
 
+See [tests](test/) for more examples
+
 # Syntax
 
 Language features include
@@ -25,7 +28,7 @@ Language features include
 - named nonterminals: Tracery-style `#symbol_name#`, or Bracery-style `$symbol_name` or `${symbol_name}` (the latter is useful if you want to follow it with an alphanumeric or underscore)
 - alternations (anonymous nonterminals), which can be nested: `[option1|option 2|3rd opt|4th|more [options|nested options]...]`
 - variables: Tracery-style `[variable_name:value]` or `^variable_name={value}` to assign, `^variable_name` or `^{variable_name}` to retrieve (names are case-insensitive)
-   - NB the Tracery-style syntax `#variable_name#` can also be used to access the variable
+   - the Tracery-style syntax `#variable_name#` can also be used to access the variable, but it also does a dynamic evaluation; see below
 - built-in text-processing functions:
    - `&plural{...}` (plural), `&a{...}` ("a" or "an")
    - `&cap{...}` (Capitalize), `&lc{...}` and `&uc{...}` (lower- & UPPER-case)

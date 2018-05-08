@@ -2,7 +2,7 @@
 
 PEGFILES = $(wildcard *.peg.js)
 
-all: $(subst .peg.js,.dep,$(PEGFILES))
+all: $(subst .peg.js,.browser.js,$(PEGFILES))
 
 tidy:
 	rm *.body.js *.header.js *.input.js *.shim.js *.browser.js || true
@@ -33,8 +33,5 @@ rhs.header.js: rhs.defs.js
 
 %.browser.js: %.shim.js %.js
 	browserify $*.shim.js >$@
-
-%.dep: %.browser.js
-	cp $< ../../assets/js/wikimess/$*.js
 
 .SECONDARY:

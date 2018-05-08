@@ -80,6 +80,7 @@ VarLookup
 VarAssignment
   = "^" varname:Identifier "=" args:FunctionArg { return makeAssign (varname, args) }
   / "[" varname:Identifier ":" args:NodeList "]" { return makeAssign (varname, args) }
+  / "[" varname:Identifier "=>" opts:AltList "]" { return makeAssign (varname, makeFunction ('quote', makeAlternation (opts))) }
 
 VarAssignmentList
   = head:VarAssignment tail:VarAssignmentList { return [head].concat(tail) }

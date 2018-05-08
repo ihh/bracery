@@ -32,17 +32,6 @@ Bracery.prototype.toJSON = function() {
   return result
 }
 
-function parseRhs (rhsText) {
-  var result
-  try {
-    result = RhsParser.parse (rhsText)
-  } catch (e) {
-    console.warn ('parse error', e)
-    result = [rhsText]
-  }
-  return result
-}
-
 Bracery.prototype.addRules = function (name, rules) {
   var bracery = this
   // convert addRules({name1:[rhs1a,rhs1b,...],name2:[rhs2a,rhs2b...],...}) to a series of addRules(name,[rhsText,...]) calls
@@ -239,6 +228,30 @@ Bracery.prototype.expandSymbol = function (symbolName, config) {
   symbolName = validateSymbolName (symbolName)
   var expansion = [{ type: 'sym', name: symbolName }]
   return this._expandAndEvaluate (extend (config || {}, { expansion: expansion }))
+}
+
+function parseRhs (rhsText) {
+  var result
+  try {
+    result = RhsParser.parse (rhsText)
+  } catch (e) {
+    console.warn ('parse error', e)
+    result = [rhsText]
+  }
+  return result
+}
+
+Bracery.prototype.parse = function (text) {
+  return { type: 'root',
+           rhs: parseRhs (text) }
+}
+
+Bracery.prototype.unparse = function (root) {
+  return ParseTree.makeRhsText ([root], makeSymbolName)
+}
+
+Bracery.prototype.normalize = function (text) {
+  return this.unparse (this.parse (text))
 }
 
 module.exports = { Bracery: Bracery,

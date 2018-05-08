@@ -198,6 +198,9 @@
         var nextTok = (n < rhs.length - 1) ? rhs[n+1] : undefined
 	var nextIsAlpha = typeof(nextTok) === 'string' && nextTok.match(/^[A-Za-z0-9_]/)
         switch (tok.type) {
+        case 'root':
+          result = pt.makeRhsText (tok.rhs, makeSymbolName)
+          break
         case 'lookup':
           result = (nextIsAlpha
                     ? (varChar + leftBraceChar + tok.varname + rightBraceChar)

@@ -1,0 +1,23 @@
+{
+  "name": "bracery",
+  "version": "1.0.0",
+  "description": "Procedural text generator, somewhat compatible with Tracery",
+  "main": "index.js",
+  "scripts": {
+    "test": "node ./node_modules/mocha/bin/mocha test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ihh/bracery.git"
+  },
+  "author": "Ian Holmes <ihholmes@gmail.com>",
+  "license": "BSD",
+  "bugs": {
+    "url": "https://github.com/ihh/bracery/issues"
+  },
+  "homepage": "https://github.com/ihh/bracery#readme",
+  "dependencies": {
+    "compromise": "^11.7.0",
+    "mocha": "^5.1.1"
+  }
+}

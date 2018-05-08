@@ -8,6 +8,7 @@ Node
   / text:[^\$\#&\^\{\}\[\]\|\\]+ { return text.join("") }
   / Symbol
   / Conditional
+  / LocalAssignment
   / Function
   / VarAssignment
   / VarLookup
@@ -55,6 +56,10 @@ TraceryModifier
 Conditional
   = "&if" testArg:FunctionArg ("then" / "") trueArg:FunctionArg ("else" / "")  falseArg:FunctionArg { return makeConditional (testArg, trueArg, falseArg) }
 
+LocalAssignment
+  = "&let" assigns:VarAssignmentList scope:FunctionArg { return makeLocalAssignChain (assigns, scope) }
+  / "#" assigns:VarAssignmentList sym:Identifier mods:TraceryModifiers "#" { return makeLocalAssignChain (assigns, [makeTraceryExpr (sym, mods)]) }
+
 Function
   = "&" func:FunctionName args:FunctionArg { return makeFunction (func, args) }
 
@@ -74,6 +79,10 @@ VarLookup
 VarAssignment
   = "^" varname:Identifier "=" args:FunctionArg { return makeAssign (varname, args) }
   / "[" varname:Identifier ":" args:NodeList "]" { return makeAssign (varname, args) }
+
+VarAssignmentList
+  = head:VarAssignment tail:VarAssignmentList { return [head].concat(tail) }
+  / head:VarAssignment { return [head] }
 
 Alternation
   = "{" head:NodeList "|" tail:AltList "}" { return makeAlternation ([head].concat(tail)) }

@@ -3,10 +3,10 @@ var assert = require('assert')
 
 var initJson = { hello: '[hello|hi]',
                  world: ['world', 'planet'],
-                 test1: 'TESTING',
-                 test2: '$test1',
+                 test1: 'testing',
+                 test2: '$TEST1',
                  test3: 'x$test3',
-                 test4: '&quote{$test1}' }
+                 test4: '&quote{$TEST1}' }
 
 var nTestSymbols = Object.keys(initJson).length
 
@@ -40,7 +40,7 @@ describe('basic test', function() {
   expectExpand ('$hello $world', 'hi planet', {maxTries:maxTries})
 
   // simple expansions
-  expectExpand ('$test1', 'TESTING')
+  expectExpand ('$test1', 'testing')
   expectExpand ('$test2', 'TESTING')
 
   // look out! recursion
@@ -48,21 +48,34 @@ describe('basic test', function() {
   expectExpand ('$test3', 'xxxxx', { maxRecursionDepth: 5 })
 
   // quoting
-  expectExpand ('$test4', '$test1')
+  expectExpand ('$test4', '$TEST1')
   expectExpand ('&eval{$test4}', 'TESTING')
   expectExpand ('&quote{$test1}', '$test1')
   expectExpand ('\\$test1', '$test1')
 
+  // case manipulation
+  expectExpand ('&quote{$TEST1}', '$TEST1')
+  expectExpand ('&quote{$Test1}', '$Test1')
+  expectExpand ('$TEST1', 'TESTING')
+  expectExpand ('$Test1', 'Testing')
+  
   // variables
   expectExpand ('^x={aha}^x', 'aha')
   expectExpand ('[x:aha]^x', 'aha')
-  expectExpand ('#test1#', 'TESTING')
+
+  // Tracery modifiers
+  expectExpand ('#test1#', 'testing')
+  expectExpand ('#test1.capitalize#', 'Testing')
+  expectExpand ('#test1.capitalizeAll#', 'TESTING')
 
   // Tracery-style overriding
   expectExpand ('^test1={OVERLOAD}#test1#', 'OVERLOAD')
   expectExpand ('[test1:OVERLOAD]#test1#', 'OVERLOAD')
-  expectExpand ('^test1={OVERLOAD}$test1', 'TESTING')
+  expectExpand ('^test1={OVERLOAD}$test1', 'testing')
   expectExpand ('^test1={$test4}#test1#', 'TESTING')
 
+  // local scope
+  expectExpand ('^a={A}^b={B}^a^b&let^a={x}^b={y}{^a^b}^a^b', 'ABxyAB')
+  expectExpand ('^a={a}^b={^{a}b^a}^ab=&quote{^a^b}#[a:3^b][b:5^a]ab#^a^b', '3aba53abaaaba')
 })
 

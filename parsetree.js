@@ -53,7 +53,8 @@
 	case 'assign':
 	  result = { type: 'assign',
                      varname: node.varname,
-		     value: pt.sampleParseTree (node.value, rng) }
+		     value: pt.sampleParseTree (node.value, rng),
+                     local: node.local ? pt.sampleParseTree (node.local, rng) : undefined }
           break
 	case 'alt':
           index = pt.randomIndex (node.opts)
@@ -95,7 +96,7 @@
         case 'lookup':
           break
         case 'assign':
-          r = pt.getSymbolNodes (node.value)
+          r = pt.getSymbolNodes (node.value.concat (node.local || []))
           break
         case 'alt':
           r = node.opts.reduce (function (altResults, opt) {
@@ -109,6 +110,9 @@
 	  case 'eval':
 	    r = pt.getSymbolNodes (node.args.concat (node.value || []))
 	    break
+          default:
+	    r = pt.getSymbolNodes (node.args)
+            break
 	  }
           break
         case 'cond':
@@ -139,7 +143,7 @@
 	else {
           switch (node.type) {
           case 'assign':
-            result = pt.parseTreeEmpty (node.value)
+            result = pt.parseTreeEmpty (node.value) && (!node.local || pt.parseTreeEmpty (node.local))
             break
           case 'alt':
             result = node.opts.reduce (function (r, opt) {
@@ -196,11 +200,15 @@
         switch (tok.type) {
         case 'lookup':
           result = (nextIsAlpha
-                    ? (varChar + leftBraceChar + tok.varname.toLowerCase() + rightBraceChar)
-                    : (varChar + tok.varname.toLowerCase()))
+                    ? (varChar + leftBraceChar + tok.varname + rightBraceChar)
+                    : (varChar + tok.varname))
 	  break
         case 'assign':
-          result = varChar + tok.varname + assignChar + leftBraceChar + pt.makeRhsText(tok.value,makeSymbolName) + rightBraceChar
+          var assign = varChar + tok.varname + assignChar + leftBraceChar + pt.makeRhsText(tok.value,makeSymbolName) + rightBraceChar
+          if (tok.local)
+            result = '&let' + assign + leftBraceChar + pt.makeRhsText(tok.local,makeSymbolName) + rightBraceChar
+          else
+            result = assign
 	  break
         case 'alt':
           result = leftSquareBraceChar + tok.opts.map (function (opt) { return pt.makeRhsText(opt,makeSymbolName) }).join('|') + rightSquareBraceChar
@@ -302,10 +310,15 @@
       else
         switch (node.type) {
         case 'assign':
+          var oldValue = varVal[node.varname]
           varVal[node.varname] = makeRhsExpansionTextFor (node.value)
+          if (node.local) {
+            expansion = makeRhsExpansionTextFor (node.local)
+            varVal[node.varname] = oldValue
+          }
           break
         case 'lookup':
-          expansion = varVal[node.varname.toLowerCase()]
+          expansion = varVal[node.varname]
           break
         case 'cond':
           var test = makeRhsExpansionTextFor (node.test)

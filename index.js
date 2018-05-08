@@ -15,7 +15,7 @@ var Bracery = function (rules, config) {
 
 Bracery.prototype.maxExpandCalls = 5  // max number of &eval{} calls per expansion
 Bracery.prototype.maxRecursionDepth = 3  // max number of recursive expansions of the same symbol
-Bracery.prototype.defaultSymbol = 'sentence'
+Bracery.prototype.defaultSymbol = ['origin', 'sentence']
 Bracery.prototype.rng = Math.random
 
 Bracery.prototype.toJSON = function() {
@@ -71,6 +71,9 @@ Bracery.prototype.deleteRules = function (name) {
   name = validateSymbolName (name)
   delete this.rules[name]
 }
+
+Bracery.prototype.addRule = Bracery.prototype.addRules
+Bracery.prototype.deleteRule = Bracery.prototype.deleteRules
 
 Bracery.prototype._expandSymbol = function (config) {
   var bracery = this
@@ -171,6 +174,17 @@ function nextEvalOrExpansion (config) {
   return { expansion: expansion }
 }
 
+function defaultSymbol (bracery) {
+  if (typeof(bracery.defaultSymbol) === 'string')
+    return bracery.defaultSymbol
+  for (var n = 0; n < bracery.defaultSymbol.length; ++n) {
+    var name = bracery.defaultSymbol[n]
+    if (bracery.rules[name])
+      return name
+  }
+  return Object.keys(bracery.rules).sort()[0]
+}
+
 Bracery.prototype._doAllEvaluations = function (config) {
   var bracery = this
   var rhs = config.rhs
@@ -213,7 +227,7 @@ Bracery.prototype._expandAndEvaluate = function (config) {
 }
 
 Bracery.prototype.expand = function (braceryText, config) {
-  braceryText = braceryText || ('$' + this.defaultSymbol)
+  braceryText = braceryText || ('$' + defaultSymbol(this))
   if (typeof(braceryText) !== 'string')
     throw new Error ('the text to be expanded must be a string')
   var expansion = parseRhs (braceryText)
@@ -221,7 +235,7 @@ Bracery.prototype.expand = function (braceryText, config) {
 }
 
 Bracery.prototype.expandSymbol = function (symbolName, config) {
-  symbolName = symbolName || this.defaultSymbol
+  symbolName = symbolName || defaultSymbol(this)
   symbolName = validateSymbolName (symbolName)
   var expansion = [{ type: 'sym', name: symbolName }]
   return this._expandAndEvaluate (extend (config || {}, { expansion: expansion }))

@@ -1,11 +1,11 @@
 # Bracery
 
 Bracery is a small procedural text generation language (and library)
-blending elements of [Tracery](http://tracery.io/) and [regular expression](https://en.wikipedia.org/wiki/Regular_expression) syntax.
+blending elements of [Tracery](http://tracery.io/) by @galaxykate and [regular expression](https://en.wikipedia.org/wiki/Regular_expression) syntax.
 
 # Usage
 
-Basic Tracery
+Basic Tracery (an example from @galaxykate's [online tutorial](http://www.crystalcodepalace.com/traceryTut.html))
 ~~~~
 var bracery = require('bracery')
 

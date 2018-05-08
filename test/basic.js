@@ -55,10 +55,12 @@ describe('basic test', function() {
 
   // variables
   expectExpand ('^x={aha}^x', 'aha')
+  expectExpand ('[x:aha]^x', 'aha')
   expectExpand ('#test1#', 'TESTING')
 
   // Tracery-style overriding
   expectExpand ('^test1={OVERLOAD}#test1#', 'OVERLOAD')
+  expectExpand ('[test1:OVERLOAD]#test1#', 'OVERLOAD')
   expectExpand ('^test1={OVERLOAD}$test1', 'TESTING')
   expectExpand ('^test1={$test4}#test1#', 'TESTING')
 

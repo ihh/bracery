@@ -72,11 +72,8 @@ VarLookup
   / "^{" _ varname:Identifier _ "}" { return makeSugaredLookup (varname) }
 
 VarAssignment
-  = "^" varname:Identifier "={" args:NodeList "}" { return makeAssign (varname, args) }
-  / "^" varname:Identifier "=" alt:Alternation { return makeAssign (varname, [alt]) }
-  / "^" varname:Identifier "=" sym:Symbol { return makeAssign (varname, [sym]) }
-  / "^" varname:Identifier "=" func:Function { return makeAssign (varname, [func]) }
-  / "^" varname:Identifier "=" lookup:VarLookup { return makeAssign (varname, [lookup]) }
+  = "^" varname:Identifier "=" args:FunctionArg { return makeAssign (varname, args) }
+  / "[" varname:Identifier ":" args:NodeList "]" { return makeAssign (varname, args) }
 
 Alternation
   = "{" head:NodeList "|" tail:AltList "}" { return makeAlternation ([head].concat(tail)) }

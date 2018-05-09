@@ -4,14 +4,17 @@
 var fs = require('fs'),
     getopt = require('node-getopt'),
     readline = require('readline'),
+    Promise = require('bluebird'),
     bracery = require('..')
 
 var opt = getopt.create([
   ['d' , 'defs=PATH+'       , 'load symbol definitions from JSON file(s)'],
   ['s' , 'symbols=EXPR+'    , 'evaluate JSON symbol definitions from command line'],
   ['e' , 'eval=EXPR+'       , 'evaluate expression(s)'],
-  ['n' , 'number=NUM'       , 'number of randomized samples to output'],
+  ['n' , 'num=NUMBER'       , 'number of randomized samples to output'],
   ['t' , 'tree'             , 'show parse tree'],
+  ['T' , 'compact-tree'     , 'like -t but compact'],
+  ['a' , 'async'            , 'run asynchronously'],
   ['r' , 'repl'             , 'enter Read-Evaluate-Print Loop'],
   ['v' , 'verbose'          , 'print logging info'],
   ['h' , 'help'             , 'display this help message']
@@ -22,23 +25,36 @@ var opt = getopt.create([
 var b = new bracery.Bracery()
 var varVal = {}
 var expandedSomething = false
-var beforeSync = {}, afterSync = {}
+var before = {}, after = {}
 if (opt.options.verbose) {
-  beforeSync.all = console.warn.bind (console, 'before')
-  afterSync.all = console.warn.bind (console, 'after')
+  before.all = console.warn.bind (console, 'before node,varval,depth:')
+  after.all = console.warn.bind (console, 'after node,varval,depth,expansion:')
 }
 
-var samples = parseInt(opt.options.number) || 1
+var samples = parseInt(opt.options.num) || 1
+var tree = opt.options.tree, compact = opt.options['compact-tree']
 function expand (expr) {
   for (var n = 0; n < samples; ++n) {
-    var expansion = b.expand (expr, { vars: varVal,
-                                      beforeSync: beforeSync,
-                                      afterSync: afterSync })
-    if (opt.options.verbose)
-      console.warn ('expansion' + (samples > 1 ? (' (' + (n+1) + '/' + (samples+1) + ')') : ''), expansion)
-    console.log (opt.options.tree ? JSON.stringify(expansion.tree,null,2) : expansion.text)
-    if (expansion)
-      varVal = expansion.vars
+    if (opt.options.async)
+      b.expand (expr, { vars: varVal,
+                        before: before,
+                        after: after,
+                        callback: gotExpansion })
+    else
+      gotExpansion (b.expand (expr, { vars: varVal,
+                                      beforeSync: before,
+                                      afterSync: after }))
+    function gotExpansion (expansion) {
+      if (opt.options.verbose)
+        console.warn ('expansion' + (samples > 1 ? (' (' + (n+1) + '/' + (samples+1) + ')') : ''), expansion)
+      console.log (tree || compact
+                   ? ((n ? ',' : '[')
+                      + JSON.stringify(expansion.tree,null,opt.options['compact-tree'] ? 0 : 2)
+                      + (n == samples-1 ? ']' : ''))
+                   : expansion.text)
+      if (expansion)
+        varVal = expansion.vars
+    }
   }
   expandedSomething = true
 }
@@ -55,6 +71,10 @@ if (opt.options.defs)
 if (opt.options.symbols)
   opt.options.symbols.forEach (addRules)
 
+var nSymbols = b.symbolNames().length
+if (nSymbols || opt.options.defs)
+  console.warn('(' + bracery.ParseTree.nPlurals(nSymbols,'symbol')+ ' defined)')
+
 if (opt.options.eval)
   opt.options.eval.forEach (expand)
 
@@ -67,8 +87,9 @@ if (opt.options.repl) {
 if (!expandedSomething) {
   if (opt.argv.length)
     expand (opt.argv.join(' '))
-  else if (addedRules)
-    expand()
-  else
-    console.error ('please give me some text to expand')
+  else {
+    if (addedRules)
+      expand()
+    console.error ('please give me some Bracery text to expand')
+  }
 }

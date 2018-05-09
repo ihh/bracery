@@ -17,12 +17,16 @@ var Bracery = function (rules, config) {
 Bracery.prototype.defaultSymbol = ['origin', 'sentence']
 Bracery.prototype.rng = Math.random
 
+Bracery.prototype.symbolNames = function() {
+  return Object.keys(this.rules).sort()
+}
+
 Bracery.prototype.toJSON = function() {
   var bracery = this
   var result = {}
   var names = (arguments.length
                ? Array.prototype.slice.call (arguments, 0)
-               : Object.keys(this.rules).sort())
+               : bracery.symbolNames())
   names.forEach (function (name) {
     result[name] = bracery.rules[name].map (function (rhs) {
       return ParseTree.makeRhsText (rhs)
@@ -78,8 +82,8 @@ Bracery.prototype._expandSymbol = function (config) {
 
 Bracery.prototype._expandRhs = function (config) {
   if (config.callback)
-    return ParseTree.makeRhsExpansion (config).then (callback)
-  return ParseTree.makeRhsExpansionSync (extend ({}, config, { expandSync: this._expandSymbol.bind (this) }))
+    return ParseTree.makeRhsExpansionPromise (config).then (config.callback)
+  return ParseTree.makeRhsExpansionSync (extend ({}, config, { expand: this._expandSymbol.bind (this) }))
 }
 
 function validateSymbolName (name) {
@@ -115,8 +119,7 @@ Bracery.prototype.expandSymbol = function (symbolName, config) {
 }
 
 Bracery.prototype.parse = function (text) {
-  return { type: 'root',
-           rhs: ParseTree.parseRhs (text) }
+  return ParseTree.makeRoot (ParseTree.parseRhs (text))
 }
 
 Bracery.prototype.unparse = function (root) {

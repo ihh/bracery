@@ -46,6 +46,11 @@ function parseRhs (rhsText) {
   return result
 }
 
+function makeRoot (rhs) {
+  return { type: 'root',
+           rhs: rhs }
+}
+
 // Parse tree constants
 var symChar = '$', varChar = '^', funcChar = '&', leftBraceChar = '{', rightBraceChar = '}', leftSquareBraceChar = '[', rightSquareBraceChar = ']', assignChar = '=', traceryChar = '#'
 
@@ -304,6 +309,8 @@ function throwExpandError (node) {
 function syncPromiseResolve() {
   // returns a dummy Promise-like object that will call the next then'd Promise or function immediately
   var result = Array.prototype.splice.call (arguments, 0)
+  if (result.length === 1 && result[0] && typeof(result[0].then) !== 'undefined')  // if we're given one result & it looks like a Promise, return that
+    return result[0]
   return { result: result,  // for debugging inspection
            then:
            function (next) {  // next can be a function or a Promise-like object
@@ -335,13 +342,13 @@ function makeSyncConfig (config) {
                  { sync: true,
                    before: (config.beforeSync
                             ? makeSyncResolverMap (config, config.beforeSync)
-                            : null),
+                            : config.before),
                    after: (config.afterSync
                            ? makeSyncResolverMap (config, config.afterSync)
-                           : null),
+                           : config.after),
                    expand: (config.expandSync
                             ? makeSyncResolver (config, config.expandSync)
-                            : throwExpandError) })
+                            : (config.expand || throwExpandError)) })
 }
 
 function makeRhsExpansionSync (config) {
@@ -419,7 +426,7 @@ function makeExpansionPromise (config) {
   var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
   return handlerPromise ([node, varVal, depth], resolve(), config.before, node.type, 'all')
     .then (function() {
-      var expansion = { text: '', vars: varVal, tree: node }
+      var expansion = { text: '', vars: varVal }
       var expansionPromise = resolve (expansion), promise = expansionPromise
       var makeRhsExpansionPromiseFor = makeRhsExpansionPromiseForConfig.bind (pt, config, resolve)
       if (node) {
@@ -554,13 +561,13 @@ function makeExpansionPromise (config) {
           case 'opt':
           case 'sym':
             var expandPromise
-            var expr = symChar + (node.name || node.id)
+            var expr = (node.type === 'sym' ? (symChar + (node.name || node.id)) : '')
             if (!node.rhs && config.expand)
-              expandPromise = config.expand (extend ({},
-                                                     config,
-                                                     { name: node.name,
-                                                       node: node,
-                                                       vars: varVal }))
+              expandPromise = resolve (config.expand (extend ({},
+                                                              config,
+                                                              { name: node.name,
+                                                                node: node,
+                                                                vars: varVal })))
               .then (function (rhs) {
                 node.rhs = rhs
               })
@@ -579,7 +586,7 @@ function makeExpansionPromise (config) {
       return promise
     }).then (function (expansion) {
       return handlerPromise ([node, varVal, depth, expansion], resolve(), config.after, 'all', node.type)
-        .then (function() { return expansion })
+        .then (function() { return extend (expansion, { tree: node }) })
     })
 }
 
@@ -934,10 +941,14 @@ function ordinal(i) {
 
 // Externally exposed functions
 module.exports = {
-  // parsing
-  parseRhs: parseRhs,
+  // config
   maxDepth: 100,
   maxDepthForExpr: 3,
+
+  // parsing
+  parseRhs: parseRhs,
+  makeRoot: makeRoot,
+
   // parse tree constants
   symChar: symChar,
   varChar: varChar,
@@ -948,6 +959,7 @@ module.exports = {
   rightSquareBraceChar: rightSquareBraceChar,
   assignChar: assignChar,
   traceryChar: traceryChar,
+
   // parse tree manipulations
   sampleParseTree: sampleParseTree,
   getSymbolNodes: getSymbolNodes,

@@ -1,3 +1,4 @@
+var Promise = require('bluebird')
 var nlp = require('compromise')
 
 var RhsParser = require('./grammar/rhs')
@@ -13,8 +14,6 @@ var Bracery = function (rules, config) {
   return this
 }
 
-Bracery.prototype.maxExpandCalls = 5  // max number of &eval{} calls per expansion
-Bracery.prototype.maxRecursionDepth = 3  // max number of recursive expansions of the same symbol
 Bracery.prototype.defaultSymbol = ['origin', 'sentence']
 Bracery.prototype.rng = Math.random
 
@@ -26,7 +25,7 @@ Bracery.prototype.toJSON = function() {
                : Object.keys(this.rules).sort())
   names.forEach (function (name) {
     result[name] = bracery.rules[name].map (function (rhs) {
-      return ParseTree.makeRhsText (rhs, makeSymbolName)
+      return ParseTree.makeRhsText (rhs)
     })
   })
   return result
@@ -52,7 +51,7 @@ Bracery.prototype.addRules = function (name, rules) {
   if (rules.filter (function (rule) { return typeof(rule) !== 'string' }).length)
     throw new Error ('rules array must contain strings')
   // execute
-  this.rules[name] = (this.rules[name] || []).concat (rules.map (parseRhs))
+  this.rules[name] = (this.rules[name] || []).concat (rules.map (ParseTree.parseRhs))
   return { name: this.rules[name] }
 }
 
@@ -65,52 +64,22 @@ Bracery.prototype.addRule = Bracery.prototype.addRules
 Bracery.prototype.deleteRule = Bracery.prototype.deleteRules
 
 Bracery.prototype._expandSymbol = function (config) {
-  var bracery = this
   var symbolName = config.name.toLowerCase()
-  var depth = config.depth || {}
-  var symbolDepth = depth[symbolName] || 0
-  var expansion
+  var rhs
   var rules = this.rules[symbolName]
-  if (rules) {
-    var rhs = ParseTree.randomElement (rules, this.rng)
-    var newDepth = extend ({}, depth)
-    newDepth[symbolName] = symbolDepth + 1
-    expansion = bracery._expandRhs (extend ({}, config, { rhs: rhs, depth: newDepth }))
-  }
-  return expansion
+  if (rules)
+    rhs = ParseTree.sampleParseTree (ParseTree.randomElement (rules, this.rng))
+  else
+    rhs = []
+  if (config.node)
+    config.node.rhs = rhs
+  return rhs
 }
 
 Bracery.prototype._expandRhs = function (config) {
-  var sampledTree = ParseTree.sampleParseTree (config.rhs)
-  this._expandAllSymbols (extend ({}, config, { rhs: sampledTree }))
-  return sampledTree
-}
-
-Bracery.prototype._expandAllSymbols = function (config) {
-  var bracery = this
-  unexpandedSymbols (config.rhs).forEach (function (node) {
-    var nextConfig = extend ({}, config, { name: node.name })
-    if (!atRecursionLimit (bracery, nextConfig)) {
-      var expansion = bracery._expandSymbol (nextConfig)
-      if (expansion)
-        node.rhs = expansion
-      else {
-        node.rhs = []
-        node.not_found = true
-      }
-    } else {
-      node.rhs = []
-      node.maxRecursionDepth = true
-    }
-  })
-}
-
-function atRecursionLimit (bracery, config) {
-  var symbolName = config.name
-  var depth = config.depth || {}
-  var symbolDepth = depth[symbolName] || 0
-  var maxRecursionDepth = config.maxRecursionDepth || bracery.maxRecursionDepth
-  return symbolDepth >= maxRecursionDepth
+  if (config.callback)
+    return ParseTree.makeRhsExpansion (config).then (callback)
+  return ParseTree.makeRhsExpansionSync (extend ({}, config, { expandSync: this._expandSymbol.bind (this) }))
 }
 
 function validateSymbolName (name) {
@@ -119,48 +88,6 @@ function validateSymbolName (name) {
   if (!name.match(/^[A-Za-z_][A-Za-z0-9_]*$/))
     throw new Error ('name must be a valid variable name (alphanumeric/underscore, first char non-numeric)')
   return name.toLowerCase()
-}
-
-function unexpandedSymbols (rhs) {
-  return ParseTree.getSymbolNodes (rhs)
-    .filter (function (node) { return !node.rhs })
-}
-
-function throwCallback (info) {
-  info.inThrowCallback = true  // hack hack hack
-  throw info
-  return null
-}
-
-function makeSymbolName (node) {
-  return node.name
-}
-
-function hasIncompleteExpansions (rhs) {
-  return unexpandedSymbols (rhs).length > 0
-}
-
-function hasIncompleteEvaluations (rhs) {
-  return nextEvalOrExpansion ({ rhs: rhs }).eval ? true : false
-}
-
-function nextEvalOrExpansion (config) {
-  var rhs = config.rhs
-  var initNode = { type: 'root', rhs: rhs }
-  var expansion
-  try {
-    expansion = ParseTree.makeExpansionText ({ node: initNode,
-                                               vars: {},
-                                               expandCallback: throwCallback,
-                                               makeSymbolName: makeSymbolName })
-  } catch (e) {
-    if (!e.inThrowCallback) {  // disgusting hack
-      console.warn ('makeExpansionText error', e)
-      throw e
-    }
-    return { eval: e }
-  }
-  return { expansion: expansion }
 }
 
 function defaultSymbol (bracery) {
@@ -174,80 +101,26 @@ function defaultSymbol (bracery) {
   return Object.keys(bracery.rules).sort()[0]
 }
 
-Bracery.prototype._doAllEvaluations = function (config) {
-  var bracery = this
-  var rhs = config.rhs
-  var initNode = { type: 'root', rhs: rhs }
-  var expansion
-  var expandCalls = 0
-  var maxExpandCalls = config.maxExpandCalls || bracery.maxExpandCalls
-  while (typeof(expansion) === 'undefined') {
-    var next = nextEvalOrExpansion (config)
-    if (next.eval) {
-      var e = next.eval
-      var expandNode = e.node, expandText = e.text
-      if (expandCalls < maxExpandCalls) {
-        var parsedExpandText = parseRhs (expandText)
-        expandNode.evaltext = parsedExpandText
-        expandNode.value = bracery._expandRhs (extend ({}, config, { rhs: parsedExpandText }))
-        ++expandCalls
-      } else {
-        expandNode.evalText = []
-        expandNode.value = []
-        expandNode.maxExpandCalls = true
-      }
-    } else
-      expansion = next.expansion  // may be falsy
-  }
-}
-
-Bracery.prototype._expandAndEvaluate = function (config) {
-  var expansion = config.expansion
-  while (hasIncompleteExpansions (expansion) || hasIncompleteEvaluations (expansion)) {
-    this._expandAllSymbols (extend ({}, config, { rhs: expansion }))
-    this._doAllEvaluations (extend ({}, config, { rhs: expansion }))
-  }
-  var text = ParseTree.makeRhsExpansionText ({ rhs: expansion,
-                                               vars: {},
-                                               expandCallback: throwCallback,
-                                               makeSymbolName: makeSymbolName })
-  return { text: text,
-           tree: { type: 'root', rhs: expansion } }
-}
-
 Bracery.prototype.expand = function (braceryText, config) {
   braceryText = braceryText || ('$' + defaultSymbol(this))
   if (typeof(braceryText) !== 'string')
     throw new Error ('the text to be expanded must be a string')
-  var expansion = parseRhs (braceryText)
-  return this._expandAndEvaluate (extend (config || {}, { expansion: expansion }))
+  return this._expandRhs (extend ({}, config, { rhsText: braceryText }))
 }
 
 Bracery.prototype.expandSymbol = function (symbolName, config) {
   symbolName = symbolName || defaultSymbol(this)
   symbolName = validateSymbolName (symbolName)
-  var expansion = [{ type: 'sym', name: symbolName }]
-  return this._expandAndEvaluate (extend (config || {}, { expansion: expansion }))
-}
-
-function parseRhs (rhsText) {
-  var result
-  try {
-    result = RhsParser.parse (rhsText)
-  } catch (e) {
-    console.warn ('parse error', e)
-    result = [rhsText]
-  }
-  return result
+  return this._expandRhs (extend ({}, config, { rhs: [{ name: symbolName }] }))
 }
 
 Bracery.prototype.parse = function (text) {
   return { type: 'root',
-           rhs: parseRhs (text) }
+           rhs: ParseTree.parseRhs (text) }
 }
 
 Bracery.prototype.unparse = function (root) {
-  return ParseTree.makeRhsText ([root], makeSymbolName)
+  return ParseTree.makeRhsText ([root])
 }
 
 Bracery.prototype.normalize = function (text) {
@@ -257,4 +130,5 @@ Bracery.prototype.normalize = function (text) {
 module.exports = { Bracery: Bracery,
                    ParseTree: ParseTree,
                    RhsParser: RhsParser,
+                   Promise: Promise,
                    nlp: nlp }

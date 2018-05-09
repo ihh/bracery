@@ -19,6 +19,14 @@ var b = new bracery.Bracery
 console.log (b.expand().text)
 ~~~~
 
+or
+~~~~
+bin/bracery -d examples/travel.json
+bin/bracery -d examples/travel.json -n5
+bin/bracery -d examples/travel.json -n5 -e '$origin And they had fun... until they met $name.'
+bin/bracery -d examples/travel.json -n5 -e '$origin And they had [so|SO] [much [fun|trouble]|many [adventures|escapades]] on the [road|way]!'
+~~~~
+
 See [tests](test/) for more examples
 
 # Syntax

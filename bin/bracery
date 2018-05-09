@@ -1,0 +1,74 @@
+#!/usr/bin/env node
+// emacs mode -*-JavaScript-*-
+
+var fs = require('fs'),
+    getopt = require('node-getopt'),
+    readline = require('readline'),
+    bracery = require('..')
+
+var opt = getopt.create([
+  ['d' , 'defs=PATH+'       , 'load symbol definitions from JSON file(s)'],
+  ['s' , 'symbols=EXPR+'    , 'evaluate JSON symbol definitions from command line'],
+  ['e' , 'eval=EXPR+'       , 'evaluate expression(s)'],
+  ['n' , 'number=NUM'       , 'number of randomized samples to output'],
+  ['t' , 'tree'             , 'show parse tree'],
+  ['r' , 'repl'             , 'enter Read-Evaluate-Print Loop'],
+  ['v' , 'verbose'          , 'print logging info'],
+  ['h' , 'help'             , 'display this help message']
+])              // create Getopt instance
+    .bindHelp()     // bind option 'help' to default action
+    .parseSystem() // parse command line
+
+var b = new bracery.Bracery()
+var varVal = {}
+var expandedSomething = false
+var beforeSync = {}, afterSync = {}
+if (opt.options.verbose) {
+  beforeSync.all = console.warn.bind (console, 'before')
+  afterSync.all = console.warn.bind (console, 'after')
+}
+
+var samples = parseInt(opt.options.number) || 1
+function expand (expr) {
+  for (var n = 0; n < samples; ++n) {
+    var expansion = b.expand (expr, { vars: varVal,
+                                      beforeSync: beforeSync,
+                                      afterSync: afterSync })
+    if (opt.options.verbose)
+      console.warn ('expansion' + (samples > 1 ? (' (' + (n+1) + '/' + (samples+1) + ')') : ''), expansion)
+    console.log (opt.options.tree ? JSON.stringify(expansion.tree,null,2) : expansion.text)
+    if (expansion)
+      varVal = expansion.vars
+  }
+  expandedSomething = true
+}
+
+var addedRules = false
+function addRules (ruleText) {
+  b.addRules (JSON.parse (ruleText))
+  addedRules = true
+}
+if (opt.options.defs)
+  opt.options.defs.forEach (function (symbolFile) {
+    addRules (fs.readFileSync (symbolFile))
+  })
+if (opt.options.symbols)
+  opt.options.symbols.forEach (addRules)
+
+if (opt.options.eval)
+  opt.options.eval.forEach (expand)
+
+if (opt.options.repl) {
+  var rl = readline.createInterface ({ input: process.stdin,
+                                       output: process.stdout })
+  rl.on ('line', expand)
+}
+
+if (!expandedSomething) {
+  if (opt.argv.length)
+    expand (opt.argv.join(' '))
+  else if (addedRules)
+    expand()
+  else
+    console.error ('please give me some text to expand')
+}

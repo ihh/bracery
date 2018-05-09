@@ -1,9 +1,13 @@
+var Promise = require('bluebird')
+var RhsParser = require('./grammar/rhs.js')
+
 // General helper functions
 function isArray (obj) { return Object.prototype.toString.call(obj) === '[object Array]' }
 
 function extend (dest) {
   Array.prototype.slice.call (arguments, 1).forEach (function (src) {
-    Object.keys(src).forEach (function (key) { dest[key] = src[key] })
+    if (src)
+      Object.keys(src).forEach (function (key) { dest[key] = src[key] })
   })
   return dest
 }
@@ -30,9 +34,20 @@ function nRandomElements (array, n, rng) {
   return result
 }
 
+// Parser
+function parseRhs (rhsText) {
+  var result
+  try {
+    result = RhsParser.parse (rhsText)
+  } catch (e) {
+    console.warn ('parse error', e)
+    result = [rhsText]
+  }
+  return result
+}
+
 // Parse tree constants
-var symChar = '$', symCharHtml = '&#36;'
-var playerChar = '@', varChar = '^', funcChar = '&', leftBraceChar = '{', rightBraceChar = '}', leftSquareBraceChar = '[', rightSquareBraceChar = ']', assignChar = '='
+var symChar = '$', varChar = '^', funcChar = '&', leftBraceChar = '{', rightBraceChar = '}', leftSquareBraceChar = '[', rightSquareBraceChar = ']', assignChar = '=', traceryChar = '#'
 
 // Parse tree manipulations
 function sampleParseTree (rhs, rng) {
@@ -173,6 +188,7 @@ function parseTreeEmpty (rhs) {
 }
 
 function isTraceryExpr (node, makeSymbolName) {
+  makeSymbolName = makeSymbolName || defaultMakeSymbolName
   return typeof(node) === 'object' && node.type === 'cond'
     && node.test.length === 1 && typeof(node.test[0]) === 'object' && node.test[0].type === 'lookup'
     && node.t.length === 1 && typeof(node.t[0]) === 'object' && node.t[0].type === 'func'
@@ -184,6 +200,7 @@ function isTraceryExpr (node, makeSymbolName) {
 
 function makeRhsText (rhs, makeSymbolName) {
   var pt = this
+  makeSymbolName = makeSymbolName || defaultMakeSymbolName
   return rhs.map (function (tok, n) {
     var result
     if (typeof(tok) === 'string')
@@ -203,7 +220,7 @@ function makeRhsText (rhs, makeSymbolName) {
       case 'assign':
         var assign = varChar + tok.varname + assignChar + leftBraceChar + pt.makeRhsText(tok.value,makeSymbolName) + rightBraceChar
         if (tok.local)
-          result = '&let' + assign + leftBraceChar + pt.makeRhsText(tok.local,makeSymbolName) + rightBraceChar
+          result = funcChar + 'let' + assign + leftBraceChar + pt.makeRhsText(tok.local,makeSymbolName) + rightBraceChar
         else
           result = assign
 	break
@@ -212,7 +229,7 @@ function makeRhsText (rhs, makeSymbolName) {
 	break
       case 'cond':
         result = (isTraceryExpr (tok, makeSymbolName)
-                  ? ('#' + tok.test[0].varname + '#')
+                  ? (traceryChar + tok.test[0].varname + traceryChar)
                   : (funcChar + [['if',tok.test],
 				 ['then',tok.t],
 				 ['else',tok.f]].map (function (keyword_arg) { return keyword_arg[0] + leftBraceChar + pt.makeRhsText (keyword_arg[1], makeSymbolName) + rightBraceChar }).join('')))
@@ -244,6 +261,7 @@ function makeRhsText (rhs, makeSymbolName) {
 
 function makeSugaredName (funcNode, makeSymbolName) {
   var name, sugaredName, prefixChar
+  makeSymbolName = makeSymbolName || defaultMakeSymbolName
   if (funcNode.args.length === 1 && typeof(funcNode.args[0]) === 'object') {
     if (funcNode.args[0].type === 'sym') {
       name = makeSymbolName(funcNode.args[0])
@@ -275,134 +293,294 @@ function summarizeRhs (rhs, makeSymbolName, summaryLen) {
   return this.summarize (this.makeRhsText(rhs,makeSymbolName), summaryLen)
 }
 
+function defaultMakeSymbolName (node) {
+  return node.name
+}
+
+function throwExpandError (node) {
+  throw new Error ('unexpanded symbol node')
+}
+
+function syncPromiseResolve() {
+  // returns a dummy Promise-like object that will call the next then'd Promise or function immediately
+  var result = Array.prototype.splice.call (arguments, 0)
+  return { result: result,  // for debugging inspection
+           then:
+           function (next) {  // next can be a function or a Promise-like object
+             if (typeof(next.then) !== 'undefined')  // looks like a Promise?
+               return next
+             // next is a function, so call it
+             var nextResult = next.apply (next, result)
+             if (nextResult && typeof(nextResult.then) !== 'undefined')  // looks like a Promise?
+               return nextResult
+             // create a Promise-like wrapper for the result
+             return syncPromiseResolve (nextResult)
+           },
+           catch: function (errorCallback) { /* errorCallback will never be called */ } }
+}
+
+function makeSyncResolver (config, callback) {
+  return function() { return syncPromiseResolve (callback.apply (config, arguments)) }
+}
+
+function makeSyncResolverMap (config, obj) {
+  var result = {}
+  Object.keys(obj).forEach (function (key) { result[key] = makeSyncResolver (config, obj[key]) })
+  return result
+}
+
+function makeSyncConfig (config) {
+  return extend ({},
+                 config,
+                 { sync: true,
+                   before: (config.beforeSync
+                            ? makeSyncResolverMap (config, config.beforeSync)
+                            : null),
+                   after: (config.afterSync
+                           ? makeSyncResolverMap (config, config.afterSync)
+                           : null),
+                   expand: (config.expandSync
+                            ? makeSyncResolver (config, config.expandSync)
+                            : throwExpandError) })
+}
+
+function makeRhsExpansionSync (config) {
+  var result
+  this.makeRhsExpansionPromise (makeSyncConfig (config))
+    .then (function (expansion) {
+      result = expansion
+    })
+  return result
+}
+
+function makeExpansionSync (config) {
+  var result
+  this.makeExpansionPromise (makeSyncConfig (config))
+    .then (function (expansion) {
+      result = expansion
+    })
+  return result
+}
+
+function makeRhsExpansionPromise (config) {
+  var pt = this
+  var rhs = config.rhs || this.sampleParseTree (parseRhs (config.rhsText))
+  var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
+  return rhs.reduce (function (promise, child) {
+    return promise.then (function (expansion) {
+      return pt.makeExpansionPromise (extend ({},
+                                              config,
+                                              { node: child,
+                                                vars: expansion.vars }))
+        .then (function (childExpansion) {
+          return extend (expansion,
+                         childExpansion,
+                         { text: expansion.text + childExpansion.text })
+        })
+    })
+  }, resolve ({ text: '',
+                vars: config.vars }))
+}
+
+function makeRhsExpansionPromiseForConfig (config, resolve, rhs, contextName) {
+  var pt = this
+  var newConfig = extend ({}, config, { rhs: rhs })
+  if (contextName) {
+    newConfig.depth = extend ({}, config.depth || {})
+    var maxDepth = Math.min (config.maxDepth || pt.maxDepth,
+                             config.maxDepthForExpr || pt.maxDepthForExpr)
+    var oldDepth = newConfig.depth[contextName] || 0
+    if (oldDepth >= maxDepth)
+      return resolve ({ text: '', vars: config.vars })
+    newConfig.depth[contextName] = oldDepth + 1
+  }
+  return this.makeRhsExpansionPromise (newConfig)
+}
+
+function handlerPromise (args, resolvedPromise, handler) {
+  var pt = this
+  var types = Array.prototype.slice.call (arguments, 3)
+  var promise = resolvedPromise
+  if (handler)
+    types.forEach (function (type) {
+      if (handler[type]) {
+        promise = promise.then (handler[type].apply (pt, args))
+      }
+    })
+  return promise
+}
+
 function makeExpansionPromise (config) {
-  var varVal = config.vars || defaultVarVal()
-  var makeSymbolName = config.makeSymbolName
-  var expandCallback = config.expandCallback
-  var promise, expansion = {}
-  var makeRhsExpansionTextFor = makeRhsExpansionTextForConfig.bind (this, config)
-  if (node) {
-    if (typeof(node) === 'string')
-      expansion = node
-    else
-      switch (node.type) {
-      case 'assign':
-        var oldValue = varVal[node.varname]
-        varVal[node.varname] = makeRhsExpansionTextFor (node.value)
-        if (node.local) {
-          expansion = makeRhsExpansionTextFor (node.local)
-          varVal[node.varname] = oldValue
-        }
-        break
-      case 'lookup':
-        expansion = varVal[node.varname]
-        break
-      case 'cond':
-        var test = makeRhsExpansionTextFor (node.test)
-        expansion = makeRhsExpansionTextFor (test.match(/\S/) ? node.t : node.f)
-        break;
+  var pt = this
+  var node = config.node
+  var varVal = config.vars || {}
+  var depth = config.depth || {}
+  var makeSymbolName = config.makeSymbolName || defaultMakeSymbolName
+  var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
+  return handlerPromise ([node, varVal, depth], resolve(), config.before, node.type, 'all')
+    .then (function() {
+      var expansion = { text: '', vars: varVal, tree: node }
+      var expansionPromise = resolve (expansion), promise = expansionPromise
+      var makeRhsExpansionPromiseFor = makeRhsExpansionPromiseForConfig.bind (pt, config, resolve)
+      if (node) {
+        if (typeof(node) === 'string') {
+          expansion.text = node
+        } else {
+          
+          switch (node.type) {
+          case 'assign':
+            var oldValue = varVal[node.varname]
+            promise = makeRhsExpansionPromiseFor (node.value)
+              .then (function (valExpansion) {
+                expansion.vars = valExpansion.vars
+                expansion.vars[node.varname] = valExpansion.text
+                if (node.local)
+                  return makeRhsExpansionPromiseFor (node.local)
+                  .then (function (localExpansion) {
+                    expansion.text = localExpansion.text
+                    expansion.vars[node.varname] = oldValue
+                  })
+              }).then (expansionPromise)
+            break
 
-      case 'func':
-        if (node.funcname === 'quote')
-          expansion = this.makeRhsText (node.args, makeSymbolName)
-	else {
-          var arg = makeRhsExpansionTextFor (node.args)
-          switch (node.funcname) {
+          case 'lookup':
+            expansion.text = varVal[node.varname] || ''
+            break
 
-          case 'eval':
-            var evaltext = makeRhsExpansionTextFor (node.args)
-	    if (config.validateEvalText && typeof(node.evaltext) !== 'undefined') {
-	      var storedEvalText = this.makeRhsText (node.evaltext, makeSymbolName)
-	      if (evaltext !== storedEvalText)
-		config.validateEvalText (storedEvalText, evalText)
-	    }
-            if (expandCallback && typeof(node.value) === 'undefined')
-              expansion = expandCallback ({ node: node,
-                                            text: evaltext,
-                                            vars: varVal })
+          case 'cond':
+            promise = makeRhsExpansionPromiseFor (node.test)
+              .then (function (testExpansion) {
+                var condRhs = testExpansion.text.match(/\S/) ? node.t : node.f
+                return makeRhsExpansionPromiseFor (condRhs)
+              })
+            break
+
+          case 'func':
+            if (node.funcname === 'quote') {
+              expansion.text = pt.makeRhsText (node.args, makeSymbolName)
+	    } else {
+              promise = makeRhsExpansionPromiseFor (node.args)
+                .then (function (argExpansion) {
+                  var arg = argExpansion.text
+                  switch (node.funcname) {
+
+                  case 'eval':
+                    if (typeof(node.evaltext) === 'undefined') {
+                      node.evaltext = arg
+                      node.evaltree = parseRhs (arg)
+                      node.value = pt.sampleParseTree (node.evaltree)
+                    } else if (config.validateEvalText) {
+	              var storedEvalText = pt.makeRhsText (node.evaltree, makeSymbolName)
+                      if (storedEvalText !== arg) {
+                        if (config.invalidEvalTextCallback)
+		          config.invalidEvalTextCallback (node, storedEvalText, arg)
+                        else
+                          throw new Error ('evaltext mismatch')
+                      }
+                    }
+                    return makeRhsExpansionPromiseFor (node.value, arg)
+                      .then (function (evalExpansion) {
+                        extend (expansion, evalExpansion)
+                      })
+                    break
+
+                  case 'cap':
+                    expansion.text = capitalize (arg)
+                    break
+                  case 'uc':
+                    expansion.text = arg.toUpperCase()
+                    break
+                  case 'lc':
+                    expansion.text = arg.toLowerCase()
+                    break
+                  case 'plural':
+                    expansion.text = pluralForm(arg)
+                    break
+                  case 'a':
+                    expansion.text = indefiniteArticle (arg)
+                    break
+
+                    // nlp: nouns
+                  case 'nlp_plural':  // alternative to built-in plural
+                    expansion.text = nlp(arg).nouns(0).toPlural().text()
+                    break
+                  case 'singular':
+                    expansion.text = nlp(arg).nouns(0).toSingular().text()
+                    break
+                  case 'topic':
+                    expansion.text = nlp(arg).topics(0).text()
+                    break
+                  case 'person':
+                    expansion.text = nlp(arg).people(0).text()
+                    break
+                  case 'place':
+                    expansion.text = nlp(arg).places(0).text()
+                    break
+
+                    // nlp: verbs
+                  case 'past':
+                    expansion.text = nlp(arg).verbs(0).toPastTense().text()
+                    break
+                  case 'present':
+                    expansion.text = nlp(arg).verbs(0).toPresentTense().text()
+                    break
+                  case 'future':
+                    expansion.text = nlp(arg).verbs(0).toFutureTense().text()
+                    break
+                  case 'infinitive':
+                    expansion.text = nlp(arg).verbs(0).toInfinitive().text()
+                    break
+                  case 'gerund':
+                    expansion.text = nlp(arg).verbs(0).toGerund().text()
+                    break
+                  case 'adjective':
+                    expansion.text = nlp(arg).verbs(0).asAdjective()[0] || ''
+                    break
+                  case 'negative':
+                    expansion.text = nlp(arg).verbs(0).toNegative().text()
+                    break
+                  case 'positive':
+                    expansion.text = nlp(arg).verbs(0).toPositive().text()
+                    break
+
+                  default:
+                    expansion.text = arg
+                    break
+                  }
+                }).then (expansionPromise)
+            }
+            break
+          case 'root':
+          case 'opt':
+          case 'sym':
+            var expandPromise
+            var expr = symChar + (node.name || node.id)
+            if (!node.rhs && config.expand)
+              expandPromise = config.expand (extend ({},
+                                                     config,
+                                                     { name: node.name,
+                                                       node: node,
+                                                       vars: varVal }))
+              .then (function (rhs) {
+                node.rhs = rhs
+              })
             else
-              expansion = makeRhsExpansionTextFor (node.value)
+              expandPromise = resolve()
+            promise = expandPromise.then (function() {
+              return makeRhsExpansionPromiseFor (node.rhs || [], expr)
+            })
             break
-
-          case 'cap':
-            expansion = capitalize (arg)
-            break
-          case 'uc':
-            expansion = arg.toUpperCase()
-            break
-          case 'lc':
-            expansion = arg.toLowerCase()
-            break
-          case 'plural':
-            expansion = pluralForm(arg)
-            break
-          case 'a':
-            expansion = indefiniteArticle (arg)
-            break
-
-            // nlp: nouns
-          case 'nlp_plural':  // alternative to built-in plural
-            expansion = nlp(arg).nouns(0).toPlural().text()
-            break
-          case 'singular':
-            expansion = nlp(arg).nouns(0).toSingular().text()
-            break
-          case 'topic':
-            expansion = nlp(arg).topics(0).text()
-            break
-          case 'person':
-            expansion = nlp(arg).people(0).text()
-            break
-          case 'place':
-            expansion = nlp(arg).places(0).text()
-            break
-
-            // nlp: verbs
-          case 'past':
-            expansion = nlp(arg).verbs(0).toPastTense().text()
-            break
-          case 'present':
-            expansion = nlp(arg).verbs(0).toPresentTense().text()
-            break
-          case 'future':
-            expansion = nlp(arg).verbs(0).toFutureTense().text()
-            break
-          case 'infinitive':
-            expansion = nlp(arg).verbs(0).toInfinitive().text()
-            break
-          case 'gerund':
-            expansion = nlp(arg).verbs(0).toGerund().text()
-            break
-          case 'adjective':
-            expansion = nlp(arg).verbs(0).asAdjective()[0] || ''
-            break
-          case 'negative':
-            expansion = nlp(arg).verbs(0).toNegative().text()
-            break
-          case 'positive':
-            expansion = nlp(arg).verbs(0).toPositive().text()
-            break
-
+          case 'alt':
           default:
-            expansion = arg
             break
           }
         }
-        break
-      case 'root':
-      case 'opt':
-      case 'sym':
-        if (leaveSymbolsUnexpanded && node.name)
-          expansion = symCharHtml + node.name + '.' + (node.limit ? ('limit' + node.limit.type) : (node.notfound ? 'notfound' : 'unexpanded'))
-        else if (node.rhs)
-          expansion = makeRhsExpansionTextFor (node.rhs)
-        break
-      case 'alt':
-      default:
-        break
       }
-  }
-  return expansion
+      return promise
+    }).then (function (expansion) {
+      return handlerPromise ([node, varVal, depth, expansion], resolve(), config.after, 'all', node.type)
+        .then (function() { return expansion })
+    })
 }
 
 function makeRhsExpansionText (config) {
@@ -419,8 +597,8 @@ function makeRhsExpansionTextForConfig (config, rhs) {
 function makeExpansionText (config) {
   var node = config.node
   var leaveSymbolsUnexpanded = config.leaveSymbolsUnexpanded
-  var varVal = config.vars || defaultVarVal()
-  var makeSymbolName = config.makeSymbolName
+  var varVal = config.vars || {}
+  var makeSymbolName = config.makeSymbolName || defaultMakeSymbolName
   var expandCallback = config.expandCallback
   var expansion = ''
   var makeRhsExpansionTextFor = makeRhsExpansionTextForConfig.bind (this, config)
@@ -535,9 +713,12 @@ function makeExpansionText (config) {
       case 'root':
       case 'opt':
       case 'sym':
+/*
         if (leaveSymbolsUnexpanded && node.name)
           expansion = symCharHtml + node.name + '.' + (node.limit ? ('limit' + node.limit.type) : (node.notfound ? 'notfound' : 'unexpanded'))
-        else if (node.rhs)
+        else
+*/
+          if (node.rhs)
           expansion = makeRhsExpansionTextFor (node.rhs)
         break
       case 'alt':
@@ -548,30 +729,11 @@ function makeExpansionText (config) {
   return expansion
 }
 
-function populateVarVal (varVal, sender, recipient, tags) {
-  if (sender)
-    varVal.me = playerChar + sender.name
-  if (recipient)
-    varVal.you = playerChar + recipient.name
-  if (tags)
-    varVal.tags = tags
-  return varVal
-}
-
-function defaultVarVal (sender, recipient, tags) {
-  var varVal = { me: '_Anonymous_',
-                 you: '_Everyone_' }
-  populateVarVal (varVal, sender, recipient, tags)
-  return varVal
-}
-
 function finalVarVal (config) {
   var node = config.node, initVarVal = config.initVarVal
-  var varVal
+  var varVal = {}
   if (initVarVal)
-    varVal = extend ({}, initVarVal)
-  else
-    varVal = defaultVarVal()
+    extend (varVal, initVarVal)
   this.makeExpansionText ({ node: node,
                             vars: varVal,
 			    makeSymbolName: config.makeSymbolName })
@@ -771,11 +933,13 @@ function ordinal(i) {
 }
 
 // Externally exposed functions
-var api = {
+module.exports = {
+  // parsing
+  parseRhs: parseRhs,
+  maxDepth: 100,
+  maxDepthForExpr: 3,
   // parse tree constants
   symChar: symChar,
-  symCharHtml: symCharHtml,
-  playerChar: playerChar,
   varChar: varChar,
   funcChar: funcChar,
   leftBraceChar: leftBraceChar,
@@ -783,6 +947,7 @@ var api = {
   leftSquareBraceChar: leftSquareBraceChar,
   rightSquareBraceChar: rightSquareBraceChar,
   assignChar: assignChar,
+  traceryChar: traceryChar,
   // parse tree manipulations
   sampleParseTree: sampleParseTree,
   getSymbolNodes: getSymbolNodes,
@@ -792,12 +957,16 @@ var api = {
   makeRhsText: makeRhsText,
   makeExpansionText: makeExpansionText,
   makeRhsExpansionText: makeRhsExpansionText,
+
+  makeExpansionPromise: makeExpansionPromise,
+  makeRhsExpansionPromise: makeRhsExpansionPromise,
+  makeExpansionSync: makeExpansionSync,
+  makeRhsExpansionSync: makeRhsExpansionSync,
+
   summarizeRhs: summarizeRhs,
   summarizeExpansion: summarizeExpansion,
-  defaultVarVal: defaultVarVal,
   finalVarVal: finalVarVal,
   nextVarVal: nextVarVal,
-  populateVarVal: populateVarVal,
   // English grammar
   conjugate: conjugate,
   was: was,
@@ -822,5 +991,3 @@ var api = {
   randomElement: randomElement,
   nRandomElements: nRandomElements
 }
-
-module.exports = api

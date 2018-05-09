@@ -52,7 +52,9 @@ describe('basic test', function() {
 
   // look out! recursion
   expectExpand ('$test3', 'xxx')
-  expectExpand ('$test3', 'xxxxx', { maxRecursionDepth: 5 })
+  expectExpand ('$test3', 'xxx', { maxDepth: 5 })
+  expectExpand ('$test3', 'xxxxx', { maxDepth: 5, maxDepthForExpr: 10 })
+  expectExpand ('$test3', 'xxxxx', { maxDepthForExpr: 5 })
 
   // quoting
   expectExpand ('$test4', '$TEST1')

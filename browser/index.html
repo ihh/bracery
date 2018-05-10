@@ -63,6 +63,7 @@
 	      var text = evalElement.value.match(/\S/) ? evalElement.value : ''
 	      var config = configElement.value.match(/\S/) ? JSON.parse(configElement.value) : {}
 	      var b = new bracery.Bracery (defs)
+              evalElement.placeholder = '#' + b.getDefaultSymbol() + '#'
 	      if (asyncElement.checked) {
 	        config.callback = show
 	        b.expand (text, config)

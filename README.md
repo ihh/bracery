@@ -59,7 +59,7 @@ See [examples](examples/) for more examples from the Tracery [online tutorial](h
 
 ## In the browser
 
-Very basic demo in [browser/](browser/), see it [live here](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/browser/index.html)
+[Basic demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/browser/index.html) (source in [browser/](browser/))
 
 # Syntax
 

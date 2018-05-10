@@ -1,10 +1,11 @@
 {
   "name": "bracery",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "Procedural text generator, somewhat compatible with Tracery",
   "main": "index.js",
   "scripts": {
-    "test": "node ./node_modules/mocha/bin/mocha test/*.js"
+    "test": "node ./node_modules/mocha/bin/mocha test/*.js",
+    "prepublish": "make; git clean -fd"
   },
   "repository": {
     "type": "git",

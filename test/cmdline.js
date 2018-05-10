@@ -45,7 +45,8 @@ function expectExpand (lhs, rhs, config) {
        var cmdline = process.argv[0] + ' ' + __dirname + '/../' + binPath + " -c '" + JSON.stringify(config || {}) + "' -s '" + JSON.stringify(initJson) + "'"
            + (config && config.opts ? (' ' + config.opts) : '')
            + " '" + lhs + "'"
-       var text = execSync(cmdline,{stdio:['pipe','pipe','ignore']}).toString()
+       //        var text = execSync(cmdline,{stdio:['pipe','pipe','ignore']}).toString()
+       var text = execSync(cmdline).toString()
        text = text.substr (0, text.length - 1)  // chop off newline
        if (fail)
          assert.notEqual (text, rhs)

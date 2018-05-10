@@ -42,7 +42,7 @@ See [tests](test/) for more examples using the JavaScript API
 
 ## From the command line
 
-Trying various command line settings with the same [`#hero# traveled with her pet #heroPet#`](examples/travel.json) symbol defintions file:
+Trying various command line settings with the same symbol defintions file, [examples/travel.json](examples/travel.json) (`#hero# traveled with her pet...`):
 
 ~~~~
 bin/bracery -d examples/travel.json
@@ -52,6 +52,11 @@ bin/bracery -d examples/travel.json -n5 -e '$origin And they had [so|SO] [much [
 bin/bracery -d examples/travel.json --tree
 bin/bracery -d examples/travel.json --repl
 bin/bracery -d examples/travel.json -n5 --async
+~~~~
+
+To get a list of available options (there aren't many)
+
+~~~~
 bin/bracery --help
 ~~~~
 

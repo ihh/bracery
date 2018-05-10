@@ -4,7 +4,13 @@
 # Bracery
 
 Bracery is a small procedural text generation language (and library)
-blending elements of [Tracery](http://tracery.io/) (by [@galaxykate](https://github.com/galaxykate)) and [regular expression](https://en.wikipedia.org/wiki/Regular_expression) syntax.
+that may be viewed as a [dialect](https://en.wikipedia.org/wiki/Programming_language#Dialects,_flavors_and_implementations)
+of [Tracery](http://tracery.io/) (by [@galaxykate](https://github.com/galaxykate)),
+with influences from [regular expression](https://en.wikipedia.org/wiki/Regular_expression) syntax and 
+[Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)).
+
+Bracery is specialized for asynchronous, distributed settings e.g. where the Tracery client is decoupled from the symbol definition store.
+Expansion of Bracery expressions occurs using promises, which may e.g. involve calls to web services.
 
 # Usage
 

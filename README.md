@@ -72,10 +72,11 @@ The formal grammar for Bracery is in [src/rhs.peg.js](src/rhs.peg.js) (specified
 
 Language features include
 
-- named nonterminals: Tracery-style `#symbol_name#`, or Bracery-style `$symbol_name` or `${symbol_name}` (the latter is useful if you want to follow it with an alphanumeric or underscore)
+- named nonterminals: Tracery-style `#symbol_name#`, or Bracery-style `$symbol_name` or `${symbol_name}`
+   - subtle difference: the Tracery style allows the symbol definition to be overridden by a local variable
 - alternations (anonymous nonterminals), which can be nested: `[option1|option 2|3rd opt|4th|more [options|nested options]...]`
 - variables: Tracery-style `[variable_name:value]` or `^variable_name={value}` to assign, `^variable_name` or `^{variable_name}` to retrieve (names are case-insensitive)
-   - the Tracery-style syntax `#variable_name#` can also be used to access the variable, but it also does a dynamic evaluation; see below
+   - the Tracery-style syntax `#variable_name#` evaluates the variable dynamically, if defined
 - built-in text-processing functions:
    - `&plural{...}` (plural), `&a{...}` ("a" or "an")
    - `&cap{...}` (Capitalize), `&lc{...}` and `&uc{...}` (lower- & UPPER-case)
@@ -92,4 +93,4 @@ Language features include
    - braces can be omitted in many situations where context is obvious, e.g. `^currency=&cap&plural$name` means the same as `^currency={&cap{&plural{$name}}}`
    - as a shorthand, you can use `$Nonterminal_name` as a shorthand for `&cap{$nonterminal_name}`, and `^Variable_name` for `&cap{^variable_name}`
    - similarly, `$NONTERMINAL_NAME` is a shorthand for `&uc{$nonterminal_name}`, and  `^VARIABLE_NAME` for `&uc{^variable_name}`
-   - as well as the Tracery syntax for nonterminals, i.e. `#symbol_name#` instead of `$symbol_name`, you can optionally use the Tracery modifier syntax, e.g. `#symbol_name.capitalize#` instead of `&cap{$symbol_name}`
+   - some Tracery modifier syntax works, e.g. `#symbol_name.capitalize#` instead of `&cap{#symbol_name#}`

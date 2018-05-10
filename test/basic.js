@@ -24,29 +24,19 @@ describe('initialization', function() {
 
 var maxTries = 100
 describe('synchronous tests', function() {
-  doTests (true)
+  doTests (function (lhs, rhs, config, verify) {
+    return function (done) {
+      var text
+      for (var n = 0; text !== rhs && n < maxTries; ++n)
+        text = b.expand (lhs, config).text
+      verify (text, done)
+    }
+  })
 })
+
 describe('asynchronous tests', function() {
-  doTests (false)
-})
-function doTests (syncFlag) {
-  function expectExpand (lhs, rhs, config) {
-    var maxTries = (config && config.maxTries) || 1
-    var fail = config && config.fail
-    it('should expand ' + lhs + ' to ' + rhs
-       + (config ? (' with ' + JSON.stringify(config)) : ''),
-       (syncFlag
-        ? function (done) {
-          var text
-          for (var n = 0; text !== rhs && n < maxTries; ++n)
-            text = b.expand (lhs, config).text
-          if (fail)
-            assert.notEqual (text, rhs)
-          else
-            assert.equal (text, rhs)
-          done()
-        }
-        : function (done) {
+  doTests (function (lhs, rhs, config, verify) {
+    return function (done) {
           function tryExpand (n) {
             n = n || 0
             b.expand (lhs,
@@ -58,20 +48,30 @@ function doTests (syncFlag) {
                          if (text !== rhs && n < maxTries)
                            tryExpand (n + 1)
                          else
-                           verify (text)
+                           verify (text, done)
                        } }))
           }
 
-          function verify (text) {
-            if (fail)
-              assert.notEqual (text, rhs)
-            else
-              assert.equal (text, rhs)
-            done()
-          }
+      tryExpand()
+    }
+  })
+})
 
-          tryExpand()
-        }))
+function doTests (testRunner) {
+
+  function expectExpand (lhs, rhs, config) {
+    var maxTries = (config && config.maxTries) || 1
+    var fail = config && config.fail
+    function verify (text, done) {
+      if (fail)
+        assert.notEqual (text, rhs)
+      else
+        assert.equal (text, rhs)
+      done()
+    }
+    it('should expand ' + lhs + ' to ' + rhs
+       + (config ? (' with ' + JSON.stringify(config)) : ''),
+       testRunner (lhs, rhs, config, verify))
   }
 
   expectExpand ('$hello $world', 'hello world', {maxTries:maxTries})

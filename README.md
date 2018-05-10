@@ -14,6 +14,8 @@ Expansion of Bracery expressions occurs using promises, which may e.g. involve c
 
 # Usage
 
+## From NodeJS
+
 Basic Tracery (an example from @galaxykate's [online tutorial](http://www.crystalcodepalace.com/traceryTut.html))
 
 ~~~~
@@ -29,7 +31,7 @@ var b = new bracery.Bracery
 console.log (b.expand().text)
 ~~~~
 
-or from the command line
+## From the command line
 
 ~~~~
 bin/bracery -d examples/travel.json
@@ -44,7 +46,13 @@ bin/bracery --help
 
 See [tests](test/) and [examples](examples/) for more examples
 
+## In the browser
+
+Very basic demo in [browser/](browser/), see it [live here](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/browser/index.html)
+
 # Syntax
+
+The formal grammar for Bracery is in [src/rhs.peg.js](src/rhs.peg.js) (specified using [PegJS](https://pegjs.org/))
 
 Language features include
 

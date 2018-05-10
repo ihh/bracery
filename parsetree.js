@@ -5,6 +5,7 @@ var RhsParser = require('./grammar/rhs.js')
 function isArray (obj) { return Object.prototype.toString.call(obj) === '[object Array]' }
 
 function extend (dest) {
+  dest = dest || {}
   Array.prototype.slice.call (arguments, 1).forEach (function (src) {
     if (src)
       Object.keys(src).forEach (function (key) { dest[key] = src[key] })
@@ -92,9 +93,11 @@ function sampleParseTree (rhs, rng) {
         break
       default:
       case 'sym':
-	result = { type: 'sym',
-		   id: node.id,
-		   name: node.name }
+	result = { type: 'sym' }
+        if (typeof(node.name) !== 'undefined')
+	  result.name = node.name
+        if (typeof(node.id) !== 'undefined')
+	  result.id = node.id
 	break
       }
     return result
@@ -446,8 +449,11 @@ function makeExpansionPromise (config) {
                   .then (function (localExpansion) {
                     expansion.text = localExpansion.text
                     expansion.vars[node.varname] = oldValue
+                    return expansionPromise
                   })
-              }).then (expansionPromise)
+                else
+                  return expansionPromise
+              })
             break
 
           case 'lookup':
@@ -488,6 +494,7 @@ function makeExpansionPromise (config) {
                     return makeRhsExpansionPromiseFor (node.value, arg)
                       .then (function (evalExpansion) {
                         extend (expansion, evalExpansion)
+                        return expansion
                       })
                     break
 

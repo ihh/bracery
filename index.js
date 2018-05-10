@@ -97,7 +97,8 @@ function validateSymbolName (name) {
   return name.toLowerCase()
 }
 
-function defaultSymbol (bracery) {
+Bracery.prototype.getDefaultSymbol = function() {
+  var bracery = this
   if (typeof(bracery.defaultSymbol) === 'string')
     return bracery.defaultSymbol
   for (var n = 0; n < bracery.defaultSymbol.length; ++n) {
@@ -105,18 +106,18 @@ function defaultSymbol (bracery) {
     if (bracery.rules[name])
       return name
   }
-  return Object.keys(bracery.rules).sort()[0]
+  return bracery.symbolNames()[0]
 }
 
 Bracery.prototype.expand = function (braceryText, config) {
-  braceryText = braceryText || ('$' + defaultSymbol(this))
+  braceryText = braceryText || ('$' + this.getDefaultSymbol())
   if (typeof(braceryText) !== 'string')
     throw new Error ('the text to be expanded must be a string')
   return this._expandRhs (extend ({}, config, { rhsText: braceryText }))
 }
 
 Bracery.prototype.expandSymbol = function (symbolName, config) {
-  symbolName = symbolName || defaultSymbol(this)
+  symbolName = symbolName || this.getDefaultSymbol()
   symbolName = validateSymbolName (symbolName)
   return this._expandRhs (extend ({}, config, { rhs: [{ name: symbolName }] }))
 }

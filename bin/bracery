@@ -47,12 +47,13 @@ function expansionLogger (n, expansion) {
                : expansion.text)
   if (expansion)
     varVal = expansion.vars
+  expandedSomething = true
 }
 function expand (expr) {
   for (var n = 0; n < samples; ++n) {
     var gotExpansion = expansionLogger.bind (null, n)
     if (opt.options.async)
-      b.expand (expr, { vars: varVal,
+      b.expand (expr, { vars: bracery.ParseTree.extend ({}, varVal),
                         before: before,
                         after: after,
                         callback: gotExpansion })
@@ -61,7 +62,6 @@ function expand (expr) {
                                       beforeSync: before,
                                       afterSync: after }))
   }
-  expandedSomething = true
 }
 
 var addedRules = false
@@ -79,7 +79,9 @@ if (opt.options.symbols)
 var symbolNames = b.symbolNames()
 if (symbolNames.length || opt.options.defs) {
   var nRules = symbolNames.reduce (function (sum, name) { return sum + b.getRules(name).length }, 0)
-  console.warn('(' + bracery.ParseTree.nPlurals(symbolNames.length,'symbol') + ', ' + bracery.ParseTree.nPlurals(nRules,'rule') + ' defined)')
+  console.warn('(' + bracery.ParseTree.nPlurals(symbolNames.length,'symbol')
+               + ', ' + bracery.ParseTree.nPlurals(nRules,'rule')
+               + ' defined, initial symbol ' + bracery.ParseTree.symChar + b.getDefaultSymbol() + ')')
 }
 
 if (opt.options.eval)
@@ -97,6 +99,7 @@ if (!expandedSomething) {
   else {
     if (addedRules)
       expand()
-    console.error ('please give me some Bracery text to expand')
+    if (!addedRules || opt.options.repl)
+      console.error ('please give me some Bracery text to expand')
   }
 }

@@ -385,11 +385,13 @@ function makeRhsExpansionPromise (config) {
         .then (function (childExpansion) {
           return extend (expansion,
                          childExpansion,
-                         { text: expansion.text + childExpansion.text })
+                         { text: expansion.text + childExpansion.text,
+                           tree: expansion.tree.concat (childExpansion.tree) })
         })
     })
   }, resolve ({ text: '',
-                vars: config.vars }))
+                vars: config.vars,
+                tree: [] }))
 }
 
 function makeRhsExpansionPromiseForConfig (config, resolve, rhs, contextName) {

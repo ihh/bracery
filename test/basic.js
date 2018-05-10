@@ -12,12 +12,12 @@ var nTestSymbols = Object.keys(initJson).length
 
 var b
 function expectExpand (lhs, rhs, config) {
+  var maxTries = (config && config.maxTries) || 1
+  var fail = config && config.fail
   it('should expand ' + lhs + ' to ' + rhs
      + (config ? (' with ' + JSON.stringify(config)) : ''),
      function (done) {
        var text
-       var maxTries = (config && config.maxTries) || 1
-       var fail = config && config.fail
        for (var n = 0; text !== rhs && n < maxTries; ++n)
          text = b.expand (lhs, config).text
        if (fail)
@@ -25,6 +25,35 @@ function expectExpand (lhs, rhs, config) {
        else
          assert.equal (text, rhs)
        done()
+     })
+  it('should expand ' + lhs + ' to ' + rhs
+     + (config ? (' with ' + JSON.stringify(config)) : '')
+     + ' asynchronously',
+     function (done) {
+       function tryExpand (n) {
+         n = n || 0
+         b.expand (lhs,
+                   bracery.ParseTree.extend
+                   ({},
+                    config,
+                    { callback: function (expansion) {
+                      var text = expansion.text
+                      if (text !== rhs && n < maxTries)
+                        tryExpand (n + 1)
+                      else
+                        verify (text)
+                    } }))
+       }
+
+       function verify (text) {
+         if (fail)
+           assert.notEqual (text, rhs)
+         else
+           assert.equal (text, rhs)
+         done()
+       }
+
+       tryExpand()
      })
 }
 

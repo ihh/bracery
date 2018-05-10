@@ -563,7 +563,9 @@ function makeExpansionPromise (config) {
                     expansion.text = arg
                     break
                   }
-                }).then (expansionPromise)
+                }).then (function() {
+                  return expansion
+                })
             }
             break
           case 'root':

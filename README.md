@@ -11,6 +11,7 @@ with influences from [regular expression](https://en.wikipedia.org/wiki/Regular_
 
 Bracery is specialized for asynchronous, distributed settings e.g. where the Tracery client is decoupled from the symbol definition store.
 Expansion of Bracery expressions occurs using promises, which may e.g. involve calls to web services.
+However, it also works just fine as a synchronous library, like Tracery (this is the default when running from the command-line, or using the main API).
 
 # Usage
 
@@ -31,7 +32,11 @@ var b = new bracery.Bracery
 console.log (b.expand().text)
 ~~~~
 
+See [tests](test/) for more examples using the JavaScript API
+
 ## From the command line
+
+Trying various command line settings with the same [`#hero# traveled with her pet #heroPet#`](examples/travel.json) symbol defintions file:
 
 ~~~~
 bin/bracery -d examples/travel.json
@@ -44,7 +49,7 @@ bin/bracery -d examples/travel.json -n5 --async
 bin/bracery --help
 ~~~~
 
-See [tests](test/) and [examples](examples/) for more examples
+See [examples](examples/) for more examples from the Tracery [online tutorial](http://www.crystalcodepalace.com/traceryTut.html)
 
 ## In the browser
 

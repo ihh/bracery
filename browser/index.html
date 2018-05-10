@@ -17,7 +17,7 @@
 	  </textarea>
 	</div>
 	<br><p>
-	Text to be expanded:
+	Text to be expanded (<a href="#" id="erase">erase</a> for default):
 	<div>
 	<textarea id="eval" style="width: 100%;">#origin# And they had fun... until they met #name#.</textarea>
 	</div>
@@ -38,11 +38,16 @@
 	      <label for="async">Run asynchronously</label>
 	    </div>
 	</div>
+	<!-- try two different places for compromise. kludgy hack to allow local or github-hosted testing -->
 	<script src="https://raw.githubusercontent.com/spencermountain/compromise/master/builds/compromise.es6.js"></script>
-	<script src="bracery.min.js"></script>
+	<script src="../node_modules/compromise/builds/compromise.es6.js"></script>
+	<!-- bracery -->
+	<script src="bracery.js"></script>
+	<!-- hook up the UI -->
 	<script>
 	  var defsElement = document.getElementById('defs')
 	  var evalElement = document.getElementById('eval')
+	  var eraseElement = document.getElementById('erase')
 	  var rerollElement = document.getElementById('reroll')
 	  var expElement = document.getElementById('expansion')
 	  var configElement = document.getElementById('config')
@@ -72,6 +77,7 @@
 	  configElement.addEventListener ('keyup', update)
 	  expElement.addEventListener ('click', update)
 	  asyncElement.addEventListener ('click', update)
+	  eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.value = ''; update() })
 	  rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); update() })
 	  showElement.addEventListener ('click', function (evt) { evt.preventDefault(); showElement.remove(); advElement.style = '' })
 	  update()

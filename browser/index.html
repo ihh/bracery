@@ -37,6 +37,10 @@
 	      <input type="checkbox" id="async" name="async">
 	      <label for="async">Run asynchronously</label>
 	    </div>
+	    <div>
+	      <input type="checkbox" id="tree" name="tree">
+	      <label for="tree">Show parse tree</label>
+	    </div>
 	</div>
 	<!-- try two different places for compromise. kludgy hack to allow local or github-hosted testing -->
 	<script src="https://raw.githubusercontent.com/spencermountain/compromise/master/builds/compromise.es6.js"></script>
@@ -52,16 +56,21 @@
 	  var expElement = document.getElementById('expansion')
 	  var configElement = document.getElementById('config')
 	  var asyncElement = document.getElementById('async')
+	  var treeElement = document.getElementById('tree')
 	  var showElement = document.getElementById('showadvanced')
 	  var advElement = document.getElementById('advanced')
 	  function show (expansion) {
-	      expElement.innerText = expansion.text
+	      expElement.innerText = treeElement.checked ? JSON.stringify(expansion) : expansion.text
 	  }
 	  function update() {
 	    try {
 	      var defs = defsElement.value.match(/\S/) ? JSON.parse(defsElement.value) : {}
 	      var text = evalElement.value.match(/\S/) ? evalElement.value : ''
 	      var config = configElement.value.match(/\S/) ? JSON.parse(configElement.value) : {}
+              if (!showElement.parentElement) {
+	          config.beforeSync = { all: console.warn.bind (console, 'before node,varval,depth:') }
+	          config.afterSync = { all: console.warn.bind (console, 'after node,varval,depth,expansion:') }
+	      }
 	      var b = new bracery.Bracery (defs)
               evalElement.placeholder = '#' + b.getDefaultSymbol() + '#'
 	      if (asyncElement.checked) {
@@ -78,6 +87,7 @@
 	  configElement.addEventListener ('keyup', update)
 	  expElement.addEventListener ('click', update)
 	  asyncElement.addEventListener ('click', update)
+	  treeElement.addEventListener ('click', update)
 	  eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.value = ''; update() })
 	  rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); update() })
 	  showElement.addEventListener ('click', function (evt) { evt.preventDefault(); showElement.remove(); advElement.style = '' })

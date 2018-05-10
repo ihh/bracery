@@ -470,7 +470,9 @@ function makeExpansionPromise (config) {
           case 'cond':
             promise = makeRhsExpansionPromiseFor (node.test)
               .then (function (testExpansion) {
-                var condRhs = testExpansion.text.match(/\S/) ? node.t : node.f
+                var testValue = testExpansion.text.match(/\S/) ? true : false
+                var condRhs = testValue ? node.t : node.f
+                node.value = testValue  // for debugging
                 return makeRhsExpansionPromiseFor (condRhs)
               })
             break

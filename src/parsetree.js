@@ -764,16 +764,6 @@ function finalVarVal (config) {
   return varVal
 }
 
-function nextVarVal (config) {
-  var varVal = this.finalVarVal (config)
-  varVal.prevtags = varVal.tags
-  delete varVal.tags
-  delete varVal.icon
-  delete varVal.icolor
-  populateVarVal (varVal, config.sender, config.recipient, config.tags)
-  return varVal
-}
-
 // English grammar helper functions
 
 // Verb conjugation
@@ -996,7 +986,6 @@ module.exports = {
   summarizeRhs: summarizeRhs,
   summarizeExpansion: summarizeExpansion,
   finalVarVal: finalVarVal,
-  nextVarVal: nextVarVal,
   // English grammar
   conjugate: conjugate,
   was: was,

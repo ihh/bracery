@@ -611,17 +611,11 @@ function makeExpansionPromise (config) {
 }
 
 function makeRhsExpansionText (config) {
-  return this.makeRhsExpansionSync (config)
-    .then (function (expansion) {
-      return expansion.text
-    })
+  return this.makeRhsExpansionSync (config).text
 }
 
 function makeExpansionText (config) {
-  return this.makeExpansionSync (config)
-    .then (function (expansion) {
-      return expansion.text
-    })
+  return this.makeExpansionSync (config).text
 }
 
 function finalVarVal (config) {

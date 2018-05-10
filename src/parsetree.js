@@ -1,5 +1,4 @@
-var Promise = require('bluebird')
-var RhsParser = require('./grammar/rhs.js')
+var RhsParser = require('./rhs')
 
 // General helper functions
 function isArray (obj) { return Object.prototype.toString.call(obj) === '[object Array]' }
@@ -964,6 +963,7 @@ module.exports = {
   maxDepthForExpr: 3,
 
   // parsing
+  RhsParser: RhsParser,
   parseRhs: parseRhs,
   makeRoot: makeRoot,
 

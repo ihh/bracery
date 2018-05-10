@@ -1,0 +1,1 @@
+window.bracery = require('./bracery');

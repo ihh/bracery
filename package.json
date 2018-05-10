@@ -18,10 +18,13 @@
   "homepage": "https://github.com/ihh/bracery#readme",
   "dependencies": {
     "bluebird": "^3.5.1",
-    "browserify": "^16.2.2",
     "compromise": "^11.7.0",
+    "node-getopt": "^0.3.2"
+  },
+  "devDependencies": {
+    "browserify": "^16.2.2",
     "mocha": "^5.1.1",
-    "node-getopt": "^0.3.2",
+    "pegjs": "^0.10.0",
     "uglify-js": "^3.3.24"
   }
 }

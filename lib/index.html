@@ -1,0 +1,81 @@
+<html>
+  <head>
+    <title>Bracery</title>
+  </head>
+  <body style="display: flex; flex-direction: row; justify-content: space-around;">
+    <div style="width: 600px; background-color: #eee; padding: 4px;">
+      <h1><a href="https://github.com/ihh/bracery">Bracery</a></h1>
+      <p>
+	Symbol definitions:
+	<div>
+	  <textarea id="defs" style="width: 100%; min-height: 10em;">
+{"name": ["Arjun","Yuuma","Darcy","Mia","Chiaki","Izzi","Azra","Lina"],
+"animal": ["unicorn","raven","sparrow","scorpion","coyote","eagle","owl","lizard","zebra","duck","kitten"],
+"mood": ["vexed","indignant","impassioned","wistful","astute","courteous"],
+"story": ["#hero# traveled with her pet #heroPet#.  #hero# was never #mood#, for the #heroPet# was always too #mood#."],
+"origin": ["#[hero:#name#][heroPet:#animal#]story#"]}
+	  </textarea>
+	</div>
+	<br><p>
+	Text to be expanded:
+	<div>
+	<textarea id="eval" style="width: 100%;">#origin# And they had fun... until they met #name#.</textarea>
+	</div>
+	<br><p>
+	Expansion (<a id="reroll" href="#">re-roll</a>):
+	<div id="expansion" style="width: 100%; background-color: lightgray;">
+	</div>
+	<br><p>
+	<a href="#" id="showadvanced">Advanced</a>
+	<div id="advanced" style="display: none;">
+	  <br><p>
+	    Configuration:
+	    <div>
+	      <textarea id="config" style="width: 100%;">{"maxDepth":100,"maxDepthForExpr":3}</textarea>
+	    </div>
+	    <div>
+	      <input type="checkbox" id="async" name="async">
+	      <label for="async">Run asynchronously</label>
+	    </div>
+	</div>
+	<script src="../node_modules/compromise/builds/compromise.es6.js"></script>
+	<script src="../node_modules/bluebird/js/browser/bluebird.js"></script>
+	<script src="bracery.min.js"></script>
+	<script>
+	  var defsElement = document.getElementById('defs')
+	  var evalElement = document.getElementById('eval')
+	  var rerollElement = document.getElementById('reroll')
+	  var expElement = document.getElementById('expansion')
+	  var configElement = document.getElementById('config')
+	  var asyncElement = document.getElementById('async')
+	  var showElement = document.getElementById('showadvanced')
+	  var advElement = document.getElementById('advanced')
+	  function show (expansion) {
+	      expElement.innerText = expansion.text
+	  }
+	  function update() {
+	    try {
+	      var defs = defsElement.value.match(/\S/) ? JSON.parse(defsElement.value) : {}
+	      var text = evalElement.value.match(/\S/) ? evalElement.value : ''
+	      var config = configElement.value.match(/\S/) ? JSON.parse(configElement.value) : {}
+	      var b = new bracery.Bracery (defs)
+	      if (asyncElement.checked) {
+	        config.callback = show
+	        b.expand (text, config)
+	      } else
+	        show (b.expand (text, config))
+	    } catch (e) {
+	      expElement.innerText = e
+	    }
+	  }
+	  defsElement.addEventListener ('keyup', update)
+	  evalElement.addEventListener ('keyup', update)
+	  configElement.addEventListener ('keyup', update)
+	  asyncElement.addEventListener ('click', update)
+	  rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); update() })
+	  showElement.addEventListener ('click', function (evt) { evt.preventDefault(); showElement.remove(); advElement.style = '' })
+	  update()
+	</script>
+    </div>
+  </body>
+</html>

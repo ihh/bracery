@@ -4,7 +4,6 @@
 var fs = require('fs'),
     getopt = require('node-getopt'),
     readline = require('readline'),
-    Promise = require('bluebird'),
     bracery = require('..'),
     extend = bracery.ParseTree.extend
 

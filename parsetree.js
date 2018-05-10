@@ -310,18 +310,18 @@ function throwExpandError (node) {
 }
 
 function syncPromiseResolve() {
-  // returns a dummy Promise-like object that will call the next then'd Promise or function immediately
+  // returns a dummy Promise-like (thenable) object that will call the next then'd Promise or function immediately
   var result = Array.prototype.splice.call (arguments, 0)
-  if (result.length === 1 && result[0] && typeof(result[0].then) !== 'undefined')  // if we're given one result & it looks like a Promise, return that
+  if (result.length === 1 && result[0] && typeof(result[0].then) === 'function')  // if we're given one result & it looks like a Promise, return that
     return result[0]
   return { result: result,  // for debugging inspection
            then:
-           function (next) {  // next can be a function or a Promise-like object
-             if (typeof(next.then) !== 'undefined')  // looks like a Promise?
+           function (next) {  // next can be a function or another thenable
+             if (typeof(next.then) === 'function')  // thenable?
                return next
              // next is a function, so call it
              var nextResult = next.apply (next, result)
-             if (nextResult && typeof(nextResult.then) !== 'undefined')  // looks like a Promise?
+             if (nextResult && typeof(nextResult.then) !== 'undefined')  // thenable?
                return nextResult
              // create a Promise-like wrapper for the result
              return syncPromiseResolve (nextResult)

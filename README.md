@@ -1,7 +1,10 @@
+[![Build Status](https://travis-ci.org/ihh/bracery.svg?branch=master)](https://travis-ci.org/ihh/bracery)
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+
 # Bracery
 
 Bracery is a small procedural text generation language (and library)
-blending elements of [Tracery](http://tracery.io/) by @galaxykate and [regular expression](https://en.wikipedia.org/wiki/Regular_expression) syntax.
+blending elements of [Tracery](http://tracery.io/) by [@galaxykate](https://github.com/galaxykate) and [regular expression](https://en.wikipedia.org/wiki/Regular_expression) syntax.
 
 # Usage
 

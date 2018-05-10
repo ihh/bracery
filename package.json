@@ -1,6 +1,6 @@
 {
   "name": "bracery",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Procedural text generator, somewhat compatible with Tracery",
   "main": "index.js",
   "scripts": {
@@ -11,7 +11,7 @@
     "url": "git+https://github.com/ihh/bracery.git"
   },
   "author": "Ian Holmes <ihholmes@gmail.com>",
-  "license": "BSD-4-Clause-UC",
+  "license": "BSD-3-Clause",
   "bugs": {
     "url": "https://github.com/ihh/bracery/issues"
   },

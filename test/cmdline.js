@@ -31,7 +31,7 @@ describe('command-line tests (' + binPath + ')', function() {
   // command-line options
   expectExpand ('hello', '['+JSON.stringify({text:'hello',vars:{},tree:['hello']},null,2)+']', { opts: '--tree' })
   expectExpand ('$test1', '[{"text":"testing","vars":{},"tree":[{"type":"sym","name":"test1","rhs":["testing"]}]}]', { opts: '--compact-tree' })
-  expectExpand ('$test4', '$TEST1', { opts: '--async' })
+  expectExpand ('#test4#', '$TEST1', { opts: '--async' })
 })
 
 function expectExpand (lhs, rhs, config) {

@@ -611,151 +611,17 @@ function makeExpansionPromise (config) {
 }
 
 function makeRhsExpansionText (config) {
-  var pt = this
-  return config.rhs.map (function (child) {
-    return pt.makeExpansionText (extend ({}, config, { node: child }))
-  }).join('')
-}
-
-function makeRhsExpansionTextForConfig (config, rhs) {
-  return this.makeRhsExpansionText (extend ({}, config, { rhs: rhs }))
+  return this.makeRhsExpansionSync (config)
+    .then (function (expansion) {
+      return expansion.text
+    })
 }
 
 function makeExpansionText (config) {
-  var node = config.node
-  var leaveSymbolsUnexpanded = config.leaveSymbolsUnexpanded
-  var varVal = config.vars || {}
-  var makeSymbolName = config.makeSymbolName || defaultMakeSymbolName
-  var expandCallback = config.expandCallback
-  var expansion = ''
-  var makeRhsExpansionTextFor = makeRhsExpansionTextForConfig.bind (this, config)
-  if (node) {
-    if (typeof(node) === 'string')
-      expansion = node
-    else
-      switch (node.type) {
-      case 'assign':
-        var name = node.varname.toLowerCase()
-        var oldValue = varVal[name]
-        varVal[name] = makeRhsExpansionTextFor (node.value)
-        if (node.local) {
-          expansion = makeRhsExpansionTextFor (node.local)
-          varVal[name] = oldValue
-        }
-        break
-      case 'lookup':
-        var name = node.varname.toLowerCase()
-        expansion = varVal[name]
-        break
-      case 'cond':
-        var test = makeRhsExpansionTextFor (node.test)
-        expansion = makeRhsExpansionTextFor (test.match(/\S/) ? node.t : node.f)
-        break;
-
-      case 'func':
-        if (node.funcname === 'quote')
-          expansion = this.makeRhsText (node.args, makeSymbolName)
-	else {
-          var arg = makeRhsExpansionTextFor (node.args)
-          switch (node.funcname) {
-
-          case 'eval':
-            var evaltext = makeRhsExpansionTextFor (node.args)
-	    if (config.validateEvalText && typeof(node.evaltext) !== 'undefined') {
-	      var storedEvalText = this.makeRhsText (node.evaltext, makeSymbolName)
-	      if (evaltext !== storedEvalText)
-		config.validateEvalText (storedEvalText, evalText)
-	    }
-            if (expandCallback && typeof(node.value) === 'undefined')
-              expansion = expandCallback ({ node: node,
-                                            text: evaltext,
-                                            vars: varVal })
-            else
-              expansion = makeRhsExpansionTextFor (node.value)
-            break
-
-          case 'cap':
-            expansion = capitalize (arg)
-            break
-          case 'uc':
-            expansion = arg.toUpperCase()
-            break
-          case 'lc':
-            expansion = arg.toLowerCase()
-            break
-          case 'plural':
-            expansion = pluralForm(arg)
-            break
-          case 'a':
-            expansion = indefiniteArticle (arg)
-            break
-
-            // nlp: nouns
-          case 'nlp_plural':  // alternative to built-in plural
-            expansion = nlp(arg).nouns(0).toPlural().text()
-            break
-          case 'singular':
-            expansion = nlp(arg).nouns(0).toSingular().text()
-            break
-          case 'topic':
-            expansion = nlp(arg).topics(0).text()
-            break
-          case 'person':
-            expansion = nlp(arg).people(0).text()
-            break
-          case 'place':
-            expansion = nlp(arg).places(0).text()
-            break
-
-            // nlp: verbs
-          case 'past':
-            expansion = nlp(arg).verbs(0).toPastTense().text()
-            break
-          case 'present':
-            expansion = nlp(arg).verbs(0).toPresentTense().text()
-            break
-          case 'future':
-            expansion = nlp(arg).verbs(0).toFutureTense().text()
-            break
-          case 'infinitive':
-            expansion = nlp(arg).verbs(0).toInfinitive().text()
-            break
-          case 'gerund':
-            expansion = nlp(arg).verbs(0).toGerund().text()
-            break
-          case 'adjective':
-            expansion = nlp(arg).verbs(0).asAdjective()[0] || ''
-            break
-          case 'negative':
-            expansion = nlp(arg).verbs(0).toNegative().text()
-            break
-          case 'positive':
-            expansion = nlp(arg).verbs(0).toPositive().text()
-            break
-
-          default:
-            expansion = arg
-            break
-          }
-        }
-        break
-      case 'root':
-      case 'opt':
-      case 'sym':
-/*
-        if (leaveSymbolsUnexpanded && node.name)
-          expansion = symCharHtml + node.name + '.' + (node.limit ? ('limit' + node.limit.type) : (node.notfound ? 'notfound' : 'unexpanded'))
-        else
-*/
-          if (node.rhs)
-          expansion = makeRhsExpansionTextFor (node.rhs)
-        break
-      case 'alt':
-      default:
-        break
-      }
-  }
-  return expansion
+  return this.makeExpansionSync (config)
+    .then (function (expansion) {
+      return expansion.text
+    })
 }
 
 function finalVarVal (config) {

@@ -47,7 +47,6 @@ function expansionLogger (n, expansion) {
                : expansion.text)
   if (expansion)
     varVal = expansion.vars
-  expandedSomething = true
 }
 function expand (expr) {
   for (var n = 0; n < samples; ++n) {
@@ -61,6 +60,7 @@ function expand (expr) {
       gotExpansion (b.expand (expr, { vars: varVal,
                                       beforeSync: before,
                                       afterSync: after }))
+    expandedSomething = true
   }
 }
 
@@ -93,13 +93,16 @@ if (opt.options.repl) {
   rl.on ('line', expand)
 }
 
-if (!expandedSomething && !opt.options.async) {
+if (!expandedSomething) {
   if (opt.argv.length)
     expand (opt.argv.join(' '))
   else {
     if (addedRules)
       expand()
-    if (!addedRules || opt.options.repl)
-      console.error ('please give me some Bracery text to expand')
   }
 }
+
+if (opt.options.repl)
+  console.warn ('enter Bracery text for expansion:')
+else if (!expandedSomething && !addedRules)
+  console.error ('please give me some Bracery text to expand')

@@ -11,53 +11,7 @@ var initJson = { hello: '[hello|hi]',
 var nTestSymbols = Object.keys(initJson).length
 
 var b
-function expectExpand (lhs, rhs, config) {
-  var maxTries = (config && config.maxTries) || 1
-  var fail = config && config.fail
-  it('should expand ' + lhs + ' to ' + rhs
-     + (config ? (' with ' + JSON.stringify(config)) : ''),
-     function (done) {
-       var text
-       for (var n = 0; text !== rhs && n < maxTries; ++n)
-         text = b.expand (lhs, config).text
-       if (fail)
-         assert.notEqual (text, rhs)
-       else
-         assert.equal (text, rhs)
-       done()
-     })
-  it('should expand ' + lhs + ' to ' + rhs
-     + (config ? (' with ' + JSON.stringify(config)) : '')
-     + ' asynchronously',
-     function (done) {
-       function tryExpand (n) {
-         n = n || 0
-         b.expand (lhs,
-                   bracery.ParseTree.extend
-                   ({},
-                    config,
-                    { callback: function (expansion) {
-                      var text = expansion.text
-                      if (text !== rhs && n < maxTries)
-                        tryExpand (n + 1)
-                      else
-                        verify (text)
-                    } }))
-       }
-
-       function verify (text) {
-         if (fail)
-           assert.notEqual (text, rhs)
-         else
-           assert.equal (text, rhs)
-         done()
-       }
-
-       tryExpand()
-     })
-}
-
-describe('basic test', function() {
+describe('initialization', function() {
   it('should initialize', function (done) {
     b = new bracery.Bracery (initJson)
     done()
@@ -66,7 +20,60 @@ describe('basic test', function() {
     assert.equal (Object.keys(b.rules).length, nTestSymbols)
     done()
   })
-  var maxTries = 100
+})
+
+var maxTries = 100
+describe('synchronous tests', function() {
+  doTests (true)
+})
+describe('asynchronous tests', function() {
+  doTests (false)
+})
+function doTests (syncFlag) {
+  function expectExpand (lhs, rhs, config) {
+    var maxTries = (config && config.maxTries) || 1
+    var fail = config && config.fail
+    it('should expand ' + lhs + ' to ' + rhs
+       + (config ? (' with ' + JSON.stringify(config)) : ''),
+       (syncFlag
+        ? function (done) {
+          var text
+          for (var n = 0; text !== rhs && n < maxTries; ++n)
+            text = b.expand (lhs, config).text
+          if (fail)
+            assert.notEqual (text, rhs)
+          else
+            assert.equal (text, rhs)
+          done()
+        }
+        : function (done) {
+          function tryExpand (n) {
+            n = n || 0
+            b.expand (lhs,
+                      bracery.ParseTree.extend
+                      ({},
+                       config,
+                       { callback: function (expansion) {
+                         var text = expansion.text
+                         if (text !== rhs && n < maxTries)
+                           tryExpand (n + 1)
+                         else
+                           verify (text)
+                       } }))
+          }
+
+          function verify (text) {
+            if (fail)
+              assert.notEqual (text, rhs)
+            else
+              assert.equal (text, rhs)
+            done()
+          }
+
+          tryExpand()
+        }))
+  }
+
   expectExpand ('$hello $world', 'hello world', {maxTries:maxTries})
   expectExpand ('$hello $world', 'hello planet', {maxTries:maxTries})
   expectExpand ('$hello $world', 'hi world', {maxTries:maxTries})
@@ -110,7 +117,9 @@ describe('basic test', function() {
   // variables
   expectExpand ('^x={aha}^x', 'aha')
   expectExpand ('[x:aha]^x', 'aha')
-
+  expectExpand ('^z={zebedee}^zeb={zebadiah}^Zeb ^Z', 'Zebadiah ZEBEDEE')
+  expectExpand ('^AbC={air}^aBC={hair}^abC={lair}^abc^Abc^ABC', 'lairLairLAIR')
+  
   // Tracery modifiers
   expectExpand ('#test1#', 'testing')
   expectExpand ('#test1.capitalize#', 'Testing')
@@ -138,5 +147,5 @@ describe('basic test', function() {
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'yo human', {maxTries:maxTries})
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'oy human', {maxTries:maxTries})
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'hello world', {maxTries:maxTries,fail:true})
-})
+}
 

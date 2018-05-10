@@ -56,7 +56,9 @@ Bracery.prototype.addRules = function (name, rules) {
     throw new Error ('rules array must contain strings')
   // execute
   this.rules[name] = (this.rules[name] || []).concat (rules.map (ParseTree.parseRhs))
-  return { name: this.rules[name] }
+  var result = {}
+  result[name] = this.rules[name]
+  return result
 }
 
 Bracery.prototype.getRules = function (name) {
@@ -64,8 +66,20 @@ Bracery.prototype.getRules = function (name) {
 }
 
 Bracery.prototype.deleteRules = function (name) {
-  name = validateSymbolName (name)
-  delete this.rules[name]
+  var bracery = this
+  var result
+  if (arguments.length > 1)
+    result = Array.prototype.reduce.call (arguments, function (deleted, name) { return extend (deleted, bracery.deleteRules (name)) }, {})
+  else if (!arguments.length) {
+    result = this.rules
+    this.rules = {}
+  } else {
+    name = validateSymbolName (name)
+    result = {}
+    result[name] = this.rules[name]
+    delete this.rules[name]
+  }
+  return result
 }
 
 Bracery.prototype.addRule = Bracery.prototype.addRules

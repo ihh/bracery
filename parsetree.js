@@ -447,10 +447,14 @@ function makeExpansionPromise (config) {
                 expansion.vars = valExpansion.vars
                 expansion.vars[node.varname] = valExpansion.text
                 if (node.local)
-                  return makeRhsExpansionPromiseFor (node.local)
+                  return makeRhsExpansionPromiseForConfig.call (pt, extend ({}, config, { vars: expansion.vars }), resolve, node.local)
                   .then (function (localExpansion) {
                     expansion.text = localExpansion.text
-                    expansion.vars[node.varname] = oldValue
+                    extend (expansion.vars, localExpansion.vars)
+                    if (typeof(oldValue) === 'undefined')
+                      delete expansion.vars[node.varname]
+                    else
+                      expansion.vars[node.varname] = oldValue
                     return expansionPromise
                   })
                 else

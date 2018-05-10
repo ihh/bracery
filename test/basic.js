@@ -1,5 +1,7 @@
-var bracery = require('../index')
 var assert = require('assert')
+var execSync = require('child_process').execSync
+
+var bracery = require('../index')
 
 var initJson = { hello: '[hello|hi]',
                  world: ['world', 'planet'],
@@ -37,21 +39,20 @@ describe('synchronous tests', function() {
 describe('asynchronous tests', function() {
   doTests (function (lhs, rhs, config, verify) {
     return function (done) {
-          function tryExpand (n) {
-            n = n || 0
-            b.expand (lhs,
-                      bracery.ParseTree.extend
-                      ({},
-                       config,
-                       { callback: function (expansion) {
-                         var text = expansion.text
-                         if (text !== rhs && n < maxTries)
-                           tryExpand (n + 1)
-                         else
-                           verify (text, done)
-                       } }))
-          }
-
+      function tryExpand (n) {
+        n = n || 0
+        b.expand (lhs,
+                  bracery.ParseTree.extend
+                  ({},
+                   config,
+                   { callback: function (expansion) {
+                     var text = expansion.text
+                     if (text !== rhs && n < maxTries)
+                       tryExpand (n + 1)
+                     else
+                       verify (text, done)
+                   } }))
+      }
       tryExpand()
     }
   })

@@ -5,13 +5,15 @@ var fs = require('fs'),
     getopt = require('node-getopt'),
     readline = require('readline'),
     Promise = require('bluebird'),
-    bracery = require('..')
+    bracery = require('..'),
+    extend = bracery.ParseTree.extend
 
 var opt = getopt.create([
   ['d' , 'defs=PATH+'       , 'load symbol definitions from JSON file(s)'],
   ['s' , 'symbols=EXPR+'    , 'evaluate JSON symbol definitions from command line'],
   ['e' , 'eval=EXPR+'       , 'evaluate expression(s)'],
   ['n' , 'num=NUMBER'       , 'number of randomized samples to output'],
+  ['c' , 'config=JSON'      , 'specify config params e.g. maxDepth'],
   ['t' , 'tree'             , 'show parse tree'],
   ['T' , 'compact-tree'     , 'like -t but compact'],
   ['a' , 'async'            , 'run asynchronously'],
@@ -51,15 +53,17 @@ function expansionLogger (n, expansion) {
 function expand (expr) {
   for (var n = 0; n < samples; ++n) {
     var gotExpansion = expansionLogger.bind (null, n)
+    var config = { vars: extend ({}, varVal) }
+    if (opt.options.config)
+      extend (config, JSON.parse (opt.options.config))
     if (opt.options.async)
-      b.expand (expr, { vars: bracery.ParseTree.extend ({}, varVal),
-                        before: before,
-                        after: after,
-                        callback: gotExpansion })
+      b.expand (expr, extend (config,
+                              { before: before,
+                                after: after,
+                                callback: gotExpansion }))
     else
-      gotExpansion (b.expand (expr, { vars: varVal,
-                                      beforeSync: before,
-                                      afterSync: after }))
+      gotExpansion (b.expand (expr, extend (config, { beforeSync: before,
+                                                      afterSync: after })))
     expandedSomething = true
   }
 }

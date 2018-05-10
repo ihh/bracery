@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/ihh/bracery#readme",
   "dependencies": {
+    "bluebird": "^3.5.1",
     "compromise": "^11.7.0",
     "mocha": "^5.1.1"
   }

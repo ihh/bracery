@@ -9,9 +9,9 @@ of [Tracery](http://tracery.io/) (by [@galaxykate](https://github.com/galaxykate
 with influences from [regular expression](https://en.wikipedia.org/wiki/Regular_expression) syntax and 
 [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)).
 
-Bracery is specialized for asynchronous, distributed settings e.g. where the Tracery client is decoupled from the symbol definition store.
-Expansion of Bracery expressions occurs using promises, which may e.g. involve calls to web services.
-However, it also works just fine as a synchronous library, like Tracery (this is the default when running from the command-line, or using the main API).
+Bracery was designed for asynchronous applications where the Tracery client is decoupled from the symbol definition store.
+Expansion of Bracery expressions occurs using promises, which may e.g. involve database queries or calls to web services.
+However, Bracery also works just fine as a synchronous library, like Tracery (this is the default when running from the command-line, or using the node API).
 
 # Usage
 

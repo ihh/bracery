@@ -81,6 +81,7 @@ Language features include
    - local scoped variables: `&let^x={value1}^y={value2}{something involving x and y}` or the Tracery-style `#[x:value1][y:value2]symbol_name#` (what Tracery calls "actions"; other cool effects can be achieved with `&eval` and `&quote`, use sparingly)
 - functions, alternations, variable assignments, and conditionals can be arbitrarily nested
 - everything can occur asynchronously, so symbols can be resolved and expanded from a remote store
+   - but if you have a synchronously resolvable store (i.e. a local Tracery object), everything can work synchronously too
 - syntactic sugar/hacks
    - the Tracery-style expression `#name#` is actually shorthand for `&if{^name}then{&eval{^name}}else{$name}`. Tracery overloads the same namespace for symbol and variable names, and uses the variable if it's defined; this reproduces that behavior (almost; it won't be quite the same if `^name` is set to whitespace or the empty string)
    - braces can be omitted in many situations where context is obvious, e.g. `^currency=&cap&plural$name` means the same as `^currency={&cap{&plural{$name}}}`

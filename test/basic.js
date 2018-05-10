@@ -71,7 +71,7 @@ function doTests (testRunner) {
         assert.equal (text, rhs)
       done()
     }
-    it('should expand ' + lhs + ' to ' + rhs
+    it('should expand ' + (lhs || 'the empty string') + ' to ' + rhs
        + (config ? (' with ' + JSON.stringify(config)) : ''),
        testRunner (lhs, rhs, config, verify))
   }
@@ -102,6 +102,19 @@ function doTests (testRunner) {
   expectExpand ('&eval{$test4}', 'TESTING')
   expectExpand ('&quote{$test1}', '$test1')
   expectExpand ('\\$test1', '$test1')
+  expectExpand ('$', '$')
+  expectExpand ('&quote{$}', '\\$')
+  expectExpand ('&quote{$}test1', '\\$test1')
+  expectExpand ('&quote{$te}st1', '$test1')
+  expectExpand ('&quote{$test1}', '$test1')
+  expectExpand ('&eval{&quote{$}}', '$')
+  expectExpand ('&eval{&quote{$test1}}', 'testing')
+  expectExpand ('&eval{&quote{$te}st1}', 'testing')
+  expectExpand ('&eval{&quote{$}test1}', 'testing', {fail:true})
+  expectExpand ('&eval{&quote{$}test1}', '$test1')
+  expectExpand ('&eval{&eval{&quote{$}test1}}', 'testing')
+  expectExpand ('\\$test1', '$test1')
+  expectExpand ('&eval{\\$test1}', 'testing')
 
   // case manipulation
   expectExpand ('&quote{$TEST1}', '$TEST1')

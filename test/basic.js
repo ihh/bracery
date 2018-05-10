@@ -3,7 +3,8 @@ var execSync = require('child_process').execSync
 
 var bracery = require('../index')
 
-var initJson = { hello: '[hello|hi]',
+var initJson = { abc: 'def',
+                 hello: '[hello|hi]',
                  world: ['world', 'planet'],
                  test1: 'testing',
                  test2: '$TEST1',
@@ -87,11 +88,14 @@ function doTests (testRunner) {
   expectExpand ('$test1', 'TESTING', {fail:true})
   expectExpand ('$test2', 'TESTING')
 
+  // default is to expand $abc to 'def', as that is the alphabetically earliest symbol
+  expectExpand ('', 'def')
+
   // look out! recursion
   expectExpand ('$test3', 'xxx')
   expectExpand ('$test3', 'xxx', { maxDepth: 5 })
   expectExpand ('$test3', 'xxxxx', { maxDepth: 5, maxDepthForExpr: 10 })
-  expectExpand ('$test3', 'xxxxx', { maxDepthForExpr: 5 })
+  expectExpand ('$test3', 'xxxx', { maxDepthForExpr: 4 })
 
   // quoting
   expectExpand ('$test4', '$TEST1')

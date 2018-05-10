@@ -1,0 +1,7 @@
+{ "abc": "def",
+  "hello": "[hello|hi]",
+  "world": ["world", "planet"],
+  "test1": "testing",
+  "test2": "$TEST1",
+  "test3": "x$test3",
+  "test4": "&quote{$TEST1}" }

@@ -42,7 +42,7 @@ function expectExpand (lhs, rhs, config) {
   it('should ' + (fail ? 'not ' : '') + 'expand ' + (lhs || 'the empty string') + ' to ' + rhs.replace(/\s+/g,function(){return' '})
      + (config ? (' with ' + JSON.stringify(config)) : ''),
      function (done) {
-       var cmdline = binPath + " -c '" + JSON.stringify(config || {}) + "' -s '" + JSON.stringify(initJson) + "'"
+       var cmdline = process.argv[0] + ' ' + __dirname + '/../' + binPath + " -c '" + JSON.stringify(config || {}) + "' -s '" + JSON.stringify(initJson) + "'"
            + (config && config.opts ? (' ' + config.opts) : '')
            + " '" + lhs + "'"
        var text = execSync(cmdline,{stdio:['pipe','pipe','ignore']}).toString()

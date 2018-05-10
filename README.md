@@ -4,7 +4,7 @@
 # Bracery
 
 Bracery is a small procedural text generation language (and library)
-blending elements of [Tracery](http://tracery.io/) by [@galaxykate](https://github.com/galaxykate) and [regular expression](https://en.wikipedia.org/wiki/Regular_expression) syntax.
+blending elements of [Tracery](http://tracery.io/) (by [@galaxykate](https://github.com/galaxykate)) and [regular expression](https://en.wikipedia.org/wiki/Regular_expression) syntax.
 
 # Usage
 
@@ -36,7 +36,7 @@ bin/bracery -d examples/travel.json -n5 --async
 bin/bracery --help
 ~~~~
 
-See [tests](test/) for more examples
+See [tests](test/) and [examples](examples/) for more examples
 
 # Syntax
 

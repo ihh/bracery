@@ -1,5 +1,5 @@
 PEGFILES = $(wildcard src/*.peg.js)
-ALL = src/rhs.js lib/bracery.js lib/bracery.min.js
+ALL = src/rhs.js browser/bracery.js browser/bracery.min.js
 
 NODE_BIN = node_modules/.bin
 PEGJS = $(NODE_BIN)/pegjs
@@ -17,8 +17,8 @@ src/rhs.js: src/rhs.defs.js src/rhs.peg.js
 src/shim.js:
 	echo "window.bracery = require('./bracery');" >$@
 
-lib/bracery.js: src/shim.js src/bracery.js src/parsetree.js src/rhs.js
+browser/bracery.js: src/shim.js src/bracery.js src/parsetree.js src/rhs.js
 	$(BROWSERIFY) src/shim.js >$@
 
-lib/bracery.min.js: lib/bracery.js
+browser/bracery.min.js: browser/bracery.js
 	$(UGLIFYJS) $< >$@

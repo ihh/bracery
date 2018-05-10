@@ -84,7 +84,7 @@ Bracery.prototype.addRule = Bracery.prototype.addRules
 Bracery.prototype.deleteRule = Bracery.prototype.deleteRules
 
 Bracery.prototype._expandSymbol = function (config) {
-  var symbolName = config.name.toLowerCase()
+  var symbolName = config.node.name.toLowerCase()
   var rhs
   var rules = this.rules[symbolName]
   if (rules)
@@ -736,8 +736,7 @@ function makeExpansionPromise (config) {
               .then (function() {
                 return config.expand (extend ({},
                                               config,
-                                              { name: node.name,
-                                                node: node,
+                                              { node: node,
                                                 vars: varVal }))
               }).then (function (rhs) {
                 node.rhs = rhs

@@ -356,8 +356,8 @@ function isTraceryExpr (node, makeSymbolName) {
     && node.t.length === 1 && typeof(node.t[0]) === 'object' && node.t[0].type === 'func'
     && node.t[0].funcname === 'eval' && node.t[0].args.length === 1 && node.t[0].args[0].type === 'lookup'
     && node.f.length === 1 && typeof(node.f[0]) === 'object' && node.f[0].type === 'sym'
-    && node.test[0].varname === node.t[0].args[0].varname
-    && node.test[0].varname === makeSymbolName (node.f[0])
+    && node.test[0].varname.toLowerCase() === node.t[0].args[0].varname.toLowerCase()
+    && node.test[0].varname.toLowerCase() === makeSymbolName (node.f[0]).toLowerCase()
 }
 
 function makeRhsText (rhs, makeSymbolName) {
@@ -595,20 +595,21 @@ function makeExpansionPromise (config) {
           
           switch (node.type) {
           case 'assign':
-            var oldValue = varVal[node.varname]
+            var name = node.varname.toLowerCase()
+            var oldValue = varVal[name]
             promise = makeRhsExpansionPromiseFor (node.value)
               .then (function (valExpansion) {
                 expansion.vars = valExpansion.vars
-                expansion.vars[node.varname] = valExpansion.text
+                expansion.vars[name] = valExpansion.text
                 if (node.local)
                   return makeRhsExpansionPromiseForConfig.call (pt, extend ({}, config, { vars: expansion.vars }), resolve, node.local)
                   .then (function (localExpansion) {
                     expansion.text = localExpansion.text
                     extend (expansion.vars, localExpansion.vars)
                     if (typeof(oldValue) === 'undefined')
-                      delete expansion.vars[node.varname]
+                      delete expansion.vars[name]
                     else
-                      expansion.vars[node.varname] = oldValue
+                      expansion.vars[name] = oldValue
                     return expansionPromise
                   })
                 else
@@ -617,7 +618,7 @@ function makeExpansionPromise (config) {
             break
 
           case 'lookup':
-            expansion.text = varVal[node.varname] || ''
+            expansion.text = varVal[name] || ''
             break
 
           case 'cond':
@@ -786,15 +787,17 @@ function makeExpansionText (config) {
     else
       switch (node.type) {
       case 'assign':
-        var oldValue = varVal[node.varname]
-        varVal[node.varname] = makeRhsExpansionTextFor (node.value)
+        var name = node.varname.toLowerCase()
+        var oldValue = varVal[name]
+        varVal[name] = makeRhsExpansionTextFor (node.value)
         if (node.local) {
           expansion = makeRhsExpansionTextFor (node.local)
-          varVal[node.varname] = oldValue
+          varVal[name] = oldValue
         }
         break
       case 'lookup':
-        expansion = varVal[node.varname]
+        var name = node.varname.toLowerCase()
+        expansion = varVal[name]
         break
       case 'cond':
         var test = makeRhsExpansionTextFor (node.test)
@@ -3146,9 +3149,9 @@ function peg$parse(input, options) {
 
 
   function makeSymbol (name) { return { type: 'sym', name: name.toLowerCase() } }
-  function makeLookup (name) { return { type: 'lookup', varname: name.toLowerCase() } }
-  function makeAssign (name, value) { return { type: 'assign', varname: name.toLowerCase(), value: value } }
-  function makeLocalAssign (name, value, scope) { return { type: 'assign', varname: name.toLowerCase(), value: value, local: scope } }
+  function makeLookup (name) { return { type: 'lookup', varname: name } }
+  function makeAssign (name, value) { return { type: 'assign', varname: name, value: value } }
+  function makeLocalAssign (name, value, scope) { return { type: 'assign', varname: name, value: value, local: scope } }
   function makeAlternation (opts) { return { type: 'alt', opts: opts } }
   function makeFunction (name, args) { return { type: 'func', funcname: name, args: args } }
   function makeConditional (testArg, trueArg, falseArg) { return { type: 'cond', test: testArg, t: trueArg, f: falseArg } }

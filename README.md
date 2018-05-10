@@ -75,7 +75,9 @@ Language features include
 - named nonterminals: Tracery-style `#symbol_name#`, or Bracery-style `$symbol_name` or `${symbol_name}`
    - subtle difference: the Tracery style allows the symbol definition to be overridden by a local variable
 - alternations (anonymous nonterminals), which can be nested: `[option1|option 2|3rd opt|4th|more [options|nested options]...]`
-- variables: Tracery-style `[variable_name:value]` or `^variable_name={value}` to assign, `^variable_name` or `^{variable_name}` to retrieve (names are case-insensitive)
+- variables:
+   - Tracery-style `[variable_name:value]` to assign, `#variable_name#` to retrieve and evaluate (names are case-insensitive)
+   - Bracery-style `^variable_name={value}` to assign, `^variable_name` or `^{variable_name}` to retrieve
    - the Tracery-style syntax `#variable_name#` evaluates the variable dynamically, if defined
 - built-in text-processing functions:
    - `&plural{...}` (plural), `&a{...}` ("a" or "an")

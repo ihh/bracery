@@ -115,6 +115,8 @@ function doTests (testRunner) {
   expectExpand ('&eval{&eval{&quote{$}test1}}', 'testing')
   expectExpand ('\\$test1', '$test1')
   expectExpand ('&eval{\\$test1}', 'testing')
+  expectExpand ('&quote{#heroPet#}', '#heroPet#')
+  expectExpand ('^heropet={freddy}&eval&quote{#heroPet#}', 'freddy')
 
   // case manipulation
   expectExpand ('&quote{$TEST1}', '$TEST1')

@@ -83,7 +83,7 @@ Bracery.prototype.addRule = Bracery.prototype.addRules
 Bracery.prototype.deleteRule = Bracery.prototype.deleteRules
 
 Bracery.prototype._expandSymbol = function (config) {
-  var symbolName = config.name.toLowerCase()
+  var symbolName = config.node.name.toLowerCase()
   var rhs
   var rules = this.rules[symbolName]
   if (rules)

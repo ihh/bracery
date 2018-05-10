@@ -581,8 +581,7 @@ function makeExpansionPromise (config) {
               .then (function() {
                 return config.expand (extend ({},
                                               config,
-                                              { name: node.name,
-                                                node: node,
+                                              { node: node,
                                                 vars: varVal }))
               }).then (function (rhs) {
                 node.rhs = rhs

@@ -59,6 +59,10 @@ Bracery.prototype.addRules = function (name, rules) {
   return { name: this.rules[name] }
 }
 
+Bracery.prototype.getRules = function (name) {
+  return this.rules[name] || []
+}
+
 Bracery.prototype.deleteRules = function (name) {
   name = validateSymbolName (name)
   delete this.rules[name]
@@ -75,15 +79,14 @@ Bracery.prototype._expandSymbol = function (config) {
     rhs = ParseTree.sampleParseTree (ParseTree.randomElement (rules, this.rng))
   else
     rhs = []
-  if (config.node)
-    config.node.rhs = rhs
   return rhs
 }
 
 Bracery.prototype._expandRhs = function (config) {
-  if (config.callback)
-    return ParseTree.makeRhsExpansionPromise (config).then (config.callback)
-  return ParseTree.makeRhsExpansionSync (extend ({}, config, { expand: this._expandSymbol.bind (this) }))
+  var newConfig = extend ({}, config, { expand: this._expandSymbol.bind (this) })
+  if (newConfig.callback)
+    return ParseTree.makeRhsExpansionPromise (newConfig).then (newConfig.callback)
+  return ParseTree.makeRhsExpansionSync (newConfig)
 }
 
 function validateSymbolName (name) {

@@ -29,12 +29,28 @@ var before = {}, after = {}
 if (opt.options.verbose) {
   before.all = console.warn.bind (console, 'before node,varval,depth:')
   after.all = console.warn.bind (console, 'after node,varval,depth,expansion:')
+  if (opt.options.async) {
+    before.expand = console.warn.bind (console, 'before_expand node,varval,depth:')
+    after.expand = console.warn.bind (console, 'after_expand node,varval,depth,rhs:')
+  }
 }
 
 var samples = parseInt(opt.options.num) || 1
 var tree = opt.options.tree, compact = opt.options['compact-tree']
+function expansionLogger (n, expansion) {
+  if (opt.options.verbose)
+    console.warn ('expansion' + (samples > 1 ? (' (' + (n+1) + '/' + (samples+1) + ')') : ''), expansion)
+  console.log (tree || compact
+               ? ((n ? ',' : '[')
+                  + JSON.stringify(expansion.tree,null,opt.options['compact-tree'] ? 0 : 2)
+                  + (n == samples-1 ? ']' : ''))
+               : expansion.text)
+  if (expansion)
+    varVal = expansion.vars
+}
 function expand (expr) {
   for (var n = 0; n < samples; ++n) {
+    var gotExpansion = expansionLogger.bind (null, n)
     if (opt.options.async)
       b.expand (expr, { vars: varVal,
                         before: before,
@@ -44,17 +60,6 @@ function expand (expr) {
       gotExpansion (b.expand (expr, { vars: varVal,
                                       beforeSync: before,
                                       afterSync: after }))
-    function gotExpansion (expansion) {
-      if (opt.options.verbose)
-        console.warn ('expansion' + (samples > 1 ? (' (' + (n+1) + '/' + (samples+1) + ')') : ''), expansion)
-      console.log (tree || compact
-                   ? ((n ? ',' : '[')
-                      + JSON.stringify(expansion.tree,null,opt.options['compact-tree'] ? 0 : 2)
-                      + (n == samples-1 ? ']' : ''))
-                   : expansion.text)
-      if (expansion)
-        varVal = expansion.vars
-    }
   }
   expandedSomething = true
 }
@@ -71,9 +76,11 @@ if (opt.options.defs)
 if (opt.options.symbols)
   opt.options.symbols.forEach (addRules)
 
-var nSymbols = b.symbolNames().length
-if (nSymbols || opt.options.defs)
-  console.warn('(' + bracery.ParseTree.nPlurals(nSymbols,'symbol')+ ' defined)')
+var symbolNames = b.symbolNames()
+if (symbolNames.length || opt.options.defs) {
+  var nRules = symbolNames.reduce (function (sum, name) { return sum + b.getRules(name).length }, 0)
+  console.warn('(' + bracery.ParseTree.nPlurals(symbolNames.length,'symbol') + ', ' + bracery.ParseTree.nPlurals(nRules,'rule') + ' defined)')
+}
 
 if (opt.options.eval)
   opt.options.eval.forEach (expand)

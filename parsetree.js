@@ -560,20 +560,23 @@ function makeExpansionPromise (config) {
           case 'root':
           case 'opt':
           case 'sym':
-            var expandPromise
+            var symbolExpansionPromise
             var expr = (node.type === 'sym' ? (symChar + (node.name || node.id)) : '')
             if (!node.rhs && config.expand)
-              expandPromise = resolve (config.expand (extend ({},
-                                                              config,
-                                                              { name: node.name,
-                                                                node: node,
-                                                                vars: varVal })))
-              .then (function (rhs) {
+              symbolExpansionPromise = handlerPromise ([node, varVal, depth], resolve(), config.before, 'expand')
+              .then (function() {
+                return config.expand (extend ({},
+                                              config,
+                                              { name: node.name,
+                                                node: node,
+                                                vars: varVal }))
+              }).then (function (rhs) {
                 node.rhs = rhs
+                return handlerPromise ([node, varVal, depth, rhs], resolve(), config.after, 'expand')
               })
             else
-              expandPromise = resolve()
-            promise = expandPromise.then (function() {
+              symbolExpansionPromise = resolve()
+            promise = symbolExpansionPromise.then (function() {
               return makeRhsExpansionPromiseFor (node.rhs || [], expr)
             })
             break

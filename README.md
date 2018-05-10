@@ -32,6 +32,12 @@ var b = new bracery.Bracery
 console.log (b.expand().text)
 ~~~~
 
+You should see an output like
+
+~~~~
+Lina traveled with her pet owl.  Lina was never wistful, for the owl was always too courteous.
+~~~~
+
 See [tests](test/) for more examples using the JavaScript API
 
 ## From the command line

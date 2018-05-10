@@ -47,8 +47,8 @@ Trying various command line settings with the same symbol defintions file, [exam
 ~~~~
 bin/bracery -d examples/travel.json
 bin/bracery -d examples/travel.json -n5
-bin/bracery -d examples/travel.json -n5 -e '$origin And they had fun... until they met $name.'
-bin/bracery -d examples/travel.json -n5 -e '$origin And they had [so|SO] [much [fun|trouble]|many [adventures|escapades]] on the [road|way]!'
+bin/bracery -d examples/travel.json -n5 --eval '$origin And then they met $name.'
+bin/bracery -d examples/travel.json -n5 --eval '$origin And they had [fun|trouble|no luck], until they met $name.'
 bin/bracery -d examples/travel.json --tree
 bin/bracery -d examples/travel.json --repl
 bin/bracery -d examples/travel.json -n5 --async

@@ -21,6 +21,7 @@
     "browserify": "^16.2.2",
     "compromise": "^11.7.0",
     "mocha": "^5.1.1",
-    "node-getopt": "^0.3.2"
+    "node-getopt": "^0.3.2",
+    "uglify-js": "^3.3.24"
   }
 }

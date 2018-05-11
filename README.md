@@ -64,7 +64,7 @@ You can run it in client/server mode (NB this is a very light implementation, mo
 
 ~~~~
 bin/bracery -d examples/travel.json -S 8000 &
-bin/bracery -C localhost:8000 -e '#origin#'
+bin/bracery -C http://localhost:8000/ -e '#origin#'
 ~~~~
 
 To get a list of available options (there aren't many)

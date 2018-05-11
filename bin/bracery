@@ -4,7 +4,8 @@
 var fs = require('fs'),
     getopt = require('node-getopt'),
     readline = require('readline'),
-    net = require('net')
+    net = require('net'),
+    request = require('request')
 
 var bracery = require('..'),
     extend = bracery.ParseTree.extend
@@ -22,6 +23,7 @@ var opt = getopt.create([
   ['r' , 'repl'             , 'enter Read-Evaluate-Print Loop (REPL)'],
   ['S' , 'server=SOCKET'    , 'run a REPL server listening on a socket'],
   ['C' , 'client=SOCKET'    , 'run as client of REPL server on socket'],
+  ['u' , 'url=URL'          , 'run as client of web service'],
   ['v' , 'verbose'          , 'print logging info'],
   ['h' , 'help'             , 'display this help message']
 ])              // create Getopt instance
@@ -48,8 +50,7 @@ if (opt.options.verbose) {
   }
 }
 
-
-// client/server
+// simple client/server
 var async = opt.options.async, symbolExpander
 if (opt.options.client) {
   async = true
@@ -94,6 +95,26 @@ if (opt.options.server) {
   })
   server.listen (parseInt (opt.options.server))
   console.warn ('listening on socket ' + opt.options.server)
+}
+
+// REST client
+var webUrl = opt.options.url
+if (webUrl) {
+  async = true
+  symbolExpander = function (config) {
+    return new Promise (function (resolve, reject) {
+      request.post ({ url: webUrl,
+                      json: true,
+                      body: { content: [{ type: 'sym',
+                                          name: config.node.name.toLowerCase()}] } },
+                    function (err, res, body) {
+                      if (err)
+                        reject (err)
+                      else
+                        resolve (body.expansion.tree[0].rhs)
+                    })
+    })
+  }
 }
 
 // main expand function: performs n expansions, synchronously or asynchronously,

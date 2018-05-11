@@ -55,9 +55,9 @@ function makeRoot (rhs) {
 var symChar = '$', varChar = '^', funcChar = '&', leftBraceChar = '{', rightBraceChar = '}', leftSquareBraceChar = '[', rightSquareBraceChar = ']', assignChar = '=', traceryChar = '#'
 
 // Parse tree manipulations
-function sampleParseTree (rhs, rng) {
+function sampleParseTree (rhs, config) {
   var pt = this
-  rng = rng || Math.random
+  var rng = config && config.rng ? config.rng : Math.random
   return rhs.map (function (node, n) {
     var result, index
     if (typeof(node) === 'string')
@@ -67,25 +67,32 @@ function sampleParseTree (rhs, rng) {
       case 'assign':
 	result = { type: 'assign',
                    varname: node.varname,
-		   value: pt.sampleParseTree (node.value, rng),
-                   local: node.local ? pt.sampleParseTree (node.local, rng) : undefined }
+		   value: pt.sampleParseTree (node.value, config),
+                   local: node.local ? pt.sampleParseTree (node.local, config) : undefined }
         break
       case 'alt':
         index = pt.randomIndex (node.opts)
-	result = { type: 'opt',
+	result = { type: 'alt_sampled',
                    n: index,
-                   rhs: pt.sampleParseTree (node.opts[index], rng) }
+                   rhs: pt.sampleParseTree (node.opts[index], config) }
+        break
+      case 'rep':
+        var n = Math.min (Math.floor (rng() * (node.max + 1 - node.min)) + node.min,
+                          config && config.maxReps ? config.maxReps : pt.maxReps)
+	result = { type: 'rep_sampled',
+                   n: n,
+		   reps: new Array(n).fill().map (function() { return pt.sampleParseTree (node.unit, config) }) }
         break
       case 'cond':
 	result = { type: 'cond',
                    test: node.test,
-		   t: pt.sampleParseTree (node.t, rng),
-                   f: pt.sampleParseTree (node.f, rng) }
+		   t: pt.sampleParseTree (node.t, config),
+                   f: pt.sampleParseTree (node.f, config) }
         break
       case 'func':
 	result = { type: 'func',
                    funcname: node.funcname,
-		   args: node.funcname === 'quote' ? node.args : pt.sampleParseTree (node.args, rng) }
+		   args: node.funcname === 'quote' ? node.args : pt.sampleParseTree (node.args, config) }
         break
       case 'lookup':
 	result = node
@@ -119,6 +126,9 @@ function getSymbolNodes (rhs) {
           return altResults.concat (pt.getSymbolNodes (opt))
         }, [])
         break
+      case 'rep':
+        r = pt.getSymbolNodes (node.single)
+        break
       case 'func':
 	switch (node.funcname) {
 	case 'quote':
@@ -135,8 +145,11 @@ function getSymbolNodes (rhs) {
         r = pt.getSymbolNodes (node.test.concat (node.t, node.f))
         break
       case 'root':
-      case 'opt':
+      case 'alt_sampled':
         r = pt.getSymbolNodes (node.rhs)
+        break
+      case 'rep_sampled':
+        r = pt.getSymbolNodes (node.reps.reduce (function (all, rep) { return all.concat(rep) }, []))
         break
       default:
       case 'sym':
@@ -176,10 +189,14 @@ function parseTreeEmpty (rhs) {
           result = false  // we aren't checking variable values, so just assume any referenced variable is nonempty (yes this will miss some empty trees)
           break
         case 'root':
-        case 'opt':
+        case 'alt_sampled':
+        case 'rep_sampled':
 	  if (node.rhs)
 	    result = pt.parseTreeEmpty (node.rhs)
 	  break
+        case 'rep_sampled':
+          if (node.reps)
+            return node.reps.reduce (function (all, rep) { return all && pt.parseTreeEmpty(rep) }, true)
         default:
         case 'sym':
 	  if (node.rhs)
@@ -203,6 +220,11 @@ function isTraceryExpr (node, makeSymbolName) {
     && node.f.length === 1 && typeof(node.f[0]) === 'object' && node.f[0].type === 'sym'
     && node.test[0].varname.toLowerCase() === node.t[0].args[0].varname.toLowerCase()
     && node.test[0].varname.toLowerCase() === makeSymbolName (node.f[0]).toLowerCase()
+}
+
+function makeFuncArgText (pt, args, makeSymbolName) {
+  var noBraces = args.length === 1 && (args[0].type === 'func' || args[0].type === 'lookup' || args[0].type === 'alt')
+  return (noBraces ? '' : leftBraceChar) + pt.makeRhsText (args, makeSymbolName) + (noBraces ? '' : rightBraceChar)
 }
 
 function makeRhsText (rhs, makeSymbolName) {
@@ -234,6 +256,9 @@ function makeRhsText (rhs, makeSymbolName) {
       case 'alt':
         result = leftSquareBraceChar + tok.opts.map (function (opt) { return pt.makeRhsText(opt,makeSymbolName) }).join('|') + rightSquareBraceChar
 	break
+      case 'rep':
+        result = funcChar + 'rep' + makeFuncArgText (pt, tok.unit, makeSymbolName) + leftBraceChar + tok.min + (tok.max !== tok.min ? (',' + tok.max) : '') + rightBraceChar
+	break
       case 'cond':
         result = (isTraceryExpr (tok, makeSymbolName)
                   ? (traceryChar + tok.test[0].varname + traceryChar)
@@ -242,17 +267,14 @@ function makeRhsText (rhs, makeSymbolName) {
 				 ['else',tok.f]].map (function (keyword_arg) { return keyword_arg[0] + leftBraceChar + pt.makeRhsText (keyword_arg[1], makeSymbolName) + rightBraceChar }).join('')))
         break;
       case 'func':
-	var sugaredName = pt.makeSugaredName (tok, makeSymbolName)
-	if (sugaredName)
-	  result = (nextIsAlpha
-		    ? (sugaredName[0] + leftBraceChar + sugaredName.substr(1) + rightBraceChar)
-		    : sugaredName)
-	else {
-          var noBraces = tok.args.length === 1 && (tok.args[0].type === 'func' || tok.args[0].type === 'lookup' || tok.args[0].type === 'alt')
-          result = funcChar + tok.funcname + (noBraces ? '' : leftBraceChar) + pt.makeRhsText(tok.args,makeSymbolName) + (noBraces ? '' : rightBraceChar)
-        }
+	var sugaredName = pt.makeSugaredName (tok, makeSymbolName, nextIsAlpha)
+	if (sugaredName && tok.funcname !== 'quote')
+	  result = sugaredName
+	else
+          result = funcChar + tok.funcname + makeFuncArgText (pt, tok.args, makeSymbolName)
 	break
-      case 'opt':
+      case 'alt_sampled':
+      case 'rep_sampled':
         break
       default:
       case 'sym':
@@ -266,7 +288,7 @@ function makeRhsText (rhs, makeSymbolName) {
   }).join('')
 }
 
-function makeSugaredName (funcNode, makeSymbolName) {
+function makeSugaredName (funcNode, makeSymbolName, nextIsAlpha) {
   var name, sugaredName, prefixChar
   makeSymbolName = makeSymbolName || defaultMakeSymbolName
   if (funcNode.args.length === 1 && typeof(funcNode.args[0]) === 'object') {
@@ -279,10 +301,12 @@ function makeSugaredName (funcNode, makeSymbolName) {
     }
     if (name) {
       name = name.toLowerCase()
+      var lChar = nextIsAlpha ? leftBraceChar : ''
+      var rChar = nextIsAlpha ? rightBraceChar : ''
       if (funcNode.funcname === 'cap' && name.match(/[a-z]/))
-	sugaredName = prefixChar + name.replace(/[a-z]/,function(c){return c.toUpperCase()})
+	sugaredName = prefixChar + lChar + name.replace(/[a-z]/,function(c){return c.toUpperCase()}) + rChar
       else if (funcNode.funcname === 'uc' && name.match(/[a-z]/))
-	sugaredName = prefixChar + name.toUpperCase()
+	sugaredName = prefixChar + lChar + name.toUpperCase() + rChar
     }
   }
   return sugaredName
@@ -373,7 +397,7 @@ function makeExpansionSync (config) {
 
 function makeRhsExpansionPromise (config) {
   var pt = this
-  var rhs = config.rhs || this.sampleParseTree (parseRhs (config.rhsText))
+  var rhs = config.rhs || this.sampleParseTree (parseRhs (config.rhsText), config)
   var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
   return rhs.reduce (function (promise, child) {
     return promise.then (function (expansion) {
@@ -504,7 +528,7 @@ function makeExpansionPromise (config) {
                     if (typeof(node.evaltext) === 'undefined') {
                       node.evaltext = arg
                       node.evaltree = parseRhs (arg)
-                      node.value = pt.sampleParseTree (node.evaltree)
+                      node.value = pt.sampleParseTree (node.evaltree, config)
                     } else if (config.validateEvalText) {
 	              var storedEvalText = pt.makeRhsText (node.evaltree, makeSymbolName)
                       if (storedEvalText !== arg) {
@@ -589,11 +613,9 @@ function makeExpansionPromise (config) {
                 })
             }
             break
-          case 'root':
-          case 'opt':
           case 'sym':
             var symbolExpansionPromise
-            var expr = (node.type === 'sym' ? (symChar + (node.name || node.id)) : '')
+            var expr = symChar + (node.name || node.id)
             if (!node.rhs && config.expand)
               symbolExpansionPromise = handlerPromise ([node, varVal, depth], resolve(), config.before, 'expand')
               .then (function() {
@@ -611,9 +633,15 @@ function makeExpansionPromise (config) {
               return makeRhsExpansionPromiseFor (node.rhs || [], expr)
             })
             break
+          case 'root':
+          case 'alt_sampled':
+            promise = makeRhsExpansionPromiseFor (node.rhs || [])
+            break
+          case 'rep_sampled':
+            promise = makeRhsExpansionPromiseFor ((node.reps || []).reduce (function (all, rep) { return all.concat(rep) }, []))
           case 'alt':
           default:
-            break
+          break
           }
         }
       }
@@ -830,6 +858,7 @@ module.exports = {
   // config
   maxDepth: 100,
   maxRecursion: 3,
+  maxReps: 10,
 
   // parsing
   RhsParser: RhsParser,

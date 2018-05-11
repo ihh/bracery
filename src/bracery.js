@@ -87,7 +87,7 @@ Bracery.prototype._expandSymbol = function (config) {
   var rhs
   var rules = this.rules[symbolName]
   if (rules)
-    rhs = ParseTree.sampleParseTree (ParseTree.randomElement (rules, this.rng))
+    rhs = ParseTree.sampleParseTree (ParseTree.randomElement (rules, this.rng), config)
   else
     rhs = []
   return rhs

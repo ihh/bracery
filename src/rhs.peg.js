@@ -9,6 +9,7 @@ Node
   / Symbol
   / Conditional
   / LocalAssignment
+  / Repetition
   / Function
   / VarAssignment
   / VarLookup
@@ -72,6 +73,13 @@ FunctionArg
   / alt:Alternation { return [alt] }
   / lookup:VarLookup { return [lookup] }
   / innerFunc:Function { return [innerFunc] }
+
+Repetition
+  = "&rep" unit:FunctionArg "{" min:Number "," max:Number "}" { return makeRep (unit, min, max) }
+  / "&rep" unit:FunctionArg "{" min:Number "}" { return makeRep (unit, min, min) }
+
+Number
+  = num:[0-9]* { return parseInt (num.join('')) }
 
 VarLookup
   = "^" varname:Identifier { return makeSugaredLookup (varname) }

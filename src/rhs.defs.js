@@ -1,3 +1,4 @@
+function makeRep (unit, min, max) { return { type: 'rep', unit: unit, min: min, max: max } }
 function makeSymbol (name) { return { type: 'sym', name: name.toLowerCase() } }
 function makeLookup (name) { return { type: 'lookup', varname: name } }
 function makeAssign (name, value) { return { type: 'assign', varname: name, value: value } }

@@ -1,6 +1,4 @@
 var assert = require('assert')
-var execSync = require('child_process').execSync
-
 var bracery = require('../index')
 
 var initJson = { abc: 'def',
@@ -156,6 +154,14 @@ function doTests (testRunner) {
   expectExpand ('^a={A}^b={B}^a^b&let^a={x}^b={y}{^a^b}^a^b', 'ABxyAB')
   expectExpand ('^a={a}^b={^{a}b^a}^ab=&quote{^a^b}#[a:3^b][b:5^a]ab#^a^b', '3aba53abaaaba')
 
+  // repetition
+  expectExpand ('&rep{Test}{3}', 'TestTestTest')
+  expectExpand ('&rep{Test}{3,5}', 'TestTestTest', {maxTries:maxTries})
+  expectExpand ('&rep{Test}{3,5}', 'TestTestTestTest', {maxTries:maxTries})
+  expectExpand ('&rep{Test}{3,5}', 'TestTest', {maxTries:maxTries,fail:true})
+  expectExpand ('&rep{Test}{3,5}', 'TestTestTestTestTestTest', {maxTries:maxTries,fail:true})
+  expectExpand ('&rep{Test}{6}', 'TestTest', {maxReps:2})
+  
   // eval
   expectExpand ('^a={$}^b={test}^c={1}&eval{^a&cap{^b}^c}', 'Testing')
   expectExpand ('^a={1}^b={2}^c={3}&let^a={$}^b={test}^c={1}&eval{^a&cap{^b}^c}^a&cap{^b}^c', 'Testing123')

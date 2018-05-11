@@ -17,6 +17,7 @@ var opt = getopt.create([
   ['e' , 'eval=EXPR+'       , 'evaluate expression(s)'],
   ['n' , 'num=NUMBER'       , 'number of randomized samples to output'],
   ['c' , 'config=JSON'      , 'specify config params e.g. maxDepth, maxRecursion'],
+  ['V' , 'validate'         , 'do not expand text; just validate and echo'],
   ['t' , 'tree'             , 'show parse tree'],
   ['T' , 'compact-tree'     , 'like -t but compact'],
   ['a' , 'async'            , 'run asynchronously'],
@@ -118,7 +119,9 @@ function expand (expr) {
     var config = makeConfig()
     if (symbolExpander)
       config.expand = symbolExpander
-    if (async)
+    if (opt.options.validate)
+      gotExpansion ({ text: b.normalize (expr) })
+    else if (async)
       b.expand (expr, extend (config,
                               { before: before,
                                 after: after,

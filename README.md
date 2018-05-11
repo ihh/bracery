@@ -54,7 +54,13 @@ bin/bracery -d examples/travel.json --repl
 bin/bracery -d examples/travel.json -n5 --async
 ~~~~
 
-You can run it as client/server:
+Or just give it some text to expand:
+
+~~~~
+bin/bracery '[hello|hi] [world|planet]!'
+~~~~
+
+You can run it in client/server mode (NB this is a very light implementation, mostly just a toy example to demonstrate remote symbol resolution):
 
 ~~~~
 bin/bracery -d examples/travel.json -S 8000 &

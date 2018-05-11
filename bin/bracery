@@ -68,7 +68,7 @@ if (opt.options.client) {
       })
       client.on('data', function (data) {
         var json = JSON.parse (data.toString())
-        resolve (json.tree)
+        resolve (json.tree[0].rhs)
         client.destroy() // kill client after server's response
       })
     })

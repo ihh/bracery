@@ -16,7 +16,7 @@ var opt = getopt.create([
   ['s' , 'symbols=EXPR+'    , 'evaluate JSON symbol definitions from command line'],
   ['e' , 'eval=EXPR+'       , 'evaluate expression(s)'],
   ['n' , 'num=NUMBER'       , 'number of randomized samples to output'],
-  ['c' , 'config=JSON'      , 'specify config params e.g. maxDepth, maxDepthForExpr'],
+  ['c' , 'config=JSON'      , 'specify config params e.g. maxDepth, maxRecursion'],
   ['t' , 'tree'             , 'show parse tree'],
   ['T' , 'compact-tree'     , 'like -t but compact'],
   ['a' , 'async'            , 'run asynchronously'],

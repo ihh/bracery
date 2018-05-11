@@ -19,7 +19,7 @@ describe('command-line tests (' + binPath + ')', function() {
 
   // config
   expectExpand ('$test3', 'xxx')
-  expectExpand ('$test3', 'xxxx', { maxDepthForExpr: 4 })
+  expectExpand ('$test3', 'xxxx', { maxRecursion: 4 })
 
   // quoting
   expectExpand ('&eval{$test4}', 'TESTING')

@@ -554,7 +554,7 @@ function makeRhsExpansionPromiseForConfig (config, resolve, rhs, contextName) {
   if (contextName) {
     newConfig.depth = extend ({}, config.depth || {})
     var maxDepth = Math.min (config.maxDepth || pt.maxDepth,
-                             config.maxDepthForExpr || pt.maxDepthForExpr)
+                             config.maxRecursion || pt.maxRecursion)
     var oldDepth = newConfig.depth[contextName] || 0
     if (oldDepth >= maxDepth)
       return resolve ({ text: '', vars: config.vars })
@@ -970,7 +970,7 @@ function ordinal(i) {
 module.exports = {
   // config
   maxDepth: 100,
-  maxDepthForExpr: 3,
+  maxRecursion: 3,
 
   // parsing
   RhsParser: RhsParser,

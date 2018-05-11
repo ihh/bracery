@@ -94,8 +94,8 @@ function doTests (testRunner) {
   // look out! recursion
   expectExpand ('$test3', 'xxx')
   expectExpand ('$test3', 'xxx', { maxDepth: 5 })
-  expectExpand ('$test3', 'xxxxx', { maxDepth: 5, maxDepthForExpr: 10 })
-  expectExpand ('$test3', 'xxxx', { maxDepthForExpr: 4 })
+  expectExpand ('$test3', 'xxxxx', { maxDepth: 5, maxRecursion: 10 })
+  expectExpand ('$test3', 'xxxx', { maxRecursion: 4 })
 
   // quoting
   expectExpand ('$test4', '$TEST1')

@@ -36,14 +36,16 @@ describe('command-line tests (' + binPath + ')', function() {
 
 function expectExpand (lhs, rhs, config) {
   var fail = config && config.fail
+  var opts = config && config.opts
   if (fail) delete config.fail
+  if (opts) delete config.opts
   if (config && Object.keys(config).length === 0)
     config = null
   it('should ' + (fail ? 'not ' : '') + 'expand ' + (lhs || 'the empty string') + ' to ' + rhs.replace(/\s+/g,function(){return' '})
      + (config ? (' with ' + JSON.stringify(config)) : ''),
      function (done) {
        var cmdline = process.argv[0] + ' ' + __dirname + '/../' + binPath + " -c '" + JSON.stringify(config || {}) + "' -s '" + JSON.stringify(initJson) + "'"
-           + (config && config.opts ? (' ' + config.opts) : '')
+           + (opts ? (' ' + opts) : '')
            + " '" + lhs + "'"
        var text = execSync(cmdline,{stdio:['pipe','pipe',process.env.TRAVIS ? 'pipe' : 'ignore']}).toString()
        text = text.substr (0, text.length - 1)  // chop off newline

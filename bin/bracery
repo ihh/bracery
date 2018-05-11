@@ -37,7 +37,7 @@ var before = {}, after = {}
 if (opt.options.verbose) {
   before.all = console.warn.bind (console, 'before node,varval,depth:')
   after.all = console.warn.bind (console, 'after node,varval,depth,expansion:')
-  if (opt.options.async) {
+  if (opt.options.async || opt.options.client) {
     before.expand = console.warn.bind (console, 'before_expand node,varval,depth:')
     after.expand = console.warn.bind (console, 'after_expand node,varval,depth,rhs:')
   }
@@ -52,12 +52,12 @@ if (opt.options.client) {
     host_port = ['127.0.0.1'].concat (host_port)
   if (host_port.length !== 2)
     throw new Error ('specify server as hostaddr:port (or just port for localhost)')
-  console.warn ('resolving symbols at ' + host_port.join(':'))
   symbolExpander = function (config) {
     return new Promise (function (resolve, reject) {
       // https://gist.github.com/tedmiston/5935757
       var client = new net.Socket()
       client.connect (parseInt(host_port[1]), host_port[0], function() {
+        console.warn ('connected to ' + host_port.join(':'))
         client.write ('$' + config.node.name.toLowerCase() + '\n')
       })
       client.on('data', function (data) {

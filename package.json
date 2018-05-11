@@ -3,7 +3,9 @@
   "version": "1.0.27",
   "description": "Procedural text generator, somewhat compatible with Tracery",
   "main": "index.js",
-  "bin": { "bracery": "bin/bracery" },
+  "bin": {
+    "bracery": "bin/bracery"
+  },
   "scripts": {
     "test": "node ./node_modules/mocha/bin/mocha test/*.js",
     "prepublishOnly": "make; git clean -fd"

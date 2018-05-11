@@ -127,7 +127,7 @@ function getSymbolNodes (rhs) {
         }, [])
         break
       case 'rep':
-        r = pt.getSymbolNodes (node.single)
+        r = pt.getSymbolNodes (node.unit)
         break
       case 'func':
 	switch (node.funcname) {

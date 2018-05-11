@@ -16,7 +16,7 @@ var initJson = { abc: 'def',
 
 var binPath = 'bin/bracery'
 var port = 8001
-var clientDelay = 100  // number of milliseconds client will wait before attempting to connect, ugh
+var clientDelay = 250  // number of milliseconds client will wait before attempting to connect, ugh
 
 describe('client/server tests (' + binPath + ')', function() {
   // client/server test

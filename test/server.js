@@ -16,6 +16,8 @@ var initJson = { abc: 'def',
 
 var binPath = 'bin/bracery'
 var port = 8001
+var clientDelay = 100  // number of milliseconds client will wait before attempting to connect, ugh
+
 describe('client/server tests (' + binPath + ')', function() {
   // client/server test
   testServer ('$abc', 'def')
@@ -49,10 +51,12 @@ function testServer (lhs, rhs) {
      function (done) {
        var serverCmd = makeCmdLine (null, initJson, ['-S', port], null)
        var proc = spawnCmd (serverCmd)
-       var clientCmd = makeCmdLine (null, null, ['-C', port], lhs)
-       var text = execCmd (clientCmd)
-       proc.kill('SIGINT')
-       assert.equal (text, rhs)
-       done()
+       setTimeout (function() {
+         var clientCmd = makeCmdLine (null, null, ['-C', port], lhs)
+         var text = execCmd (clientCmd)
+         proc.kill('SIGINT')
+         assert.equal (text, rhs)
+         done()
+       }, clientDelay)
      })
 }

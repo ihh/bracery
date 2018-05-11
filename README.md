@@ -45,32 +45,32 @@ See [tests](test/) for more examples using the JavaScript API
 Trying various command line settings with the same symbol defintions file, [examples/travel.json](examples/travel.json) (`#hero# traveled with her pet...`):
 
 ~~~~
-bin/bracery -d examples/travel.json
-bin/bracery -d examples/travel.json -n5
-bin/bracery -d examples/travel.json -n5 --eval '$origin And then they met $name.'
-bin/bracery -d examples/travel.json -n5 --eval '$origin And they had [fun|trouble|no luck], until they met $name.'
-bin/bracery -d examples/travel.json --tree
-bin/bracery -d examples/travel.json --repl
-bin/bracery -d examples/travel.json -n5 --async
+bracery -d examples/travel.json
+bracery -d examples/travel.json -n5
+bracery -d examples/travel.json -n5 --eval '$origin And then they met $name.'
+bracery -d examples/travel.json -n5 --eval '$origin And they had [fun|trouble|no luck], until they met $name.'
+bracery -d examples/travel.json --tree
+bracery -d examples/travel.json --repl
+bracery -d examples/travel.json -n5 --async
 ~~~~
 
 Or just give it some text to expand:
 
 ~~~~
-bin/bracery '[hello|hi] [world|planet]!'
+bracery '[hello|hi] [world|planet]!'
 ~~~~
 
 You can run it in client/server mode (NB this is a very light implementation, mostly just a toy example to demonstrate networked symbol resolution):
 
 ~~~~
-bin/bracery -d examples/travel.json -S 8000 &
-bin/bracery -C http://localhost:8000/ -e '#origin#'
+bracery -d examples/travel.json -S 8000 &
+bracery -C http://localhost:8000/ -e '#origin#'
 ~~~~
 
 To get a list of available options (there aren't many)
 
 ~~~~
-bin/bracery --help
+bracery --help
 ~~~~
 
 See [examples](examples/) for more examples from the Tracery [online tutorial](http://www.crystalcodepalace.com/traceryTut.html)

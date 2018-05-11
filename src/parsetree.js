@@ -393,18 +393,32 @@ function makeRhsExpansionPromise (config) {
                 tree: [] }))
 }
 
-function makeRhsExpansionPromiseForConfig (config, resolve, rhs, contextName) {
-  var pt = this
-  var newConfig = extend ({}, config, { rhs: rhs })
-  if (contextName) {
-    newConfig.depth = extend ({}, config.depth || {})
-    var maxDepth = Math.min (config.maxDepth || pt.maxDepth,
-                             config.maxRecursion || pt.maxRecursion)
-    var oldDepth = newConfig.depth[contextName] || 0
-    if (oldDepth >= maxDepth)
-      return resolve ({ text: '', vars: config.vars })
-    newConfig.depth[contextName] = oldDepth + 1
+function makeRhsExpansionPromiseForConfig (config, resolve, rhs, contextKey) {
+  var pt = this, tooDeep = false
+  var newConfig = extend ({},
+                          config,
+                          { rhs: rhs,
+                            depth: extend ({},
+                                           config.depth || {}) })
+
+  var allContextsKey = '*'
+  var totalDepth = newConfig.depth[allContextsKey] || 0
+  var maxTotalDepth = Math.min (config.maxDepth || pt.maxDepth)
+  if (totalDepth >= maxTotalDepth)
+    tooDeep = true
+  newConfig.depth[allContextsKey] = totalDepth + 1
+
+  if (contextKey && !tooDeep) {
+    var recursionDepth = newConfig.depth[contextKey] || 0
+    var maxRecursionDepth = Math.min (config.maxRecursion || pt.maxRecursion)
+    if (recursionDepth >= maxRecursionDepth)
+      tooDeep = true
+    newConfig.depth[contextKey] = recursionDepth + 1
   }
+
+  if (tooDeep)
+    return resolve ({ text: '', vars: config.vars })
+
   return this.makeRhsExpansionPromise (newConfig)
 }
 

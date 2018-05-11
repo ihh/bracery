@@ -52,7 +52,7 @@ function testServer (lhs, rhs) {
        var serverCmd = makeCmdLine (null, initJson, ['-S', port], null)
        var proc = spawnCmd (serverCmd)
        setTimeout (function() {
-         var clientCmd = makeCmdLine (null, null, ['-C', port], lhs)
+         var clientCmd = makeCmdLine (null, null, ['-C', 'http://localhost:' + port], lhs)
          var text = execCmd (clientCmd)
          proc.kill('SIGINT')
          assert.equal (text, rhs)

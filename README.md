@@ -60,7 +60,7 @@ Or just give it some text to expand:
 bin/bracery '[hello|hi] [world|planet]!'
 ~~~~
 
-You can run it in client/server mode (NB this is a very light implementation, mostly just a toy example to demonstrate remote symbol resolution):
+You can run it in client/server mode (NB this is a very light implementation, mostly just a toy example to demonstrate networked symbol resolution):
 
 ~~~~
 bin/bracery -d examples/travel.json -S 8000 &

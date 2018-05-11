@@ -4,7 +4,7 @@
 var fs = require('fs'),
     getopt = require('node-getopt'),
     readline = require('readline'),
-    net = require('net'),
+    http = require('http'),
     request = require('request')
 
 var bracery = require('..'),
@@ -21,9 +21,8 @@ var opt = getopt.create([
   ['T' , 'compact-tree'     , 'like -t but compact'],
   ['a' , 'async'            , 'run asynchronously'],
   ['r' , 'repl'             , 'enter Read-Evaluate-Print Loop (REPL)'],
-  ['S' , 'server=SOCKET'    , 'run a REPL server listening on a socket'],
-  ['C' , 'client=SOCKET'    , 'run as client of REPL server on socket'],
-  ['u' , 'url=URL'          , 'run as client of web service'],
+  ['S' , 'server=SOCKET'    , 'run as a web service'],
+  ['C' , 'client=URL'       , 'run as client of web service'],
   ['v' , 'verbose'          , 'print logging info'],
   ['h' , 'help'             , 'display this help message']
 ])              // create Getopt instance
@@ -54,59 +53,11 @@ if (opt.options.verbose) {
 var async = opt.options.async, symbolExpander
 if (opt.options.client) {
   async = true
-  var host_port = opt.options.client.split(':')
-  if (host_port.length === 1)
-    host_port = ['127.0.0.1'].concat (host_port)
-  if (host_port.length !== 2)
-    throw new Error ('specify server as hostaddr:port (or just port for localhost)')
   symbolExpander = function (config) {
     return new Promise (function (resolve, reject) {
-      // https://gist.github.com/tedmiston/5935757
-      var client = new net.Socket()
-      client.connect (parseInt(host_port[1]), host_port[0], function() {
-        console.warn ('connected to ' + host_port.join(':'))
-        client.write ('$' + config.node.name.toLowerCase() + '\n')
-      })
-      client.on('data', function (data) {
-        var json = JSON.parse (data.toString())
-        resolve (json.tree[0].rhs)
-        client.destroy() // kill client after server's response
-      })
-    })
-  }
-}
-
-if (opt.options.server) {
-  var server = net.createServer (function (socket) {
-    var name = socket.remoteAddress + ":" + socket.remotePort
-    socket.on('data', function (data) {
-      var text = data.toString().replace(/\n$/,'')
-      console.warn (name + ' > ' + text)
-      b.expand (text,
-                extend (makeConfig(),
-                        { before: before,
-                          after: after,
-                          callback: function (expansion) {
-                            console.warn (name + ' < ' + expansion.text)
-                            socket.write (JSON.stringify(expansion))
-                          } }))
-      
-    })
-  })
-  server.listen (parseInt (opt.options.server))
-  console.warn ('listening on socket ' + opt.options.server)
-}
-
-// REST client
-var webUrl = opt.options.url
-if (webUrl) {
-  async = true
-  symbolExpander = function (config) {
-    return new Promise (function (resolve, reject) {
-      request.post ({ url: webUrl,
+      request.post ({ url: opt.options.client,
                       json: true,
-                      body: { content: [{ type: 'sym',
-                                          name: config.node.name.toLowerCase()}] } },
+                      body: { text: '$' + config.node.name.toLowerCase() } },
                     function (err, res, body) {
                       if (err)
                         reject (err)
@@ -115,6 +66,33 @@ if (webUrl) {
                     })
     })
   }
+  console.warn ('resolving symbols via ' + opt.options.client)
+}
+
+if (opt.options.server) {
+  function requestHandler (request, response) {
+    var body = ''
+    request.on ('data', function (chunk) { body += chunk.toString() })
+    request.on ('end', function() {
+      var text = JSON.parse(body).text
+      console.warn ('> ' + text)
+      b.expand (text,
+                extend (makeConfig(),
+                        { before: before,
+                          after: after,
+                          callback: function (expansion) {
+                            console.warn ('< ' + expansion.text)
+                            response.end (JSON.stringify ({ expansion: expansion }))
+                          } }))
+    })
+  }
+  
+  var server = http.createServer (requestHandler)
+  server.listen (opt.options.server, function (err) {
+    if (err)
+      throw err
+  })
+  console.warn ('listening on port ' + opt.options.server)
 }
 
 // main expand function: performs n expansions, synchronously or asynchronously,

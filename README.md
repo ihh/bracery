@@ -13,7 +13,7 @@ Bracery was designed for asynchronous applications where the Tracery client is d
 However, Bracery also works just fine as a synchronous library, like Tracery (this is the default when running from the command-line, or using the node API).
 Expansion of Bracery expressions occurs using promises, which may e.g. involve database queries or calls to web services.
 
-In plain English, the Tracery definitions file can live on a server somewhere far away.
+In plain English, the Tracery definitions file can live on a server somewhere remote from where procedural text generation is happening.
 This means it can potentially be very big, or continually updated.
 
 # Usage

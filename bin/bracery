@@ -9,6 +9,7 @@ var fs = require('fs'),
 var bracery = require('..'),
     extend = bracery.ParseTree.extend
 
+// parse command-line options
 var opt = getopt.create([
   ['d' , 'defs=PATH+'       , 'load symbol definitions from JSON file(s)'],
   ['s' , 'symbols=EXPR+'    , 'evaluate JSON symbol definitions from command line'],
@@ -30,6 +31,8 @@ var opt = getopt.create([
 var b = new bracery.Bracery()
 var varVal = {}
 var expandedSomething = false
+
+// logging
 var before = {}, after = {}
 if (opt.options.verbose) {
   before.all = console.warn.bind (console, 'before node,varval,depth:')
@@ -40,14 +43,21 @@ if (opt.options.verbose) {
   }
 }
 
+// client/server
 var async = opt.options.async, symbolExpander
 if (opt.options.client) {
   async = true
+  var host_port = opt.options.client.split(':')
+  if (host_port.length === 1)
+    host_port = ['127.0.0.1'].concat (host_port)
+  if (host_port.length !== 2)
+    throw new Error ('specify server as hostaddr:port (or just port for localhost)')
+  console.warn ('resolving symbols at ' + host_port.join(':'))
   symbolExpander = function (config) {
     return new Promise (function (resolve, reject) {
       // https://gist.github.com/tedmiston/5935757
       var client = new net.Socket()
-      client.connect (parseInt(opt.options.client), '127.0.0.1', function() {
+      client.connect (parseInt(host_port[1]), host_port[0], function() {
         client.write ('$' + config.node.name.toLowerCase() + '\n')
       })
       client.on('data', function (data) {
@@ -61,16 +71,17 @@ if (opt.options.client) {
 
 if (opt.options.server) {
   var server = net.createServer (function (socket) {
+    var name = socket.remoteAddress + ":" + socket.remotePort
     socket.on('data', function (data) {
-      var text = data.toString()
-      process.stderr.write ('> ' + text)
+      var text = data.toString().replace(/\n$/,'')
+      console.warn (name + ' > ' + text)
       var config = { vars: extend ({}, varVal) }
       b.expand (text,
                 extend (config,
                         { before: before,
                           after: after,
                           callback: function (expansion) {
-                            process.stderr.write ('< ' + expansion.text)
+                            console.warn (name + ' < ' + expansion.text)
                             socket.write (JSON.stringify(expansion))
                           } }))
       
@@ -80,6 +91,8 @@ if (opt.options.server) {
   console.warn ('listening on socket ' + opt.options.server)
 }
 
+// main expand function: performs n expansions, synchronously or asynchronously,
+// and outputs the result as text or a tree
 var samples = parseInt(opt.options.num) || 1
 var tree = opt.options.tree, compact = opt.options['compact-tree']
 function expansionLogger (n, expansion) {
@@ -113,6 +126,7 @@ function expand (expr) {
   }
 }
 
+// load symbol definitions
 var addedRules = false
 function addRules (ruleText) {
   b.addRules (JSON.parse (ruleText))
@@ -125,6 +139,7 @@ if (opt.options.defs)
 if (opt.options.symbols)
   opt.options.symbols.forEach (addRules)
 
+// print a log message about the symbol defs
 var symbolNames = b.symbolNames()
 if (symbolNames.length || opt.options.defs) {
   var nRules = symbolNames.reduce (function (sum, name) { return sum + b.getRules(name).length }, 0)
@@ -133,9 +148,11 @@ if (symbolNames.length || opt.options.defs) {
                + ', initial symbol ' + bracery.ParseTree.symChar + b.getDefaultSymbol() + ')')
 }
 
+// evaluate any expressions
 if (opt.options.eval)
   opt.options.eval.forEach (expand)
 
+// start a REPL
 if (opt.options.repl) {
   console.warn ('enter Bracery text for expansion:')
   var rl = readline.createInterface ({ input: process.stdin,
@@ -143,7 +160,8 @@ if (opt.options.repl) {
   rl.on ('line', expand)
 }
 
-if (!expandedSomething) {
+// expand something by default, or print an error message
+if (!expandedSomething && !opt.options.server && !opt.options.repl) {
   if (opt.argv.length)
     expand (opt.argv.join(' '))
   else {

@@ -54,6 +54,13 @@ bin/bracery -d examples/travel.json --repl
 bin/bracery -d examples/travel.json -n5 --async
 ~~~~
 
+You can run it as client/server:
+
+~~~~
+bin/bracery -d examples/travel.json -S 8000 &
+bin/bracery -C localhost:8000 -e '#origin#'
+~~~~
+
 To get a list of available options (there aren't many)
 
 ~~~~

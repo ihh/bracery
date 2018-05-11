@@ -19,7 +19,11 @@ var port = 8001
 describe('client/server tests (' + binPath + ')', function() {
   // client/server test
   testServer ('$abc', 'def')
-//  testServer ('&cap{$test3}', 'Xxx')
+  testServer ('&cap&lc&eval$test2', 'Testing')
+
+  // it gets a little funky trying to track recursion depth across this ad-hoc client/server connection
+  // so the following test currently fails:
+  //  testServer ('&cap{$test3}', 'Xxx')
 })
 
 function makeCmdLine (config, initJson, opts, lhs) {

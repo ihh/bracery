@@ -30,7 +30,12 @@ var opt = getopt.create([
 
 var b = new bracery.Bracery()
 var varVal = {}
-var expandedSomething = false
+function makeConfig() {
+  var config = { vars: extend ({}, varVal) }
+  if (opt.options.config)
+    extend (config, JSON.parse (opt.options.config))
+  return config
+}
 
 // logging
 var before = {}, after = {}
@@ -42,6 +47,7 @@ if (opt.options.verbose) {
     after.expand = console.warn.bind (console, 'after_expand node,varval,depth,rhs:')
   }
 }
+
 
 // client/server
 var async = opt.options.async, symbolExpander
@@ -75,9 +81,8 @@ if (opt.options.server) {
     socket.on('data', function (data) {
       var text = data.toString().replace(/\n$/,'')
       console.warn (name + ' > ' + text)
-      var config = { vars: extend ({}, varVal) }
       b.expand (text,
-                extend (config,
+                extend (makeConfig(),
                         { before: before,
                           after: after,
                           callback: function (expansion) {
@@ -106,12 +111,12 @@ function expansionLogger (n, expansion) {
   if (expansion)
     varVal = expansion.vars
 }
+
+var expandedSomething = false
 function expand (expr) {
   for (var n = 0; n < samples; ++n) {
     var gotExpansion = expansionLogger.bind (null, n)
-    var config = { vars: extend ({}, varVal) }
-    if (opt.options.config)
-      extend (config, JSON.parse (opt.options.config))
+    var config = makeConfig()
     if (symbolExpander)
       config.expand = symbolExpander
     if (async)

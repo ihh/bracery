@@ -4,7 +4,9 @@
 var fs = require('fs'),
     getopt = require('node-getopt'),
     readline = require('readline'),
-    bracery = require('..'),
+    net = require('net')
+
+var bracery = require('..'),
     extend = bracery.ParseTree.extend
 
 var opt = getopt.create([
@@ -16,7 +18,9 @@ var opt = getopt.create([
   ['t' , 'tree'             , 'show parse tree'],
   ['T' , 'compact-tree'     , 'like -t but compact'],
   ['a' , 'async'            , 'run asynchronously'],
-  ['r' , 'repl'             , 'enter Read-Evaluate-Print Loop'],
+  ['r' , 'repl'             , 'enter Read-Evaluate-Print Loop (REPL)'],
+  ['S' , 'server=SOCKET'    , 'run a REPL server listening on a socket'],
+  ['C' , 'client=SOCKET'    , 'run as client of REPL server on socket'],
   ['v' , 'verbose'          , 'print logging info'],
   ['h' , 'help'             , 'display this help message']
 ])              // create Getopt instance
@@ -34,6 +38,46 @@ if (opt.options.verbose) {
     before.expand = console.warn.bind (console, 'before_expand node,varval,depth:')
     after.expand = console.warn.bind (console, 'after_expand node,varval,depth,rhs:')
   }
+}
+
+var async = opt.options.async, symbolExpander
+if (opt.options.client) {
+  async = true
+  symbolExpander = function (config) {
+    return new Promise (function (resolve, reject) {
+      // https://gist.github.com/tedmiston/5935757
+      var client = new net.Socket()
+      client.connect (parseInt(opt.options.client), '127.0.0.1', function() {
+        client.write ('$' + config.node.name.toLowerCase() + '\n')
+      })
+      client.on('data', function (data) {
+        var json = JSON.parse (data.toString())
+        resolve (json.tree)
+        client.destroy() // kill client after server's response
+      })
+    })
+  }
+}
+
+if (opt.options.server) {
+  var server = net.createServer (function (socket) {
+    socket.on('data', function (data) {
+      var text = data.toString()
+      process.stderr.write ('> ' + text)
+      var config = { vars: extend ({}, varVal) }
+      b.expand (text,
+                extend (config,
+                        { before: before,
+                          after: after,
+                          callback: function (expansion) {
+                            process.stderr.write ('< ' + expansion.text)
+                            socket.write (JSON.stringify(expansion))
+                          } }))
+      
+    })
+  })
+  server.listen (parseInt (opt.options.server))
+  console.warn ('listening on socket ' + opt.options.server)
 }
 
 var samples = parseInt(opt.options.num) || 1
@@ -55,7 +99,9 @@ function expand (expr) {
     var config = { vars: extend ({}, varVal) }
     if (opt.options.config)
       extend (config, JSON.parse (opt.options.config))
-    if (opt.options.async)
+    if (symbolExpander)
+      config.expand = symbolExpander
+    if (async)
       b.expand (expr, extend (config,
                               { before: before,
                                 after: after,
@@ -91,6 +137,7 @@ if (opt.options.eval)
   opt.options.eval.forEach (expand)
 
 if (opt.options.repl) {
+  console.warn ('enter Bracery text for expansion:')
   var rl = readline.createInterface ({ input: process.stdin,
                                        output: process.stdout })
   rl.on ('line', expand)
@@ -105,7 +152,5 @@ if (!expandedSomething) {
   }
 }
 
-if (opt.options.repl)
-  console.warn ('enter Bracery text for expansion:')
-else if (!expandedSomething && !addedRules)
+if (!expandedSomething && !addedRules && !opt.options.server && !opt.options.repl)
   console.error ('please give me some Bracery text to expand')

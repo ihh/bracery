@@ -94,7 +94,7 @@ Bracery.prototype._expandSymbol = function (config) {
 }
 
 Bracery.prototype._expandRhs = function (config) {
-  var newConfig = extend ({}, config, { expand: this._expandSymbol.bind (this) })
+  var newConfig = extend ({ expand: this._expandSymbol.bind (this) }, config)
   if (newConfig.callback)
     return ParseTree.makeRhsExpansionPromise (newConfig).then (newConfig.callback)
   return ParseTree.makeRhsExpansionSync (newConfig)

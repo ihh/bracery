@@ -16,13 +16,16 @@ Expansion of symbol expressions uses promises, which may e.g. involve database q
 In plain English, the Tracery definitions file can live on a server somewhere remote from where procedural text generation is happening.
 This means that the set of definitions can potentially be very big, or continually updated.
 
-In order to make this work, Bracery distinguishes between _variables_ (can be modified/expanded locally) and _symbols_ (only the server knows how to expand them).
+In order to make this work, Bracery distinguishes between _variables_ (read/write, stored locally) and _symbols_ (read-only, stored on the server).
 In Tracery, these two things share the same namespace; for example, `#sentence#` is the syntax to expand the nonterminal symbol `sentence`,
 but it is also the syntax for retrieving the value of the variable named `sentence`.
 If the variable is specified, then it overrides the original nonterminal symbol definition (if there was one).
+In Tracery this serves is a neat way of passing information into subroutines ("actions").
 
-Bracery expands `#sentence#` the same way as Tracery, but also lets you directly access the variable's unexpanded value (as `^sentence`) or expand the original nonterminal (as `^$sentence`).
-It also introduces dynamic evaluation and conditional primitives.
+Bracery implements the same behavior as Tracery, expanding `#sentence#` the same way,
+but it also lets you access the variable's value directly (as `^sentence`) or expand the original nonterminal (as `$sentence`).
+It further introduces dynamic evaluation and conditional primitives, which are required to make the Tracery-style syntax work
+but are also quite powerful in their own right.
 
 # Usage
 

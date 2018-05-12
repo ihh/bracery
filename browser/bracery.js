@@ -567,8 +567,13 @@ function makeRhsExpansionPromise (config) {
   var pt = this
   var rhs = config.rhs || this.sampleParseTree (parseRhs (config.rhsText), config)
   var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
+  var maxLength = Math.min (config.maxLength || pt.maxLength)
+  var maxNodes = Math.min (config.maxNodes || pt.maxNodes)
   return rhs.reduce (function (promise, child) {
     return promise.then (function (expansion) {
+      if ((expansion.text && expansion.text.length >= maxLength)
+          || (expansion.nodes && expansion.nodes >= maxNodes))
+        return expansion
       return pt.makeExpansionPromise (extend ({},
                                               config,
                                               { node: child,
@@ -577,39 +582,42 @@ function makeRhsExpansionPromise (config) {
           return extend (expansion,
                          childExpansion,
                          { text: expansion.text + childExpansion.text,
-                           tree: expansion.tree.concat (childExpansion.tree) })
+                           tree: expansion.tree.concat (childExpansion.tree),
+                           nodes: expansion.nodes + childExpansion.nodes })
         })
     })
   }, resolve ({ text: '',
                 vars: config.vars,
-                tree: [] }))
+                tree: [],
+                nodes: 0 }))
 }
 
 function makeRhsExpansionPromiseForConfig (config, resolve, rhs, contextKey) {
-  var pt = this, tooDeep = false
+  var pt = this, atLimit = false
   var newConfig = extend ({},
                           config,
                           { rhs: rhs,
                             depth: extend ({},
                                            config.depth || {}) })
 
-  var allContextsKey = '*'
-  var totalDepth = newConfig.depth[allContextsKey] || 0
+  var totalDepth = newConfig.totalDepth || 0
   var maxTotalDepth = Math.min (config.maxDepth || pt.maxDepth)
   if (totalDepth >= maxTotalDepth)
-    tooDeep = true
-  newConfig.depth[allContextsKey] = totalDepth + 1
+    atLimit = true
+  newConfig.totalDepth = totalDepth + 1
 
-  if (contextKey && !tooDeep) {
+  if (contextKey && !atLimit) {
     var recursionDepth = newConfig.depth[contextKey] || 0
     var maxRecursionDepth = Math.min (config.maxRecursion || pt.maxRecursion)
     if (recursionDepth >= maxRecursionDepth)
-      tooDeep = true
+      atLimit = true
     newConfig.depth[contextKey] = recursionDepth + 1
   }
 
-  if (tooDeep)
-    return resolve ({ text: '', vars: config.vars })
+  if (atLimit)
+    return resolve ({ text: '',
+                      vars: config.vars,
+                      nodes: 0 })
 
   return this.makeRhsExpansionPromise (newConfig)
 }
@@ -636,9 +644,10 @@ function makeExpansionPromise (config) {
   var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
   return handlerPromise ([node, varVal, depth], resolve(), config.before, node.type, 'all')
     .then (function() {
-      var expansion = { text: '', vars: varVal }
+      var expansion = { text: '', vars: varVal, nodes: 1 }
       var expansionPromise = resolve (expansion), promise = expansionPromise
       var makeRhsExpansionPromiseFor = makeRhsExpansionPromiseForConfig.bind (pt, config, resolve)
+      function addExpansionNodes (x) { x.nodes += expansion.nodes; return extend (expansion, x) }
       if (node) {
         if (typeof(node) === 'string') {
           expansion.text = node
@@ -652,10 +661,12 @@ function makeExpansionPromise (config) {
               .then (function (valExpansion) {
                 expansion.vars = valExpansion.vars
                 expansion.vars[name] = valExpansion.text
+                expansion.nodes += valExpansion.nodes
                 if (node.local)
                   return makeRhsExpansionPromiseForConfig.call (pt, extend ({}, config, { vars: expansion.vars }), resolve, node.local)
                   .then (function (localExpansion) {
                     expansion.text = localExpansion.text
+                    expansion.nodes += localExpansion.nodes
                     extend (expansion.vars, localExpansion.vars)
                     if (typeof(oldValue) === 'undefined')
                       delete expansion.vars[name]
@@ -677,9 +688,10 @@ function makeExpansionPromise (config) {
             promise = makeRhsExpansionPromiseFor (node.test)
               .then (function (testExpansion) {
                 var testValue = testExpansion.text.match(/\S/) ? true : false
-                var condRhs = testValue ? node.t : node.f
+                var testResult = testValue ? node.t : node.f
                 node.value = testValue  // for debugging
-                return makeRhsExpansionPromiseFor (condRhs)
+                expansion.nodes += testExpansion.nodes
+                return makeRhsExpansionPromiseFor (testResult).then (addExpansionNodes)
               })
             break
 
@@ -690,6 +702,7 @@ function makeExpansionPromise (config) {
               promise = makeRhsExpansionPromiseFor (node.args)
                 .then (function (argExpansion) {
                   var arg = argExpansion.text
+                  expansion.nodes += argExpansion.nodes
                   switch (node.funcname) {
 
                   case 'eval':
@@ -707,10 +720,7 @@ function makeExpansionPromise (config) {
                       }
                     }
                     return makeRhsExpansionPromiseFor (node.value, arg)
-                      .then (function (evalExpansion) {
-                        extend (expansion, evalExpansion)
-                        return expansion
-                      })
+                      .then (addExpansionNodes)
                     break
 
                   case 'cap':
@@ -800,15 +810,18 @@ function makeExpansionPromise (config) {
               symbolExpansionPromise = resolve()
             promise = symbolExpansionPromise.then (function() {
               return makeRhsExpansionPromiseFor (node.rhs || [], expr)
+                .then (addExpansionNodes)
             })
             break
           case 'root':
           case 'alt_sampled':
             promise = makeRhsExpansionPromiseFor (node.rhs || [])
+              .then (addExpansionNodes)
             break
           case 'rep_sampled':
             promise = makeRhsExpansionPromiseFor ((node.reps || []).reduce (function (all, rep) { return all.concat(rep) }, []))
-          case 'alt':
+              .then (addExpansionNodes)
+            break
           default:
           break
           }
@@ -1028,6 +1041,8 @@ module.exports = {
   maxDepth: 100,
   maxRecursion: 3,
   maxReps: 10,
+  maxLength: 280,
+  maxNodes: 1000,
 
   // parsing
   RhsParser: RhsParser,

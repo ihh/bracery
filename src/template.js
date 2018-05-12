@@ -1,8 +1,15 @@
 var ParseTree = require('./parsetree')
+var extend = ParseTree.extend
+
+function makeTagArray (text) {
+  return text.replace (/^\s*(.*?)\s*$/, function (_m, g) { return g })
+    .split(/\s+/)
+    .map (function (tag) { return tag.toLowerCase() })
+}
 
 function makeTagString (text) {
   return (text
-          ? (' ' + text.replace (/^\s*(.*?)\s*$/, function (_m, g) { return g }).split(/\s+/).join(' ') + ' ')
+          ? (' ' + makeTagArray(text).join(' ') + ' ')
 	  : '')
 }
 
@@ -50,5 +57,56 @@ function parseTemplateDefs (text) {
   return templates
 }
 
+function sampleTemplate (templates) {
+  var totalWeight = templates.reduce (function (total, template) { return total + (template.weight || 1) }, 0)
+  var w = totalWeight * Math.random()
+  for (var i = 0; i < templates.length; ++i)
+    if ((w -= (templates[i].weight || 1)) <= 0)
+      return templates[i]
+  return undefined
+}
+
+function randomRootTemplate (templates) {
+  return sampleTemplate (templates.filter (function (template) { return template.isRoot }))
+}
+
+function randomReplyTemplate (templates, tags, prevTemplate) {
+  tags = typeof(tags) === 'string' ? makeTagArray(tags) : tags
+  return sampleTemplate (templates.filter (function (template) {
+    if (prevTemplate && prevTemplate.replies.indexOf (template) >= 0)
+      return true
+    var prevTags = template.previousTags.toLowerCase()
+    return tags.reduce (function (match, tag) {
+      return match || (prevTags.indexOf (' ' + tag + ' ') >= 0)
+    }, false)
+  }))
+}
+
+function randomChain (config) {
+  var bracery = config.bracery, templates = config.templates
+  var maxReplies = config.maxReplies
+  var chain = [], vars = {}
+  var template = randomRootTemplate (templates)
+  while (template && !(chain.length > maxReplies)) {
+    var message = { template: template,
+                    vars: extend ({}, vars),
+                    expansion: bracery._expandRhs (extend ({},
+                                                           config,
+                                                           { rhs: template.content,
+                                                             vars: vars })) }
+    message.title = vars.title || template.title
+    message.tags = vars.prevtags = vars.tags || template.tags
+    delete vars.tags
+    chain.push (message)
+    template = randomReplyTemplate (templates, message.tags, template)
+  }
+  return chain
+}
+
 module.exports = { parseTemplateDefs: parseTemplateDefs,
+                   sampleTemplate: sampleTemplate,
+                   randomRootTemplate: randomRootTemplate,
+                   randomReplyTemplate: randomReplyTemplate,
+                   randomChain: randomChain,
+                   makeTagArray: makeTagArray,
                    makeTagString: makeTagString }

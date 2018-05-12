@@ -13,9 +13,9 @@ var bracery = require('..'),
 // parse command-line options
 var opt = getopt.create([
   ['d' , 'defs=PATH+'       , 'load symbol definitions from JSON file(s)'],
+  ['D' , 'text-defs=PATH+'  , 'load symbol definitions from Bracery plaintext file(s)'],
   ['o' , 'output=PATH'      , 'save symbol definitions to JSON file'],
-  ['D' , 'text-defs=PATH+'  , 'load symbol definitions from a plaintext format'],
-  ['O' , 'output-text=PATH' , 'save symbol definitions to plaintext format'],
+  ['O' , 'output-text=PATH' , 'save symbol definitions to Bracery plaintext file'],
   ['s' , 'symbols=EXPR+'    , 'evaluate JSON symbol definitions from command line'],
   ['e' , 'eval=EXPR+'       , 'evaluate expression(s) text'],
   ['n' , 'num=NUMBER'       , 'number of randomized samples to output'],
@@ -27,6 +27,7 @@ var opt = getopt.create([
   ['r' , 'repl'             , 'enter Read-Evaluate-Print Loop (REPL)'],
   ['S' , 'server=SOCKET'    , 'run as a web service'],
   ['C' , 'client=URL'       , 'run as client of web service'],
+  ['m' , 'markov=FILE'      , 'run as Markov chain from template file'],
   ['v' , 'verbose'          , 'print logging info'],
   ['h' , 'help'             , 'display this help message']
 ])              // create Getopt instance
@@ -187,6 +188,18 @@ if (opt.options.validate)
 // evaluate any expressions
 if (opt.options.eval)
   opt.options.eval.forEach (expand)
+
+// run template Markov chain
+if (opt.options.markov) {
+  var templates = bracery.Template.parseTemplateDefs (fs.readFileSync (opt.options.markov).toString())
+  var chain = bracery.Template.randomChain (extend (makeConfig(),
+                                                    { bracery: b,
+                                                      templates: templates }))
+  console.log (chain.map (function (message) {
+    printedSomething = true
+    return (message.template.author ? (message.template.author + ': ') : '') + message.expansion.text
+  }).join(''))
+}
 
 // start a REPL
 if (opt.options.repl) {

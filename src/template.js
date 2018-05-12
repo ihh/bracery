@@ -1,6 +1,8 @@
 var ParseTree = require('./parsetree')
 var extend = ParseTree.extend
 
+var defaultMaxReplies = 100
+
 function makeTagArray (text) {
   return text.replace (/^\s*(.*?)\s*$/, function (_m, g) { return g })
     .split(/\s+/)
@@ -77,36 +79,71 @@ function randomReplyTemplate (templates, tags, prevTemplate) {
       return true
     var prevTags = template.previousTags.toLowerCase()
     return tags.reduce (function (match, tag) {
-      return match || (prevTags.indexOf (' ' + tag + ' ') >= 0)
+      return match || (prevTags.search (' ' + tag + ' ') >= 0)
     }, false)
   }))
 }
 
-function randomChain (config) {
+function promiseMessageList (config) {
   var bracery = config.bracery, templates = config.templates
-  var maxReplies = config.maxReplies
-  var chain = [], vars = {}
-  var template = randomRootTemplate (templates)
-  while (template && !(chain.length > maxReplies)) {
-    var message = { template: template,
-                    vars: extend ({}, vars),
-                    expansion: bracery._expandRhs (extend ({},
-                                                           config,
-                                                           { rhs: template.content,
-                                                             vars: vars })) }
-    message.title = vars.title || template.title
-    message.tags = vars.prevtags = vars.tags || template.tags
-    delete vars.tags
-    chain.push (message)
-    template = randomReplyTemplate (templates, message.tags, template)
+  var maxReplies = typeof(config.maxReplies) === 'undefined' ? defaultMaxReplies : config.maxReplies
+  var accept = config.accept || function (expansion, thread) { return true }
+  var prevMessage = config.previousMessage
+  var generateTemplate = (prevMessage
+                          ? randomReplyTemplate.bind (null, templates, prevMessage.tags, prevMessage.template)
+                          : randomRootTemplate.bind (null, templates))
+  function generateMessage() {
+    var message
+    var template = generateTemplate()
+    if (template) {
+      var vars = extend ({}, config.vars || {})
+      message = { template: template,
+                  vars: extend ({}, vars),
+                  expansion: bracery._expandRhs (extend ({},
+                                                         config,
+                                                         { rhs: ParseTree.sampleParseTree (template.content, bracery.rng),
+                                                           vars: vars })) }
+      message.title = vars.title || template.title
+      message.tags = vars.prevtags = vars.tags || template.tags
+      delete vars.tags
+      message.nextVars = extend ({}, vars)
+    }
+    return message
   }
-  return chain
+  function promiseMessage() {
+    var proposedMessage = generateMessage()
+//    console.warn('proposedMessage',proposedMessage)
+    return new Promise (function (resolve, reject) {
+      if (!proposedMessage)
+        resolve (true)
+      else
+        resolve (accept (proposedMessage, config.thread))
+    }).then (function (accepted) {
+      return accepted ? proposedMessage : promiseMessage()
+    })
+  }
+  return promiseMessage()
+    .then (function (message) {
+      return (message
+              ? ((maxReplies > 0 || typeof(maxReplies) === 'undefined' || maxReplies === null)
+                 ? (promiseMessageList (extend ({},
+                                                config,
+                                                { previousMessage: message,
+                                                  vars: message.nextVars,
+                                                  thread: (config.thread || []).concat (message),
+                                                  maxReplies: (maxReplies ? maxReplies - 1 : maxReplies) }))
+                    .then (function (replies) {
+                      return [message].concat (replies)
+                    }))
+                 : [message])
+              : [])
+    })
 }
 
 module.exports = { parseTemplateDefs: parseTemplateDefs,
                    sampleTemplate: sampleTemplate,
                    randomRootTemplate: randomRootTemplate,
                    randomReplyTemplate: randomReplyTemplate,
-                   randomChain: randomChain,
+                   promiseMessageList: promiseMessageList,
                    makeTagArray: makeTagArray,
                    makeTagString: makeTagString }

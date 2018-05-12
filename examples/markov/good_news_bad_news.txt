@@ -1,0 +1,5 @@
+@goodnews>Good news # root bad_news # good_news
+^subject={cat|dog|flower|toaster}[I [love|dig|really like] &plural^subject!|&cap&plural^subject are [great|awesome|amazing]!]
+
+@badnews>Bad news # good_news # bad_news
+[Yeah? Well &a^subject [ate|stepped on] your [mom|dad|uncle|aunt|grandma|grandpa|cousin|best friend].|Nope.|I disagree.|[Meh|Whatever]. &plural&cap^subject [suck|are [bad|weak|boring]].]

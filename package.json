@@ -22,8 +22,10 @@
   "homepage": "https://github.com/ihh/bracery#readme",
   "dependencies": {
     "bluebird": "^3.5.1",
+    "colors": "^1.2.5",
     "compromise": "^11.7.0",
     "node-getopt": "^0.3.2",
+    "prompt-confirm": "^1.2.0",
     "request": "^2.85.0"
   },
   "devDependencies": {

@@ -5,7 +5,9 @@ var fs = require('fs'),
     getopt = require('node-getopt'),
     readline = require('readline'),
     http = require('http'),
-    request = require('request')
+    request = require('request'),
+    Confirm = require('prompt-confirm'),
+    colors = require('colors')
 
 var bracery = require('..'),
     extend = bracery.ParseTree.extend
@@ -22,12 +24,13 @@ var opt = getopt.create([
   ['c' , 'config=JSON'      , 'specify config params (e.g. maxDepth, maxRecursion, maxLength, maxNodes, maxReps)'],
   ['V' , 'validate=EXPR+'   , 'validate and normalize text, without expanding'],
   ['t' , 'tree'             , 'show parse tree'],
-  ['T' , 'compact-tree'     , 'like -t but compact'],
+  ['T' , 'compact-tree'     , 'like --tree, but compact'],
   ['a' , 'async'            , 'run asynchronously'],
   ['r' , 'repl'             , 'enter Read-Evaluate-Print Loop (REPL)'],
   ['S' , 'server=SOCKET'    , 'run as a web service'],
   ['C' , 'client=URL'       , 'run as client of web service'],
   ['m' , 'markov=FILE'      , 'run as Markov chain from template file'],
+  ['q' , 'quiz=FILE'        , 'like --markov, but interactive'],
   ['v' , 'verbose'          , 'print logging info'],
   ['h' , 'help'             , 'display this help message']
 ])              // create Getopt instance
@@ -190,15 +193,44 @@ if (opt.options.eval)
   opt.options.eval.forEach (expand)
 
 // run template Markov chain
-if (opt.options.markov) {
-  var templates = bracery.Template.parseTemplateDefs (fs.readFileSync (opt.options.markov).toString())
-  var chain = bracery.Template.randomChain (extend (makeConfig(),
-                                                    { bracery: b,
-                                                      templates: templates }))
-  console.log (chain.map (function (message) {
-    printedSomething = true
-    return (message.template.author ? (message.template.author + ': ') : '') + message.expansion.text
-  }).join(''))
+if (opt.options.markov || opt.options.quiz) {
+  function messageToString (message, config) {
+    var color = (config && config.color) || {}
+    return ((message.template.author
+             ? ((color.author || colors.blue).call (colors, message.template.author) + ': ')
+             : '')
+            + (color.message || colors.yellow).call (colors, message.expansion.text))
+  }
+  function chainToString (chain, config) {
+    return chain.map (function (message) { return messageToString (message, config) }).join('')
+  }
+  var templates = [opt.options.markov, opt.options.quiz]
+      .reduce (function (temps, filename) {
+        return temps.concat (filename ? bracery.Template.parseTemplateDefs (fs.readFileSync (filename).toString()) : [])
+      }, [])
+  var markovConfig = extend (makeConfig(),
+                             { bracery: b,
+                               templates: templates,
+                               vars: varVal })
+  if (opt.options.quiz)
+    markovConfig.accept = function (message, thread) {
+      if (thread)
+        console.warn (chainToString (thread))
+      console.warn (messageToString
+                    (message,
+                     { color: { author: colors.cyan,
+                                message: colors.white } }))
+      return new Confirm ('Accept?')
+        .run()
+    }
+
+  bracery.Template.promiseMessageList (markovConfig)
+    .then (function (chain) {
+      console.log (chainToString (chain,
+                                  { color: { author: colors.blue,
+                                             message: colors.green } }))
+    })
+  printedSomething = true
 }
 
 // start a REPL

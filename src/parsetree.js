@@ -55,6 +55,8 @@ function makeRoot (rhs) {
 var symChar = '$', varChar = '^', funcChar = '&', leftBraceChar = '{', rightBraceChar = '}', leftSquareBraceChar = '[', rightSquareBraceChar = ']', assignChar = '=', traceryChar = '#'
 
 // Parse tree manipulations
+// sampleParseTree is the main method for constructing a new, clean parse tree from a template.
+// in the process, it samples any alternations or repetitions
 function sampleParseTree (rhs, config) {
   var pt = this
   var rng = config && config.rng ? config.rng : Math.random
@@ -76,12 +78,22 @@ function sampleParseTree (rhs, config) {
                    n: index,
                    rhs: pt.sampleParseTree (node.opts[index], config) }
         break
+      case 'alt_sampled':
+        result = { type: 'alt_sampled',
+                   n: node.n,
+                   rhs: pt.sampleParseTree (node.rhs, config) }
+        break
       case 'rep':
         var n = Math.min (Math.floor (rng() * (node.max + 1 - node.min)) + node.min,
                           config && config.maxReps ? config.maxReps : pt.maxReps)
 	result = { type: 'rep_sampled',
                    n: n,
 		   reps: new Array(n).fill().map (function() { return pt.sampleParseTree (node.unit, config) }) }
+        break
+      case 'rep_sampled':
+        result = { type: 'rep_sampled',
+                   n: node.n,
+                   reps: reps.map (function (rep) { return pt.sampleParseTree (rep, config) }) }
         break
       case 'cond':
 	result = { type: 'cond',
@@ -619,6 +631,7 @@ function makeExpansionPromise (config) {
             if (!node.rhs && config.expand)
               symbolExpansionPromise = handlerPromise ([node, varVal, depth], resolve(), config.before, 'expand')
               .then (function() {
+                // the expand callback should call sampleParseTree() on anything it looks up
                 return config.expand (extend ({},
                                               config,
                                               { node: node,

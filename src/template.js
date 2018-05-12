@@ -1,3 +1,5 @@
+var ParseTree = require('./parsetree')
+
 function makeTagString (text) {
   return (text
           ? (' ' + text.replace (/^\s*(.*?)\s*$/, function (_m, g) { return g }).split(/\s+/).join(' ') + ' ')
@@ -12,7 +14,7 @@ function parseTemplateDefs (text) {
     text.split(/\n/).forEach (function (line) {
       if (line.length) {
         if (currentTemplate)
-          currentTemplate.content = currentTemplate.content.concat (parseRhs (line + '\n'))
+          currentTemplate.content = currentTemplate.content.concat (ParseTree.parseRhs (line + '\n'))
         else if (newTemplateDefMatch = newTemplateDefReg.exec (line)) {
           var weight = newTemplateDefMatch[1],
               author = newTemplateDefMatch[2],

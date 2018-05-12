@@ -248,7 +248,7 @@ function sampleParseTree (rhs, config) {
       case 'rep_sampled':
         result = { type: 'rep_sampled',
                    n: node.n,
-                   reps: reps.map (function (rep) { return pt.sampleParseTree (rep, config) }) }
+                   reps: node.reps.map (function (rep) { return pt.sampleParseTree (rep, config) }) }
         break
       case 'cond':
 	result = { type: 'cond',

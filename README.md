@@ -14,7 +14,7 @@ However, Bracery also works just fine as a synchronous library, like Tracery (th
 Expansion of symbol expressions uses promises, which may e.g. involve database queries or calls to web services.
 
 In plain English, the Tracery definitions file can live on a server somewhere remote from where procedural text generation is happening.
-This means it can potentially be very big, or continually updated.
+This means that the set of definitions can potentially be very big, or continually updated.
 
 In order to make this work, Bracery distinguishes between _variables_ (can be modified/expanded locally) and _symbols_ (only the server knows how to expand them).
 In Tracery, these two things share the same namespace; for example, `#sentence#` is the syntax to expand the nonterminal symbol `sentence`,

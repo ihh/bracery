@@ -44,7 +44,6 @@ function parseTemplateDefs (text) {
         currentTemplate = undefined
       }
     })
-    log(5,"Parsed text file and converted to the following JSON:\n" + JSON.stringify(templates,null,2))
   } catch(e) { console.log(e) }
   return templates
 }

@@ -20,9 +20,15 @@ describe('validation', function() {
   validate ('&rep{$x}{3}')
   validate ('&rep{$x}{03}', '&rep{$x}{3}')
   validate ('&rep{$x}{3,5}')
+
+  validate ('{$x}{8,5}', '\\{\\$x\\}\\{8,5\\}')
+  validate ('{$x}{5,8}', '&rep{$x}{5,8}')
+  validate ('{$x}{8,8}', '&rep{$x}{8}')
+  validate ('{$x}{8}', '&rep{$x}{8}')
+  validate ('$x{8}', '&rep{$x}{8}')
 })
 
-function validate (lhs, norm) {
+function validate (lhs, norm, config) {
   var expected = norm || lhs
   it('should parse ' + lhs + (norm ? (' as ' + norm) : ''),
      function (done) {

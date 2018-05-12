@@ -39,3 +39,7 @@ function makeTraceryExpr (sym, mods) {
     return makeFunction (mod, [expr])
   }, makeConditional ([makeLookup(sym)], [makeFunction('eval',[makeLookup(sym)])], [makeSymbol(sym)]))
 }
+
+function validRange (min, max) {
+  return min <= max
+}

@@ -80,11 +80,11 @@ Unit
   / func:Function { return [func] }
 
 Repetition
-  = ("&rep" / "") unit:Unit "{" min:Number "," max:Number "}" { return makeRep (unit, min, max) }
+  = ("&rep" / "") unit:Unit "{" min:Number "," max:Number "}" { return validRange (min, max) ? makeRep (unit, min, max) : text() }
   / ("&rep" / "") unit:Unit "{" min:Number "}" { return makeRep (unit, min, min) }
 
 Number
-  = num:[0-9]* { return parseInt (num.join('')) }
+  = num:[0-9]+ { return parseInt (num.join('')) }
 
 VarLookup
   = "^" varname:Identifier { return makeSugaredLookup (varname) }

@@ -203,7 +203,6 @@ function parseTreeEmpty (rhs) {
           break
         case 'root':
         case 'alt_sampled':
-        case 'rep_sampled':
 	  if (node.rhs)
 	    result = pt.parseTreeEmpty (node.rhs)
 	  break

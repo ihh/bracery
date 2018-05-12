@@ -114,7 +114,8 @@ function doTests (testRunner) {
   expectExpand ('\\$test1', '$test1')
   expectExpand ('&eval{\\$test1}', 'testing')
   expectExpand ('&quote{#heroPet#}', '#heroPet#')
-
+  expectExpand ('&quote[a=>b]', '^a={&quote{b}}')
+  expectExpand ('&quote[a=>b|c]', '^a={&quote[b|c]}')
   expectExpand ('^heropet={freddy}&eval&quote{#heroPet#}', 'freddy')
   
   // case manipulation
@@ -138,7 +139,17 @@ function doTests (testRunner) {
   expectExpand ('[x:aha]^x', 'aha')
   expectExpand ('^z={zebedee}^zeb={zebadiah}^Zeb ^Z', 'Zebadiah ZEBEDEE')
   expectExpand ('^AbC={air}^aBC={hair}^abC={lair}^abc^Abc^ABC', 'lairLairLAIR')
-  
+
+  // Tracery variables
+  expectExpand ('[myvar:myval]', '')
+  expectExpand ('[myvar:myval]^myvar', 'myval')
+  expectExpand ('[myvar:myval]#myvar#', 'myval')
+  expectExpand ('[myvar=>myval]^myvar', 'myval')
+  expectExpand ('[myvar=>myval]#myvar#', 'myval')
+  expectExpand ('[myvar=>myval1|myval2]^myvar', '[myval1|myval2]')
+  expectExpand ('[myvar=>myval1|myval2]#myvar#', 'myval1', {maxTries:maxTries})
+  expectExpand ('[myvar=>myval1|myval2]#myvar#', 'myval2', {maxTries:maxTries})
+
   // Tracery modifiers
   expectExpand ('#test1#', 'testing')
   expectExpand ('#test1.capitalize#', 'Testing')

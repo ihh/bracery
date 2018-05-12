@@ -11,10 +11,18 @@ with syntax influenced by [regular expressions](https://en.wikipedia.org/wiki/Re
 
 Bracery was designed for asynchronous applications where the Tracery client is decoupled from the symbol definition store.
 However, Bracery also works just fine as a synchronous library, like Tracery (this is the default when running from the command-line, or using the node API).
-Expansion of Bracery expressions occurs using promises, which may e.g. involve database queries or calls to web services.
+Expansion of symbol expressions uses promises, which may e.g. involve database queries or calls to web services.
 
 In plain English, the Tracery definitions file can live on a server somewhere remote from where procedural text generation is happening.
 This means it can potentially be very big, or continually updated.
+
+In order to make this work, Bracery distinguishes between _variables_ (can be modified/expanded locally) and _symbols_ (only the server knows how to expand them).
+In Tracery, these two things share the same namespace; for example, `#sentence#` is the syntax to expand the nonterminal symbol `sentence`,
+but it is also the syntax for retrieving the value of the variable named `sentence`.
+If the variable is specified, then it overrides the original nonterminal symbol definition (if there was one).
+
+Bracery expands `#sentence#` the same way as Tracery, but also lets you directly access the variable's unexpanded value (as `^sentence`) or expand the original nonterminal (as `^$sentence`).
+It also introduces dynamic evaluation and conditional primitives.
 
 # Usage
 
@@ -115,3 +123,5 @@ Language features include
    - as a shorthand, you can use `$Nonterminal_name` as a shorthand for `&cap{$nonterminal_name}`, and `^Variable_name` for `&cap{^variable_name}`
    - similarly, `$NONTERMINAL_NAME` is a shorthand for `&uc{$nonterminal_name}`, and  `^VARIABLE_NAME` for `&uc{^variable_name}`
    - some Tracery modifier syntax works, e.g. `#symbol_name.capitalize#` instead of `&cap{#symbol_name#}`
+   - the syntax `[name=>value1|value2|value3|...]` is shorthand for `^name={&quote{[value1|value2|value3|...]}` and ensures that every occurrence of `#name#` (or `&eval{^name}`) will be expanded from an independently-sampled one of the values
+      - note that a similar effect could be achieved with a Tracery symbol file of the form `{"name":["value1","value2","value3",...]}`; this would also ensure that every occurrence of `$name` would be expanded

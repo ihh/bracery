@@ -6,10 +6,10 @@ Node
   / "\\t" { return "\t" }
   / "\\" escaped:. { return escaped }
   / text:[^\$\#&\^\{\}\[\]\|\\]+ { return text.join("") }
+  / Repetition
   / Symbol
   / Conditional
   / LocalAssignment
-  / Repetition
   / Function
   / VarAssignment
   / VarLookup
@@ -68,15 +68,20 @@ FunctionName = "eval" / "quote" / "plural" / "singular" / "nlp_plural" / "topic"
   / "gerund" / "adjective" / "negative" / "positive" / "a" / "uc" / "lc" / "cap"
 
 FunctionArg
+  = rep:Repetition { return [rep] }
+  / Unit
+
+Unit
   = "{" args:NodeList "}" { return args }
+  / assign:VarAssignment { return [assign] }
+  / lookup:VarLookup { return [lookup] }
   / sym:Symbol { return [sym] }
   / alt:Alternation { return [alt] }
-  / lookup:VarLookup { return [lookup] }
-  / innerFunc:Function { return [innerFunc] }
+  / func:Function { return [func] }
 
 Repetition
-  = "&rep" unit:FunctionArg "{" min:Number "," max:Number "}" { return makeRep (unit, min, max) }
-  / "&rep" unit:FunctionArg "{" min:Number "}" { return makeRep (unit, min, min) }
+  = ("&rep" / "") unit:Unit "{" min:Number "," max:Number "}" { return makeRep (unit, min, max) }
+  / ("&rep" / "") unit:Unit "{" min:Number "}" { return makeRep (unit, min, min) }
 
 Number
   = num:[0-9]* { return parseInt (num.join('')) }
@@ -88,7 +93,7 @@ VarLookup
 VarAssignment
   = "^" varname:Identifier "=" args:FunctionArg { return makeAssign (varname, args) }
   / "[" varname:Identifier ":" args:NodeList "]" { return makeAssign (varname, args) }
-  / "[" varname:Identifier "=>" opts:AltList "]" { return makeAssign (varname, makeFunction ('quote', makeAlternation (opts))) }
+  / "[" varname:Identifier "=>" opts:AltList "]" { return makeAssign (varname, [makeFunction ('quote', opts.length === 1 ? opts[0] : [makeAlternation (opts)])]) }
 
 VarAssignmentList
   = head:VarAssignment tail:VarAssignmentList { return [head].concat(tail) }

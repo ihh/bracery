@@ -14,10 +14,10 @@ var bracery = require('..'),
 var opt = getopt.create([
   ['d' , 'defs=PATH+'       , 'load symbol definitions from JSON file(s)'],
   ['s' , 'symbols=EXPR+'    , 'evaluate JSON symbol definitions from command line'],
-  ['e' , 'eval=EXPR+'       , 'evaluate expression(s)'],
+  ['e' , 'eval=EXPR+'       , 'evaluate expression(s) text'],
   ['n' , 'num=NUMBER'       , 'number of randomized samples to output'],
   ['c' , 'config=JSON'      , 'specify config params e.g. maxDepth, maxRecursion'],
-  ['V' , 'validate'         , 'do not expand text; just validate and echo'],
+  ['V' , 'validate=EXPR+'   , 'validate and normalize text, without expanding'],
   ['t' , 'tree'             , 'show parse tree'],
   ['T' , 'compact-tree'     , 'like -t but compact'],
   ['a' , 'async'            , 'run asynchronously'],
@@ -112,16 +112,14 @@ function expansionLogger (n, expansion) {
     varVal = expansion.vars
 }
 
-var expandedSomething = false
+var printedSomething = false
 function expand (expr) {
   for (var n = 0; n < samples; ++n) {
     var gotExpansion = expansionLogger.bind (null, n)
     var config = makeConfig()
     if (symbolExpander)
       config.expand = symbolExpander
-    if (opt.options.validate)
-      gotExpansion ({ text: b.normalize (expr) })
-    else if (async)
+    if (async)
       b.expand (expr, extend (config,
                               { before: before,
                                 after: after,
@@ -129,7 +127,7 @@ function expand (expr) {
     else
       gotExpansion (b.expand (expr, extend (config, { beforeSync: before,
                                                       afterSync: after })))
-    expandedSomething = true
+    printedSomething = true
   }
 }
 
@@ -155,6 +153,13 @@ if (symbolNames.length || opt.options.defs) {
                + ', initial symbol ' + bracery.ParseTree.symChar + b.getDefaultSymbol() + ')')
 }
 
+// validate expressions
+if (opt.options.validate)
+  opt.options.validate.forEach (function (expr) {
+    console.log (b.normalize (expr))
+    printedSomething = true
+  })
+
 // evaluate any expressions
 if (opt.options.eval)
   opt.options.eval.forEach (expand)
@@ -168,7 +173,7 @@ if (opt.options.repl) {
 }
 
 // expand something by default, or print an error message
-if (!expandedSomething && !opt.options.server && !opt.options.repl) {
+if (!printedSomething && !opt.options.server && !opt.options.repl) {
   if (opt.argv.length)
     expand (opt.argv.join(' '))
   else {
@@ -177,5 +182,5 @@ if (!expandedSomething && !opt.options.server && !opt.options.repl) {
   }
 }
 
-if (!expandedSomething && !addedRules && !opt.options.server && !opt.options.repl)
+if (!printedSomething && !addedRules && !opt.options.server && !opt.options.repl)
   console.error ('please give me some Bracery text to expand')

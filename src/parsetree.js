@@ -43,6 +43,7 @@ function parseRhs (rhsText) {
     console.warn ('parse error', e)
     result = [rhsText]
   }
+//  console.warn('parseRhs',JSON.stringify(result))
   return result
 }
 
@@ -131,7 +132,7 @@ function getSymbolNodes (rhs) {
       case 'lookup':
         break
       case 'assign':
-        r = pt.getSymbolNodes (node.value.concat (node.local || []))
+        r = pt.getSymbolNodes ((node.value || []).concat (node.local || []))
         break
       case 'alt':
         r = node.opts.reduce (function (altResults, opt) {

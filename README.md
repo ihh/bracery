@@ -108,7 +108,7 @@ Look at my #body_part#!
 The #body_part#-bone's connected to the #body_part#-bone.
 ~~~~
 
-Use `\\n` if you need a newline within a definition line, and use `[|]` (or some other Bracery expression yielding the empty string when evaluated)
+Use `\n` if you need a newline within a definition line, and use `[|]` (or some other Bracery expression yielding the empty string when evaluated)
 if you need any of the definition lines to be blank.
 
 The file [examples/travel.txt](examples/travel.txt) contains the `#hero# traveled with...` example in this plaintext format

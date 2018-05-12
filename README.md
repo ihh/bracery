@@ -9,12 +9,12 @@ of [Tracery](http://tracery.io/) (by [@galaxykate](https://github.com/galaxykate
 with syntax influenced by [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) and 
 [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)).
 
-Bracery was designed for asynchronous applications where the Tracery client is decoupled from the symbol definition store.
+Bracery has been designed for asynchronous applications where the Tracery client is decoupled from the symbol definition store.
 However, Bracery also works just fine as a synchronous library, like Tracery (this is the default when running from the command-line, or using the node API).
 Expansion of symbol expressions uses promises, which may e.g. involve database queries or calls to web services.
 
 In plain English, the Tracery definitions file can live on a server somewhere remote from where procedural text generation is happening.
-This means that the set of definitions can potentially be very big, or continually updated.
+This means that the set of definitions can potentially be very big (including a "standard library"), or can be continually updated.
 
 In order to make this work, Bracery distinguishes between _variables_ (read/write, stored locally) and _symbols_ (read-only, stored on the server).
 In Tracery, these two things share the same namespace; for example, `#sentence#` is the syntax to expand the nonterminal symbol `sentence`,
@@ -132,7 +132,9 @@ Language features include
 
 ## Plain text symbol definitions
 
-Bracery also offers an (optional) plaintext format for symbol definitions, which lets you avoid typing so much punctuation.
+Like Tracery, Bracery allows you to specify symbol definitions in JSON.
+However, for convenience, Bracery also offers an (optional) plaintext format for symbol definitions, which lets you avoid typing so much distracting punctuation.
+
 In this format, a symbol definition block begins with a greater-than symbol `>`, followed by the name of the symbol, then the end of the line.
 Each subsequent line represents an alternate definition for that symbol, followed by a blank line indicating the end of the block.
 For example:
@@ -146,13 +148,33 @@ foot
 nose
 
 >sentence
+"Hey! Look at my #body_part#!"
 My #body_part# feels [funny|odd|great].
-Look at my #body_part#!
 The #body_part#-bone's connected to the #body_part#-bone.
 ~~~~
 
-Use `\n` if you need a newline within a definition line, and use `[|]` (or some other Bracery expression yielding the empty string when evaluated)
-if you need any of the definition lines to be blank.
+This is exactly equivalent to the following JSON definitions file.
+Note how much less punctuation is needed for the plaintext version,
+especially for the first expansion of `sentence` where JSON requires that the quotation marks be backslash-escaped:
+
+~~~~
+{
+  "body_part": [
+    "head",
+    "leg",
+    "arm",
+    "foot",
+    "nose"
+  ],
+  "sentence": [
+    "\"Hey! Look at my #body_part#!\"",
+    "My #body_part# feels [funny|odd|great].",
+    "The #body_part#-bone's connected to the #body_part#-bone."
+  ]
+}
+~~~~
+
+Backslash-escaping works in the plaintext format, too; so you can use `\n` if you need a newline within a definition line.
 
 The file [examples/travel.txt](examples/travel.txt) contains the `#hero# traveled with...` example in this plaintext format
 ([examples/travel.json](examples/travel.json) contains the same definitions in JSON).

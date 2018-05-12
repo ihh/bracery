@@ -6,6 +6,6 @@ foot
 nose
 
 >sentence
+"Hey! Look at my #body_part#!"
 My #body_part# feels [funny|odd|great].
-Look at my #body_part#!
 The #body_part#-bone's connected to the #body_part#-bone.

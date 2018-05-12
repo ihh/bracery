@@ -1,0 +1,14 @@
+{
+  "body_part": [
+    "head",
+    "leg",
+    "arm",
+    "foot",
+    "nose"
+  ],
+  "sentence": [
+    "\"Hey! Look at my #body_part#!\"",
+    "My #body_part# feels [funny|odd|great].",
+    "The #body_part#-bone's connected to the #body_part#-bone."
+  ]
+}

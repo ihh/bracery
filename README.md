@@ -89,31 +89,6 @@ bracery --help
 
 See [examples](examples/) for more examples from the Tracery [online tutorial](http://www.crystalcodepalace.com/traceryTut.html)
 
-Bracery also offers an (optional) plaintext format for symbol definitions, which lets you avoid typing so much punctuation.
-In this format, a symbol definition block begins with a greater-than symbol `>`, followed by the name of the symbol, then the end of the line.
-Each subsequent line represents an alternate definition for that symbol, followed by a blank line indicating the end of the block.
-For example:
-
-~~~~
->body_part
-head
-leg
-arm
-foot
-nose
-
->sentence
-My #body_part# feels [funny|odd|great].
-Look at my #body_part#!
-The #body_part#-bone's connected to the #body_part#-bone.
-~~~~
-
-Use `\n` if you need a newline within a definition line, and use `[|]` (or some other Bracery expression yielding the empty string when evaluated)
-if you need any of the definition lines to be blank.
-
-The file [examples/travel.txt](examples/travel.txt) contains the `#hero# traveled with...` example in this plaintext format
-([examples/travel.json](examples/travel.json) contains the same definitions in JSON).
-
 
 ## In the browser
 
@@ -154,3 +129,30 @@ Language features include
    - some Tracery modifier syntax works, e.g. `#symbol_name.capitalize#` instead of `&cap{#symbol_name#}`
    - the syntax `[name=>value1|value2|value3|...]` is shorthand for `^name={&quote{[value1|value2|value3|...]}` and ensures that every occurrence of `#name#` (or `&eval{^name}`) will be expanded from an independently-sampled one of the values
       - note that a similar effect could be achieved with a Tracery symbol file of the form `{"name":["value1","value2","value3",...]}`; this would also ensure that every occurrence of `$name` would be expanded
+
+## Plain text symbol definitions
+
+Bracery also offers an (optional) plaintext format for symbol definitions, which lets you avoid typing so much punctuation.
+In this format, a symbol definition block begins with a greater-than symbol `>`, followed by the name of the symbol, then the end of the line.
+Each subsequent line represents an alternate definition for that symbol, followed by a blank line indicating the end of the block.
+For example:
+
+~~~~
+>body_part
+head
+leg
+arm
+foot
+nose
+
+>sentence
+My #body_part# feels [funny|odd|great].
+Look at my #body_part#!
+The #body_part#-bone's connected to the #body_part#-bone.
+~~~~
+
+Use `\n` if you need a newline within a definition line, and use `[|]` (or some other Bracery expression yielding the empty string when evaluated)
+if you need any of the definition lines to be blank.
+
+The file [examples/travel.txt](examples/travel.txt) contains the `#hero# traveled with...` example in this plaintext format
+([examples/travel.json](examples/travel.json) contains the same definitions in JSON).

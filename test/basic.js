@@ -1,6 +1,7 @@
 var assert = require('assert')
 var bracery = require('../index')
-
+var extend = bracery.ParseTree.extend
+  
 var initJson = { abc: 'def',
                  hello: '[hello|hi]',
                  world: ['world', 'planet'],
@@ -23,9 +24,9 @@ describe('initialization', function() {
   })
 })
 
-var maxTries = 100
 describe('synchronous tests', function() {
   doTests (function (lhs, rhs, config, verify) {
+    var maxTries = (config && config.maxTries) || 1
     return function (done) {
       var text
       for (var n = 0; text !== rhs && n < maxTries; ++n)
@@ -37,11 +38,12 @@ describe('synchronous tests', function() {
 
 describe('asynchronous tests', function() {
   doTests (function (lhs, rhs, config, verify) {
+    var maxTries = (config && config.maxTries) || 1
     return function (done) {
       function tryExpand (n) {
         n = n || 0
         b.expand (lhs,
-                  bracery.ParseTree.extend
+                  extend
                   ({},
                    config,
                    { callback: function (expansion) {
@@ -57,10 +59,23 @@ describe('asynchronous tests', function() {
   })
 })
 
-function doTests (testRunner) {
-
-  function expectExpand (lhs, rhs, config) {
+describe('double expansion tests', function() {
+  doTests (function (lhs, rhs, config, verify) {
     var maxTries = (config && config.maxTries) || 1
+    return function (done) {
+      var expand
+      for (var n = 0; !(expand && expand.text === rhs) && n < maxTries; ++n)
+        expand = b.expand (lhs, config)
+      var text = bracery.ParseTree.makeRhsExpansionText (extend ({ rhs: expand.tree },
+                                                                 config))
+      verify (text, done)
+    }
+  })
+})
+
+function doTests (testRunner) {
+  var maxTries = 100
+  function expectExpand (lhs, rhs, config) {
     var fail = config && config.fail
     function verify (text, done) {
       if (fail)

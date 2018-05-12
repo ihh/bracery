@@ -13,7 +13,9 @@ var bracery = require('..'),
 // parse command-line options
 var opt = getopt.create([
   ['d' , 'defs=PATH+'       , 'load symbol definitions from JSON file(s)'],
-  ['D' , 'text-defs=PATH+'  , 'load symbol definitions from plaintext file(s)'],
+  ['o' , 'output=PATH'      , 'save symbol definitions to JSON file'],
+  ['D' , 'text-defs=PATH+'  , 'load symbol definitions from a plaintext format'],
+  ['O' , 'output-text=PATH' , 'save symbol definitions to plaintext format'],
   ['s' , 'symbols=EXPR+'    , 'evaluate JSON symbol definitions from command line'],
   ['e' , 'eval=EXPR+'       , 'evaluate expression(s) text'],
   ['n' , 'num=NUMBER'       , 'number of randomized samples to output'],
@@ -155,6 +157,12 @@ if (opt.options.defs)
   })
 if (opt.options.symbols)
   opt.options.symbols.forEach (addRulesJSON)
+
+if (opt.options.output)
+  fs.writeFileSync (opt.options.output, JSON.stringify (b.toJSON(), null, 2))
+
+if (opt.options['output-text'])
+  fs.writeFileSync (opt.options['output-text'], b.toText())
 
 // print a log message about the symbol defs
 var symbolNames = b.symbolNames()

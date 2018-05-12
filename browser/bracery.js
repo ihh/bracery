@@ -33,6 +33,25 @@ Bracery.prototype.toJSON = function() {
   return result
 }
 
+Bracery.prototype.toText = function() {
+  var bracery = this
+  var names = (arguments.length
+               ? Array.prototype.slice.call (arguments, 0)
+               : bracery.symbolNames())
+  return names.map (function (name) {
+    return '>' + name + '\n'
+      + bracery.rules[name].map (function (rhs) {
+        var text = ParseTree.makeRhsText (rhs)
+        text = text.replace(/\n/g, function() { return '\\n' })
+        if (!text.match(/\S/))
+          text = '[|]'
+        else if (text[0] === '>')
+          text = '\\' + text
+        return text + '\n'
+      }).join('') + '\n'
+  }).join('')
+}
+
 Bracery.prototype.addRules = function (name, rules) {
   var bracery = this
   // convert addRules({name1:[rhs1a,rhs1b,...],name2:[rhs2a,rhs2b...],...}) to a series of addRules(name,[rhsText,...]) calls

@@ -89,6 +89,32 @@ bracery --help
 
 See [examples](examples/) for more examples from the Tracery [online tutorial](http://www.crystalcodepalace.com/traceryTut.html)
 
+Bracery also offers an (optional) plaintext format for symbol definitions, which lets you avoid typing so much punctuation.
+In this format, a symbol definition block begins with a greater-than symbol `>`, followed by the name of the symbol, then the end of the line.
+Each subsequent line represents an alternate definition for that symbol, followed by a blank line indicating the end of the block.
+For example:
+
+~~~~
+>body_part
+head
+leg
+arm
+foot
+nose
+
+>sentence
+My #body_part# feels [funny|odd|great].
+Look at my #body_part#!
+The #body_part#-bone's connected to the #body_part#-bone.
+~~~~
+
+Use `\\n` if you need a newline within a definition line, and use `[|]` (or some other Bracery expression yielding the empty string when evaluated)
+if you need any of the definition lines to be blank.
+
+The file [examples/travel.txt](examples/travel.txt) contains the `#hero# traveled with...` example in this plaintext format
+([examples/travel.json](examples/travel.json) contains the same definitions in JSON).
+
+
 ## In the browser
 
 [Basic demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/browser/index.html) (source in [browser/](browser/))

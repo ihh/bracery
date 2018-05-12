@@ -207,6 +207,26 @@ function makeRoot (rhs) {
            rhs: rhs }
 }
 
+var newSymbolDefReg = /^>([A-Za-z_]\w*)\s*$/;
+function parseTextDefs (text) {
+  var rules = {}
+  try {
+    var currentRules, newSymbolDefMatch
+    text.split(/\n/).forEach (function (line) {
+      if (line.length) {
+        if (currentRules)
+          currentRules.push (line)
+        else if (newSymbolDefMatch = newSymbolDefReg.exec (line))
+          rules[newSymbolDefMatch[1]] = currentRules = []
+      } else {
+        // line is empty
+        currentRules = undefined
+      }
+    })
+  } catch(e) { console.log(e) }
+  return rules
+}
+
 // Parse tree constants
 var symChar = '$', varChar = '^', funcChar = '&', leftBraceChar = '{', rightBraceChar = '}', leftSquareBraceChar = '[', rightSquareBraceChar = ']', assignChar = '=', traceryChar = '#'
 
@@ -1046,6 +1066,7 @@ module.exports = {
   // parsing
   RhsParser: RhsParser,
   parseRhs: parseRhs,
+  parseTextDefs: parseTextDefs,
   makeRoot: makeRoot,
 
   // parse tree constants

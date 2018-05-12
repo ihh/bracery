@@ -13,6 +13,7 @@ var bracery = require('..'),
 // parse command-line options
 var opt = getopt.create([
   ['d' , 'defs=PATH+'       , 'load symbol definitions from JSON file(s)'],
+  ['D' , 'text-defs=PATH+'  , 'load symbol definitions from plaintext file(s)'],
   ['s' , 'symbols=EXPR+'    , 'evaluate JSON symbol definitions from command line'],
   ['e' , 'eval=EXPR+'       , 'evaluate expression(s) text'],
   ['n' , 'num=NUMBER'       , 'number of randomized samples to output'],
@@ -133,16 +134,27 @@ function expand (expr) {
 
 // load symbol definitions
 var addedRules = false
-function addRules (ruleText) {
-  b.addRules (JSON.parse (ruleText))
-  addedRules = true
+function addRules (rules) {
+  b.addRules (rules)
+  if (Object.keys(rules).length)
+    addedRules = true
 }
+function addRulesJSON (rulesJSON) {
+  addRules (JSON.parse (rulesJSON))
+}
+function addRulesText (ruleText) {
+  addRules (bracery.ParseTree.parseTextDefs (ruleText))
+}
+if (opt.options['text-defs'])
+  opt.options['text-defs'].forEach (function (defsFile) {
+    addRulesText (fs.readFileSync (defsFile).toString())
+  })
 if (opt.options.defs)
   opt.options.defs.forEach (function (symbolFile) {
-    addRules (fs.readFileSync (symbolFile))
+    addRulesJSON (fs.readFileSync (symbolFile))
   })
 if (opt.options.symbols)
-  opt.options.symbols.forEach (addRules)
+  opt.options.symbols.forEach (addRulesJSON)
 
 // print a log message about the symbol defs
 var symbolNames = b.symbolNames()

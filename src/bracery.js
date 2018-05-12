@@ -1,3 +1,4 @@
+var Template = require('./template')
 var ParseTree = require('./parsetree')
 var RhsParser = ParseTree.RhsParser
 var extend = ParseTree.extend
@@ -167,5 +168,6 @@ Bracery.prototype.normalize = function (text) {
 module.exports = { Bracery: Bracery,
                    ParseTree: ParseTree,
                    RhsParser: RhsParser,
+                   Template: Template,
                    Promise: Promise,
                    nlp: nlp }

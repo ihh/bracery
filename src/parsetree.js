@@ -431,8 +431,8 @@ function makeRhsExpansionPromise (config) {
   var pt = this
   var rhs = config.rhs || this.sampleParseTree (parseRhs (config.rhsText), config)
   var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
-  var maxLength = Math.min (config.maxLength || pt.maxLength)
-  var maxNodes = Math.min (config.maxNodes || pt.maxNodes)
+  var maxLength = config.maxLength || pt.maxLength
+  var maxNodes = config.maxNodes || pt.maxNodes
   return rhs.reduce (function (promise, child) {
     return promise.then (function (expansion) {
       if ((expansion.text && expansion.text.length >= maxLength)
@@ -905,7 +905,7 @@ module.exports = {
   maxDepth: 100,
   maxRecursion: 3,
   maxReps: 10,
-  maxLength: 280,
+  maxLength: 1000,
   maxNodes: 1000,
 
   // parsing

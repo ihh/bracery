@@ -133,11 +133,12 @@ Language features include
 ## Plain text symbol definitions
 
 Like Tracery, Bracery allows you to specify symbol definitions in JSON.
-However, for convenience, Bracery also offers an (optional) plaintext format for symbol definitions, which lets you avoid typing so much distracting punctuation.
+However, for convenience, Bracery also allows an (optional) plaintext format for symbol definitions. This lets you avoid typing so much distracting punctuation.
 
-In this format, a symbol definition block begins with a greater-than symbol `>`, followed by the name of the symbol, then the end of the line.
-Each subsequent line represents an alternate definition for that symbol, followed by a blank line indicating the end of the block.
-For example:
+In the plaintext format, a symbol definition block begins with a greater-than symbol `>`, followed by the name of the symbol, then the end of the line.
+Each subsequent line represents an alternate definition for that symbol. The block is terminated by a blank line.
+
+For example, the following consists of two blocks:
 
 ~~~~
 >body_part

@@ -14,8 +14,7 @@ var bracery = require('..'),
 
 // parse command-line options
 var opt = getopt.create([
-  ['d' , 'defs=PATH+'       , 'load symbol definitions from JSON file(s)'],
-  ['D' , 'text-defs=PATH+'  , 'load symbol definitions from Bracery plaintext file(s)'],
+  ['d' , 'defs=PATH+'       , 'load symbol definitions from JSON or Bracery plaintext file(s)'],
   ['o' , 'output=PATH'      , 'save symbol definitions to JSON file'],
   ['O' , 'output-text=PATH' , 'save symbol definitions to Bracery plaintext file'],
   ['s' , 'symbols=EXPR+'    , 'evaluate JSON symbol definitions from command line'],
@@ -107,22 +106,25 @@ if (opt.options.server) {
 // and outputs the result as text or a tree
 var samples = parseInt(opt.options.num) || 1
 var tree = opt.options.tree, compact = opt.options['compact-tree']
-function expansionLogger (n, expansion) {
+function expansionLogger (n, outputColor, expansion) {
   if (opt.options.verbose)
     console.warn ('expansion' + (samples > 1 ? (' (' + (n+1) + '/' + samples + ')') : ''), expansion)
-  console.log (tree || compact
-               ? ((n ? ',' : '[')
-                  + JSON.stringify(expansion,null,opt.options['compact-tree'] ? 0 : 2)
-                  + (n == samples-1 ? ']' : ''))
-               : expansion.text)
+  console.log ((outputColor || noColor).call
+               (colors,
+                (tree || compact
+                 ? ((n ? ',' : '[')
+                    + JSON.stringify(expansion,null,opt.options['compact-tree'] ? 0 : 2)
+                    + (n == samples-1 ? ']' : ''))
+                 : expansion.text)))
   if (expansion)
     varVal = expansion.vars
 }
+function noColor (text) { return text }
 
 var printedSomething = false
-function expand (expr) {
+function expand (expr, outputColor) {
   for (var n = 0; n < samples; ++n) {
-    var gotExpansion = expansionLogger.bind (null, n)
+    var gotExpansion = expansionLogger.bind (null, n, outputColor)
     var config = makeConfig()
     if (symbolExpander)
       config.expand = symbolExpander
@@ -151,13 +153,14 @@ function addRulesJSON (rulesJSON) {
 function addRulesText (ruleText) {
   addRules (bracery.ParseTree.parseTextDefs (ruleText))
 }
-if (opt.options['text-defs'])
-  opt.options['text-defs'].forEach (function (defsFile) {
-    addRulesText (fs.readFileSync (defsFile).toString())
-  })
 if (opt.options.defs)
   opt.options.defs.forEach (function (symbolFile) {
-    addRulesJSON (fs.readFileSync (symbolFile))
+    var text = fs.readFileSync (symbolFile).toString()
+    try {
+      addRulesJSON (text)
+    } catch (e) {
+      addRulesText (text)
+    }
   })
 if (opt.options.symbols)
   opt.options.symbols.forEach (addRulesJSON)
@@ -172,9 +175,9 @@ if (opt.options['output-text'])
 var symbolNames = b.symbolNames()
 if (symbolNames.length || opt.options.defs) {
   var nRules = symbolNames.reduce (function (sum, name) { return sum + b.getRules(name).length }, 0)
-  console.warn('(' + bracery.ParseTree.nPlurals(symbolNames.length,'symbol')
-               + ', ' + bracery.ParseTree.nPlurals(nRules,'rule')
-               + ', initial symbol ' + bracery.ParseTree.symChar + b.getDefaultSymbol() + ')')
+  console.warn(colors.cyan ('(' + bracery.ParseTree.nPlurals(symbolNames.length,'symbol')
+                            + ', ' + bracery.ParseTree.nPlurals(nRules,'rule')
+                            + ', initial symbol ' + bracery.ParseTree.symChar + b.getDefaultSymbol() + ')'))
 }
 
 // validate expressions
@@ -194,7 +197,6 @@ if (opt.options.eval)
 
 // run template Markov chain
 if (opt.options.markov || opt.options.quiz) {
-  function noColor (text) { return text }
   function messageToString (message, config) {
     var color = (config && config.color) || {}
     return ((message.template.title && color.title
@@ -244,10 +246,10 @@ if (opt.options.markov || opt.options.quiz) {
 
 // start a REPL
 if (opt.options.repl) {
-  console.warn ('enter Bracery text for expansion:')
+  console.warn (colors.green ('enter Bracery text for expansion:'))
   var rl = readline.createInterface ({ input: process.stdin,
                                        output: process.stdout })
-  rl.on ('line', expand)
+  rl.on ('line', function (expr) { expand (expr, colors.yellow) })
 }
 
 // expand something by default, or print an error message

@@ -66,16 +66,17 @@
 	    treeElement.innerText = JSON.stringify (expansion.tree)
 	  }
 	  function updatedTextDefs() {
-	    defsElement.innerText = JSON.stringify (bracery.ParseTree.parseTextDefs (textdefsElement.value), null, 2)
+	    defsElement.value = JSON.stringify (bracery.ParseTree.parseTextDefs (textdefsElement.value), null, 2)
 	    update()
 	  }
-	  function update() {
+	  function update (evt) {
 	    try {
 	      var defs = defsElement.value.match(/\S/) ? JSON.parse(defsElement.value) : {}
 	      var text = evalElement.value.match(/\S/) ? evalElement.value : ''
 	      var config = configElement.value.match(/\S/) ? JSON.parse(configElement.value) : {}
 	      var b = new bracery.Bracery (defs)
-	      textdefsElement.value = b.toText()
+	      if (!evt)
+	        textdefsElement.value = b.toText()
               evalElement.placeholder = '#' + b.getDefaultSymbol() + '#'
 	      show (b.expand (text, config))
 	  } catch (e) {

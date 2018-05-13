@@ -25,8 +25,10 @@
 	Expansion (<a id="reroll" href="#">re-roll</a>):
 	<div id="expansion" style="width: 100%; background-color: lightgray;">
 	</div>
-	<br><p>
-	<a href="#" id="showadvanced">Advanced</a>
+	<div id="showadvancedcontainer">
+	  <br><p>
+	    <a href="#" id="showadvanced">Advanced</a>
+	</div>
 	<div id="advanced" style="display: none;">
 	  <br><p>
 	    Symbol definitions (Bracery plain text format):
@@ -60,6 +62,7 @@
 	  var configElement = document.getElementById('config')
 	  var treeElement = document.getElementById('tree')
 	  var showElement = document.getElementById('showadvanced')
+	  var showContainer = document.getElementById('showadvancedcontainer')
 	  var advElement = document.getElementById('advanced')
 	  function show (expansion) {
 	    expElement.innerText = expansion.text
@@ -75,7 +78,7 @@
 	      var text = evalElement.value.match(/\S/) ? evalElement.value : ''
 	      var config = configElement.value.match(/\S/) ? JSON.parse(configElement.value) : {}
 	      var b = new bracery.Bracery (defs)
-	      if (!evt)
+	      if (evt)
 	        textdefsElement.value = b.toText()
               evalElement.placeholder = '#' + b.getDefaultSymbol() + '#'
 	      show (b.expand (text, config))
@@ -90,8 +93,8 @@
 	  expElement.addEventListener ('click', update)
 	  eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.value = ''; update() })
 	  rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); update() })
-	  showElement.addEventListener ('click', function (evt) { evt.preventDefault(); showElement.remove(); advElement.style = '' })
-	  update()
+	  showElement.addEventListener ('click', function (evt) { evt.preventDefault(); showContainer.remove(); advElement.style = '' })
+	  update (true)
 	</script>
     </div>
   </body>

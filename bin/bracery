@@ -222,14 +222,14 @@ if (opt.options.markov || opt.options.quiz) {
     markovConfig.accept = function (message, thread) {
       if (thread)
         console.warn (chainToString (thread,
-                                     { color: { author: colors.blue,
-                                                title: null,
+                                     { color: { title: null,
+                                                author: colors.blue,
                                                 message: colors.green } }))
       console.warn (messageToString
                     (message,
-                     { color: { title: colors.red,
-                                author: colors.magenta,
-                                message: colors.white } }))
+                     { color: { title: function (text) { return colors.magenta (text) + '\n' },
+                                author: colors.blue,
+                                message: colors.yellow } }))
       return new Confirm ('Accept?')
         .run()
     }
@@ -237,9 +237,9 @@ if (opt.options.markov || opt.options.quiz) {
   bracery.Template.promiseMessageList (markovConfig)
     .then (function (chain) {
       console.log (chainToString (chain,
-                                  { color: { title: colors.blue,
-                                             author: colors.cyan,
-                                             message: colors.yellow } }))
+                                  { color: { title: colors.magenta,
+                                             author: colors.blue,
+                                             message: colors.green } }))
     })
   printedSomething = true
 }

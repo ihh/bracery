@@ -6,9 +6,9 @@
     <div style="width: 600px; background-color: #eee; padding: 4px;">
       <h1><a href="https://github.com/ihh/bracery">Bracery</a></h1>
       <p>
-	Symbol definitions:
+	Symbol definitions (Tracery JSON format):
 	<div>
-	  <textarea id="defs" style="width: 100%; min-height: 10em;">
+	  <textarea id="defs" style="width: 100%; min-height: 10em; resize: vertical;">
 {"name": ["Arjun","Yuuma","Darcy","Mia","Chiaki","Izzi","Azra","Lina"],
 "animal": ["unicorn","raven","sparrow","scorpion","coyote","eagle","owl","lizard","zebra","duck","kitten"],
 "mood": ["vexed","indignant","impassioned","wistful","astute","courteous"],
@@ -19,7 +19,7 @@
 	<br><p>
 	Text to be expanded (<a href="#" id="erase">erase</a> for default):
 	<div>
-	<textarea id="eval" style="width: 100%;">#origin# And they had fun... until they met #name#.</textarea>
+	<textarea id="eval" style="width: 100%; resize: vertical;">#origin# And they had fun... until they met #name#.</textarea>
 	</div>
 	<br><p>
 	Expansion (<a id="reroll" href="#">re-roll</a>):
@@ -29,17 +29,19 @@
 	<a href="#" id="showadvanced">Advanced</a>
 	<div id="advanced" style="display: none;">
 	  <br><p>
+	    Symbol definitions (Bracery plain text format):
+	    <div>
+	  <textarea id="textdefs" style="width: 100%; min-height: 20em; resize: vertical;">
+	  </textarea>
+	</div>
+	    <br><p>
 	    Configuration:
 	    <div>
 	      <textarea id="config" style="width: 100%;">{"maxDepth":100,"maxRecursion":3}</textarea>
 	    </div>
-	    <div>
-	      <input type="checkbox" id="async" name="async">
-	      <label for="async">Run asynchronously</label>
-	    </div>
-	    <div>
-	      <input type="checkbox" id="tree" name="tree">
-	      <label for="tree">Show parse tree</label>
+	    <br><p>
+	    Parse tree:
+	    <div id="tree">
 	    </div>
 	</div>
 	<!-- try two different places for compromise. kludgy hack to allow local or github-hosted testing -->
@@ -50,44 +52,41 @@
 	<!-- hook up the UI -->
 	<script>
 	  var defsElement = document.getElementById('defs')
+	  var textdefsElement = document.getElementById('textdefs')
 	  var evalElement = document.getElementById('eval')
 	  var eraseElement = document.getElementById('erase')
 	  var rerollElement = document.getElementById('reroll')
 	  var expElement = document.getElementById('expansion')
 	  var configElement = document.getElementById('config')
-	  var asyncElement = document.getElementById('async')
 	  var treeElement = document.getElementById('tree')
 	  var showElement = document.getElementById('showadvanced')
 	  var advElement = document.getElementById('advanced')
 	  function show (expansion) {
-	      expElement.innerText = treeElement.checked ? JSON.stringify(expansion) : expansion.text
+	    expElement.innerText = expansion.text
+	    treeElement.innerText = JSON.stringify (expansion.tree)
+	  }
+	  function updatedTextDefs() {
+	    defsElement.innerText = JSON.stringify (bracery.ParseTree.parseTextDefs (textdefsElement.value), null, 2)
+	    update()
 	  }
 	  function update() {
 	    try {
 	      var defs = defsElement.value.match(/\S/) ? JSON.parse(defsElement.value) : {}
 	      var text = evalElement.value.match(/\S/) ? evalElement.value : ''
 	      var config = configElement.value.match(/\S/) ? JSON.parse(configElement.value) : {}
-              if (!showElement.parentElement) {
-	          config.beforeSync = { all: console.warn.bind (console, 'before node,varval,depth:') }
-	          config.afterSync = { all: console.warn.bind (console, 'after node,varval,depth,expansion:') }
-	      }
 	      var b = new bracery.Bracery (defs)
+	      textdefsElement.value = b.toText()
               evalElement.placeholder = '#' + b.getDefaultSymbol() + '#'
-	      if (asyncElement.checked) {
-	        config.callback = show
-	        b.expand (text, config)
-	      } else
-	        show (b.expand (text, config))
-	    } catch (e) {
+	      show (b.expand (text, config))
+	  } catch (e) {
 	      expElement.innerText = e
 	    }
 	  }
+	  textdefsElement.addEventListener ('keyup', updatedTextDefs)
 	  defsElement.addEventListener ('keyup', update)
 	  evalElement.addEventListener ('keyup', update)
 	  configElement.addEventListener ('keyup', update)
 	  expElement.addEventListener ('click', update)
-	  asyncElement.addEventListener ('click', update)
-	  treeElement.addEventListener ('click', update)
 	  eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.value = ''; update() })
 	  rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); update() })
 	  showElement.addEventListener ('click', function (evt) { evt.preventDefault(); showElement.remove(); advElement.style = '' })

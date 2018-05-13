@@ -210,9 +210,18 @@ if (opt.options.markov || opt.options.quiz) {
   function chainToString (chain, config) {
     return chain.map (function (message) { return messageToString (message, config) }).join('')
   }
+  function parseTemplates (text) {
+    var templates
+    try {
+      templates = JSON.parse (text)
+    } catch (e) {
+      templates = bracery.Template.parseTemplateDefs (text)
+    }
+    return templates
+  }
   var templates = [opt.options.markov, opt.options.quiz]
       .reduce (function (temps, filename) {
-        return temps.concat (filename ? bracery.Template.parseTemplateDefs (fs.readFileSync (filename).toString()) : [])
+        return temps.concat (filename ? parseTemplates (fs.readFileSync (filename).toString()) : [])
       }, [])
   var markovConfig = extend (makeConfig(),
                              { bracery: b,

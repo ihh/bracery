@@ -1,6 +1,6 @@
 {
   "name": "bracery",
-  "version": "1.0.37",
+  "version": "1.0.38",
   "description": "Procedural text generator, somewhat compatible with Tracery",
   "main": "index.js",
   "bin": {
@@ -26,7 +26,8 @@
     "compromise": "^11.7.0",
     "node-getopt": "^0.3.2",
     "prompt-confirm": "^1.2.0",
-    "request": "^2.85.0"
+    "request": "^2.85.0",
+    "tmp": "0.0.33"
   },
   "devDependencies": {
     "browserify": "^16.2.2",

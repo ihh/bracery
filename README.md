@@ -11,20 +11,24 @@ with syntax influenced by [regular expressions](https://en.wikipedia.org/wiki/Re
 
 Bracery has been designed for asynchronous applications where the Tracery client is decoupled from the symbol definition store.
 However, Bracery also works just fine as a synchronous library, like Tracery (this is the default when running from the command-line, or using the node API).
-Expansion of symbol expressions uses promises, which may e.g. involve database queries or calls to web services.
 
-In plain English, the Tracery definitions file can live on a server somewhere remote from where procedural text generation is happening.
-This means that the set of definitions can potentially be very big (including a "standard library"), or can be continually updated.
+In asynchronous mode, the Tracery definitions file can live on a server somewhere remote from the client
+(i.e. the place where procedural text generation is happening, such as the user's web browser).
+This means that, for example, the set of definitions can potentially be very big (including a "standard library"), or can be continually updated, or collaboratively edited.
 
-In order to make this work, Bracery distinguishes between _variables_ (read/write, stored locally) and _symbols_ (read-only, stored on the server).
-In Tracery, these two things share the same namespace; for example, `#sentence#` is the syntax to expand the nonterminal symbol `sentence`,
-but it is also the syntax for retrieving the value of the variable named `sentence`.
-If the variable is specified, then it overrides the original nonterminal symbol definition (if there was one).
-In Tracery this serves is a neat way of passing information into subroutines ("actions").
+In order to allow programmers to write efficient code in this framework,
+Bracery's syntax distinguishes between expansions that can be performed on the client, from those that must be performed by the server.
+The former (client expansions) are called _variables_ and the latter (server expansions) are called _symbols_.
 
-Bracery implements the same behavior as Tracery, expanding `#sentence#` the same way,
-but it also lets you access the variable's value directly (as `^sentence`) or expand the original nonterminal (as `$sentence`).
-It further introduces dynamic evaluation and conditional primitives, which are required to make the Tracery-style syntax work
+In Tracery, variables and symbols share the same namespace, as part of the design.
+For example, `#sentence#` is the syntax to expand the nonterminal symbol `sentence`,
+and it is also the syntax for retrieving and expanding the value of the variable named `sentence`.
+If the variable has been specified in the local context of the running program (i.e. the text up to that point),
+then that specified value overrides the original nonterminal symbol definition (if there was one).
+
+Bracery keeps faith with this aspect of Tracery's design, expanding `#sentence#` the same way as Tracery does, with locally-specified variables overriding globally-specified symbol definitions.
+However, Bracery also has syntax allowing programmers to access the local variable's value directly (as `^sentence`) or expand the original global nonterminal (as `$sentence`).
+It also introduces dynamic evaluation and conditional primitives, which are required to connect the above elements (`#sentence#`, `$sentence` and `^sentence`),
 but are also quite powerful in their own right.
 
 # Usage

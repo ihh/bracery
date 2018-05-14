@@ -1,0 +1,38 @@
+<html>
+  <head>
+    <title>Bracery</title>
+  </head>
+  <body style="display: flex; flex-direction: row; justify-content: space-around;">
+    <div style="width: 600px; background-color: #eee; padding: 4px;">
+      <h1><a href="https://github.com/ihh/bracery">Bracery</a></h1>
+      <p>
+	Symbol definitions:
+	<div>
+	  <textarea id="textdefs" style="width: 100%; min-height: 10em; resize: vertical;">
+	  </textarea>
+	</div>
+	<br><p>
+	Templates:
+	<div>
+<textarea id="tempdefs" style="width: 100%; min-height: 10em; resize: vertical;">
+@goodnews>Good news # root bad_news # good_news
+^subject={cat|dog|flower|toaster}[I [love|dig|really like] &plural^subject!|&cap&plural^subject are [great|awesome|amazing]!]
+
+@badnews>Bad news # good_news # bad_news
+[Yeah? Well &a^subject [ate|stepped on] your [mom|dad|uncle|aunt|grandma|grandpa|cousin|best friend].|Nope.|I disagree.|[Meh|Whatever]. &plural&cap^subject [suck|are [bad|weak|boring]].]
+</textarea>
+	</div>
+	<br><p>
+	Thread (<a id="reset" href="#">reset</a>):
+	<div id="thread" style="width: 100%; background-color: lightgray;">
+	</div>
+	<!-- try two different places for compromise. kludgy hack to allow local or github-hosted testing -->
+	<script src="https://raw.githubusercontent.com/spencermountain/compromise/master/builds/compromise.es6.js"></script>
+	<script src="../node_modules/compromise/builds/compromise.es6.js"></script>
+	<!-- bracery -->
+	<script src="bracery.js"></script>
+	<!-- hook up the UI -->
+	<script src="markov.js"></script>
+    </div>
+  </body>
+</html>

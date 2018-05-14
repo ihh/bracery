@@ -10,6 +10,8 @@ function messageDiv (message, config) {
                     ? (message.template.author + ': ')
                     : '')
                  +  message.expansion.text)
+  if (config.style)
+    e.setAttribute('style',config.style)
   return e
 }
 
@@ -35,7 +37,7 @@ function update() {
             thread.forEach (function (threadMessage) {
               threadElement.appendChild (messageDiv (threadMessage))
             })
-          threadElement.appendChild (messageDiv (message, { title: true }))
+          threadElement.appendChild (messageDiv (message, { title: true, style: 'font-style: italic;' }))
           var acceptElement = document.createElement('a')
           var rejectElement = document.createElement('a')
           var span = document.createElement('span')

@@ -64,8 +64,8 @@ function update() {
           threadElement.appendChild (acceptElement)
           threadElement.appendChild (span)
           threadElement.appendChild (rejectElement)
-          acceptElement.addEventListener ('click', function() { resolve (true) })
-          rejectElement.addEventListener ('click', function() { resolve (false) })
+          acceptElement.addEventListener ('click', function(e) { e.preventDefault(); resolve (true) })
+          rejectElement.addEventListener ('click', function(e) { e.preventDefault(); resolve (false) })
         })
       }
     }

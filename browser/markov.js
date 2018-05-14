@@ -1,7 +1,7 @@
 function messageDiv (message, config) {
   config = config || {}
   var e = document.createElement('div')
-  e.innerText = ((config.title
+  e.innerHTML = ((config.title
                   ? (message.template.title
                      ? (('[' + message.template.title + ']') + ' ')
                      : '')
@@ -50,9 +50,9 @@ function update() {
           threadElement.innerHTML = ""
           if (thread)
             thread.forEach (function (threadMessage) {
-              threadElement.appendChild (messageDiv (threadMessage))
+              threadElement.appendChild (messageDiv (threadMessage, { style: 'background-color: #ddd;' }))
             })
-          threadElement.appendChild (messageDiv (message, { title: true, style: 'font-style: italic;' }))
+          threadElement.appendChild (messageDiv (message, { title: true, style: 'font-style: italic; background-color: #bbb;' }))
           var acceptElement = document.createElement('a')
           var rejectElement = document.createElement('a')
           var span = document.createElement('span')

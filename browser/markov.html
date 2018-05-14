@@ -8,23 +8,37 @@
       <p>
 	Symbol definitions:
 	<div>
-	  <textarea id="textdefs" style="width: 100%; min-height: 10em; resize: vertical;">
-	  </textarea>
+<textarea id="textdefs" style="width: 100%; min-height: 15em; resize: vertical;">
+>common_item
+cat
+dog
+flower
+toaster
+
+>relative
+mom
+dad
+uncle
+aunt
+granda
+grandpa
+cousin
+</textarea>
 	</div>
 	<br><p>
 	Templates:
 	<div>
-<textarea id="tempdefs" style="width: 100%; min-height: 10em; resize: vertical;">
+<textarea id="tempdefs" style="width: 100%; min-height: 15em; resize: vertical;">
 @goodnews>Good news # root bad_news # good_news
-^subject={cat|dog|flower|toaster}[I [love|dig|really like] &plural^subject!|&cap&plural^subject are [great|awesome|amazing]!]
+^subject={$common_item}[I [love|dig|really like] &plural^subject!|&cap&plural^subject are [great|awesome|amazing]!]
 
 @badnews>Bad news # good_news # bad_news
-[Yeah? Well &a^subject [ate|stepped on] your [mom|dad|uncle|aunt|grandma|grandpa|cousin|best friend].|Nope.|I disagree.|[Meh|Whatever]. &plural&cap^subject [suck|are [bad|weak|boring]].]
+[Yeah? Well &a^subject [ate|stepped on] your $relative.|Nope.|I disagree.|[Meh|Whatever]. &plural&cap^subject [suck|are [bad|weak|boring]].]
 </textarea>
 	</div>
 	<br><p>
 	Thread (<a id="reset" href="#">reset</a>):
-	<div id="thread" style="width: 100%; background-color: lightgray;">
+	<div id="thread" style="width: 100%; background-color: #ccc;">
 	</div>
 	<!-- try two different places for compromise. kludgy hack to allow local or github-hosted testing -->
 	<script src="https://raw.githubusercontent.com/spencermountain/compromise/master/builds/compromise.es6.js"></script>

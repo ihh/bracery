@@ -22,8 +22,23 @@ var resetElement = document.getElementById('reset')
 
 function update() {
   try {
-    var defs = textdefsElement.value.match(/\S/) ? bracery.ParseTree.parseTextDefs (textdefsElement.value) : {}
-    var templates = tempdefsElement.value.match(/\S/) ? bracery.Template.parseTemplateDefs (tempdefsElement.value) : []
+    var defs = {}
+    if (textdefsElement.value.match(/\S/)) {
+      try {
+        defs = JSON.parse (textdefsElement.value)
+      } catch (e) {
+        defs = bracery.ParseTree.parseTextDefs (textdefsElement.value)
+      }
+    }
+
+    var templates = []
+    if (tempdefsElement.value.match(/\S/)) {
+      try {
+        templates = JSON.parse (tempdefsElement.value)
+      } catch (e) {
+        templates = bracery.Template.parseTemplateDefs (tempdefsElement.value)
+      }
+    }
 
     var b = new bracery.Bracery (defs)
     var markovConfig = {

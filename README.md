@@ -96,7 +96,7 @@ See [examples](examples/) for more examples from the Tracery [online tutorial](h
 
 ## In the browser
 
-[Basic demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/browser/index.html) (source in [browser/](browser/))
+[Basic demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/index.html) (source in [web/](web/))
 
 # Syntax
 

@@ -9,6 +9,10 @@ of [Tracery](http://tracery.io/) (by [@galaxykate](https://github.com/galaxykate
 with syntax influenced by [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) and 
 [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)).
 
+Bracery was designed for situations where the symbol definitions file of Tracery may be replaced by an external server,
+such as a web service, or other asynchronously resolved mechanism.
+Generating text from a Tracery file (synchronously, if needed) is still easy, though.
+
 # Usage
 
 ## From NodeJS
@@ -34,6 +38,34 @@ You should see an output like
 Lina traveled with her pet owl.  Lina was never wistful, for the owl was always too courteous.
 ~~~~
 
+The `expand()` method tries to guess the starting nonterminal, but you can override this, or add other stuff, e.g.
+
+~~~~
+console.log (b.expand('#origin#',{vars:{name:'Berenice'}}))
+console.log (b.expand('#origin# And then they met #name#.'))
+~~~~
+and so on.
+
+Bracery also allows the dollar character prefix instead of flanking hash symbols,
+specifically to mean that you want to use the original symbol definitions file (or other authority).
+Thus, `b.expand('[name:PERRY] #name# ').text` will always be `  PERRY  `,
+but `b.expand('[name:PERRY] $name ').text` will be `  Arjun  `, `  Yuuma  `, `  Darcy  ` and so on.
+And if you want the variable value or nothing, then use the caret, `^name`.
+So, `b.expand('[name:PERRY] ^name ').text`. will always be `  PERRY  `, again,
+but `b.expand('^name').text` will be the empty string.
+
+Bracery also allows other ways of generating repetitive, regex-like grammars, such as alternations
+~~~~
+console.log (b.expand ('[hello|hallo|hullo]').text)
+~~~~
+which should give `hello`, `hallo` or `hullo`, and repetitions
+~~~~
+console.log (b.expand ('{hello }{3,5}').text)
+~~~~
+which should yield from three to five `hello`'s, with a space after each.
+
+~~~~
+
 See [tests](test/) for more examples using the JavaScript API
 
 ## From the command line
@@ -56,7 +88,7 @@ Or just give it some text to expand:
 bracery '[hello|hi] [world|planet]!'
 ~~~~
 
-You can run it in client/server mode (NB this is a very light implementation, mostly just a toy example to demonstrate networked symbol resolution):
+You can run it in client/server mode (NB this is a very light implementation, mostly just a toy example to demonstrate networked symbol expansion):
 
 ~~~~
 bracery -d examples/travel.json -S 8000 &

@@ -177,7 +177,7 @@ if (symbolNames.length || opt.options.defs) {
   var nRules = symbolNames.reduce (function (sum, name) { return sum + b.getRules(name).length }, 0)
   console.warn(colors.cyan ('(' + bracery.ParseTree.nPlurals(symbolNames.length,'symbol')
                             + ', ' + bracery.ParseTree.nPlurals(nRules,'rule')
-                            + ', initial symbol ' + bracery.ParseTree.symChar + b.getDefaultSymbol() + ')'))
+                            + ', default symbol ' + bracery.ParseTree.symChar + b.getDefaultSymbol() + ')'))
 }
 
 // validate expressions

@@ -19,12 +19,15 @@ function parseTemplateDefs (text) {
   var templates = []
   try {
     var newTemplateDefReg = /^(\d*)(@.*|)(>+)\s*(.*?)\s*(#\s*(.*?)\s*(#\s*(.*?)\s*|)|)$/;
-    var replyChain = [], currentTemplate, newTemplateDefMatch
+    var replyChain = [], currentTemplates = [], newTemplateDefMatch
     text.split(/\n/).forEach (function (line) {
       if (line.length) {
-        if (currentTemplate)
-          currentTemplate.content = currentTemplate.content.concat (ParseTree.parseRhs (line + '\n'))
-        else if (newTemplateDefMatch = newTemplateDefReg.exec (line)) {
+        if (currentTemplates.length) {
+          var parsedLine = ParseTree.parseRhs (line + '\n')
+          currentTemplates.forEach (function (currentTemplate) {
+            currentTemplate.content = currentTemplate.content.concat (parsedLine)
+          })
+        } else if (newTemplateDefMatch = newTemplateDefReg.exec (line)) {
           var weight = newTemplateDefMatch[1],
               author = newTemplateDefMatch[2],
               depth = newTemplateDefMatch[3].length - 1,
@@ -32,27 +35,30 @@ function parseTemplateDefs (text) {
 	      prevTags = makeTagString (newTemplateDefMatch[6]),
 	      tags = makeTagString (newTemplateDefMatch[8])
           var isRoot = !prevTags.match(/\S/) || (prevTags.search(' root ') >= 0)
-          author = author ? author.substr(1) : null
-          currentTemplate = { title: title,
-                              author: author,
-			      previousTags: prevTags,
-			      tags: tags,
-                              isRoot: isRoot,
-                              weight: weight.length ? parseInt(weight) : undefined,
-			      content: [],
-                              replies: [] }
-          if (depth > replyChain.length)
-            throw new Error ("Missing replies in chain")
-          replyChain = replyChain.slice (0, depth)
-          if (depth > 0)
-            replyChain[depth-1].replies.push (currentTemplate)
-          else
-            templates.push (currentTemplate)
-          replyChain.push (currentTemplate)
+          var authorNames = author ? author.substr(1).split(',') : [null]
+          currentTemplates = authorNames.map (function (authorName) {
+            var currentTemplate = { title: title,
+                                author: authorName,
+			        previousTags: prevTags,
+			        tags: tags,
+                                isRoot: isRoot,
+                                weight: weight.length ? parseInt(weight) : undefined,
+			        content: [],
+                                    replies: [] }
+            if (depth > replyChain.length)
+              throw new Error ("Missing replies in chain")
+            replyChain = replyChain.slice (0, depth)
+            if (depth > 0)
+              replyChain[depth-1].replies.push (currentTemplate)
+            else
+              templates.push (currentTemplate)
+            replyChain.push (currentTemplate)
+            return currentTemplate
+          })
         }
       } else {
         // line is empty
-        currentTemplate = undefined
+        currentTemplates = []
       }
     })
   } catch(e) { console.log(e) }

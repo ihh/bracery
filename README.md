@@ -9,10 +9,6 @@ of [Tracery](http://tracery.io/) (by [@galaxykate](https://github.com/galaxykate
 with syntax influenced by [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) and 
 [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)).
 
-Bracery was designed for situations where the symbol definitions file of Tracery may be replaced by an external server,
-such as a web service, or other asynchronously resolved mechanism.
-Generating text from a Tracery file (synchronously, if needed) is still easy, though.
-
 # Usage
 
 ## From NodeJS
@@ -110,8 +106,8 @@ See [examples](examples/) for more examples from the Tracery [online tutorial](h
 
 # Comparison with Tracery
 
-Bracery has been designed for asynchronous applications where the Tracery client is decoupled from the symbol definition store.
-However, Bracery also works just fine as a synchronous library, like Tracery (this is the default when running from the command-line, or using the node API).
+Bracery was designed to work well for asynchronous applications where the Tracery client is decoupled from the symbol definition store.
+However, Bracery also works just fine as a synchronous library, running from a local symbol definitions file, like Tracery (this is the default when running from the command-line, or using the node API).
 
 In asynchronous mode, the Tracery definitions file can live on a server somewhere remote from the client
 (i.e. the place where procedural text generation is happening, such as the user's web browser).

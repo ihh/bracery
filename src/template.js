@@ -18,7 +18,7 @@ function makeTagString (text) {
 function parseTemplateDefs (text) {
   var templates = []
   try {
-    var newTemplateDefReg = /^(\d*)(@.*|)(>+)\s*(.*?)\s*(#\s*(.*?)\s*(#\s*(.*?)\s*|)|)$/;
+    var newTemplateDefReg = /^(\d*)(@.*?|)(>+)\s*(.*?)\s*(#\s*(.*?)\s*(#\s*(.*?)\s*|)|)$/;
     var replyChain = [], currentTemplates = [], newTemplateDefMatch
     text.split(/\n/).forEach (function (line) {
       if (line.length) {
@@ -34,7 +34,7 @@ function parseTemplateDefs (text) {
 	      title = newTemplateDefMatch[4],
 	      prevTags = makeTagString (newTemplateDefMatch[6]),
 	      tags = makeTagString (newTemplateDefMatch[8])
-          var isRoot = !prevTags.match(/\S/) || (prevTags.search(' root ') >= 0)
+          var isRoot = depth === 0 && (!prevTags.match(/\S/) || (prevTags.search(' root ') >= 0))
           var authorNames = author ? author.substr(1).split(',') : [null]
           currentTemplates = authorNames.map (function (authorName) {
             var currentTemplate = { title: title,

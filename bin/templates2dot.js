@@ -79,7 +79,7 @@ var allAuthors = Object.keys(nAuthor).sort()
 console.log ('digraph G {')
 
 allTemplates.forEach (function (template) {
-  describeNode (templateNodeId (template), template.title.replace(/"/g,'\\"'), 'ellipse', 'style=filled;' + authorColorAttr(template.author,'fillcolor',.2,1))
+  describeNode (templateNodeId (template), template.title.replace(/"/g,'\\"'), 'ellipse', authorColorAttr(template.author) + ';style=filled;' + authorColorAttr(template.author,'fillcolor',.2,1))
 })
 
 allTags.forEach (function (tag) {

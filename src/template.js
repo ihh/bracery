@@ -38,12 +38,12 @@ function parseTemplateDefs (text) {
           var authorNames = author ? author.substr(1).split(',') : [null]
           currentTemplates = authorNames.map (function (authorName) {
             var currentTemplate = { title: title,
-                                author: authorName,
-			        previousTags: prevTags,
-			        tags: tags,
-                                isRoot: isRoot,
-                                weight: weight.length ? parseInt(weight) : undefined,
-			        content: [],
+                                    author: authorName,
+			            previousTags: prevTags,
+			            tags: tags,
+                                    isRoot: isRoot,
+                                    weight: weight.length ? parseInt(weight) : undefined,
+			            content: [],
                                     replies: [] }
             if (depth > replyChain.length)
               throw new Error ("Missing replies in chain")

@@ -78,8 +78,10 @@ var allAuthors = Object.keys(nAuthor).sort()
 
 console.log ('digraph G {')
 
+var deadEndColor = '"#eeeeee"'
 allTemplates.forEach (function (template) {
-  describeNode (templateNodeId (template), template.title.replace(/"/g,'\\"'), 'ellipse', authorColorAttr(template.author) + ';style=filled;' + authorColorAttr(template.author,'fillcolor',.2,1))
+  var isDeadEnd = !(template.replies && template.replies.length) && (!template.tags || template.tags.split(/\s+/).filter (function (tag) { return repliesForTag[tag] }).length === 0)
+  describeNode (templateNodeId (template), template.title.replace(/"/g,'\\"'), 'ellipse', (isDeadEnd ? 'color=black' : authorColorAttr(template.author)) + ';style=filled;' + authorColorAttr(template.author,'fillcolor',isDeadEnd?.4:.2,1))
 })
 
 allTags.forEach (function (tag) {
@@ -89,7 +91,7 @@ allTags.forEach (function (tag) {
 
 allTemplates.forEach (function (template) {
   if (template.parent)
-    describeEdge (templateNodeId (template.parent), templateNodeId (template), '[reply]')
+    describeEdge (templateNodeId (template.parent), templateNodeId (template), '', authorColorAttr(template.author))
   forTags (template.tags, function (tag) {
     describeEdge (templateNodeId (template), tagNodeId (tag), '', authorColorAttr(template.author))
   })

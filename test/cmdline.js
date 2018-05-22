@@ -77,7 +77,7 @@ function expectExpand (lhs, rhs, config) {
        var text = runCommand ("-c '" + JSON.stringify(config || {}) + "'"
                               + initOpt
                               + (opts ? (' ' + opts) : '')
-                              + " '" + lhs + "'")
+                              + " -e '" + lhs + "'")
        if (fail)
          assert.notEqual (text, rhs)
        else

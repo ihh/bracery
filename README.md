@@ -83,7 +83,7 @@ bracery -d examples/travel.json -n5 --async
 Or just give it some text to expand:
 
 ~~~~
-bracery '[hello|hi] [world|planet]!'
+bracery -e '[hello|hi] [world|planet]!'
 ~~~~
 
 You can run it in client/server mode (NB this is a very light implementation, mostly just a toy example to demonstrate networked symbol expansion):

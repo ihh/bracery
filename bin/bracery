@@ -143,27 +143,45 @@ function expand (expr, outputColor) {
 // load symbol definitions
 var addedRules = false
 function addRules (rules) {
-  b.addRules (rules)
+  var r = b.addRules (rules)
   if (Object.keys(rules).length)
     addedRules = true
+  return r
 }
-function addRulesJSON (rulesJSON) {
-  addRules (JSON.parse (rulesJSON))
+function addRulesTracery (rulesJSON) {
+  return addRules (JSON.parse (rulesJSON))
 }
 function addRulesText (ruleText) {
-  addRules (bracery.ParseTree.parseTextDefs (ruleText))
+  return addRules (bracery.ParseTree.parseTextDefs (ruleText))
+}
+function addRulesFile (filename) {
+  var text = fs.readFileSync (filename).toString()
+  var result
+  try {
+    var json = JSON.parse (text), rules
+    if (bracery.Validator.isTracery (json))
+      rules = json
+    else if (bracery.Validator.isWikiMess (json)) {
+      rules = {}
+      json.forEach (function (symbol) { rules[symbol.name] = symbol.rules.map (function (array) { return array[0] }) })
+    } else {
+      var errs = bracery.Validator.validateTracery(json).errors.map (function (ve) { return ve.stack }).join("\n")
+      console.warn (filename + ' is apparently JSON, but is not valid Tracery:\n' + errs)
+      throw new Error()  // delegate to addRulesText
+    }
+    result = addRules (rules)
+  } catch (e) {
+    result = addRulesText (text)
+    if (Object.keys(result).length === 0)
+      console.warn ('ignoring ' + filename + ' (could not parse)')
+  }
+  return result
 }
 if (opt.options.defs)
-  opt.options.defs.forEach (function (symbolFile) {
-    var text = fs.readFileSync (symbolFile).toString()
-    try {
-      addRulesJSON (text)
-    } catch (e) {
-      addRulesText (text)
-    }
-  })
+  opt.options.defs.forEach (addRulesFile)
 if (opt.options.symbols)
-  opt.options.symbols.forEach (addRulesJSON)
+  opt.options.symbols.forEach (addRulesTracery)
+opt.argv.forEach (addRulesFile)
 
 if (opt.options.output)
   fs.writeFileSync (opt.options.output, JSON.stringify (b.toJSON(), null, 2))
@@ -262,14 +280,8 @@ if (opt.options.repl) {
 }
 
 // expand something by default, or print an error message
-if (!printedSomething && !opt.options.server && !opt.options.repl) {
-  if (opt.argv.length)
-    expand (opt.argv.join(' '))
-  else {
-    if (addedRules)
-      expand()
-  }
-}
+if (addedRules && !printedSomething && !opt.options.server && !opt.options.repl)
+    expand()
 
 if (!printedSomething && !addedRules && !opt.options.server && !opt.options.repl)
   console.error ('please give me some Bracery text to expand')

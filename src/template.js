@@ -65,6 +65,13 @@ function parseTemplateDefs (text) {
   return templates
 }
 
+function flattenTemplates (templates, parent) {
+  return templates.reduce (function (allTemplates, template) {
+    template.parent = parent
+    return allTemplates.concat (flattenTemplates (template.replies, template))
+  }, templates)
+}
+
 function sampleTemplate (templates) {
   var totalWeight = templates.reduce (function (total, template) { return total + (template.weight || 1) }, 0)
   var w = totalWeight * Math.random()
@@ -118,7 +125,6 @@ function promiseMessageList (config) {
   }
   function promiseMessage() {
     var proposedMessage = generateMessage()
-//    console.warn('proposedMessage',proposedMessage)
     return new Promise (function (resolve, reject) {
       if (!proposedMessage)
         resolve (true)
@@ -147,6 +153,7 @@ function promiseMessageList (config) {
 }
 
 module.exports = { parseTemplateDefs: parseTemplateDefs,
+                   flattenTemplates: flattenTemplates,
                    sampleTemplate: sampleTemplate,
                    randomRootTemplate: randomRootTemplate,
                    randomReplyTemplate: randomReplyTemplate,

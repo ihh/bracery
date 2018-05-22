@@ -35,14 +35,8 @@ var nestedTemplates = (opt.options.templates || []).concat(opt.argv).reduce (fun
   return templates.concat (templateParser.parseTemplateDefs (fs.readFileSync(templateFilename).toString()))
 }, [])
 
-function flattenTemplates (templates, parent) {
-  return templates.reduce (function (allTemplates, template) {
-    template.parent = parent
-    return allTemplates.concat (flattenTemplates (template.replies, template))
-  }, templates)
-}
-var allTemplates = flattenTemplates (nestedTemplates)
-var isTag = {}, nAuthor = {}, repliesForTag = {}
+var allTemplates = templateParser.flattenTemplates (nestedTemplates)
+var isTag = {}, tagWeight = {}, nAuthor = {}, repliesForTag = {}
 allTemplates.forEach (function (template, n) {
   template.id = n
   if (template.author && !nAuthor[template.author])
@@ -56,6 +50,7 @@ allTemplates.forEach (function (template, n) {
     isTag[tag] = true
     repliesForTag[tag] = repliesForTag[tag] || []
     repliesForTag[tag].push (template)
+    tagWeight[tag] = (tagWeight[tag] || 0) + (template.weight || 1)
   })
 })
 var allTags = Object.keys(isTag).sort()
@@ -67,7 +62,10 @@ output.push ('digraph G {')
 var deadEndColor = '"#eeeeee"'
 allTemplates.forEach (function (template) {
   var isDeadEnd = !(template.replies && template.replies.length) && (!template.tags || template.tags.split(/\s+/).filter (function (tag) { return repliesForTag[tag] }).length === 0)
-  describeNode (templateNodeId (template), template.title.replace(/"/g,'\\"'), 'ellipse', (isDeadEnd ? 'color=black' : authorColorAttr(template.author)) + ';style=filled;' + authorColorAttr(template.author,'fillcolor',isDeadEnd?.4:.2,1))
+  describeNode (templateNodeId (template),
+                template.title.replace(/"/g,'\\"'),
+                'ellipse',
+                (isDeadEnd ? 'color=black' : authorColorAttr(template.author)) + ';style=filled;' + authorColorAttr(template.author,'fillcolor',isDeadEnd?.4:.2,1))
 })
 
 allTags.forEach (function (tag) {
@@ -78,11 +76,17 @@ allTags.forEach (function (tag) {
 allTemplates.forEach (function (template) {
   if (template.parent)
     describeEdge (templateNodeId (template.parent), templateNodeId (template), '', authorColorAttr(template.author))
-  forTags (template.tags, function (tag) {
-    describeEdge (templateNodeId (template), tagNodeId (tag), '', authorColorAttr(template.author))
+  forTags (template.tags, function (tag, nTags) {
+    describeEdge (templateNodeId (template),
+                  tagNodeId (tag),
+                  nTags > 1 ? (tagWeight[tag] || 0) : '',
+                  authorColorAttr(template.author))
   })
-  forTags (template.previousTags, function (tag) {
-    describeEdge (tagNodeId (tag), templateNodeId (template), '', authorColorAttr(template.author))
+  forTags (template.previousTags, function (tag, nTags) {
+    describeEdge (tagNodeId (tag),
+                  templateNodeId (template),
+                  (template.weight && template.weight !== 1) ? template.weight : '',
+                  authorColorAttr(template.author) + ';' + authorColorAttr(template.author,'fontcolor'))
   })
 })
 
@@ -100,11 +104,13 @@ if (opt.options.open) {
   console.log (outputText)
 
 function forTags (tags, callback) {
-  if (tags)
-    tags.split(/\s+/).forEach (function (tag) {
+  if (tags) {
+    var tagArray = tags.split(/\s+/).filter (function (tag) { return tag.length })
+    tagArray.forEach (function (tag) {
       if (tag.match (/\S/))
-        callback (tag)
+        callback (tag, tagArray.length)
     })
+  }
 }
 
 function tagNodeId (tag) { return 'tag_' + tag }
@@ -117,5 +123,5 @@ function describeNode (id, label, shape, colorStr) {
 }
 
 function describeEdge (src, dest, tag, colorStr) {
-  output.push (src + ' -> ' + dest + ' [label="' + (tag || '') + '";' + (colorStr || '') + '];')
+  output.push (src + ' -> ' + dest + ' [taillabel="' + (tag || '') + '";' + (colorStr || '') + '];')
 }

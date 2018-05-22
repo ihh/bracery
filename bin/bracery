@@ -235,12 +235,13 @@ if (opt.options.markov || opt.options.quiz) {
     } catch (e) {
       templates = bracery.Template.parseTemplateDefs (text)
     }
-    return templates
+    return bracery.Template.flattenTemplates (templates)
   }
   var templates = [opt.options.markov, opt.options.quiz]
       .reduce (function (temps, filename) {
         return temps.concat (filename ? parseTemplates (fs.readFileSync (filename).toString()) : [])
       }, [])
+
   var markovConfig = extend (makeConfig(),
                              { bracery: b,
                                templates: templates,

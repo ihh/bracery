@@ -6,7 +6,7 @@ var fs = require('fs'),
     readline = require('readline'),
     http = require('http'),
     request = require('request'),
-    Confirm = require('prompt-confirm'),
+    keypress = require('keypress'),
     colors = require('colors')
 
 var bracery = require('..'),
@@ -246,8 +246,9 @@ if (opt.options.markov || opt.options.quiz) {
                              { bracery: b,
                                templates: templates,
                                vars: varVal })
-  if (opt.options.quiz)
-    markovConfig.accept = function (message, thread) {
+  if (opt.options.quiz) {
+    markovConfig.accept = function (message, thread, callback) {
+      console.log ('\033c')  // clear screen
       if (thread)
         console.warn (chainToString (thread,
                                      { color: { title: null,
@@ -258,9 +259,34 @@ if (opt.options.markov || opt.options.quiz) {
                      { color: { title: function (text) { return colors.magenta (text) + '\n' },
                                 author: colors.blue,
                                 message: colors.yellow } }))
-      return new Confirm ('Accept?')
-        .run()
+      process.stdout.write (colors.bold('Accept?') + ' ' + colors.gray('(Y/n)') + ' ')
+
+      keypress (process.stdin)
+      function pause() {
+        process.stdout.write ('\n')
+        process.stdin.removeListener ('keypress', handleKey)
+        process.stdin.pause()
+      }
+      function handleKey (ch, key) {
+        var result
+        if (key) {
+          if (key.ctrl && key.name === 'c')  // handle ctrl-C
+            pause()
+          if (key.name === 'y' || key.name === 'return' || key.name === 'space' || key.name === 'down' || key.name === 'right')
+            result = true
+          if (key.name === 'n' || key.name === 'backspace' || key.name === 'up' || key.name === 'left')
+            result = false
+        }
+        if (typeof(result) !== 'undefined') {
+          pause()
+          callback (result)
+        }
+      }
+      process.stdin.addListener ('keypress', handleKey)
+      process.stdin.setRawMode(true)
+      process.stdin.resume()
     }
+  }
 
   bracery.Template.promiseMessageList (markovConfig)
     .then (function (chain) {

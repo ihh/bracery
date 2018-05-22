@@ -100,7 +100,7 @@ function randomReplyTemplate (templates, tags, prevTemplate) {
 function promiseMessageList (config) {
   var bracery = config.bracery, templates = config.templates
   var maxReplies = typeof(config.maxReplies) === 'undefined' ? defaultMaxReplies : config.maxReplies
-  var accept = config.accept || function (expansion, thread) { return true }
+  var accept = config.accept || function (_expansion, _thread, callback) { callback(true) }
   var prevMessage = config.previousMessage
   var generateTemplate = (prevMessage
                           ? randomReplyTemplate.bind (null, templates, prevMessage.tags, prevMessage.template)
@@ -129,7 +129,7 @@ function promiseMessageList (config) {
       if (!proposedMessage)
         resolve (true)
       else
-        resolve (accept (proposedMessage, config.thread))
+        accept (proposedMessage, config.thread, resolve)
     }).then (function (accepted) {
       return accepted ? proposedMessage : promiseMessage()
     })

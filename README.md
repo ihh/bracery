@@ -51,16 +51,18 @@ So, `b.expand('[name:PERRY] ^name ').text`. will always be `  PERRY  `, again,
 but `b.expand('^name').text` will be the empty string.
 
 Bracery also allows other ways of generating repetitive, regex-like grammars, such as alternations
+
 ~~~~
 console.log (b.expand ('[hello|hallo|hullo]').text)
 ~~~~
+
 which should give `hello`, `hallo` or `hullo`, and repetitions
+
 ~~~~
 console.log (b.expand ('{hello }{3,5}').text)
 ~~~~
-which should yield from three to five `hello`'s, with a space after each.
 
-~~~~
+which should yield from three to five `hello`'s, with a space after each.
 
 See [tests](test/) for more examples using the JavaScript API
 

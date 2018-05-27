@@ -16,9 +16,13 @@ with syntax influenced by [regular expressions](https://en.wikipedia.org/wiki/Re
 
 [Basic demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/index.html) (source in [web/](web/))
 
+The symbol definitions (`#hero# traveled with her pet...`)
+are from @galaxykate's [online tutorial](http://www.crystalcodepalace.com/traceryTut.html) to Tracery.
+They are duplicated in the file [examples/travel.json](examples/travel.json) in the Bracery repository.
+
 ## From the command line
 
-Trying various command line settings with the same symbol defintions file, [examples/travel.json](examples/travel.json) (`#hero# traveled with her pet...`):
+Trying various command line settings with the same symbol defintions file, [examples/travel.json](examples/travel.json):
 
 ~~~~
 bracery -d examples/travel.json
@@ -30,11 +34,14 @@ bracery -d examples/travel.json --repl
 bracery -d examples/travel.json -n5 --async
 ~~~~
 
-Or just give it some text to expand:
+You can also just give Bracery some text to expand:
 
 ~~~~
 bracery -e '[hello|hi] [world|planet]!'
 ~~~~
+
+(The square-bracket and pipe characters `[hello|hi]` are part of the syntax extensions to Tracery, described [below](#syntax_extensions).
+This syntax allows the compact specification of alternate possibilities, in this case `hello` or `hi`.)
 
 You can run it in client/server mode (NB this is a very light implementation, mostly just a toy example to demonstrate networked symbol expansion):
 
@@ -53,7 +60,7 @@ See [examples](examples/) for more examples from the Tracery [online tutorial](h
 
 ## From NodeJS
 
-Basic Tracery (an example from @galaxykate's [online tutorial](http://www.crystalcodepalace.com/traceryTut.html))
+Same example from @galaxykate's [online tutorial](http://www.crystalcodepalace.com/traceryTut.html)
 
 ~~~~
 var bracery = require('bracery')

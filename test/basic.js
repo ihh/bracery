@@ -213,7 +213,9 @@ function doTests (testRunner) {
   expectExpand ('${abc}con', 'defcon')
   expectExpand ('&strip{$abc}{${abc}con}', 'con')
   expectExpand ('&strip{$abc}{${abc}con defcon}', 'con con')
-  
+
+  expectExpand ('^b={b}^x={Batch}^y=&strip&strip^b{abc}&strip{t}^x^y', 'Bh')
+
   // repetition
   expectExpand ('&rep{Test}{3}', 'TestTestTest')
   expectExpand ('&rep{Test}{3,5}', 'TestTestTest', {maxTries:maxTries})

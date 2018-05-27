@@ -3,3 +3,12 @@
 
 @badnews>Bad news # good_news # bad_news
 [Yeah? Well &a^subject [ate|stepped on] your [mom|dad|uncle|aunt|grandma|grandpa|cousin|best friend].|Nope.|I disagree.|[Meh|Whatever]. &plural&cap^subject [suck|are [bad|weak|boring]].]
+
+@goodnews>Life is grand # good_news bad_news !aside # aside life_is_grand
+[Life is [grand|wonderful|splendid]!|Isn't life [amazing|cool|great]?]^tags={^prevtags ^tags}
+
+@badnews>Life sucks # good_news bad_news !aside # aside life_sucks
+[Life [sucks|stinks|bites].|Why do I [bother|keep trying|do this]?]^tags={^prevtags ^tags}
+
+@goodnews>Quit your negativity # life_sucks #
+Quit your negativity.^tags=&strip{aside}&strip{life_sucks}^prevtags

@@ -23,9 +23,9 @@ function parseTemplateDefs (text) {
     text.split(/\n/).forEach (function (line) {
       if (line.length) {
         if (currentTemplates.length) {
-          var parsedLine = ParseTree.parseRhs (line + '\n')
+          var parsedLine = ParseTree.parseRhs (line)
           currentTemplates.forEach (function (currentTemplate) {
-            currentTemplate.content = currentTemplate.content.concat (parsedLine)
+            currentTemplate.content = currentTemplate.content.concat (currentTemplate.content.length ? '\n' : '', parsedLine)
           })
         } else if (newTemplateDefMatch = newTemplateDefReg.exec (line)) {
           var weight = newTemplateDefMatch[1],
@@ -86,14 +86,18 @@ function randomRootTemplate (templates) {
 }
 
 function randomReplyTemplate (templates, tags, prevTemplate) {
-  tags = typeof(tags) === 'string' ? makeTagArray(tags) : tags
+  var tagArray = typeof(tags) === 'string' ? makeTagArray(tags) : tags
   return sampleTemplate (templates.filter (function (template) {
     if (prevTemplate && prevTemplate.replies.indexOf (template) >= 0)
       return true
-    var prevTags = template.previousTags.toLowerCase()
-    return tags.reduce (function (match, tag) {
-      return match || (prevTags.search (' ' + tag + ' ') >= 0)
-    }, false)
+    var prevTags = makeTagArray (template.previousTags)
+    var allowedTags = prevTags.filter (function (tag) { return tag[0] !== '!' })
+    var excludedTags = prevTags.filter (function (tag) { return tag[0] === '!' }).map (function (xtag) { return xtag.substr(1) })
+    return excludedTags.reduce (function (match, xtag) {
+      return match && tagArray.indexOf(xtag) < 0
+    }, allowedTags.reduce (function (match, tag) {
+      return match || tagArray.indexOf(tag) >= 0
+    }, false))
   }))
 }
 
@@ -109,7 +113,7 @@ function promiseMessageList (config) {
     var message
     var template = generateTemplate()
     if (template) {
-      var vars = extend ({}, config.vars || {})
+      var vars = extend ({}, config.vars || {}, { tags: template.tags || '' })
       message = { template: template,
                   vars: extend ({}, vars),
                   expansion: bracery._expandRhs (extend ({},
@@ -117,7 +121,7 @@ function promiseMessageList (config) {
                                                          { rhs: ParseTree.sampleParseTree (template.content, bracery.rng),
                                                            vars: vars })) }
       message.title = vars.title || template.title
-      message.tags = vars.prevtags = vars.tags || template.tags
+      message.tags = vars.prevtags = vars.tags
       delete vars.tags
       message.nextVars = extend ({}, vars)
     }

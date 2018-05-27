@@ -223,7 +223,11 @@ if (opt.options.markov || opt.options.quiz) {
             + (message.template.author && color.author
                ? (color.author.call (colors, message.template.author) + ': ')
                : '')
-            + (color.message || noColor).call (colors, message.expansion.text))
+            + (color.message || noColor).call (colors, message.expansion.text)
+            + (message.tags.match(/\S/) && color.tags
+               ? (' ' + color.tags.call (colors, bracery.Template.makeTagArray(message.tags).join(' ')))
+               : '')
+            + '\n')
   }
   function chainToString (chain, config) {
     return chain.map (function (message) { return messageToString (message, config) }).join('')
@@ -258,7 +262,8 @@ if (opt.options.markov || opt.options.quiz) {
                     (message,
                      { color: { title: function (text) { return colors.magenta (text) + '\n' },
                                 author: colors.blue,
-                                message: colors.yellow } }))
+                                message: colors.green,
+                                tags: opt.options.verbose ? colors.yellow : undefined } }))
       process.stdout.write (colors.bold('Accept?') + ' ' + colors.gray('(Y/n)') + ' ')
 
       keypress (process.stdin)
@@ -293,7 +298,8 @@ if (opt.options.markov || opt.options.quiz) {
       console.log (chainToString (chain,
                                   { color: { title: colors.magenta,
                                              author: colors.blue,
-                                             message: colors.green } }))
+                                             message: colors.green,
+                                             tags: opt.options.verbose ? colors.yellow : undefined } }))
     })
   printedSomething = true
 }

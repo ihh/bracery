@@ -33,7 +33,8 @@ describe('validation', function() {
   validate ('&strip{abc}{^y}', '&strip{abc}^y')
 
   validate ('&strip{$abc}{${abc}def}')
-
+  validate ('^y=&strip&strip^b{abc}&strip{t}^x', '^y={&strip&strip^b{abc}&strip{t}^x}')
+  
   validate ('&push^a')
   validate ('&push{^a^b^c}')
   validate ('&push{  ^a  ^b   ^c  }', '&push{^a^b^c}')

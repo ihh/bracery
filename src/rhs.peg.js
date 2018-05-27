@@ -85,11 +85,15 @@ FunctionArg
   / Unit
 
 Unit
-  = assign:VarAssignment { return [assign] }
-  / lookup:VarLookup { return [lookup] }
-  / sym:Symbol { return [sym] }
-  / alt:Alternation { return [alt] }
+  = sym:Symbol { return [sym] }
+  / cond:Conditional { return [cond] }
+  / local:LocalAssignment { return [local] }
+  / pushpop:PushOrPop { return [pushpop] }
+  / strip:Strip { return [strip] }
   / func:Function { return [func] }
+  / assign:VarAssignment { return [assign] }
+  / lookup:VarLookup { return [lookup] }
+  / alt:Alternation { return [alt] }
   / args:DelimitedNodeList { return args }
 
 DelimitedNodeList

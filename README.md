@@ -110,10 +110,11 @@ var b = new bracery.Bracery ({ percentage: function (config) {
   return new Promise (function (resolve, reject) {
     setTimeout (function() {
       resolve (Math.round (config.random() * 100) + ' percent')
-    }, 250)
+    }, 1000)
   })
 }})
 
+console.log ('Calculating...')
 b.expand ('I [love|hate|like] you $percentage!',
           { callback: function (expansion) { console.log (expansion.text) } })
 ~~~~

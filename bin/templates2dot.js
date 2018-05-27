@@ -70,7 +70,7 @@ allTemplates.forEach (function (template) {
 
 allTags.forEach (function (tag) {
   var isDeadEnd = !(repliesForTag[tag] && repliesForTag[tag].length)
-  describeNode (tagNodeId (tag), '#' + tag, 'rect', isDeadEnd ? 'style=filled;fillcolor="#eeeeee"' : '')
+  describeNode (tagNodeId (tag), tagNodeLabel (tag), 'rect', isDeadEnd ? 'style=filled;fillcolor="#eeeeee"' : '')
 })
 
 allTemplates.forEach (function (template) {
@@ -113,7 +113,8 @@ function forTags (tags, callback) {
   }
 }
 
-function tagNodeId (tag) { return 'tag_' + tag }
+function tagNodeId (tag) { return tag[0] === '!' ? ('not_tag_' + tag.substr(1)) : ('tag_' + tag) }
+function tagNodeLabel (tag) { return tag[0] === '!' ? ('!#' + tag.substr(1)) : ('#' + tag) }
 function templateNodeId (template) { return 'template_' + template.id }
 function colorAttr (hue, sat, val, attr) { return (attr || 'color') + '="' + (hue || 0) + ',' + (sat || 0) + ',' + (val || 1) + '"' }
 function authorColorAttr (author, attr, sat, val) { return colorAttr(nAuthor[author] / allAuthors.length, sat || 1, val || 1, attr) }

@@ -16,10 +16,11 @@ with syntax influenced by [regular expressions](https://en.wikipedia.org/wiki/Re
 
 [Basic demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/index.html) (source in [web/](web/))
 
-The symbol definitions in this example are from @galaxykate's [online tutorial](http://www.crystalcodepalace.com/traceryTut.html) to Tracery.
+The symbol definitions in this example are from Kate Compton (@galaxykate)'s [online tutorial](http://www.crystalcodepalace.com/traceryTut.html) to Tracery.
 They are used throughout this README as an example,
 duplicated below (under [From NodeJS](#from-nodejs)).
-and can also be found in the file [examples/travel.json](examples/travel.json) in the Bracery repository,
+These symbol defintions can also be [found](examples/travel.json), along with other examples from Kate's online tutorial,
+in the [examples](examples/) directory of this repository.
 
 ## From the command line
 
@@ -56,8 +57,6 @@ To get a list of available options (there aren't many)
 ~~~~
 bracery --help
 ~~~~
-
-See [examples](examples/) for more examples from the Tracery [online tutorial](http://www.crystalcodepalace.com/traceryTut.html)
 
 ## From NodeJS
 

@@ -89,6 +89,8 @@ console.log (b.expand('#origin# And then they met #name#.'))
 ~~~~
 and so on.
 
+Symbols can also be bound to functions that return strings, or [promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) for strings.
+
 # Comparison with Tracery
 
 In Tracery, variables and symbols share the same namespace, as part of the design.

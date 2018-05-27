@@ -121,9 +121,17 @@ Bracery.prototype._expandSymbol = function (config) {
   var rhs
   var rules = this.rules[symbolName]
   if (rules) {
-    if (typeof(rules) === 'function')
+    if (typeof(rules) === 'function') {
+      // call dynamically bound function
       rhs = rules (extend ({ rng: this.rng }, config))
-    else
+      // if result is a string, forgivingly wrap it as a single-element array
+      if (typeof(rhs) === 'string')
+        rhs = [rhs]
+      else if (typeof(rhs.then) === 'function')
+        rhs = rhs.then (function (result) {
+          return typeof(result) === 'string' ? [result] : result
+        })
+    } else
       rhs = ParseTree.sampleParseTree (ParseTree.randomElement (rules, this.rng), config)
   } else
     rhs = []

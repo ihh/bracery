@@ -275,8 +275,8 @@ For an example, see [examples/markov/good_news_bad_news.txt](examples/markov/goo
 
 ## Using templates
 
-You can test templates outside of Wiki Messenger using [bracery's](https://github.com/ihh/bracery) `-m` option
-(short for `--markov`, because it basically samples a trajectory through a Markov chain).
+You can test template sequencing using bracery's `-m` option
+(short for `--markov`, because it samples a trajectory through the Markov chain).
 Make sure to also load any required symbol definitions.
 For example:
 
@@ -284,8 +284,7 @@ For example:
 bracery -m examples/markov/good_news_bad_news.txt
 ~~~~
 
-Or for an interactive experience
-that allows you to keep re-randomizing the next move until you're happy with it,
+Or for an interactive experience that allows you to keep re-randomizing the next message in the thread until you're happy with it,
 use bracery with the `-q` option (short for `--quiz`) instead of `-m`:
 
 ~~~~

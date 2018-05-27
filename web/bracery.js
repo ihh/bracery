@@ -7017,6 +7017,7 @@ module.exports = { parseTemplateDefs: parseTemplateDefs,
 },{"./parsetree":13}],17:[function(require,module,exports){
 var jsonschema = require('jsonschema')
 
+// for Tracery
 var tracerySchema = {
   type: "object",
   patternProperties: {
@@ -7035,7 +7036,9 @@ var tracerySchema = {
   additionalProperties: false
 }
 
-var wikiMessSchema = {
+// for "Bracery JSON", enforce an extremely simple schema requiring the definition of any symbol to be an alternation over strings
+// this shouldn't really be relied on as very stable, it's mostly for import
+var braceryJSONSchema = {
   type: "array",
   items: {
     properties: {
@@ -7065,21 +7068,21 @@ function validateTracery (json) {
   return result
 }
 
-function isWikiMess (json) {
-  return !validateWikiMess(json).errors.length
+function isBraceryJSON (json) {
+  return !validateBraceryJSON(json).errors.length
 }
 
-function validateWikiMess (json) {
+function validateBraceryJSON (json) {
   var validator = new jsonschema.Validator()
-  var result = validator.validate (json, wikiMessSchema, {nestedErrors: true})
+  var result = validator.validate (json, braceryJSONSchema, {nestedErrors: true})
   return result
 }
 
 module.exports = {
   isTracery: isTracery,
   validateTracery: validateTracery,
-  isWikiMess: isWikiMess,
-  validateWikiMess: validateWikiMess
+  isBraceryJSON: isBraceryJSON,
+  validateBraceryJSON: validateBraceryJSON
 }
 
 },{"jsonschema":3}]},{},[15]);

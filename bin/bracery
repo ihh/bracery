@@ -161,7 +161,7 @@ function addRulesFile (filename) {
     var json = JSON.parse (text), rules
     if (bracery.Validator.isTracery (json))
       rules = json
-    else if (bracery.Validator.isWikiMess (json)) {
+    else if (bracery.Validator.isBraceryJSON (json)) {
       rules = {}
       json.forEach (function (symbol) { rules[symbol.name] = symbol.rules.map (function (array) { return array[0] }) })
     } else {

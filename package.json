@@ -25,11 +25,12 @@
     "bluebird": "^3.5.1",
     "colors": "^1.2.5",
     "compromise": "^11.7.0",
+    "jsonschema": "~1.2.4",
+    "keypress": "~0.2.1",
     "node-getopt": "^0.3.2",
     "request": "^2.85.0",
-    "tmp": "0.0.33",
-    "jsonschema": "~1.2.4",
-    "keypress": "~0.2.1"
+    "request-promise": "^4.2.2",
+    "tmp": "0.0.33"
   },
   "devDependencies": {
     "browserify": "^16.2.2",

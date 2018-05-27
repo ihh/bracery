@@ -7,7 +7,8 @@
     "bracery": "bin/bracery"
   },
   "scripts": {
-    "test": "node ./node_modules/mocha/bin/mocha test/*.js",
+    "test": "node ./node_modules/nyc/bin/nyc --reporter=html --reporter=text node ./node_modules/mocha/bin/mocha test/*.js",
+    "coverage": "node ./node_modules/nyc/bin/nyc report --reporter=text-lcov | node ./node_modules/coveralls/bin/coveralls",
     "prepublishOnly": "make; git clean -fd"
   },
   "repository": {
@@ -32,7 +33,9 @@
   },
   "devDependencies": {
     "browserify": "^16.2.2",
+    "coveralls": "^3.0.1",
     "mocha": "^5.1.1",
+    "nyc": "^11.8.0",
     "pegjs": "^0.10.0",
     "uglify-js": "^3.3.24"
   }

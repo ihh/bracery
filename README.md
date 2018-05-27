@@ -89,9 +89,7 @@ console.log (b.expand('#origin# And then they met #name#.'))
 ~~~~
 and so on.
 
-Symbols can also be bound to functions that return strings,
-or (if a `callback` is specified in the configuration object that's the optional second argument to `expand`)
-[promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) of strings:
+When using the node API, symbols can be bound to JavaScript functions that return strings:
 
 ~~~~
 var bracery = require('../bracery')
@@ -100,6 +98,24 @@ var b = new bracery.Bracery
   ({"percentage": function (config) { return Math.round (config.random() * 100) + ' percent' }})
 
 console.log (b.expand('I [love|hate|like] you $percentage!').text)
+~~~~
+
+They can also, if a `callback` is specified in the configuration object that's the optional second argument to `expand`,
+be bound to [promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) that asynchronously return strings:
+
+~~~~
+var bracery = require('../bracery')
+
+var b = new bracery.Bracery ({ percentage: function (config) {
+  return new Promise (function (resolve, reject) {
+    setTimeout (function() {
+      resolve (Math.round (config.random() * 100) + ' percent')
+    }, 250)
+  })
+}})
+
+b.expand ('I [love|hate|like] you $percentage!',
+          { callback: function (expansion) { console.log (expansion.text) } })
 ~~~~
 
 # Comparison with Tracery

@@ -127,10 +127,11 @@ Bracery.prototype._expandSymbol = function (config) {
       // if result is a string, forgivingly wrap it as a single-element array
       if (typeof(rhs) === 'string')
         rhs = [rhs]
-      else if (rhs && typeof(rhs.then) === 'function')
+      else if (rhs && typeof(rhs.then) === 'function') {
         rhs = rhs.then (function (result) {
           return typeof(result) === 'string' ? [result] : result
         })
+      }
     } else
       rhs = ParseTree.sampleParseTree (ParseTree.randomElement (rules, this.rng), config)
   } else
@@ -140,8 +141,12 @@ Bracery.prototype._expandSymbol = function (config) {
 
 Bracery.prototype._expandRhs = function (config) {
   var newConfig = extend ({ expand: this._expandSymbol.bind (this) }, config)
-  if (newConfig.callback)
-    return ParseTree.makeRhsExpansionPromise (newConfig).then (newConfig.callback)
+  if (newConfig.callback) {
+    var promise = ParseTree.makeRhsExpansionPromise (newConfig)
+    if (typeof(newConfig.callback) === 'function')
+      promise = promise.then (newConfig.callback)
+    return promise
+  }
   return ParseTree.makeRhsExpansionSync (newConfig)
 }
 

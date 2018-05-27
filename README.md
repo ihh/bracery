@@ -233,7 +233,7 @@ The file [examples/travel.txt](examples/travel.txt) contains the `#hero# travele
 
 # Braceplates
 
-Braceplates (Bracery templates) are a lightweight scheme for sequencing a series of Bracery messages in a Markov chain,
+Braceplates (Bracery message templates) are a lightweight scheme for sequencing a series of Bracery messages in a Markov chain,
 allowing for limited contextual continuity between successive messages.
 
 The idea is that each template has a set of _past-tags_ and a set of _future-tags_.

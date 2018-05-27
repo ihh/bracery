@@ -16,7 +16,9 @@ var initJson = { abc: 'def',
 
 var binPath = 'bin/bracery'
 var port = 8001
-var clientDelay = 250  // number of milliseconds client will wait before attempting to connect, ugh
+
+var clientDelay = 250  // number of milliseconds client will wait before attempting to connect
+var serverTimeout = 4000 // number of milliseconds after that before test fails
 
 describe('client/server tests (' + binPath + ')', function() {
   // client/server test
@@ -49,7 +51,7 @@ function testServer (lhs, rhs) {
   it('should expand ' + lhs + ' to ' + rhs
      + ' by connecting to a local server',
      function (done) {
-       this.timeout (4000)  // be generous
+       this.timeout (clientDelay + serverTimeout)  // generous timeout for server calls
        var serverCmd = makeCmdLine (null, initJson, ['-S', port], null)
        var proc = spawnCmd (serverCmd)
        setTimeout (function() {

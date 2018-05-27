@@ -136,9 +136,13 @@ The formal grammar for Bracery is in [src/rhs.peg.js](src/rhs.peg.js) (specified
 
 Language features include
 
-- named nonterminals: Tracery-style `#symbol_name#`, or Bracery-style `$symbol_name` or `${symbol_name}`
+- named nonterminals:
+   - Tracery-style `#symbol_name#`
+   - Bracery-style `$symbol_name` or `${symbol_name}`
    - subtle difference: the Tracery style allows the symbol definition to be overridden by a local variable
-- alternations (anonymous nonterminals), which can be nested: `[option1|option 2|3rd opt|4th|more [options|nested options]...]`
+- alternations (anonymous nonterminals):
+   - `[option1|option 2|Option number three|Some other option...]`
+   - can be nested: `[option1|option 2|3rd opt|4th|more [options|nested options]...]`
 - variables:
    - Tracery-style `[variable_name:value]` to assign, `#variable_name#` to retrieve and evaluate (names are case-insensitive)
    - Bracery-style `^variable_name={value}` to assign, `^variable_name` or `^{variable_name}` to retrieve
@@ -237,8 +241,8 @@ Matches between tags determine the connectivity of the Markov chain.
 
 The past and future-tags are interpreted as follows:
 - For template B to be considered as a possible successor (i.e. reply) to a message generated from template A, at least one of A's future-tags must also be one of B's past-tags
-- If any of A's future-tags appear in B's past-tags with an exclamation point in front (e.g. A has future-tag `tag` and B has past-tag `!tag`), then B is disallowed as a successor to A
-- The special past-tag `root` is used for _root templates_ that can be used at the top of a thread (or the past-tags can be left empty for the same effect)
+- If any of A's future-tags appear in B's past-tags with an exclamation point in front (e.g. A has future-tag `tag` and B has past-tag `!tag`), then B is disallowed as a successor to A (these tags are referred to as B's _excluded-past-tags_)
+- The special past-tag `root` is used to denote _root templates_ that can be used at the top of a thread (or the past-tags can be left empty for the same effect)
 
 Each Bracery message template has the following fields:
 - the _past-tags_

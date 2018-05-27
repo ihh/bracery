@@ -200,7 +200,7 @@ function doTests (testRunner) {
   expectExpand ('^a={x}&pop{^a}^a', '')
 
   expectExpand ('^a={x}^a&push{^a}^a={y}^a&let^a={z}{^a!&pop{^a}^a}^a&pop{^a}^a', 'xyz!yx')
-  expectExpand ('^a...&let^a={x}{^a&push{^a}^a={y}^a&push{^a}^a={z}^a&pop{^a}^a}!^a&pop{^a}?^a', '...xyzy!?')
+  expectExpand ('^a...&let^a={x}{^a&push{^a}^a={y}^a&push{^a}^a={z}^a&pop{^a}^a}!^a&pop{^a}?^a', '...xyzy!?')  // tests that local lexical scope preserves the variable's private stack
 
   expectExpand ('^a={x}^a&push{^a}^a={y}^a&unshift{^a}^a={z}^a&pop{^a}^a&pop{^a}^a', 'xyzxy')
   expectExpand ('^a={x}^a&push{^a}^a={y}^a&unshift{^a}^a={z}^a&shift{^a}^a&shift{^a}^a', 'xyzyx')

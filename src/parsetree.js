@@ -1,5 +1,7 @@
 var RhsParser = require('./rhs')
 
+var StackTag = '.STACK'  // pseudo-variable used to store stacks
+
 // General helper functions
 function isArray (obj) { return Object.prototype.toString.call(obj) === '[object Array]' }
 
@@ -43,7 +45,6 @@ function parseRhs (rhsText) {
     console.warn ('parse error', e)
     result = [rhsText]
   }
-//  console.warn('parseRhs',JSON.stringify(result))
   return result
 }
 
@@ -87,6 +88,10 @@ function sampleParseTree (rhs, config) {
       result = node
     else
       switch (node.type) {
+      case 'root':
+        result = { type: 'root',
+                   rhs: pt.sampleParseTree (node.rhs, config) }
+        break
       case 'assign':
 	result = { type: 'assign',
                    varname: node.varname,
@@ -300,10 +305,20 @@ function makeRhsText (rhs, makeSymbolName) {
         break;
       case 'func':
 	var sugaredName = pt.makeSugaredName (tok, makeSymbolName, nextIsAlpha)
-	if (sugaredName && tok.funcname !== 'quote')
-	  result = sugaredName
-	else
+        switch (tok.funcname) {
+        case 'strip':
+          result = funcChar + tok.funcname + tok.args.map (function (arg) { return makeFuncArgText (pt, [arg], makeSymbolName) }).join('')
+          break
+        case 'quote':
           result = funcChar + tok.funcname + makeFuncArgText (pt, tok.args, makeSymbolName)
+          break
+        default:
+	  if (sugaredName)
+	    result = sugaredName
+          else
+            result = funcChar + tok.funcname + makeFuncArgText (pt, tok.args, makeSymbolName)
+          break
+        }
 	break
       case 'alt_sampled':
       case 'rep_sampled':
@@ -526,7 +541,12 @@ function makeExpansionPromise (config) {
                 expansion.vars = valExpansion.vars
                 expansion.vars[name] = valExpansion.text
                 expansion.nodes += valExpansion.nodes
-                if (node.local)
+                if (node.local) {
+                  var stack = expansion.vars[StackTag], oldVarStack
+                  if (stack && stack[name]) {
+                    oldVarStack = stack[name].slice(0)
+                    delete stack[name]
+                  }
                   return makeRhsExpansionPromiseForConfig.call (pt, extend ({}, config, { vars: expansion.vars }), resolve, node.local)
                   .then (function (localExpansion) {
                     expansion.text = localExpansion.text
@@ -536,9 +556,14 @@ function makeExpansionPromise (config) {
                       delete expansion.vars[name]
                     else
                       expansion.vars[name] = oldValue
+                    if (oldVarStack) {
+                      stack = expansion.vars[StackTag] = expansion.vars[StackTag] || {}
+                      stack[name] = oldVarStack
+                    } else if (expansion.vars[StackTag])
+                      delete expansion.vars[StackTag][name]
                     return expansionPromise
                   })
-                else
+                } else
                   return expansionPromise
               })
             break
@@ -562,6 +587,46 @@ function makeExpansionPromise (config) {
           case 'func':
             if (node.funcname === 'quote') {
               expansion.text = pt.makeRhsText (node.args, makeSymbolName)
+            } else if (node.funcname === 'push' || node.funcname === 'unshift') {
+              node.args.forEach (function (arg) {
+                if (arg.type === 'lookup') {
+                  var stack = (expansion.vars[StackTag] = expansion.vars[StackTag] || {})
+                  var varStack = (stack[arg.varname] = stack[arg.varname] || [])
+                  var pushVal = expansion.vars[arg.varname]
+                  if (node.funcname === 'push')
+                    varStack.push (pushVal)
+                  else
+                    varStack.unshift (pushVal)
+                }
+              })
+            } else if (node.funcname === 'pop' || node.funcname === 'shift') {
+              node.args.forEach (function (arg) {
+                if (arg.type === 'lookup') {
+                  var newVal = ''
+                  var stack = expansion.vars[StackTag]
+                  if (stack) {
+                    var varStack = stack[arg.varname]
+                    if (varStack) {
+                      newVal = node.funcname === 'pop' ? varStack.pop() : varStack.shift()
+                      if (!varStack.length) {
+                        delete stack[arg.varname]
+                        if (!Object.keys(stack).length)
+                          delete expansion.vars[StackTag]
+                      }
+                    }
+                  }
+                  expansion.vars[arg.varname] = newVal
+                }
+              })
+            } else if (node.funcname === 'strip') {
+              promise = makeRhsExpansionPromiseFor ([node.args[0]])
+                .then (function (stripArgExpansion) {
+                  return makeRhsExpansionPromiseFor ([node.args[1]])
+                    .then (function (sourceArgExpansion) {
+                      expansion.text = sourceArgExpansion.text.split (stripArgExpansion.text).join('')
+                      return expansionPromise
+                    })
+                })
 	    } else {
               promise = makeRhsExpansionPromiseFor (node.args)
                 .then (function (argExpansion) {

@@ -21,11 +21,22 @@ describe('validation', function() {
   validate ('&rep{$x}{03}', '&rep{$x}{3}')
   validate ('&rep{$x}{3,5}')
 
-  validate ('{$x}{8,5}', '\\{\\$x\\}\\{8,5\\}')
-  validate ('{$x}{5,8}', '&rep{$x}{5,8}')
-  validate ('{$x}{8,8}', '&rep{$x}{8}')
-  validate ('{$x}{8}', '&rep{$x}{8}')
-  validate ('$x{8}', '&rep{$x}{8}')
+  validate ('&strip^x^y')
+  validate ('&strip{^x}^y', '&strip^x^y')
+  validate ('&strip^x{^y}', '&strip^x^y')
+  validate ('&strip{^x}{^y}', '&strip^x^y')
+
+  validate ('&strip^x{abc}')
+  validate ('&strip{^x}{abc}', '&strip^x{abc}')
+
+  validate ('&strip{abc}^y')
+  validate ('&strip{abc}{^y}', '&strip{abc}^y')
+
+  validate ('&strip{$abc}{${abc}def}')
+
+  validate ('&push^a')
+  validate ('&push{^a^b^c}')
+  validate ('&push{  ^a  ^b   ^c  }', '&push{^a^b^c}')
 })
 
 function validate (lhs, norm, config) {

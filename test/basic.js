@@ -84,7 +84,7 @@ function doTests (testRunner) {
         assert.equal (text, rhs)
       done()
     }
-    it('should expand ' + (lhs || 'the empty string') + ' to ' + rhs
+    it('should expand ' + (lhs || 'the empty string') + ' to ' + (rhs || 'the empty string')
        + (config ? (' with ' + JSON.stringify(config)) : ''),
        testRunner (lhs, rhs, config, verify))
   }
@@ -184,8 +184,36 @@ function doTests (testRunner) {
 
   // local scope
   expectExpand ('^a={A}^b={B}^a^b&let^a={x}^b={y}{^a^b}^a^b', 'ABxyAB')
+  expectExpand ('^a={A}^b={B}^a^b&let ^a={x}  ^b={y}  {^a^b}^a^b', 'ABxyAB')
   expectExpand ('^a={a}^b={^{a}b^a}^ab=&quote{^a^b}#[a:3^b][b:5^a]ab#^a^b', '3aba53abaaaba')
+  
+  // variable persistence
+  var vars = {}
+  expectExpand ('^a={x}^a', 'x', {vars:vars})
+  expectExpand ('^a', '')
+  expectExpand ('^a', 'x', {vars:vars,a_equals_x:true})
 
+  // push & pop
+  expectExpand ('^a={x}^a&push{^a}^a={y}^a&pop{^a}^a', 'xyx')
+  expectExpand ('^a={x}^a&push{^a}^a={y}^a&push{^a}^a={z}^a&pop{^a}^a&pop{^a}^a', 'xyzyx')
+  expectExpand ('^a={x}^b={X}^a^b&push{^a^b}^a={y}^b={Y}^a^b&pop{^a^b}^a^b', 'xXyYxX')
+  expectExpand ('^a={x}&pop{^a}^a', '')
+
+  expectExpand ('^a={x}^a&push{^a}^a={y}^a&let^a={z}{^a!&pop{^a}^a}^a&pop{^a}^a', 'xyz!yx')
+  expectExpand ('^a...&let^a={x}{^a&push{^a}^a={y}^a&push{^a}^a={z}^a&pop{^a}^a}!^a&pop{^a}?^a', '...xyzy!?')
+
+  expectExpand ('^a={x}^a&push{^a}^a={y}^a&unshift{^a}^a={z}^a&pop{^a}^a&pop{^a}^a', 'xyzxy')
+  expectExpand ('^a={x}^a&push{^a}^a={y}^a&unshift{^a}^a={z}^a&shift{^a}^a&shift{^a}^a', 'xyzyx')
+
+  // strip
+  expectExpand ('&strip{hello}{hello world hello}', ' world ')
+  expectExpand ('&strip{$abc}{defcon}', 'con')
+  expectExpand ('${abc}', 'def')
+  expectExpand ('${abc}con', 'defcon')
+  expectExpand ('${abc}con', 'defcon')
+  expectExpand ('&strip{$abc}{${abc}con}', 'con')
+  expectExpand ('&strip{$abc}{${abc}con defcon}', 'con con')
+  
   // repetition
   expectExpand ('&rep{Test}{3}', 'TestTestTest')
   expectExpand ('&rep{Test}{3,5}', 'TestTestTest', {maxTries:maxTries})

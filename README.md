@@ -147,10 +147,12 @@ Language features include
    - `&plural{...}` (plural), `&a{...}` ("a" or "an")
    - `&cap{...}` (Capitalize), `&lc{...}` and `&uc{...}` (lower- & UPPER-case)
    - selected natural language-processing functions from [compromise](https://github.com/spencermountain/compromise) including (for nouns) `&singular` and `&topic`, and (for verbs) `&past`, `&present`, `&future`, `&infinitive`,  `&adjective`, `&negative`
+   - remove substrings: `&strip{odg}{hodgepodge}` evaluates to `hepe`, `&strip{gh}{lightweight}` evaluates to `litweit`, and so on
 - special functions:
    - conditionals: `&if{testExpr}then{trueExpr}else{falseExpr}` evaluates to `trueExpr` if `testExpr` contains any non-whitespace characters, and `falseExpr` otherwise. The `then` and `else` keywords are optional; you can write `&if{testExpr}{trueExpr}{falseExpr}`
    - dynamic evaluation: `&eval{expr}` parses `expr` as Bracery and dynamically expands it. Conversely, `&quote{expr}` returns `expr` as a text string, without doing any expansions. So `&eval{&quote{expr}}` is the same as `expr` (with a subtle side effect: there is a limit on the number of dynamic evaluations that an expression can use, to guard against infinite recursion or hammering the server)
    - local scoped variables: `&let^x={value1}^y={value2}{something involving x and y}` or the Tracery-style `#[x:value1][y:value2]symbol_name#` (what Tracery calls "actions"; other cool effects can be achieved with `&eval` and `&quote`, use sparingly)
+      - each variable also has a private stack (`&push^x`, `&pop^x`) which can also be used as a queue (`&shift^x`, `&unshift^x`). With these you can implement your own scoping mechanisms, allowing a little more flexibility than the strict lexical scope of `&let`
    - repetition:
       - `&rep{x}{3}` expands to `xxx`
       - `&rep{x}{3,5}` expands to `xxx`, `xxxx`, or `xxxxx`

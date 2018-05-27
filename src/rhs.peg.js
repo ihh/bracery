@@ -10,6 +10,8 @@ Node
   / Symbol
   / Conditional
   / LocalAssignment
+  / PushOrPop
+  / Strip
   / Function
   / VarAssignment
   / VarLookup
@@ -58,8 +60,19 @@ Conditional
   = "&if" testArg:FunctionArg ("then" / "") trueArg:FunctionArg ("else" / "")  falseArg:FunctionArg { return makeConditional (testArg, trueArg, falseArg) }
 
 LocalAssignment
-  = "&let" assigns:VarAssignmentList scope:FunctionArg { return makeLocalAssignChain (assigns, scope) }
-  / "#" assigns:VarAssignmentList sym:Identifier mods:TraceryModifiers "#" { return makeLocalAssignChain (assigns, [makeTraceryExpr (sym, mods)]) }
+  = "&let" _ assigns:VarAssignmentList _ scope:FunctionArg { return makeLocalAssignChain (assigns, scope) }
+  / "#" _ assigns:VarAssignmentList _ sym:Identifier mods:TraceryModifiers "#" { return makeLocalAssignChain (assigns, [makeTraceryExpr (sym, mods)]) }
+
+PushOrPop
+  = "&" func:("push" / "pop" / "shift" / "unshift") arg:VarLookup { return makeFunction (func, [arg]) }
+  / "&" func:("push" / "pop" / "shift" / "unshift") "{" _ args:VarLookupList _ "}" { return makeFunction (func, args) }
+
+VarLookupList
+  = head:VarLookup _ tail:VarLookupList { return [head].concat(tail) }
+  / head:VarLookup { return [head] }
+
+Strip
+  = "&strip" strip:FunctionArg source:FunctionArg { return makeFunction ('strip', [wrapNodes (strip), wrapNodes (source)]) }
 
 Function
   = "&" func:FunctionName args:FunctionArg { return makeFunction (func, args) }
@@ -72,16 +85,19 @@ FunctionArg
   / Unit
 
 Unit
-  = "{" args:NodeList "}" { return args }
-  / assign:VarAssignment { return [assign] }
+  = assign:VarAssignment { return [assign] }
   / lookup:VarLookup { return [lookup] }
   / sym:Symbol { return [sym] }
   / alt:Alternation { return [alt] }
   / func:Function { return [func] }
+  / args:DelimitedNodeList { return args }
+
+DelimitedNodeList
+  = "{" args:NodeList "}" { return args }
 
 Repetition
-  = ("&rep" / "") unit:Unit "{" min:Number "," max:Number "}" { return validRange (min, max) ? makeRep (unit, min, max) : text() }
-  / ("&rep" / "") unit:Unit "{" min:Number "}" { return makeRep (unit, min, min) }
+  = "&rep" unit:Unit "{" min:Number "," max:Number "}" { return validRange (min, max) ? makeRep (unit, min, max) : text() }
+  / "&rep" unit:Unit "{" min:Number "}" { return makeRep (unit, min, min) }
 
 Number
   = num:[0-9]+ { return parseInt (num.join('')) }
@@ -96,7 +112,7 @@ VarAssignment
   / "[" varname:Identifier "=>" opts:AltList "]" { return makeAssign (varname, [makeFunction ('quote', opts.length === 1 ? opts[0] : [makeAlternation (opts)])]) }
 
 VarAssignmentList
-  = head:VarAssignment tail:VarAssignmentList { return [head].concat(tail) }
+  = head:VarAssignment _ tail:VarAssignmentList { return [head].concat(tail) }
   / head:VarAssignment { return [head] }
 
 Alternation

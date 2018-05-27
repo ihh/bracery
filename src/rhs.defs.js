@@ -7,6 +7,8 @@ function makeAlternation (opts) { return { type: 'alt', opts: opts } }
 function makeFunction (name, args) { return { type: 'func', funcname: name, args: args } }
 function makeConditional (testArg, trueArg, falseArg) { return { type: 'cond', test: testArg, t: trueArg, f: falseArg } }
 
+function wrapNodes (args) { return args.length === 1 ? args[0] : { type: 'root', rhs: args } }
+
 function makeLocalAssignChain (assigns, scope) {
   var list = assigns.slice(0).reverse().reduce (function (chain, assign) {
     return [makeLocalAssign (assign.varname, assign.value, chain)]

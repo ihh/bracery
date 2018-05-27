@@ -123,11 +123,11 @@ Bracery.prototype._expandSymbol = function (config) {
   if (rules) {
     if (typeof(rules) === 'function') {
       // call dynamically bound function
-      rhs = rules (extend ({ rng: this.rng }, config))
+      rhs = rules (extend ({ random: this.rng }, config))
       // if result is a string, forgivingly wrap it as a single-element array
       if (typeof(rhs) === 'string')
         rhs = [rhs]
-      else if (typeof(rhs.then) === 'function')
+      else if (rhs && typeof(rhs.then) === 'function')
         rhs = rhs.then (function (result) {
           return typeof(result) === 'string' ? [result] : result
         })
@@ -169,13 +169,13 @@ Bracery.prototype.expand = function (braceryText, config) {
   braceryText = braceryText || ('$' + this.getDefaultSymbol())
   if (typeof(braceryText) !== 'string')
     throw new Error ('the text to be expanded must be a string')
-  return this._expandRhs (extend ({}, config, { rhsText: braceryText }))
+  return this._expandRhs (extend ({ vars: {} }, config, { rhsText: braceryText }))
 }
 
 Bracery.prototype.expandSymbol = function (symbolName, config) {
   symbolName = symbolName || this.getDefaultSymbol()
   symbolName = validateSymbolName (symbolName)
-  return this._expandRhs (extend ({}, config, { rhs: [{ name: symbolName }] }))
+  return this._expandRhs (extend ({ vars: {} }, config, { rhs: [{ name: symbolName }] }))
 }
 
 Bracery.prototype.parse = function (text) {

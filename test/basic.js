@@ -6,7 +6,7 @@ var extend = bracery.ParseTree.extend
 var initJson = { abc: 'def',
                  hello: '[hello|hi]',
                  world: ['world', 'planet'],
-                 dynamo: function (config) { return [config.rng() < .5 ? 'dynamik' : 'DYNAMIC'] },
+                 dynamo: function (config) { return [config.random() < .5 ? 'dynamik' : 'DYNAMIC'] },
                  test1: 'testing',
                  test2: '$TEST1',
                  test3: 'x$test3',

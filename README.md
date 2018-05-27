@@ -107,20 +107,19 @@ but are also quite powerful in their own right.
 
 Bracery has a number of extensions from Tracery syntax, and also a mapping for many Tracery expressions into an alternate form that, often, involves the use of curly braces.
 
+### Distinction between symbols and variables
+
 As well as the flanking hash-character notation that Tracery uses for symbol expansions from the grammar, `#symbol#`,
 Bracery allows the dollar character prefix, `$symbol`.
 The Bracery variant carries the additional, specific nuance that you want to use the original symbol definitions file (or other authority) to expand the symbol,
 as opposed to any subsequently defined variables.
 
-### Distinction between symbols and variables
-
-Thus,
-if `b` is the Bracery object with the example grammar defined in the NodeJS section above,
+Thus, if `b` is the Bracery object with the example grammar defined in the [NodeJS](#from-nodejs) section above,
 then `b.expand('[name:PERRY] #name# ').text` will always give the result `  PERRY  `,
 but `b.expand('[name:PERRY] $name ').text` will give `  Arjun  `, or `  Yuuma  `, or `  Darcy  ` and so on,
 according to the example grammar.
 
-Another difference is that, if you want the variable value or nothing, you can use the caret character prefix, `^name`.
+If you just want the variable value, you can use the caret character prefix, `^name`, which will evaluate to the empty string if the variable has not been defined.
 So, `b.expand('[name:PERRY] ^name ').text`. will always be `  PERRY  `, again,
 but `b.expand('^name').text` will be the empty string.
 
@@ -142,10 +141,10 @@ which should yield from three to five `hello`'s, with a space after each.
 
 See [tests](test/) for more examples using the JavaScript API
 
-## Networking rationale
+## Rationale
 
 Bracery works just fine as a synchronous library, running from a local symbol definitions file, like Tracery (this is the default when running from the command-line, or using the node API).
-However, Bracery was also designed to work well for asynchronous applications where the Tracery client is decoupled from the symbol definition store.
+However, Bracery was specifically designed to work well for asynchronous applications where the Tracery client is decoupled from the symbol definition store.
 
 In asynchronous mode, the Tracery definitions file can live on a server somewhere remote from the client
 (i.e. the place where procedural text generation is happening, such as the user's web browser).

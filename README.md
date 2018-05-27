@@ -43,30 +43,6 @@ console.log (b.expand('#origin# And then they met #name#.'))
 ~~~~
 and so on.
 
-Bracery also allows the dollar character prefix instead of flanking hash symbols,
-specifically to mean that you want to use the original symbol definitions file (or other authority).
-Thus, `b.expand('[name:PERRY] #name# ').text` will always be `  PERRY  `,
-but `b.expand('[name:PERRY] $name ').text` will be `  Arjun  `, `  Yuuma  `, `  Darcy  ` and so on.
-And if you want the variable value or nothing, then use the caret, `^name`.
-So, `b.expand('[name:PERRY] ^name ').text`. will always be `  PERRY  `, again,
-but `b.expand('^name').text` will be the empty string.
-
-Bracery also allows other ways of generating repetitive, regex-like grammars, such as alternations
-
-~~~~
-console.log (b.expand ('[hello|hallo|hullo]').text)
-~~~~
-
-which should give `hello`, `hallo` or `hullo`, and repetitions
-
-~~~~
-console.log (b.expand ('{hello }{3,5}').text)
-~~~~
-
-which should yield from three to five `hello`'s, with a space after each.
-
-See [tests](test/) for more examples using the JavaScript API
-
 ## From the command line
 
 Trying various command line settings with the same symbol defintions file, [examples/travel.json](examples/travel.json) (`#hero# traveled with her pet...`):
@@ -106,6 +82,45 @@ See [examples](examples/) for more examples from the Tracery [online tutorial](h
 ## In the browser
 
 [Basic demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/index.html) (source in [web/](web/))
+
+## Syntax extensions
+
+Bracery has a number of extensions from Tracery syntax, and also a mapping for many Tracery expressions into an alternate form that, often, involves the use of curly braces.
+
+As well as the flanking hash-character notation that Tracery uses for symbol expansions from the grammar, `#symbol#`,
+Bracery allows the dollar character prefix, `$symbol`.
+The Bracery variant carries the additional, specific nuance that you want to use the original symbol definitions file (or other authority) to expand the symbol,
+as opposed to any subsequently defined variables.
+
+### Distinction between symbols and variables
+
+Thus,
+if `b` is the Bracery object with the example grammar defined in the NodeJS section above,
+then `b.expand('[name:PERRY] #name# ').text` will always give the result `  PERRY  `,
+but `b.expand('[name:PERRY] $name ').text` will give `  Arjun  `, or `  Yuuma  `, or `  Darcy  ` and so on,
+according to the example grammar.
+
+Another difference is that, if you want the variable value or nothing, you can use the caret character prefix, `^name`.
+So, `b.expand('[name:PERRY] ^name ').text`. will always be `  PERRY  `, again,
+but `b.expand('^name').text` will be the empty string.
+
+### Regex-like shorthands for simple procedural grammars
+
+Bracery also allows other ways of generating repetitive, regex-like grammars, such as alternations
+
+~~~~
+console.log (b.expand ('[hello|hallo|hullo]').text)
+~~~~
+
+which should give `hello`, `hallo` or `hullo`, and repetitions
+
+~~~~
+console.log (b.expand ('{hello }{3,5}').text)
+~~~~
+
+which should yield from three to five `hello`'s, with a space after each.
+
+See [tests](test/) for more examples using the JavaScript API
 
 # Comparison with Tracery
 

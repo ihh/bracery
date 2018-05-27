@@ -34,7 +34,7 @@ You should see an output like
 Lina traveled with her pet owl.  Lina was never wistful, for the owl was always too courteous.
 ~~~~
 
-The `expand()` method tries to guess the starting nonterminal, but you can override this, or add other stuff, e.g.
+The `expand()` method tries to guess the starting nonterminal, but you can override this, or add other stuff like variable bindings, e.g.
 
 ~~~~
 console.log (b.expand('#origin#',{vars:{name:'Berenice'}}))

@@ -49,6 +49,7 @@ function testServer (lhs, rhs) {
   it('should expand ' + lhs + ' to ' + rhs
      + ' by connecting to a local server',
      function (done) {
+       this.timeout (4000)  // be generous
        var serverCmd = makeCmdLine (null, initJson, ['-S', port], null)
        var proc = spawnCmd (serverCmd)
        setTimeout (function() {

@@ -147,8 +147,12 @@ Language features include
    - `[option1|option 2|Option number three|Some other option...]`
    - can be nested: `[option1|option 2|3rd opt|4th|more [options|nested options]...]`
 - variables:
-   - Tracery-style `[variable_name:value]` to assign, `#variable_name#` to retrieve and evaluate (names are case-insensitive)
-   - Bracery-style `^variable_name={value}` to assign, `^variable_name` or `^{variable_name}` to retrieve
+   - Tracery-style
+      - `[variable_name:value]` to assign
+      - `#variable_name#` to retrieve and expand (names are case-insensitive)
+   - Bracery-style
+      - `^variable_name={value}` to assign
+      - `^variable_name` or `^{variable_name}` to retrieve (without expanding)
    - the Tracery-style syntax `#variable_name#` evaluates the variable dynamically, if defined
 - built-in text-processing functions:
    - `&plural{...}` (plural), `&a{...}` ("a" or "an")
@@ -156,15 +160,20 @@ Language features include
    - selected natural language-processing functions from [compromise](https://github.com/spencermountain/compromise) including
       - (for nouns) `&singular` and `&topic`
       - (for verbs) `&past`, `&present`, `&future`, `&infinitive`,  `&adjective`, `&negative`
-   - remove substrings: `&strip{ac}{abacus}` evaluates to `abus`, `&strip{odg}{hodgepodge}` evaluates to `hepe`, `&strip{gh}{lightweight}` evaluates to `litweit`, and so on
+   - remove substrings: `&strip{ac}{abacus}` evaluates to `abus`, `&strip{gh}{lightweight}` to `litweit`, etc.
 - special functions:
-   - conditionals: `&if{testExpr}then{trueExpr}else{falseExpr}` evaluates to `trueExpr` if `testExpr` contains any non-whitespace characters, and `falseExpr` otherwise.
+   - conditionals:
+      - `&if{testExpr}then{trueExpr}else{falseExpr}`
+      - Evaluates to `trueExpr` if `testExpr` contains any non-whitespace characters, and `falseExpr` otherwise.
       - The `then` and `else` keywords are optional; you can write `&if{testExpr}{trueExpr}{falseExpr}`
    - dynamic evaluation
       - `&eval{expr}` parses `expr` as Bracery and dynamically expands it
       - conversely, `&quote{expr}` returns `expr` as a text string, without doing any expansions
-      - `&eval{&quote{expr}}` is the same as `expr` (with a subtle side effect: there is a configurable limit on the number of dynamic evaluations that an expression can use, to guard against infinite recursion or hammering the server)
-   - local scoped variables: `&let^x={value1}^y={value2}{something involving x and y}` or the Tracery-style `#[x:value1][y:value2]symbol_name#` (what Tracery calls "actions")
+      - `&eval{&quote{expr}}` is the same as `expr`, although...
+      - there is a configurable limit on the number of dynamic evaluations that an expression can use, to guard against infinite recursion or hammering the server
+   - local scoped variables:
+      - Tracery-style `#[x:value1][y:value2]symbol_name#` (what Tracery calls "actions")
+      - Bracery-style `&let^x={value1}^y={value2}{something involving x and y}`
       - each local scope of each variable also has its own private stack. This allows additional dynamic scoping in [Braceplate](#braceplates) sequences. The stack (`&push^x`, `&pop^x` to push/pop variable `x`) can also be used as a queue (`&shift^x`, `&unshift^x`). You know, it's kind of a hack. Just forget you ever read this bullet, it's dangerous knowledge that could hurt those close to you
    - repetition:
       - `&rep{x}{3}` expands to `xxx`
@@ -173,7 +182,7 @@ Language features include
 - everything can occur asynchronously, so symbols can be resolved and expanded from a remote store
    - but if you have a synchronously resolvable store (i.e. a local Tracery object), everything can work synchronously too
 - syntactic sugar/hacks/apologies
-   - the Tracery-style expression `#name#` is actually shorthand for `&if{^name}then{&eval{^name}}else{$name}`. Tracery overloads the same namespace for symbol and variable names, and uses the variable if it's defined; this reproduces that behavior (almost; it won't be quite the same if `^name` is set to whitespace or the empty string)
+   - the Tracery-style expression `#name#` is actually shorthand for `&if{^name}then{&eval{^name}}else{$name}`. Tracery overloads the same namespace for symbol and variable names, and uses the variable if it's defined; this reproduces that behavior (almost)
    - braces around single-argument functions or symbols can be omitted, e.g. `^currency=&cap&plural$name` means the same as `^currency={&cap{&plural{$name}}}`
    - variable and symbol names are case-insensitive
       - the case used when a variable is referenced can be a shorthand for capitalization: you can use `$Nonterminal_name` as a shorthand for `&cap{$nonterminal_name}`, and `^Variable_name` for `&cap{^variable_name}`
@@ -181,6 +190,8 @@ Language features include
    - some Tracery modifier syntax works, e.g. `#symbol_name.capitalize#` instead of `&cap{#symbol_name#}`
    - the syntax `[name=>value1|value2|value3|...]` is shorthand for `^name={&quote{[value1|value2|value3|...]}` and ensures that every occurrence of `#name#` (or `&eval{^name}`) will be expanded from an independently-sampled one of the values
       - note that a similar effect could be achieved with a Tracery symbol file of the form `{"name":["value1","value2","value3",...]}`; this would also ensure that every occurrence of `$name` would be expanded
+
+Most/all of these features are exercised in the file [test/basic.js](test/basic.js).
 
 ## Plain text symbol definitions
 

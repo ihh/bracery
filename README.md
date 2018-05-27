@@ -287,6 +287,8 @@ For an example, see [examples/markov/good_news_bad_news.txt](examples/markov/goo
 
 ## Using templates
 
+### Simulation
+
 You can test template sequencing using bracery's `-m` option
 (short for `--markov`, because it samples a trajectory through the Markov chain).
 Make sure to also load any required symbol definitions.
@@ -302,6 +304,8 @@ use bracery with the `-q` option (short for `--quiz`) instead of `-m`:
 ~~~~
 bracery -q examples/markov/good_news_bad_news.txt
 ~~~~
+
+### Visualization
 
 You can also use the `templates2dot.js` script to get a visualization of the Markov chain as a GraphViz dot file
 (the `-o` option will create and open the PDF automatically, but only on a Mac with GraphViz installed)

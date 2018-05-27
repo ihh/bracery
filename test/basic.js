@@ -11,70 +11,13 @@ var initJson = { abc: 'def',
                  test4: '&quote{$TEST1}' }
 
 var nTestSymbols = Object.keys(initJson).length
-
 var b
-describe('initialization', function() {
-  it('should initialize', function (done) {
-    b = new bracery.Bracery (initJson)
-    done()
-  })
-  it('should have ' + nTestSymbols + ' rules', function (done) {
-    assert.equal (Object.keys(b.rules).length, nTestSymbols)
-    done()
-  })
-})
 
-describe('synchronous tests', function() {
-  doTests (function (lhs, rhs, config, verify) {
-    var maxTries = (config && config.maxTries) || 1
-    return function (done) {
-      var text
-      for (var n = 0; text !== rhs && n < maxTries; ++n)
-        text = b.expand (lhs, config).text
-      verify (text, done)
-    }
-  })
-})
-
-describe('asynchronous tests', function() {
-  doTests (function (lhs, rhs, config, verify) {
-    var maxTries = (config && config.maxTries) || 1
-    return function (done) {
-      function tryExpand (n) {
-        n = n || 0
-        b.expand (lhs,
-                  extend
-                  ({},
-                   config,
-                   { callback: function (expansion) {
-                     var text = expansion.text
-                     if (text !== rhs && n < maxTries)
-                       tryExpand (n + 1)
-                     else
-                       verify (text, done)
-                   } }))
-      }
-      tryExpand()
-    }
-  })
-})
-
-describe('double expansion tests', function() {
-  doTests (function (lhs, rhs, config, verify) {
-    var maxTries = (config && config.maxTries) || 1
-    return function (done) {
-      var expand
-      for (var n = 0; !(expand && expand.text === rhs) && n < maxTries; ++n)
-        expand = b.expand (lhs, config)
-      var text = bracery.ParseTree.makeRhsExpansionText (extend ({ rhs: expand.tree },
-                                                                 config))
-      verify (text, done)
-    }
-  })
-})
-
+// tests
 function doTests (testRunner) {
   var maxTries = 100
+  // wrapper for individual 'for a given input (lhs), expect the following output (rhs)'-style tests
+  // (lhs/rhs = left/right hand side)
   function expectExpand (lhs, rhs, config) {
     var fail = config && config.fail
     function verify (text, done) {
@@ -89,6 +32,7 @@ function doTests (testRunner) {
        testRunner (lhs, rhs, config, verify))
   }
 
+  // the tests themselves
   expectExpand ('$hello $world', 'hello world', {maxTries:maxTries})
   expectExpand ('$hello $world', 'hello planet', {maxTries:maxTries})
   expectExpand ('$hello $world', 'hi world', {maxTries:maxTries})
@@ -238,3 +182,63 @@ function doTests (testRunner) {
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'hello world', {maxTries:maxTries,fail:true})
 }
 
+// test wrappers
+describe('initialization', function() {
+  it('should initialize', function (done) {
+    b = new bracery.Bracery (initJson)
+    done()
+  })
+  it('should have ' + nTestSymbols + ' rules', function (done) {
+    assert.equal (Object.keys(b.rules).length, nTestSymbols)
+    done()
+  })
+})
+
+describe('synchronous tests', function() {
+  doTests (function (lhs, rhs, config, verify) {
+    var maxTries = (config && config.maxTries) || 1
+    return function (done) {
+      var text
+      for (var n = 0; text !== rhs && n < maxTries; ++n)
+        text = b.expand (lhs, config).text
+      verify (text, done)
+    }
+  })
+})
+
+describe('asynchronous tests', function() {
+  doTests (function (lhs, rhs, config, verify) {
+    var maxTries = (config && config.maxTries) || 1
+    return function (done) {
+      function tryExpand (n) {
+        n = n || 0
+        b.expand (lhs,
+                  extend
+                  ({},
+                   config,
+                   { callback: function (expansion) {
+                     var text = expansion.text
+                     if (text !== rhs && n < maxTries)
+                       tryExpand (n + 1)
+                     else
+                       verify (text, done)
+                   } }))
+      }
+      tryExpand()
+    }
+  })
+})
+
+describe('double expansion tests', function() {
+  doTests (function (lhs, rhs, config, verify) {
+    var maxTries = (config && config.maxTries) || 1
+    return function (done) {
+      var expand
+      for (var n = 0; !(expand && expand.text === rhs) && n < maxTries; ++n)
+        expand = b.expand (lhs, config)
+      var text = bracery.ParseTree.makeRhsExpansionText (extend ({ rhs: expand.tree },
+                                                                 config))
+      verify (text, done)
+    }
+  })
+})

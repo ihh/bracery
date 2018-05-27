@@ -1,7 +1,8 @@
 var assert = require('assert')
 var bracery = require('../index')
 var extend = bracery.ParseTree.extend
-  
+
+// initial grammar
 var initJson = { abc: 'def',
                  hello: '[hello|hi]',
                  world: ['world', 'planet'],
@@ -10,27 +11,14 @@ var initJson = { abc: 'def',
                  test3: 'x$test3',
                  test4: '&quote{$TEST1}' }
 
-var nTestSymbols = Object.keys(initJson).length
-var b
+var nTestSymbols = Object.keys(initJson).length  // number of symbols in initial grammar
+
+var b  // the Bracery object
 
 // tests
 function doTests (testRunner) {
+  // test parameters
   var maxTries = 100
-  // wrapper for individual 'for a given input (lhs), expect the following output (rhs)'-style tests
-  // (lhs/rhs = left/right hand side)
-  function expectExpand (lhs, rhs, config) {
-    var fail = config && config.fail
-    function verify (text, done) {
-      if (fail)
-        assert.notEqual (text, rhs)
-      else
-        assert.equal (text, rhs)
-      done()
-    }
-    it('should expand ' + (lhs || 'the empty string') + ' to ' + (rhs || 'the empty string')
-       + (config ? (' with ' + JSON.stringify(config)) : ''),
-       testRunner (lhs, rhs, config, verify))
-  }
 
   // the tests themselves
   expectExpand ('$hello $world', 'hello world', {maxTries:maxTries})
@@ -180,9 +168,25 @@ function doTests (testRunner) {
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'yo human', {maxTries:maxTries})
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'oy human', {maxTries:maxTries})
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'hello world', {maxTries:maxTries,fail:true})
+
+  // wrapper for individual 'for a given input (lhs), expect the following output (rhs)'-style tests
+  // (lhs/rhs = left/right hand side)
+  function expectExpand (lhs, rhs, config) {
+    var fail = config && config.fail
+    function verify (text, done) {
+      if (fail)
+        assert.notEqual (text, rhs)
+      else
+        assert.equal (text, rhs)
+      done()
+    }
+    it('should expand ' + (lhs || 'the empty string') + ' to ' + (rhs || 'the empty string')
+       + (config ? (' with ' + JSON.stringify(config)) : ''),
+       testRunner (lhs, rhs, config, verify))
+  }
 }
 
-// test wrappers
+// initialization test
 describe('initialization', function() {
   it('should initialize', function (done) {
     b = new bracery.Bracery (initJson)
@@ -194,6 +198,7 @@ describe('initialization', function() {
   })
 })
 
+// wrappers for different groups of tests
 describe('synchronous tests', function() {
   doTests (function (lhs, rhs, config, verify) {
     var maxTries = (config && config.maxTries) || 1

@@ -8,6 +8,8 @@ UGLIFYJS = $(NODE_BIN)/uglifyjs
 
 all: $(ALL)
 
+postinstall: all
+
 clean:
 	rm $(ALL)
 
@@ -22,3 +24,4 @@ web/bracery.js: src/shim.js src/bracery.js src/parsetree.js src/rhs.js
 
 web/bracery.min.js: web/bracery.js
 	$(UGLIFYJS) $< >$@
+

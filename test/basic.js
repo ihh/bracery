@@ -6,6 +6,7 @@ var extend = bracery.ParseTree.extend
 var initJson = { abc: 'def',
                  hello: '[hello|hi]',
                  world: ['world', 'planet'],
+                 dynamo: function (config) { return [config.rng() < .5 ? 'dynamik' : 'DYNAMIC'] },
                  test1: 'testing',
                  test2: '$TEST1',
                  test3: 'x$test3',
@@ -169,6 +170,10 @@ function doTests (testRunner) {
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'oy human', {maxTries:maxTries})
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'hello world', {maxTries:maxTries,fail:true})
 
+  // dynamic function binding
+  expectExpand ('$dynamo', 'dynamik', {maxTries:maxTries})
+  expectExpand ('$dynamo', 'DYNAMIC', {maxTries:maxTries})
+  
   // wrapper for individual 'for a given input (lhs), expect the following output (rhs)'-style tests
   // (lhs/rhs = left/right hand side)
   function expectExpand (lhs, rhs, config) {

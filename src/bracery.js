@@ -68,12 +68,20 @@ Bracery.prototype.addRules = function (name, rules) {
     rules = Array.prototype.splice.call (arguments, 1)
   // check types
   name = validateSymbolName (name)
-  if (!ParseTree.isArray(rules))
-    throw new Error ('rules must be an array')
-  if (rules.filter (function (rule) { return typeof(rule) !== 'string' }).length)
-    throw new Error ('rules array must contain strings')
-  // execute
-  this.rules[name] = (this.rules[name] || []).concat (rules.map (ParseTree.parseRhs))
+  var oldRules = this.rules[name]
+  if (typeof(rules) === 'function') {
+    if (oldRules)
+      throw new Error ('symbols with bound functions cannot have any other rules')
+    this.rules[name] = rules
+  } else {
+    if (oldRules && oldRules.filter (function (oldRule) { return typeof(oldRule) === 'function' }).length)
+      throw new Error ('symbols with bound functions cannot have any other rules')
+    if (!ParseTree.isArray(rules))
+      throw new Error ('rules must be an array')
+    if (rules.filter (function (rule) { return typeof(rule) !== 'string' }).length)
+      throw new Error ('rules array must contain strings')
+    this.rules[name] = (oldRules || []).concat (rules.map (ParseTree.parseRhs))
+  }
   var result = {}
   result[name] = this.rules[name]
   return result
@@ -100,16 +108,24 @@ Bracery.prototype.deleteRules = function (name) {
   return result
 }
 
+Bracery.prototype.setRules = function (name, rules) {
+  this.rules[name] = rules
+}
+
 Bracery.prototype.addRule = Bracery.prototype.addRules
 Bracery.prototype.deleteRule = Bracery.prototype.deleteRules
+Bracery.prototype.setRule = Bracery.prototype.setRules
 
 Bracery.prototype._expandSymbol = function (config) {
   var symbolName = config.node.name.toLowerCase()
   var rhs
   var rules = this.rules[symbolName]
-  if (rules)
-    rhs = ParseTree.sampleParseTree (ParseTree.randomElement (rules, this.rng), config)
-  else
+  if (rules) {
+    if (typeof(rules) === 'function')
+      rhs = rules (extend ({ rng: this.rng }, config))
+    else
+      rhs = ParseTree.sampleParseTree (ParseTree.randomElement (rules, this.rng), config)
+  } else
     rhs = []
   return rhs
 }

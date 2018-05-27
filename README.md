@@ -12,36 +12,9 @@ with syntax influenced by [regular expressions](https://en.wikipedia.org/wiki/Re
 
 # Usage
 
-## From NodeJS
+## In the browser
 
-Basic Tracery (an example from @galaxykate's [online tutorial](http://www.crystalcodepalace.com/traceryTut.html))
-
-~~~~
-var bracery = require('bracery')
-
-var b = new bracery.Bracery
-({"name": ["Arjun","Yuuma","Darcy","Mia","Chiaki","Izzi","Azra","Lina"],
-  "animal": ["unicorn","raven","sparrow","scorpion","coyote","eagle","owl","lizard","zebra","duck","kitten"],
-  "mood": ["vexed","indignant","impassioned","wistful","astute","courteous"],
-  "story": ["#hero# traveled with her pet #heroPet#.  #hero# was never #mood#, for the #heroPet# was always too #mood#."],
-  "origin": ["#[hero:#name#][heroPet:#animal#]story#"]})
-
-console.log (b.expand().text)
-~~~~
-
-You should see an output like
-
-~~~~
-Lina traveled with her pet owl.  Lina was never wistful, for the owl was always too courteous.
-~~~~
-
-The `expand()` method tries to guess the starting nonterminal, but you can override this, or add other stuff like variable bindings, e.g.
-
-~~~~
-console.log (b.expand('#origin#',{vars:{name:'Berenice'}}))
-console.log (b.expand('#origin# And then they met #name#.'))
-~~~~
-and so on.
+[Basic demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/index.html) (source in [web/](web/))
 
 ## From the command line
 
@@ -78,10 +51,36 @@ bracery --help
 
 See [examples](examples/) for more examples from the Tracery [online tutorial](http://www.crystalcodepalace.com/traceryTut.html)
 
+## From NodeJS
 
-## In the browser
+Basic Tracery (an example from @galaxykate's [online tutorial](http://www.crystalcodepalace.com/traceryTut.html))
 
-[Basic demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/index.html) (source in [web/](web/))
+~~~~
+var bracery = require('bracery')
+
+var b = new bracery.Bracery
+({"name": ["Arjun","Yuuma","Darcy","Mia","Chiaki","Izzi","Azra","Lina"],
+  "animal": ["unicorn","raven","sparrow","scorpion","coyote","eagle","owl","lizard","zebra","duck","kitten"],
+  "mood": ["vexed","indignant","impassioned","wistful","astute","courteous"],
+  "story": ["#hero# traveled with her pet #heroPet#.  #hero# was never #mood#, for the #heroPet# was always too #mood#."],
+  "origin": ["#[hero:#name#][heroPet:#animal#]story#"]})
+
+console.log (b.expand().text)
+~~~~
+
+You should see an output like
+
+~~~~
+Lina traveled with her pet owl.  Lina was never wistful, for the owl was always too courteous.
+~~~~
+
+The `expand()` method tries to guess the starting nonterminal, but you can override this, or add other stuff like variable bindings, e.g.
+
+~~~~
+console.log (b.expand('#origin#',{vars:{name:'Berenice'}}))
+console.log (b.expand('#origin# And then they met #name#.'))
+~~~~
+and so on.
 
 ## Syntax extensions
 

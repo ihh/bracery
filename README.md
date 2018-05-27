@@ -16,9 +16,9 @@ with syntax influenced by [regular expressions](https://en.wikipedia.org/wiki/Re
 
 [Basic demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/index.html) (source in [web/](web/))
 
-The symbol definitions (`#hero# traveled with her pet...`)
-are from @galaxykate's [online tutorial](http://www.crystalcodepalace.com/traceryTut.html) to Tracery.
-They are duplicated in the file [examples/travel.json](examples/travel.json) in the Bracery repository.
+The symbol definitions in this example are from @galaxykate's [online tutorial](http://www.crystalcodepalace.com/traceryTut.html) to Tracery.
+They are duplicated in the file [examples/travel.json](examples/travel.json) in the Bracery repository,
+and can also be found under [NodeJS](#nodejs) in this file.
 
 ## From the command line
 

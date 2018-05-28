@@ -6,7 +6,7 @@
 
 Bracery is a small procedural text generation language (and library).
 While not quite [Tracery](http://tracery.io/) (by [@galaxykate](https://github.com/galaxykate)),
-Bracery is close; it could be said to be an (unofficial!) [dialect](https://en.wikipedia.org/wiki/Programming_language#Dialects,_flavors_and_implementations) or derivative of Tracery
+Bracery is close; it could be said to be an (unofficial) [dialect](https://en.wikipedia.org/wiki/Programming_language#Dialects,_flavors_and_implementations) or derivative of Tracery
 with syntax influenced by [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) and 
 [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)).
 
@@ -170,7 +170,7 @@ console.log (b.expand ('{hello }{3,5}').text)
 
 which should yield from three to five `hello`'s, with a space after each.
 
-See [tests](test/) for more examples using the JavaScript API
+See [tests](test/) for more examples using the JavaScript API.
 
 ## Rationale
 

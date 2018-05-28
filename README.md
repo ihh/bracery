@@ -89,6 +89,8 @@ console.log (b.expand('#origin# And then they met #name#.'))
 ~~~~
 and so on.
 
+### Dynamic bindings
+
 When using the node API, symbols can be bound to JavaScript functions that return strings:
 
 ~~~~

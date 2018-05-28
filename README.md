@@ -173,7 +173,7 @@ See [tests](test/) for more examples using the JavaScript API
 ## Rationale
 
 Bracery works just fine as a synchronous library, running from a local symbol definitions file, like Tracery (this is the default when running from the command-line, or using the node API).
-However, Bracery was specifically designed to work well for asynchronous applications where the Tracery client is decoupled from the symbol definition store.
+However, Bracery was specifically designed to work well for asynchronous applications where the client is decoupled from the symbol definition store.
 
 In asynchronous mode, the Tracery definitions file can live on a server somewhere remote from the client
 (i.e. the place where procedural text generation is happening, such as the user's web browser).
@@ -239,7 +239,7 @@ Language features include
       - similarly, `$NONTERMINAL_NAME` is a shorthand for `&uc{$nonterminal_name}`, and  `^VARIABLE_NAME` for `&uc{^variable_name}`
    - some Tracery modifier syntax works, e.g. `#symbol_name.capitalize#` instead of `&cap{#symbol_name#}`
    - the syntax `[name=>value1|value2|value3|...]` is shorthand for `^name={&quote{[value1|value2|value3|...]}` and ensures that every occurrence of `#name#` (or `&eval{^name}`) will be expanded from an independently-sampled one of the values
-      - note that a similar effect could be achieved with a Tracery symbol file of the form `{"name":["value1","value2","value3",...]}`; this would also ensure that every occurrence of `$name` would be expanded
+      - note that a similar effect could be achieved with a Tracery symbol file of the form `{"name":["value1","value2","value3",...]}`; this would ensure that every occurrence of `$name` would be expanded, as well as `#name#`
 
 Most/all of these features are exercised in the file [test/basic.js](test/basic.js).
 

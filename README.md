@@ -103,7 +103,7 @@ console.log (b.expand('I [love|hate|like] you $percentage!').text)
 ~~~~
 
 They can also, if a `callback` is specified in the configuration object that's the optional second argument to `expand`,
-be bound to [promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) that asynchronously return strings:
+be bound to functions that return [promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) of strings:
 
 ~~~~
 var bracery = require('../bracery')

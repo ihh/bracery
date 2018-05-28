@@ -358,13 +358,13 @@ For an example, see [examples/markov/good_news_bad_news.txt](examples/markov/goo
 
 ## Using templates
 
-### Web demo
+### Web simulation
 
 [Bracery message template demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/markov.html) (source in [web/markov.html](web/markov.html))
 
-### Simulation
+### Command line simulation
 
-You can test template sequencing using bracery's `-m` option
+You can test template sequencing from the command line using bracery's `-m` option
 (short for `--markov`, because it samples a trajectory through the Markov chain).
 Make sure to also load any required symbol definitions.
 For example:

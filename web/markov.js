@@ -45,27 +45,31 @@ function update() {
       bracery: b,
       templates: templates,
       vars: {},
-      accept: function (message, thread) {
-        return new Promise (function (resolve, reject) {
-          threadElement.innerHTML = ""
-          if (thread)
-            thread.forEach (function (threadMessage) {
-              threadElement.appendChild (messageDiv (threadMessage, { style: 'background-color: #ddd;' }))
-            })
-          threadElement.appendChild (messageDiv (message, { title: true, style: 'font-style: italic; background-color: #bbb;' }))
-          var acceptElement = document.createElement('a')
-          var rejectElement = document.createElement('a')
-          var span = document.createElement('span')
-          acceptElement.innerText = 'Accept'
-          rejectElement.innerText = 'Reject'
-          span.innerText = ' / '
-          acceptElement.setAttribute ('href', '#')
-          rejectElement.setAttribute ('href', '#')
-          threadElement.appendChild (acceptElement)
-          threadElement.appendChild (span)
-          threadElement.appendChild (rejectElement)
-          acceptElement.addEventListener ('click', function(e) { e.preventDefault(); resolve (true) })
-          rejectElement.addEventListener ('click', function(e) { e.preventDefault(); resolve (false) })
+      accept: function (message, thread, resolve) {
+        threadElement.innerHTML = ""
+        if (thread)
+          thread.forEach (function (threadMessage) {
+            threadElement.appendChild (messageDiv (threadMessage, { style: 'background-color: #ddd;' }))
+          })
+        threadElement.appendChild (messageDiv (message, { title: true, style: 'font-style: italic; background-color: #bbb;' }))
+        var acceptElement = document.createElement('a')
+        var rejectElement = document.createElement('a')
+        var span = document.createElement('span')
+        acceptElement.innerText = 'Accept'
+        rejectElement.innerText = 'Reject'
+        span.innerText = ' / '
+        acceptElement.setAttribute ('href', '#')
+        rejectElement.setAttribute ('href', '#')
+        threadElement.appendChild (acceptElement)
+        threadElement.appendChild (span)
+        threadElement.appendChild (rejectElement)
+        acceptElement.addEventListener ('click', function(e) {
+          e.preventDefault()
+          resolve (true)
+        })
+        rejectElement.addEventListener ('click', function(e) {
+          e.preventDefault()
+          resolve (false)
         })
       }
     }

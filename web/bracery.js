@@ -3100,12 +3100,20 @@ Bracery.prototype.addRules = function (name, rules) {
     rules = Array.prototype.splice.call (arguments, 1)
   // check types
   name = validateSymbolName (name)
-  if (!ParseTree.isArray(rules))
-    throw new Error ('rules must be an array')
-  if (rules.filter (function (rule) { return typeof(rule) !== 'string' }).length)
-    throw new Error ('rules array must contain strings')
-  // execute
-  this.rules[name] = (this.rules[name] || []).concat (rules.map (ParseTree.parseRhs))
+  var oldRules = this.rules[name]
+  if (typeof(rules) === 'function') {
+    if (oldRules)
+      throw new Error ('symbols with bound functions cannot have any other rules')
+    this.rules[name] = rules
+  } else {
+    if (oldRules && oldRules.filter (function (oldRule) { return typeof(oldRule) === 'function' }).length)
+      throw new Error ('symbols with bound functions cannot have any other rules')
+    if (!ParseTree.isArray(rules))
+      throw new Error ('rules must be an array')
+    if (rules.filter (function (rule) { return typeof(rule) !== 'string' }).length)
+      throw new Error ('rules array must contain strings')
+    this.rules[name] = (oldRules || []).concat (rules.map (ParseTree.parseRhs))
+  }
   var result = {}
   result[name] = this.rules[name]
   return result
@@ -3132,24 +3140,45 @@ Bracery.prototype.deleteRules = function (name) {
   return result
 }
 
+Bracery.prototype.setRules = function (name, rules) {
+  this.rules[name] = rules
+}
+
 Bracery.prototype.addRule = Bracery.prototype.addRules
 Bracery.prototype.deleteRule = Bracery.prototype.deleteRules
+Bracery.prototype.setRule = Bracery.prototype.setRules
 
 Bracery.prototype._expandSymbol = function (config) {
   var symbolName = config.node.name.toLowerCase()
   var rhs
   var rules = this.rules[symbolName]
-  if (rules)
-    rhs = ParseTree.sampleParseTree (ParseTree.randomElement (rules, this.rng), config)
-  else
+  if (rules) {
+    if (typeof(rules) === 'function') {
+      // call dynamically bound function
+      rhs = rules (extend ({ random: this.rng }, config))
+      // if result is a string, forgivingly wrap it as a single-element array
+      if (typeof(rhs) === 'string')
+        rhs = [rhs]
+      else if (rhs && typeof(rhs.then) === 'function') {
+        rhs = rhs.then (function (result) {
+          return typeof(result) === 'string' ? [result] : result
+        })
+      }
+    } else
+      rhs = ParseTree.sampleParseTree (ParseTree.randomElement (rules, this.rng), config)
+  } else
     rhs = []
   return rhs
 }
 
 Bracery.prototype._expandRhs = function (config) {
   var newConfig = extend ({ expand: this._expandSymbol.bind (this) }, config)
-  if (newConfig.callback)
-    return ParseTree.makeRhsExpansionPromise (newConfig).then (newConfig.callback)
+  if (newConfig.callback) {
+    var promise = ParseTree.makeRhsExpansionPromise (newConfig)
+    if (typeof(newConfig.callback) === 'function')
+      promise = promise.then (newConfig.callback)
+    return promise
+  }
   return ParseTree.makeRhsExpansionSync (newConfig)
 }
 
@@ -3177,13 +3206,13 @@ Bracery.prototype.expand = function (braceryText, config) {
   braceryText = braceryText || ('$' + this.getDefaultSymbol())
   if (typeof(braceryText) !== 'string')
     throw new Error ('the text to be expanded must be a string')
-  return this._expandRhs (extend ({}, config, { rhsText: braceryText }))
+  return this._expandRhs (extend ({ vars: {} }, config, { rhsText: braceryText }))
 }
 
 Bracery.prototype.expandSymbol = function (symbolName, config) {
   symbolName = symbolName || this.getDefaultSymbol()
   symbolName = validateSymbolName (symbolName)
-  return this._expandRhs (extend ({}, config, { rhs: [{ name: symbolName }] }))
+  return this._expandRhs (extend ({ vars: {} }, config, { rhs: [{ name: symbolName }] }))
 }
 
 Bracery.prototype.parse = function (text) {

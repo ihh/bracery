@@ -25,22 +25,25 @@ in the [examples](examples/) directory of this repository.
 
 ## From the command line
 
-Trying various command line settings with the same symbol defintions file, [examples/travel.json](examples/travel.json):
-
-~~~~
-bracery -d examples/travel.json
-bracery -d examples/travel.json -n5
-bracery -d examples/travel.json -n5 --eval '$origin And then they met $name.'
-bracery -d examples/travel.json -n5 --eval '$origin And they had [fun|trouble|no luck], until they met $name.'
-bracery -d examples/travel.json --tree
-bracery -d examples/travel.json --repl
-bracery -d examples/travel.json -n5 --async
-~~~~
-
-You can also just give Bracery some text to expand:
+Give Bracery some text to expand:
 
 ~~~~
 bracery -e '[hello|hi] [world|planet]!'
+~~~~
+
+Or specify a definitions file and play with command-line options.
+(The first `curl` line just fetches the above-referenced tutorial example file, [travel.json](examples/travel.json).)
+
+~~~~
+curl -O https://raw.githubusercontent.com/ihh/bracery/master/examples/travel.json
+
+bracery -d travel.json
+bracery -d travel.json -n5
+bracery -d travel.json -n5 --eval '$origin And then they met $name.'
+bracery -d travel.json -n5 --eval '$origin And they had [fun|trouble|no luck], until they met $name.'
+bracery -d travel.json --tree
+bracery -d travel.json --repl
+bracery -d travel.json -n5 --async
 ~~~~
 
 (The square-bracket and pipe characters `[hello|hi]` are part of the syntax extensions to Tracery, described [below](#syntax-extensions).
@@ -49,7 +52,7 @@ This syntax allows the compact specification of alternate possibilities, in this
 You can run it in client/server mode (NB this is a very light implementation, mostly just a toy example to demonstrate networked symbol expansion):
 
 ~~~~
-bracery -d examples/travel.json -S 8000 &
+bracery -d travel.json -S 8000 &
 bracery -C http://localhost:8000/ -e '#origin#'
 ~~~~
 

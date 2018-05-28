@@ -183,7 +183,7 @@ These are described under [Syntax](#syntax).
 Bracery works just fine as a synchronous library, running from a local symbol definitions file, like Tracery (this is the default when running from the command-line, or using the node API).
 However, Bracery was specifically designed to work well for asynchronous applications where the client is decoupled from the symbol definition store.
 
-In asynchronous mode, the Tracery definitions file can live on a server somewhere remote from the client
+In asynchronous mode, the symbol expansion code can run on a server somewhere remote from the client
 (i.e. the place where procedural text generation is happening, such as the user's web browser).
 This means that, for example, the set of definitions can potentially be very big (including a "standard library"), or can be continually updated, or collaboratively edited.
 

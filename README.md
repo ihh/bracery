@@ -14,7 +14,7 @@ with syntax influenced by [regular expressions](https://en.wikipedia.org/wiki/Re
 
 ## In the browser
 
-[Basic demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/index.html) (source in [web/](web/))
+[Basic demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/index.html) (source in [web/index.html](web/index.html))
 
 The symbol definitions in this example are from Kate Compton (@galaxykate)'s [online tutorial](http://www.crystalcodepalace.com/traceryTut.html) to Tracery.
 They are used throughout this README as an example,
@@ -357,6 +357,10 @@ The weight (`100`), author (`@template_author`), and past/future tags (everythin
 For an example, see [examples/markov/good_news_bad_news.txt](examples/markov/good_news_bad_news.txt).
 
 ## Using templates
+
+### Web demo
+
+[Bracery message template demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/markov.html) (source in [web/markov.html](web/markov.html))
 
 ### Simulation
 

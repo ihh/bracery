@@ -165,12 +165,18 @@ console.log (b.expand ('[hello|hallo|hullo]').text)
 which should give `hello`, `hallo` or `hullo`, and repetitions
 
 ~~~~
-console.log (b.expand ('{hello }{3,5}').text)
+console.log (b.expand ('&rep{hello }{3,5}').text)
 ~~~~
 
 which should yield from three to five `hello`'s, with a space after each.
 
 See [tests](test/) for more examples using the JavaScript API.
+
+### Built-in functions
+
+Bracery also offers a number of built-in functions for processing text
+(e.g. case, tense, plurals).
+These are described under [Syntax](#syntax).
 
 ## Rationale
 

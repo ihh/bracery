@@ -226,7 +226,7 @@ Language features include
    - local scoped variables:
       - Tracery-style `#[x:value1][y:value2]symbol_name#` (what Tracery calls "actions")
       - Bracery-style `&let^x={value1}^y={value2}{something involving x and y}`
-      - each local scope of each variable also has its own private stack. This allows additional dynamic scoping in [Braceplate](#braceplates) sequences. The stack (`&push^x`, `&pop^x` to push/pop variable `x`) can also be used as a queue (`&shift^x`, `&unshift^x`). You know, it's kind of a hack. Just forget you ever read this bullet, it's dangerous knowledge that could hurt those close to you
+      - each local scope of each variable also has its own private stack. This allows additional dynamic scoping in [Braceplate message sequences](#braceplate_message_sequences). The stack (`&push^x`, `&pop^x` to push/pop variable `x`) can also be used as a queue (`&shift^x`, `&unshift^x`). You know, it's kind of a hack. Just forget you ever read this bullet, it's dangerous knowledge that could hurt those close to you
    - repetition:
       - `&rep{x}{3}` expands to `xxx`
       - `&rep{x}{3,5}` expands to `xxx`, `xxxx`, or `xxxxx`

@@ -5,8 +5,9 @@
 # Bracery
 
 Bracery is a small procedural text generation language (and library).
-While not quite [Tracery](http://tracery.io/) (by [@galaxykate](https://github.com/galaxykate)),
-Bracery is close; it could be said to be an (unofficial) [dialect](https://en.wikipedia.org/wiki/Programming_language#Dialects,_flavors_and_implementations) or derivative of Tracery
+It's heavily influenced by [Tracery](http://tracery.io/) (by [@galaxykate](https://github.com/galaxykate)).
+While not identical to Tracery,
+Bracery is close; it could be said to be an (unofficial) [dialect](https://en.wikipedia.org/wiki/Programming_language#Dialects,_flavors_and_implementations) or derivative
 with syntax influenced by [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) and 
 [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)).
 
@@ -356,7 +357,7 @@ The weight (`100`), author (`@template_author`), and past/future tags (everythin
 
 For an example, see [examples/markov/good_news_bad_news.txt](examples/markov/good_news_bad_news.txt).
 
-## Using templates
+## Using braceplates
 
 ### Web simulation
 

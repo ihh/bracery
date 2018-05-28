@@ -302,6 +302,11 @@ Backslash-escaping works in the plaintext format, too; so you can use `\n` if yo
 The file [examples/travel.txt](examples/travel.txt) contains the `#hero# traveled with...` example in this plaintext format
 ([examples/travel.json](examples/travel.json) contains the same definitions in JSON).
 
+## Import scripts
+
+The [import/](#import/) directory contains scripts to import various word and phrase sets,
+notably from Darius Kazemi's [corpora](https://github.com/dariusk/corpora).
+Type `cd import; make` to run.
 
 # Braceplate message sequences
 

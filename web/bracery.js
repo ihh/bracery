@@ -3901,9 +3901,10 @@ function makeExpansionPromise (config) {
                   case 'swap':
                     var oldVal = expansion.vars[arg.varname]
                     if (varStack) {
-                      var idx = randomIndex (varStack, rng)
-                      newVal = varStack[idx]
-                      varStack[idx] = oldVal
+                      if (typeof(node.value) === 'undefined')
+                        node.value = randomIndex (varStack, rng)
+                      newVal = varStack[node.value]
+                      varStack[node.value] = oldVal
                     } else
                       newVal = oldVal
                     break
@@ -3915,7 +3916,7 @@ function makeExpansionPromise (config) {
                   default:
                     break
                   }
-                  if (stack && !varStack.length) {
+                  if (varStack && !varStack.length) {
                     delete stack[arg.varname]
                     if (!Object.keys(stack).length)
                       delete expansion.vars[StackTag]

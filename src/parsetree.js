@@ -1,6 +1,9 @@
 var RhsParser = require('./rhs')
 
 var StackTag = '.STACK'  // pseudo-variable used to store stacks
+var trueVal = '1'  // truthy value used when a result should be truthy but the default result in this context would otherwise be an empty string e.g. &same{}{} or &not{}
+var falseVal = ''  // falsy value
+var zeroVal = '0'  // default zero value for arithmetic operators
 
 // General helper functions
 function isArray (obj) { return Object.prototype.toString.call(obj) === '[object Array]' }
@@ -522,24 +525,24 @@ var binaryFunction = {
     return r.split(l).join('')
   },
   same: function (l, r) {
-    return l === r ? l : ''
+    return l === r ? (l || trueVal) : falseVal
   },
   and: function (l, r) {
-    return l.match(/\S/) && r.match(/\S/) ? (l + r) : ''
+    return l.match(/\S/) && r.match(/\S/) ? (l + r) : falseVal
   },
   add: function (l, r) {
     var lVals = nlp(l).values()
-    return (lVals.length ? lVals.add(toNumber(r)).out() : r) || '0'
+    return (lVals.length ? lVals.add(toNumber(r)).out() : r) || zeroVal
   },
   subtract: function (l, r) {
     var lVals = nlp(l).values()
-    return (lVals.length ? lVals.subtract(toNumber(r)).out() : r) || '0'
+    return (lVals.length ? lVals.subtract(toNumber(r)).out() : r) || zeroVal
   },
   multiply: function (l, r) {
-    return (toNumber(l) * toNumber(r)) + ''
+    return (toNumber(l) * toNumber(r)).toString()
   },
   divide: function (l, r) {
-    return (toNumber(l) / toNumber(r)) + ''
+    return (toNumber(l) / toNumber(r)).toString()
   },
   gt: function (l, r) {
     return nlp(l).values().greaterThan(toNumber(r)).out()
@@ -548,10 +551,10 @@ var binaryFunction = {
     return nlp(l).values().lessThan(toNumber(r)).out()
   },
   eq: function (l, r) {
-    return toNumber(l) === toNumber(r) ? l : ''
+    return toNumber(l) === toNumber(r) ? l : falseVal
   },
   neq: function (l, r) {
-    return toNumber(l) === toNumber(r) ? '' : l
+    return toNumber(l) === toNumber(r) ? falseVal : l
   },
   leq: function (l, r) {
     return this.eq(l,r) || this.lt(l,r)
@@ -675,7 +678,7 @@ function makeExpansionPromise (config) {
                   return makeRhsExpansionPromiseFor ([node.args[1]])
                     .then (function (rightArg) {
                       expansion.nodes += leftArg.nodes + rightArg.nodes
-                      expansion.text = binaryFunction[node.funcname].call (binaryFunction, leftArg.text, rightArg.text)
+                      expansion.text = binaryFunction[node.funcname].call (binaryFunction, leftArg.text, rightArg.text, config)
                       return expansionPromise
                     })
                 })
@@ -712,7 +715,7 @@ function makeExpansionPromise (config) {
 
                     // not
                   case 'not':
-                    expansion.text = arg.match(/\S/) ? '' : '1'
+                    expansion.text = arg.match(/\S/) ? '' : trueVal
                     break
                     
                     // basic text functions

@@ -64,8 +64,8 @@ LocalAssignment
   / "#" _ assigns:VarAssignmentList _ sym:Identifier mods:TraceryModifiers "#" { return makeLocalAssignChain (assigns, [makeTraceryExpr (sym, mods)]) }
 
 PushOrPop
-  = "&" func:("push" / "pop" / "shift" / "unshift") arg:VarLookup { return makeFunction (func, [arg]) }
-  / "&" func:("push" / "pop" / "shift" / "unshift") "{" _ args:VarLookupList _ "}" { return makeFunction (func, args) }
+  = "&" func:("push" / "pop" / "shift" / "unshift" / "swap") arg:VarLookup { return makeFunction (func, [arg]) }
+  / "&" func:("push" / "pop" / "shift" / "unshift" / "swap") "{" _ args:VarLookupList _ "}" { return makeFunction (func, args) }
 
 VarLookupList
   = head:VarLookup _ tail:VarLookupList { return [head].concat(tail) }

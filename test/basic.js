@@ -176,11 +176,12 @@ function doTests (testRunner) {
   expectExpand ('^a', '')
   expectExpand ('^a', 'x', {vars:vars,a_equals_x:true})
 
-  // push & pop
+  // push, pop, shift, unshift, swap
   expectExpand ('^a={x}^a&push{^a}^a={y}^a&pop{^a}^a', 'xyx')
   expectExpand ('^a={x}^a&push{^a}^a={y}^a&push{^a}^a={z}^a&pop{^a}^a&pop{^a}^a', 'xyzyx')
   expectExpand ('^a={x}^b={X}^a^b&push{^a^b}^a={y}^b={Y}^a^b&pop{^a^b}^a^b', 'xXyYxX')
   expectExpand ('^a={x}&pop{^a}^a', '')
+  expectExpand ('^a={x}&pop{^a}^a^a={test}&push^a', '')
 
   expectExpand ('^a={x}^a&push{^a}^a={y}^a&let^a={z}{^a!&pop{^a}^a}^a&pop{^a}^a', 'xyz!yx')  // tests that local lexical scope preserves the variable's private stack
   expectExpand ('^a...&let^a={x}{^a&push{^a}^a={y}^a&push{^a}^a={z}^a&pop{^a}^a}!^a&pop{^a}?^a', '...xyzy!?')  // tests that local lexical scope preserves the variable's private stack
@@ -188,6 +189,15 @@ function doTests (testRunner) {
   expectExpand ('^a={x}^a&push{^a}^a={y}^a&unshift{^a}^a={z}^a&pop{^a}^a&pop{^a}^a', 'xyzxy')
   expectExpand ('^a={x}^a&push{^a}^a={y}^a&unshift{^a}^a={z}^a&shift{^a}^a&shift{^a}^a', 'xyzyx')
 
+  expectExpand ('^a={x}&push^a^a={y}&push^a^a={z}&push^a^a={test}&swap^a^a', 'x', {maxTries:maxTries})
+  expectExpand ('^a={x}&push^a^a={y}&push^a^a={z}&push^a^a={test}&swap^a^a', 'y', {maxTries:maxTries})
+  expectExpand ('^a={x}&push^a^a={y}&push^a^a={z}&push^a^a={test}&swap^a^a', 'z', {maxTries:maxTries})
+  expectExpand ('^a={x}&push^a^a={y}&push^a^a={z}&push^a^a={test}&swap^a^a', 'test', {maxTries:maxTries,fail:true})
+  expectExpand ('^a={x}&push^a^a={y}&push^a^a={z}&push^a^a={test}&swap^a&swap^a^a', 'test', {maxTries:maxTries})
+  expectExpand ('^a={x}&push^a^a={y}&push^a^a={z}&push^a^a={test}&swap^a&swap^a^a', 'x', {maxTries:maxTries})
+  expectExpand ('^a={x}&push^a^a={y}&push^a^a={z}&push^a^a={test}&swap^a&swap^a^a', 'y', {maxTries:maxTries})
+  expectExpand ('^a={x}&push^a^a={y}&push^a^a={z}&push^a^a={test}&swap^a&swap^a^a', 'z', {maxTries:maxTries})
+  
   // strip
   expectExpand ('&strip{hello}{hello world hello}', ' world ')
   expectExpand ('&strip{$abc}{defcon}', 'con')

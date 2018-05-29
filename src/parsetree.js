@@ -571,6 +571,7 @@ function makeExpansionPromise (config) {
   var depth = config.depth || {}
   var makeSymbolName = config.makeSymbolName || defaultMakeSymbolName
   var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
+  var rng = config && config.rng ? config.rng : Math.random
   return handlerPromise ([node, varVal, depth], resolve(), config.before, node.type, 'all')
     .then (function() {
       var expansion = { text: '', vars: varVal, nodes: 1 }
@@ -651,22 +652,36 @@ function makeExpansionPromise (config) {
                     varStack.unshift (pushVal)
                 }
               })
-            } else if (node.funcname === 'pop' || node.funcname === 'shift') {
+            } else if (node.funcname === 'pop' || node.funcname === 'shift' || node.funcname === 'swap') {
               // pop, shift
               node.args.forEach (function (arg) {
                 if (arg.type === 'lookup') {
-                  var newVal = ''
+                  var newVal = falseVal
                   var stack = expansion.vars[StackTag]
-                  if (stack) {
-                    var varStack = stack[arg.varname]
+                  var varStack = stack ? stack[arg.varname] : null
+                  switch (node.funcname) {
+                  case 'swap':
+                    var oldVal = expansion.vars[arg.varname]
                     if (varStack) {
-                      newVal = node.funcname === 'pop' ? varStack.pop() : varStack.shift()
-                      if (!varStack.length) {
-                        delete stack[arg.varname]
-                        if (!Object.keys(stack).length)
-                          delete expansion.vars[StackTag]
-                      }
-                    }
+                      if (typeof(node.value) === 'undefined')
+                        node.value = randomIndex (varStack, rng)
+                      newVal = varStack[node.value]
+                      varStack[node.value] = oldVal
+                    } else
+                      newVal = oldVal
+                    break
+                  case 'pop':
+                    newVal = varStack ? varStack.pop() : falseVal
+                    break
+                  case 'shift':
+                    newVal = varStack ? varStack.shift() : falseVal
+                  default:
+                    break
+                  }
+                  if (varStack && !varStack.length) {
+                    delete stack[arg.varname]
+                    if (!Object.keys(stack).length)
+                      delete expansion.vars[StackTag]
                   }
                   expansion.vars[arg.varname] = newVal
                 }
@@ -780,10 +795,8 @@ function makeExpansionPromise (config) {
 
                     // nlp: numbers
                   case 'random':
-                    if (typeof(node.value) === 'undefined') {
-                      var rng = config && config.rng ? config.rng : Math.random
+                    if (typeof(node.value) === 'undefined')
                       node.value = (rng() * toNumber(arg)) + ''
-                    }
                     expansion.text = node.value
                     break
 

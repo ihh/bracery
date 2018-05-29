@@ -88,7 +88,7 @@ function doTests (testRunner) {
   expectExpand ('&future{love}', 'will love')
   expectExpand ('&past{love}', 'loved')
 
-  // arithmetic
+  // arithmetic & numbers
   expectExpand ('&add{2}{2}', '4')
   expectExpand ('&add{two}{two}', 'four')
   expectExpand ('&add{two cats}{4}', 'six cats')
@@ -115,6 +115,28 @@ function doTests (testRunner) {
   expectExpand ('&geq{three cats}{3}', 'three cats')
   expectExpand ('&geq{three cats}{4}', '')
   expectExpand ('&geq{three cats}{2}', 'three cats')
+
+  expectExpand ('&round{3.141}', '3')
+  expectExpand ('&round{three point one four one}', '3')
+  expectExpand ('&round{3.6}', '4')
+  expectExpand ('&floor{3.6}', '3')
+  expectExpand ('&ceil{3.6}', '4')
+
+  expectExpand ('&ceil{&random{6}}', '6', {maxTries:maxTries})
+  expectExpand ('&ceil{&random{6}}', '1', {maxTries:maxTries})
+
+  expectExpand ('&wordnum{3}', 'three')
+  expectExpand ('&wordnum{32}', 'thirty two')
+  expectExpand ('&wordnum{three}', 'three')
+
+  expectExpand ('&dignum{3}', '3')
+  expectExpand ('&dignum{thirty two}', '32')
+  expectExpand ('&dignum{three}', '3')
+
+  expectExpand ('&ordinal{3}', '3rd')
+  expectExpand ('&ordinal{three}', 'third')
+  expectExpand ('&cardinal{3rd}', '3')
+  expectExpand ('&cardinal{third}', 'three')
 
   // variables
   expectExpand ('^x={aha}^x', 'aha')
@@ -166,7 +188,7 @@ function doTests (testRunner) {
   expectExpand ('^a={x}^a&push{^a}^a={y}^a&unshift{^a}^a={z}^a&pop{^a}^a&pop{^a}^a', 'xyzxy')
   expectExpand ('^a={x}^a&push{^a}^a={y}^a&unshift{^a}^a={z}^a&shift{^a}^a&shift{^a}^a', 'xyzyx')
 
-  // strip, same, and
+  // strip
   expectExpand ('&strip{hello}{hello world hello}', ' world ')
   expectExpand ('&strip{$abc}{defcon}', 'con')
   expectExpand ('${abc}', 'def')
@@ -177,12 +199,17 @@ function doTests (testRunner) {
 
   expectExpand ('^b={b}^x={Batch}^y=&strip&strip^b{abc}&strip{t}^x^y', 'Bh')
 
+  // same, and, not
   expectExpand ('&same{abc}{def}', '')
   expectExpand ('&same{abc}{abc}', 'abc')
 
   expectExpand ('&and{ }{world}', '')
   expectExpand ('&and{hello}{  }', '')
   expectExpand ('&and{hello}{world}', 'helloworld')
+
+  expectExpand ('&not{}', '1')
+  expectExpand ('&not{ }', '1')
+  expectExpand ('&not{1}', '')
 
   // repetition
   expectExpand ('&rep{Test}{3}', 'TestTestTest')

@@ -86,6 +86,8 @@ Function
 
 FunctionName = "eval" / "quote" / "plural" / "singular" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive"
   / "gerund" / "adjective" / "negative" / "positive" / "a" / "uc" / "lc" / "cap"
+  / "random" / "floor" / "ceil" / "round" / "wordnum" / "dignum" / "ordinal" / "cardinal"
+  / "not"
 
 FunctionArg
   = rep:Repetition { return [rep] }

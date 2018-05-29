@@ -222,12 +222,24 @@ Language features include
    - selected natural language-processing functions from [compromise](https://github.com/spencermountain/compromise) including
       - (for nouns) `&singular` and `&topic`
       - (for verbs) `&past`, `&present`, `&future`, `&infinitive`,  `&adjective`, `&negative`
-   - remove substrings: `&strip{ac}{abacus}` evaluates to `abus`, `&strip{gh}{lightweight}` to `litweit`, etc.
+   - natural language-friendly arithmetic using compromise:
+      - `&add{2}{4}` gives `6`
+      - `&add{two}{4}` gives `six`
+      - `&add{two cats}{4}` gives `six cats`
+      - `&subtract{x}{y}` behaves like `&add`
+      - `&multiply{x}{y}`, `&divide{x}{y}` operate on digits only
+      - `&random{n}`, `&floor{x}`, `&ceil{x}`, `&round{x}` do what you probably expect
+      - `&eq{x}{y}`, `&neq{x}{y}`, `&gt{x}{y}`, `&geq{x}{y}`, `&lt{x}{y}`, `&leq{x}{y}` also fairly predictable
+      - `&ordinal{3}` is `3rd`, `&cardinal{3rd}` is `3`
+      - `&dignum{3}` is `three`, `&wordnum{three}` is `3`
+- remove substrings: `&strip{ac}{abacus}` evaluates to `abus`, `&strip{gh}{lightweight}` to `litweit`, etc.
 - special functions:
    - conditionals:
       - `&if{testExpr}then{trueExpr}else{falseExpr}`
       - Evaluates to `trueExpr` if `testExpr` contains any non-whitespace characters, and `falseExpr` otherwise.
       - The `then` and `else` keywords are optional; you can write `&if{testExpr}{trueExpr}{falseExpr}`
+      - The conditional test (`testExpr`) can use arithmetic operators `&eq`, `&neq`, `&gt`, `&lt`, `&geq`, `&leq`
+         - also string comparison `&same{x}{y}` and boolean operators `&and{x}{y}`, `&not{x}`
    - dynamic evaluation
       - `&eval{expr}` parses `expr` as Bracery and dynamically expands it
       - conversely, `&quote{expr}` returns `expr` as a text string, without doing any expansions

@@ -678,6 +678,7 @@ function makeExpansionPromise (config) {
                   expansion.nodes += argExpansion.nodes
                   switch (node.funcname) {
 
+                    // eval
                   case 'eval':
                     if (typeof(node.evaltext) === 'undefined') {
                       node.evaltext = arg
@@ -696,6 +697,12 @@ function makeExpansionPromise (config) {
                       .then (addExpansionNodes)
                     break
 
+                    // not
+                  case 'not':
+                    expansion.text = arg.match(/\S/) ? '' : '1'
+                    break
+                    
+                    // basic text functions
                   case 'cap':
                     expansion.text = capitalize (arg)
                     break
@@ -755,6 +762,44 @@ function makeExpansionPromise (config) {
                     expansion.text = nlp(arg).verbs(0).toPositive().text()
                     break
 
+                    // nlp: numbers
+                  case 'random':
+                    if (typeof(node.value) === 'undefined') {
+                      var rng = config && config.rng ? config.rng : Math.random
+                      node.value = (rng() * toNumber(arg)) + ''
+                    }
+                    expansion.text = node.value
+                    break
+
+                  case 'floor':
+                    expansion.text = Math.floor (toNumber(arg)) + ''
+                    break
+
+                  case 'ceil':
+                    expansion.text = Math.ceil (toNumber(arg)) + ''
+                    break
+
+                  case 'round':
+                    expansion.text = Math.round (toNumber(arg)) + ''
+                    break
+
+                  case 'wordnum':
+                    expansion.text = nlp(arg).values().toText().out()
+                    break
+
+                  case 'dignum':
+                    expansion.text = nlp(arg).values().toNumber().out()
+                    break
+
+                  case 'ordinal':
+                    expansion.text = nlp(arg).values().toOrdinal().out()
+                    break
+
+                  case 'cardinal':
+                    expansion.text = nlp(arg).values().toCardinal().out()
+                    break
+
+                    // default
                   default:
                     expansion.text = arg
                     break

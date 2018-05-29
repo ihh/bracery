@@ -264,13 +264,17 @@ function makeFuncArgText (pt, args, makeSymbolName) {
   return (noBraces ? '' : leftBraceChar) + pt.makeRhsText (args, makeSymbolName) + (noBraces ? '' : rightBraceChar)
 }
 
+function escapeString (text) {
+  return text.replace(/[\$&\^\{\}\|\\]/g,function(m){return'\\'+m})
+}
+
 function makeRhsText (rhs, makeSymbolName) {
   var pt = this
   makeSymbolName = makeSymbolName || defaultMakeSymbolName
   return rhs.map (function (tok, n) {
     var result
     if (typeof(tok) === 'string')
-      result = tok.replace(/[\$&\^\{\}\|\\]/g,function(m){return'\\'+m})
+      result = escapeString (tok)
     else {
       var nextTok = (n < rhs.length - 1) ? rhs[n+1] : undefined
       var nextIsAlpha = typeof(nextTok) === 'string' && nextTok.match(/^[A-Za-z0-9_]/)
@@ -628,9 +632,11 @@ function makeExpansionPromise (config) {
             break
 
           case 'func':
+            // quote
             if (node.funcname === 'quote') {
               expansion.text = pt.makeRhsText (node.args, makeSymbolName)
             } else if (node.funcname === 'push' || node.funcname === 'unshift') {
+              // push, unshift
               node.args.forEach (function (arg) {
                 if (arg.type === 'lookup') {
                   var stack = (expansion.vars[StackTag] = expansion.vars[StackTag] || {})
@@ -643,6 +649,7 @@ function makeExpansionPromise (config) {
                 }
               })
             } else if (node.funcname === 'pop' || node.funcname === 'shift') {
+              // pop, shift
               node.args.forEach (function (arg) {
                 if (arg.type === 'lookup') {
                   var newVal = ''
@@ -662,6 +669,7 @@ function makeExpansionPromise (config) {
                 }
               })
             } else if (binaryFunction[node.funcname]) {
+              // binary functions
               promise = makeRhsExpansionPromiseFor ([node.args[0]])
                 .then (function (leftArg) {
                   return makeRhsExpansionPromiseFor ([node.args[1]])
@@ -695,6 +703,11 @@ function makeExpansionPromise (config) {
                     }
                     return makeRhsExpansionPromiseFor (node.value, arg)
                       .then (addExpansionNodes)
+                    break
+
+                    // escape
+                  case 'escape':
+                    expansion.text = escapeString (arg)
                     break
 
                     // not

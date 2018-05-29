@@ -88,6 +88,34 @@ function doTests (testRunner) {
   expectExpand ('&future{love}', 'will love')
   expectExpand ('&past{love}', 'loved')
 
+  // arithmetic
+  expectExpand ('&add{2}{2}', '4')
+  expectExpand ('&add{two}{two}', 'four')
+  expectExpand ('&add{two cats}{4}', 'six cats')
+  expectExpand ('&add{two cats three dogs}{2}', 'four cats five dogs')
+  expectExpand ('&subtract{3}{3}', '0')
+  expectExpand ('&subtract{three}{three}', '0')
+  expectExpand ('&subtract{three}{four}', 'negative one')
+  expectExpand ('&subtract{3}{4}', '-1')
+  expectExpand ('&add{two}{&subtract{three}{four}}', 'one')
+  expectExpand ('&multiply{two}{three}', '6')
+  expectExpand ('&divide{three}{two}', '1.5')
+
+  expectExpand ('&gt{three cats}{2}', 'three cats')
+  expectExpand ('&gt{three cats}{4}', '')
+  expectExpand ('&lt{three cats}{2}', '')
+  expectExpand ('&lt{three cats}{4}', 'three cats')
+  expectExpand ('&eq{three cats}{3}', 'three cats')
+  expectExpand ('&eq{three cats}{4}', '')
+  expectExpand ('&neq{three cats}{3}', '')
+  expectExpand ('&neq{three cats}{4}', 'three cats')
+  expectExpand ('&leq{three cats}{3}', 'three cats')
+  expectExpand ('&leq{three cats}{4}', 'three cats')
+  expectExpand ('&leq{three cats}{2}', '')
+  expectExpand ('&geq{three cats}{3}', 'three cats')
+  expectExpand ('&geq{three cats}{4}', '')
+  expectExpand ('&geq{three cats}{2}', 'three cats')
+
   // variables
   expectExpand ('^x={aha}^x', 'aha')
   expectExpand ('[x:aha]^x', 'aha')
@@ -138,7 +166,7 @@ function doTests (testRunner) {
   expectExpand ('^a={x}^a&push{^a}^a={y}^a&unshift{^a}^a={z}^a&pop{^a}^a&pop{^a}^a', 'xyzxy')
   expectExpand ('^a={x}^a&push{^a}^a={y}^a&unshift{^a}^a={z}^a&shift{^a}^a&shift{^a}^a', 'xyzyx')
 
-  // strip
+  // strip, same, and
   expectExpand ('&strip{hello}{hello world hello}', ' world ')
   expectExpand ('&strip{$abc}{defcon}', 'con')
   expectExpand ('${abc}', 'def')
@@ -148,6 +176,13 @@ function doTests (testRunner) {
   expectExpand ('&strip{$abc}{${abc}con defcon}', 'con con')
 
   expectExpand ('^b={b}^x={Batch}^y=&strip&strip^b{abc}&strip{t}^x^y', 'Bh')
+
+  expectExpand ('&same{abc}{def}', '')
+  expectExpand ('&same{abc}{abc}', 'abc')
+
+  expectExpand ('&and{ }{world}', '')
+  expectExpand ('&and{hello}{  }', '')
+  expectExpand ('&and{hello}{world}', 'helloworld')
 
   // repetition
   expectExpand ('&rep{Test}{3}', 'TestTestTest')
@@ -173,7 +208,7 @@ function doTests (testRunner) {
   // dynamic function binding
   expectExpand ('$dynamo', 'dynamik', {maxTries:maxTries})
   expectExpand ('$dynamo', 'DYNAMIC', {maxTries:maxTries})
-  
+
   // wrapper for individual 'for a given input (lhs), expect the following output (rhs)'-style tests
   // (lhs/rhs = left/right hand side)
   function expectExpand (lhs, rhs, config) {

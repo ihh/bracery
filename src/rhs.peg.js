@@ -11,7 +11,7 @@ Node
   / Conditional
   / LocalAssignment
   / PushOrPop
-  / Strip
+  / BinaryFunction
   / Function
   / VarAssignment
   / VarLookup
@@ -71,8 +71,15 @@ VarLookupList
   = head:VarLookup _ tail:VarLookupList { return [head].concat(tail) }
   / head:VarLookup { return [head] }
 
-Strip
-  = "&strip" strip:FunctionArg source:FunctionArg { return makeFunction ('strip', [wrapNodes (strip), wrapNodes (source)]) }
+BinaryFunction
+  = "&" func:BinaryFunctionName strip:FunctionArg source:FunctionArg { return makeFunction (func, [wrapNodes (strip), wrapNodes (source)]) }
+
+BinaryFunctionName = "strip"
+  / "add" / "subtract" / "multiply" / "divide"
+  / "gt" / "geq" / "lt" / "leq"
+  / "eq" / "neq"
+  / "same"
+  / "and"
 
 Function
   = "&" func:FunctionName args:FunctionArg { return makeFunction (func, args) }
@@ -89,7 +96,7 @@ Unit
   / cond:Conditional { return [cond] }
   / local:LocalAssignment { return [local] }
   / pushpop:PushOrPop { return [pushpop] }
-  / strip:Strip { return [strip] }
+  / bin:BinaryFunction { return [bin] }
   / func:Function { return [func] }
   / assign:VarAssignment { return [assign] }
   / lookup:VarLookup { return [lookup] }

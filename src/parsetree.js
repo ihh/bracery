@@ -304,20 +304,15 @@ function makeRhsText (rhs, makeSymbolName) {
 				 ['else',tok.f]].map (function (keyword_arg) { return keyword_arg[0] + leftBraceChar + pt.makeRhsText (keyword_arg[1], makeSymbolName) + rightBraceChar }).join('')))
         break;
       case 'func':
-	var sugaredName = pt.makeSugaredName (tok, makeSymbolName, nextIsAlpha)
-        switch (tok.funcname) {
-        case 'strip':
+        if (binaryFunction[tok.funcname]) {
           result = funcChar + tok.funcname + tok.args.map (function (arg) { return makeFuncArgText (pt, [arg], makeSymbolName) }).join('')
-          break
-        case 'quote':
-          result = funcChar + tok.funcname + makeFuncArgText (pt, tok.args, makeSymbolName)
-          break
-        default:
-	  if (sugaredName)
+        } else {
+	  var sugaredName = pt.makeSugaredName (tok, makeSymbolName, nextIsAlpha)
+          if (sugaredName && tok.funcname !== 'quote') {
 	    result = sugaredName
-          else
+          } else {
             result = funcChar + tok.funcname + makeFuncArgText (pt, tok.args, makeSymbolName)
-          break
+          }
         }
 	break
       case 'alt_sampled':
@@ -514,6 +509,54 @@ function handlerPromise (args, resolvedPromise, handler) {
   return promise
 }
 
+function toNumber (text) {
+  return nlp(text).values().numbers()[0] || 0
+}
+
+var binaryFunction = {
+  strip: function (l, r) {
+    return r.split(l).join('')
+  },
+  same: function (l, r) {
+    return l === r ? l : ''
+  },
+  and: function (l, r) {
+    return l.match(/\S/) && r.match(/\S/) ? (l + r) : ''
+  },
+  add: function (l, r) {
+    var lVals = nlp(l).values()
+    return (lVals.length ? lVals.add(toNumber(r)).out() : r) || '0'
+  },
+  subtract: function (l, r) {
+    var lVals = nlp(l).values()
+    return (lVals.length ? lVals.subtract(toNumber(r)).out() : r) || '0'
+  },
+  multiply: function (l, r) {
+    return (toNumber(l) * toNumber(r)) + ''
+  },
+  divide: function (l, r) {
+    return (toNumber(l) / toNumber(r)) + ''
+  },
+  gt: function (l, r) {
+    return nlp(l).values().greaterThan(toNumber(r)).out()
+  },
+  lt: function (l, r) {
+    return nlp(l).values().lessThan(toNumber(r)).out()
+  },
+  eq: function (l, r) {
+    return toNumber(l) === toNumber(r) ? l : ''
+  },
+  neq: function (l, r) {
+    return toNumber(l) === toNumber(r) ? '' : l
+  },
+  leq: function (l, r) {
+    return this.eq(l,r) || this.lt(l,r)
+  },
+  geq: function (l, r) {
+    return this.eq(l,r) || this.gt(l,r)
+  }
+}
+
 function makeExpansionPromise (config) {
   var pt = this
   var node = config.node
@@ -618,12 +661,13 @@ function makeExpansionPromise (config) {
                   expansion.vars[arg.varname] = newVal
                 }
               })
-            } else if (node.funcname === 'strip') {
+            } else if (binaryFunction[node.funcname]) {
               promise = makeRhsExpansionPromiseFor ([node.args[0]])
-                .then (function (stripArgExpansion) {
+                .then (function (leftArg) {
                   return makeRhsExpansionPromiseFor ([node.args[1]])
-                    .then (function (sourceArgExpansion) {
-                      expansion.text = sourceArgExpansion.text.split (stripArgExpansion.text).join('')
+                    .then (function (rightArg) {
+                      expansion.nodes += leftArg.nodes + rightArg.nodes
+                      expansion.text = binaryFunction[node.funcname].call (binaryFunction, leftArg.text, rightArg.text)
                       return expansionPromise
                     })
                 })

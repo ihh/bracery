@@ -224,14 +224,14 @@ Language features include
       - (for verbs) `&past`, `&present`, `&future`, `&infinitive`,  `&adjective`, `&negative`
    - natural language-friendly arithmetic using compromise:
       - `&add{2}{4}` gives `6`
-      - `&add{two}{4}` gives `six`
-      - `&add{two cats}{4}` gives `six cats`
+      - `&add{two}{4}` gives `six`, `&add{two cats}{4}` gives `six cats`
+         - form of result is determined by first argument, so `&add{4}{two}` and `&add{4}{two cats}` both evaluate to `6`
       - `&subtract{x}{y}` behaves like `&add`
-      - `&multiply{x}{y}`, `&divide{x}{y}` operate on digits only
+      - `&multiply{x}{y}`, `&divide{x}{y}` return digits only: `&multiply{ten cats}{two dogs}` is `20`
+      - `&ordinal{3}` is `3rd`, `&cardinal{3rd}` is `3`
+      - `&dignum{3}` is `3`, `&wordnum{three}` is `three`
       - `&random{n}`, `&floor{x}`, `&ceil{x}`, `&round{x}` do what you probably expect
       - `&eq{x}{y}`, `&neq{x}{y}`, `&gt{x}{y}`, `&geq{x}{y}`, `&lt{x}{y}`, `&leq{x}{y}` also fairly predictable
-      - `&ordinal{3}` is `3rd`, `&cardinal{3rd}` is `3`
-      - `&dignum{3}` is `three`, `&wordnum{three}` is `3`
 - remove substrings: `&strip{ac}{abacus}` evaluates to `abus`, `&strip{gh}{lightweight}` to `litweit`, etc.
 - special functions:
    - conditionals:

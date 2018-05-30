@@ -451,12 +451,54 @@ function makeExpansionSync (config) {
   return result
 }
 
+function textReduce (expansion, childExpansion) {
+  var leftVal = expansion.value, rightVal = childExpansion.value
+  var leftText = expansion.text, rightText = childExpansion.text
+  var value = (typeof(leftVal) === 'undefined'
+               ? (typeof(rightVal) === 'undefined'
+                  ? rightText
+                  : rightVal)
+               : (typeof(leftVal) === 'string'
+                  ? (leftVal + (typeof(rightVal) === 'undefined'
+                                ? rightText
+                                : makeString(rightVal)))
+                  : (leftVal.concat ((typeof(rightVal) === 'undefined' || typeof(rightVal) === 'string')
+                                     ? [rightText]
+                                     : rightVal))))
+  return extend (expansion,
+                 childExpansion,
+                 { text: leftText + rightText,
+                   value: value,
+                   tree: expansion.tree.concat (childExpansion.tree),
+                   nodes: expansion.nodes + childExpansion.nodes })
+}
+
+function listReduce (expansion, childExpansion) {
+  var leftVal = expansion.value, rightVal = childExpansion.value
+  var leftText = expansion.text, rightText = childExpansion.text
+  var value = leftVal.concat ((typeof(rightVal) === 'undefined' || typeof(rightVal) === 'string')
+                              ? [rightText]
+                              : [rightVal])
+  return extend (expansion,
+                 childExpansion,
+                 { text: leftText + rightText,
+                   value: value,
+                   tree: expansion.tree.concat (childExpansion.tree),
+                   nodes: expansion.nodes + childExpansion.nodes })
+}
+
 function makeRhsExpansionPromise (config) {
   var pt = this
   var rhs = config.rhs || this.sampleParseTree (parseRhs (config.rhsText), config)
   var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
   var maxLength = config.maxLength || pt.maxLength
   var maxNodes = config.maxNodes || pt.maxNodes
+  var reduce = config.reduce || textReduce
+  var init = extend ({ text: '',
+                       vars: config.vars,
+                       tree: [],
+                       nodes: 0 },
+                     config.init)
   return rhs.reduce (function (promise, child) {
     return promise.then (function (expansion) {
       if ((expansion.text && expansion.text.length >= maxLength)
@@ -467,31 +509,10 @@ function makeRhsExpansionPromise (config) {
                                               { node: child,
                                                 vars: expansion.vars }))
         .then (function (childExpansion) {
-          var leftVal = expansion.value, rightVal = childExpansion.value
-          var leftText = expansion.text, rightText = childExpansion.text
-          var value = (typeof(leftVal) === 'undefined'
-                       ? (typeof(rightVal) === 'undefined'
-                          ? rightText
-                          : rightVal)
-                       : (typeof(leftVal) === 'string'
-                          ? (leftVal + (typeof(rightVal) === 'undefined'
-                                        ? rightText
-                                        : makeString(rightVal)))
-                          : (leftVal.concat ((typeof(rightVal) === 'undefined' || typeof(rightVal) === 'string')
-                                             ? [rightText]
-                                             : rightVal))))
-          return extend (expansion,
-                         childExpansion,
-                         { text: leftText + rightText,
-                           value: value,
-                           tree: expansion.tree.concat (childExpansion.tree),
-                           nodes: expansion.nodes + childExpansion.nodes })
+          return reduce (expansion, childExpansion)
         })
     })
-  }, resolve ({ text: '',
-                vars: config.vars,
-                tree: [],
-                nodes: 0 }))
+  }, resolve (init))
 }
 
 function makeRhsExpansionPromiseForConfig (config, resolve, rhs, contextKey) {
@@ -645,7 +666,10 @@ function makeExpansionPromise (config) {
     .then (function() {
       var expansion = { text: '', vars: varVal, nodes: 1 }
       var expansionPromise = resolve (expansion), promise = expansionPromise
-      var makeRhsExpansionPromiseFor = makeRhsExpansionPromiseForConfig.bind (pt, config, resolve)
+      var makeRhsExpansionPromiseFor = makeRhsExpansionPromiseForConfig.bind (pt, extend ({},config,{reduce:textReduce,
+                                                                                                     init:{}}), resolve)
+      var makeListExpansionPromiseFor = makeRhsExpansionPromiseForConfig.bind (pt, extend({},config,{reduce:listReduce,
+                                                                                                     init:{value:[]}}), resolve)
       function addExpansionNodes (x) { x.nodes += expansion.nodes; return extend (expansion, x) }
       if (node) {
         if (typeof(node) === 'string') {
@@ -697,9 +721,24 @@ function makeExpansionPromise (config) {
             break
 
           case 'func':
-            // quote
             if (node.funcname === 'quote') {
+              // quote
               expansion.text = pt.makeRhsText (node.args, makeSymbolName)
+            } else if (node.funcname === 'list') {
+              // list
+              promise = makeListExpansionPromiseFor (node.args)
+                .then (function (listExpansion) {
+                  expansion.value = listExpansion.value
+                  expansion.text = makeString (expansion.value)
+                  return expansionPromise
+                })
+            } else if (node.funcname === 'json') {
+              // json
+              promise = makeListExpansionPromiseFor (node.args)
+                .then (function (listExpansion) {
+                  expansion.text = JSON.stringify (listExpansion.value)
+                  return expansionPromise
+                })
             } else if (binaryFunction[node.funcname]) {
               // binary functions
               promise = makeRhsExpansionPromiseFor ([node.args[0]])
@@ -714,6 +753,7 @@ function makeExpansionPromise (config) {
                     })
                 })
 	    } else {
+              // unary functions
               promise = makeRhsExpansionPromiseFor (node.args)
                 .then (function (argExpansion) {
                   var arg = argExpansion.text
@@ -742,6 +782,17 @@ function makeExpansionPromise (config) {
                     // escape
                   case 'escape':
                     expansion.text = escapeString (arg)
+                    break
+
+                    // string
+                  case 'string':
+                    expansion.text = arg
+                    break
+
+                    // value
+                  case 'value':
+                    expansion.value = argExpansion.value
+                    expansion.text = arg
                     break
 
                     // not

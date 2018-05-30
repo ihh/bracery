@@ -81,7 +81,7 @@ FunctionName = "eval" / "quote" / "escape"
   / "plural" / "singular" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive"
   / "gerund" / "adjective" / "negative" / "positive" / "a" / "uc" / "lc" / "cap"
   / "random" / "floor" / "ceil" / "round" / "wordnum" / "dignum" / "ordinal" / "cardinal"
-  / "islist" / "first" / "last" / "notfirst" / "notlast"
+  / "list" / "string" / "value" / "json" / "islist" / "first" / "last" / "notfirst" / "notlast"
   / "not"
 
 FunctionArg

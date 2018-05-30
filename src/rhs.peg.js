@@ -64,7 +64,7 @@ LocalAssignment
   / "#" _ assigns:VarAssignmentList _ sym:Identifier mods:TraceryModifiers "#" { return makeLocalAssignChain (assigns, [makeTraceryExpr (sym, mods)]) }
 
 BinaryFunction
-  = "&" func:BinaryFunctionName strip:FunctionArg source:FunctionArg { return makeFunction (func, [wrapNodes (strip), wrapNodes (source)]) }
+  = "&" func:BinaryFunctionName left:FunctionArg right:FunctionArg { return makeFunction (func, [wrapNodes (left), wrapNodes (right)]) }
 
 BinaryFunctionName = "strip"
   / "add" / "subtract" / "multiply" / "divide"
@@ -91,7 +91,7 @@ FunctionArg
 Unit
   = sym:Symbol { return [sym] }
   / cond:Conditional { return [cond] }
-  / local:LocalAssignment { return [local] }
+  / loc:LocalAssignment { return [loc] }
   / bin:BinaryFunction { return [bin] }
   / func:Function { return [func] }
   / assign:VarAssignment { return [assign] }

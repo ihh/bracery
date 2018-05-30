@@ -253,20 +253,23 @@ Language features include
       - `&rep{x}{3,5}` expands to `xxx`, `xxxx`, or `xxxxx`
 - lists:
    - `&list{...}` creates an explicit nested list context, vs the default concatenation context
-   - `&{}` is the empty list, equivalent to `&list{}`
+      - `&{}` is the empty list, equivalent to `&list{}`
+      - beginning a concatenation context with `&{}` (or any other list) makes it a list context
+      - beginning a concatenation context with a string, or wrapping it in `&string{...}` makes it a string context
    - `&islist{x}` returns true if, and only if, `x` is a list
-   - `&prepend{item}{list}`, `&append{list}{item}` return lists
-   - `&first{list}`, `&last{list}` return individual list items (can be strings or nested lists)
-   - `&notfirst{list}`, `&notlast{list}` return lists
-   - `&cat{list1}{list2}` returns a list
-   - `&join{list}{item}` returns a string
-   - when coerced into a string context (i.e. most contexts), a list is invisibly joined/flattened as if by `&join{list}{}`
+   - list-coercing functions:
+      - `&prepend{item}{list}`, `&append{list}{item}` return lists
+      - `&first{list}`, `&last{list}` return individual list items (can be strings or nested lists)
+      - `&notfirst{list}`, `&notlast{list}` return lists
+      - `&cat{list1}{list2}` returns a list
+      - `&join{list}{item}` returns a string
    - when coerced into a list context by one of the above functions, the empty string becomes the empty list and any nonempty string becomes a single-element list
+   - when coerced into a string context (i.e. most contexts), a list is invisibly joined/flattened as if by `&join{list}{}`
 - functions, alternations, repetitions, variable assignments, and conditionals can be arbitrarily nested
 - everything can occur asynchronously, so symbols can be resolved and expanded from a remote store
    - but if you have a synchronously resolvable store (i.e. a local Tracery object), everything can work synchronously too
 - syntactic sugar/hacks/apologies
-   - the Tracery-style expression `#name#` is actually shorthand for `&if{^name}then{&eval{^name}}else{$name}`. Tracery overloads the same namespace for symbol and variable names, and uses the variable if it's defined; this reproduces that behavior (almost)
+   - the Tracery-style expression `#name#` is parsed and implemented as `&if{^name}then{&eval{^name}}else{$name}`. Tracery overloads the same namespace for symbol and variable names, and uses the variable if it's defined; this quasi-macro reproduces that behavior (almost)
    - braces around single-argument functions or symbols can be omitted, e.g. `^currency=&cap&plural$name` means the same as `^currency={&cap{&plural{$name}}}`
    - variable and symbol names are case-insensitive
       - the case used when a variable is referenced can be a shorthand for capitalization: you can use `$Nonterminal_name` as a shorthand for `&cap{$nonterminal_name}`, and `^Variable_name` for `&cap{^variable_name}`

@@ -802,7 +802,7 @@ function makeExpansionPromise (config) {
 
                     // list functions
                   case 'islist':
-                    expansion.text = isArray(argExpansion.value) ? (arg.match(/\S/) ? arg : trueVal) : ''
+                    expansion.text = isArray(argExpansion.value) ? JSON.stringify(argExpansion.value) : ''
                     break
 
                   case 'first':

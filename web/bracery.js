@@ -3910,7 +3910,8 @@ function makeExpansionPromise (config) {
     .then (function() {
       var expansion = { text: '', vars: varVal, nodes: 1 }
       var expansionPromise = resolve (expansion), promise = expansionPromise
-      var makeRhsExpansionPromiseFor = makeRhsExpansionPromiseForConfig.bind (pt, config, resolve)
+      var makeRhsExpansionPromiseFor = makeRhsExpansionPromiseForConfig.bind (pt, extend ({},config,{reduce:textReduce,
+                                                                                                     init:{}}), resolve)
       var makeListExpansionPromiseFor = makeRhsExpansionPromiseForConfig.bind (pt, extend({},config,{reduce:listReduce,
                                                                                                      init:{value:[]}}), resolve)
       function addExpansionNodes (x) { x.nodes += expansion.nodes; return extend (expansion, x) }

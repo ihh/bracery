@@ -255,6 +255,7 @@ Language features include
       - `&notfirst{list}`, `&notlast{list}` return lists
       - `&cat{list1}{list2}` returns a list
       - `&join{list}{item}` returns a string
+      - `&islist{x}` returns true if, and only if, `x` is a list
       - in a string context (i.e. most contexts), a list is invisibly joined as if by `&join{list}{}`
    - repetition:
       - `&rep{x}{3}` expands to `xxx`

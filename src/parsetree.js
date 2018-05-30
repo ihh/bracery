@@ -582,7 +582,7 @@ var binaryFunction = {
     return r.split(l).join('')
   },
   same: function (l, r, lv, rv) {
-    return valuesEqual (lv, rv) ? (l === falseVal ? trueVal : lv) : falseVal
+    return valuesEqual (lv, rv) ? (l.match(/\S/) ? lv : trueVal) : falseVal
   },
   and: function (l, r) {
     return l.match(/\S/) && r.match(/\S/) ? (l + r) : falseVal
@@ -747,7 +747,11 @@ function makeExpansionPromise (config) {
                     expansion.text = arg.match(/\S/) ? '' : trueVal
                     break
 
-                    // array functions
+                    // list functions
+                  case 'islist':
+                    expansion.text = isArray(argExpansion.value) ? (arg.match(/\S/) ? arg : trueVal) : ''
+                    break
+
                   case 'first':
                     expansion.text = makeString (makeArray (argExpansion.value)[0] || '')
                     break

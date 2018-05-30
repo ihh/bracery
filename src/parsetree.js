@@ -550,19 +550,19 @@ function cloneItem (item) {
 }
 
 function makeArray (item) {
-  return (typeof(item) === 'undefined'
-          ? []
-          : (typeof(item) === 'string'
+  return (item
+          ? (typeof(item) === 'string'
              ? [item]
-             : cloneItem(item)))
+             : cloneItem(item))
+          : [])
 }
 
 function makeString (item) {
-  return (typeof(item) === 'undefined'
-          ? ''
-          : (typeof(item) === 'string'
+  return (item
+          ? (typeof(item) === 'string'
              ? item
-             : item.map(makeString).join('')))
+             : item.map(makeString).join(''))
+          : '')
 }
 
 function valuesEqual (a, b) {
@@ -903,7 +903,8 @@ function makeExpansionPromise (config) {
             })
             break
           case 'list':
-            expansion.text = node.rhs || []
+            expansion.value = node.rhs || []
+            expansion.text = makeString (expansion.value)
             break
           case 'root':
           case 'alt_sampled':

@@ -204,6 +204,9 @@ function doTests (testRunner) {
   expectExpand ('&same{&{}}{}', '')
   expectExpand ('&same{&{}}{&{}}', '1')
 
+  expectExpand ('&join{&{}x&{}y}{,}', 'x,y')
+  expectExpand ('&join{x&{}y&{}}{,}', 'xy')
+
   // strip
   expectExpand ('&strip{hello}{hello world hello}', ' world ')
   expectExpand ('&strip{$abc}{defcon}', 'con')

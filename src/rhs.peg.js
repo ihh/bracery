@@ -83,7 +83,7 @@ BinaryFunctionName = "strip"
 Function
   = "&" func:FunctionName args:FunctionArg { return makeFunction (func, args) }
 
-FunctionName = "eval" / "quote" / "escape"
+FunctionName = "eval" / "escape" / "quote" / "quasiquote" / "unquote"
   / "plural" / "singular" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive"
   / "gerund" / "adjective" / "negative" / "positive" / "a" / "uc" / "lc" / "cap"
   / "random" / "floor" / "ceil" / "round" / "wordnum" / "dignum" / "ordinal" / "cardinal"

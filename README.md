@@ -242,9 +242,10 @@ Language features include
          - also comparison `&same{x}{y}` and boolean operators `&and{x}{y}`, `&not{x}`
    - dynamic evaluation
       - `&eval{expr}` parses `expr` as Bracery and dynamically expands it
-      - conversely, `&quote{expr}` returns `expr` as a text string, without doing any expansions
+         - conversely, `&quote{expr}` returns `expr` as a text string, without doing any expansions
+         - `&quasiquote{...}`, `&unquote{...}` work pretty much like in Scheme
       - `&eval{&quote{expr}}` is the same as `expr`, although...
-      - there is a configurable limit on the number of dynamic evaluations that an expression can use, to guard against infinite recursion or hammering the server
+         - there is a configurable limit on the number of dynamic evaluations that an expression can use, to guard against infinite recursion or hammering the server
    - locally scoped variables:
       - Tracery-style `#[x:value1][y:value2]symbol_name#` (what Tracery calls "actions")
       - Bracery-style `&let^x={value1}^y={value2}{something involving x and y}`
@@ -263,6 +264,8 @@ Language features include
       - `&notfirst{list}`, `&notlast{list}` return lists
       - `&cat{list1}{list2}` returns a list
       - `&join{list}{item}` returns a string
+      - `&map^varname:{list}{expr}` and `&filter^varname:{list}{expr}` return lists
+      - `&reduce^varname:{list}^result={init}{expr}` can return list or string
    - when coerced into a list context by one of the above functions, the empty string becomes the empty list and any nonempty string becomes a single-element list
    - when coerced into a string context (i.e. most contexts), a list is invisibly joined/flattened as if by `&join{list}{}`
 - functions, alternations, repetitions, variable assignments, and conditionals can be arbitrarily nested

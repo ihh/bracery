@@ -213,7 +213,10 @@ function doTests (testRunner) {
   expectExpand ('^x=&list{&string{2}&string{4}&string{6}&string{0}}&filter^n^x&gt{^n}{3}', '46')
   expectExpand ('^x=&list{&string{2}&string{4}&string{6}&string{0}}&reduce^n^x^r={0}&add^n^r', '12')
   expectExpand ('^x=&list{&string{2}&string{4}&string{6}&string{0}}&reduce^n:^x^r={zero dogs}&add^r^n', 'twelve dogs')
-  
+
+  expectExpand ('^x={1}^a1={verily}^a2={in troth}&eval&quasiquote{^a&unquote^x indeed}', 'verily indeed')
+  expectExpand ('&quasiquote&unquote&quote&infinitive^y', '&infinitive^y')
+
   // strip
   expectExpand ('&strip{hello}{hello world hello}', ' world ')
   expectExpand ('&strip{$abc}{defcon}', 'con')

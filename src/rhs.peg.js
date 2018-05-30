@@ -10,6 +10,7 @@ Node
   / Symbol
   / Conditional
   / LocalAssignment
+  / MapFunction
   / BinaryFunction
   / Function
   / VarAssignment
@@ -63,6 +64,11 @@ LocalAssignment
   = "&let" _ assigns:VarAssignmentList _ scope:FunctionArg { return makeLocalAssignChain (assigns, scope) }
   / "#" _ assigns:VarAssignmentList _ sym:Identifier mods:TraceryModifiers "#" { return makeLocalAssignChain (assigns, [makeTraceryExpr (sym, mods)]) }
 
+MapFunction
+  = "&map^" varname:Identifier (":" / "") list:FunctionArg func:FunctionArg { return makeFunction ('map', [makeLocalAssign (varname, list, func)]) }
+  / "&filter^" varname:Identifier (":" / "") list:FunctionArg func:FunctionArg { return makeFunction ('filter', [makeLocalAssign (varname, list, func)]) }
+  / "&reduce^" varname:Identifier (":" / "") list:FunctionArg "^" result:Identifier ("=" / "") init:FunctionArg func:FunctionArg { return makeFunction ('reduce', [makeLocalAssign (varname, list, [makeLocalAssign (result, init, func)])]) }
+
 BinaryFunction
   = "&" func:BinaryFunctionName left:FunctionArg right:FunctionArg { return makeFunction (func, [wrapNodes (left), wrapNodes (right)]) }
 
@@ -92,6 +98,7 @@ Unit
   = sym:Symbol { return [sym] }
   / cond:Conditional { return [cond] }
   / loc:LocalAssignment { return [loc] }
+  / mapfunc:MapFunction { return [mapfunc] }
   / bin:BinaryFunction { return [bin] }
   / func:Function { return [func] }
   / assign:VarAssignment { return [assign] }

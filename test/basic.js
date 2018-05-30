@@ -207,6 +207,13 @@ function doTests (testRunner) {
   expectExpand ('&join{&{}x&{}y}{,}', 'x,y')
   expectExpand ('&join{x&{}y&{}}{,}', 'xy')
 
+  expectExpand ('^x=&list{&string{abc}&string{def}}&map^a^x{^a!}', 'abc!def!')
+  expectExpand ('^x=&list{&string{abc}&string{def}}&join&map^a^x{^a!}{ }', 'abc! def!')
+
+  expectExpand ('^x=&list{&string{2}&string{4}&string{6}&string{0}}&filter^n^x&gt{^n}{3}', '46')
+  expectExpand ('^x=&list{&string{2}&string{4}&string{6}&string{0}}&reduce^n^x^r={0}&add^n^r', '12')
+  expectExpand ('^x=&list{&string{2}&string{4}&string{6}&string{0}}&reduce^n:^x^r={zero dogs}&add^r^n', 'twelve dogs')
+  
   // strip
   expectExpand ('&strip{hello}{hello world hello}', ' world ')
   expectExpand ('&strip{$abc}{defcon}', 'con')

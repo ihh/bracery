@@ -320,6 +320,11 @@ function makeRhsText (rhs, makeSymbolName) {
       case 'func':
         if (binaryFunction[tok.funcname]) {
           result = funcChar + tok.funcname + tok.args.map (function (arg) { return makeFuncArgText (pt, [arg], makeSymbolName) }).join('')
+        } else if (tok.funcname === 'map' || tok.funcname === 'filter' || tok.funcname === 'reduce') {
+          result = funcChar + tok.funcname + varChar + tok.args[0].varname + ':' + makeFuncArgText (pt, tok.args[0].value, makeSymbolName)
+            + (tok.funcname === 'reduce'
+               ? (varChar + tok.args[0].local[0].varname + '=' + makeFuncArgText (pt, tok.args[0].local[0].value, makeSymbolName) + makeFuncArgText (pt, tok.args[0].local[0].local, makeSymbolName))
+               : makeFuncArgText (pt, tok.args[0].local, makeSymbolName))
         } else {
 	  var sugaredName = pt.makeSugaredName (tok, makeSymbolName, nextIsAlpha)
           if (sugaredName && tok.funcname !== 'quote') {
@@ -451,7 +456,7 @@ function makeExpansionSync (config) {
   return result
 }
 
-function textReduce (expansion, childExpansion) {
+function textReduce (expansion, childExpansion, config, resolve) {
   var leftVal = expansion.value, rightVal = childExpansion.value
   var leftText = expansion.text, rightText = childExpansion.text
   var value = (typeof(leftVal) === 'undefined'
@@ -473,7 +478,7 @@ function textReduce (expansion, childExpansion) {
                    nodes: expansion.nodes + childExpansion.nodes })
 }
 
-function listReduce (expansion, childExpansion) {
+function listReduce (expansion, childExpansion, config, resolve) {
   var leftVal = expansion.value, rightVal = childExpansion.value
   var leftText = expansion.text, rightText = childExpansion.text
   var value = leftVal.concat ((typeof(rightVal) === 'undefined' || typeof(rightVal) === 'string')
@@ -485,6 +490,90 @@ function listReduce (expansion, childExpansion) {
                    value: value,
                    tree: expansion.tree.concat (childExpansion.tree),
                    nodes: expansion.nodes + childExpansion.nodes })
+}
+
+function mapReduce (expansion, childExpansion, config, resolve) {
+  var pt = this
+  var mapRhs = config.mapRhs
+  var mapVarName = config.mapVarName
+  var varVal = expansion.vars
+
+  var oldValue = varVal[mapVarName]
+  varVal[mapVarName] = childExpansion.value || childExpansion.text
+
+  var sampledMapRhs = this.sampleParseTree (mapRhs, config)
+  return makeRhsExpansionPromiseForConfig.call (pt,
+                                                extend ({}, config, { vars: varVal,
+                                                                      reduce: textReduce,
+                                                                      init: {} }),
+                                                resolve,
+                                                sampledMapRhs)
+    .then (function (mappedChildExpansion) {
+      var restoredVars = extend ({}, mappedChildExpansion.vars)
+      if (typeof(oldValue) === 'undefined')
+        delete restoredVars[mapVarName]
+      else
+        restoredVars[mapVarName] = oldValue
+      return listReduce.call (pt, expansion, extend (mappedChildExpansion, { vars: restoredVars }), config, resolve)
+    })
+}
+
+function filterReduce (expansion, childExpansion, config, resolve) {
+  var pt = this
+  var mapRhs = config.mapRhs
+  var mapVarName = config.mapVarName
+  var varVal = expansion.vars
+
+  var oldValue = varVal[mapVarName]
+  varVal[mapVarName] = childExpansion.value || childExpansion.text
+
+  var sampledMapRhs = this.sampleParseTree (mapRhs, config)
+  return makeRhsExpansionPromiseForConfig.call (pt,
+                                                extend ({}, config, { vars: varVal,
+                                                                      reduce: textReduce,
+                                                                      init: {} }),
+                                                resolve,
+                                                sampledMapRhs)
+    .then (function (mappedChildExpansion) {
+      var restoredVars = extend ({}, mappedChildExpansion.vars)
+      if (typeof(oldValue) === 'undefined')
+        delete restoredVars[mapVarName]
+      else
+        restoredVars[mapVarName] = oldValue
+      return mappedChildExpansion.text.match(/\S/) ? listReduce.call (pt, expansion, extend (childExpansion, { vars: restoredVars }), config, resolve) : expansion
+    })
+}
+
+function reduceReduce (expansion, childExpansion, config, resolve) {
+  var pt = this
+  var mapVarName = config.mapVarName
+  var resultVarName = config.resultVarName
+  var resultRhs = config.resultRhs
+  var varVal = expansion.vars
+
+  var oldMapValue = varVal[mapVarName], oldResultValue = varVal[resultVarName]
+  varVal[mapVarName] = childExpansion.value || childExpansion.text
+  varVal[resultVarName] = expansion.value || expansion.text
+
+  var sampledResultRhs = this.sampleParseTree (resultRhs, config)
+  return makeRhsExpansionPromiseForConfig.call (pt,
+                                                extend ({}, config, { vars: varVal,
+                                                                      reduce: textReduce,
+                                                                      init: {} }),
+                                                resolve,
+                                                sampledResultRhs)
+    .then (function (reducedExpansion) {
+      var restoredVars = extend ({}, reducedExpansion.vars)
+      if (typeof(oldMapValue) === 'undefined')
+        delete restoredVars[mapVarName]
+      else
+        restoredVars[mapVarName] = oldMapValue
+      if (typeof(oldResultValue) === 'undefined')
+        delete restoredVars[resultVarName]
+      else
+        restoredVars[resultVarName] = oldResultValue
+      return extend (reducedExpansion, { vars: restoredVars })
+    })
 }
 
 function makeRhsExpansionPromise (config) {
@@ -509,7 +598,7 @@ function makeRhsExpansionPromise (config) {
                                               { node: child,
                                                 vars: expansion.vars }))
         .then (function (childExpansion) {
-          return reduce (expansion, childExpansion)
+          return reduce.call (pt, expansion, childExpansion, config, resolve)
         })
     })
   }, resolve (init))
@@ -654,22 +743,30 @@ var binaryFunction = {
   }
 }
 
+function makeExpansionReducer (pt, config, reduce, init) {
+  var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
+  return makeRhsExpansionPromiseForConfig.bind (pt,
+                                                extend ({},
+                                                        config,
+                                                        { reduce: reduce,
+                                                          init: init }),
+                                                resolve)
+}
+
 function makeExpansionPromise (config) {
   var pt = this
   var node = config.node
   var varVal = config.vars || {}
   var depth = config.depth || {}
   var makeSymbolName = config.makeSymbolName || defaultMakeSymbolName
-  var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
   var rng = config && config.rng ? config.rng : Math.random
+  var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
   return handlerPromise ([node, varVal, depth], resolve(), config.before, node.type, 'all')
     .then (function() {
       var expansion = { text: '', vars: varVal, nodes: 1 }
       var expansionPromise = resolve (expansion), promise = expansionPromise
-      var makeRhsExpansionPromiseFor = makeRhsExpansionPromiseForConfig.bind (pt, extend ({},config,{reduce:textReduce,
-                                                                                                     init:{}}), resolve)
-      var makeListExpansionPromiseFor = makeRhsExpansionPromiseForConfig.bind (pt, extend({},config,{reduce:listReduce,
-                                                                                                     init:{value:[]}}), resolve)
+      var makeRhsExpansionPromiseFor = makeExpansionReducer (pt, config, textReduce, {})
+      var makeListExpansionPromiseFor = makeExpansionReducer (pt, config, listReduce, { value: [] })
       function addExpansionNodes (x) { x.nodes += expansion.nodes; return extend (expansion, x) }
       if (node) {
         if (typeof(node) === 'string') {
@@ -738,6 +835,46 @@ function makeExpansionPromise (config) {
                 .then (function (listExpansion) {
                   expansion.text = JSON.stringify (listExpansion.value)
                   return expansionPromise
+                })
+            } else if (node.funcname === 'map') {
+              // map
+              promise = makeRhsExpansionPromiseFor (node.args[0].value)
+                .then (function (listExpansion) {
+                  return makeExpansionReducer (pt,
+                                               extend ({},
+                                                       config,
+                                                       { mapVarName: node.args[0].varname,
+                                                         mapRhs: node.args[0].local }),
+                                               mapReduce,
+                                               { value: [] }) (makeArray (listExpansion.value))
+                })
+            } else if (node.funcname === 'filter') {
+              // filter
+              promise = makeRhsExpansionPromiseFor (node.args[0].value)
+                .then (function (listExpansion) {
+                  return makeExpansionReducer (pt,
+                                               extend ({},
+                                                       config,
+                                                       { mapVarName: node.args[0].varname,
+                                                         mapRhs: node.args[0].local }),
+                                               filterReduce,
+                                               { value: [] }) (makeArray (listExpansion.value))
+                })
+            } else if (node.funcname === 'reduce') {
+              // reduce
+              promise = makeRhsExpansionPromiseFor (node.args[0].value)
+                .then (function (listExpansion) {
+                  return makeRhsExpansionPromiseFor (node.args[0].local[0].value)
+                    .then (function (initExpansion) {
+                      return makeExpansionReducer (pt,
+                                                   extend ({},
+                                                           config,
+                                                           { mapVarName: node.args[0].varname,
+                                                             resultVarName: node.args[0].local[0].varname,
+                                                             resultRhs: node.args[0].local[0].local }),
+                                                   reduceReduce,
+                                                   { value: initExpansion.value }) (makeArray (listExpansion.value))
+                    })
                 })
             } else if (binaryFunction[node.funcname]) {
               // binary functions

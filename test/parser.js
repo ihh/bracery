@@ -38,6 +38,11 @@ describe('validation', function() {
   validate ('&set^y{xyz}', '^y={xyz}')
   validate ('&set{^y}{xyz}', '^y={xyz}')
   validate ('&set{y}{xyz}', '^y={xyz}')
+
+  validate ('&reduce^n:^x^r={zero dogs}&add^r^n')
+  validate ('&reduce^n{^x}^r{zero dogs}{&add{^r}{^n}}', '&reduce^n:^x^r={zero dogs}&add^r^n')
+  validate ('&map^n:^x{^n,}')
+  validate ('&map^n{^x}{^n,}', '&map^n:^x{^n,}')
 })
 
 function validate (lhs, norm, config) {

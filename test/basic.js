@@ -176,27 +176,28 @@ function doTests (testRunner) {
   expectExpand ('^a', '')
   expectExpand ('^a', 'x', {vars:vars,a_equals_x:true})
 
-  // push, pop, shift, unshift, swap
-  expectExpand ('^a={x}^a&push{^a}^a={y}^a&pop{^a}^a', 'xyx')
-  expectExpand ('^a={x}^a&push{^a}^a={y}^a&push{^a}^a={z}^a&pop{^a}^a&pop{^a}^a', 'xyzyx')
-  expectExpand ('^a={x}^b={X}^a^b&push{^a^b}^a={y}^b={Y}^a^b&pop{^a^b}^a^b', 'xXyYxX')
-  expectExpand ('^a={x}&pop{^a}^a', '')
-  expectExpand ('^a={x}&pop{^a}^a^a={test}&push^a', '')
+  // cat, first, rest, most, last
+  expectExpand ('&{}', '')
+  expectExpand ('&cat{&{}}{xyz}', 'xyz')
+  expectExpand ('&cat{xyz}{abc}', 'xyzabc')
+  expectExpand ('&cat{123}&cat{xyz}{abc}', '123xyzabc')
+  expectExpand ('&first{&cat{123}&cat{xyz}{abc}}', '123')
+  expectExpand ('&notfirst{&cat{123}&cat{xyz}{abc}}', 'xyzabc')
+  expectExpand ('&last{&cat{123}&cat{xyz}{abc}}', 'abc')
+  expectExpand ('&notlast{&cat{123}&cat{xyz}{abc}}', '123xyz')
 
-  expectExpand ('^a={x}^a&push{^a}^a={y}^a&let^a={z}{^a!&pop{^a}^a}^a&pop{^a}^a', 'xyz!yx')  // tests that local lexical scope preserves the variable's private stack
-  expectExpand ('^a...&let^a={x}{^a&push{^a}^a={y}^a&push{^a}^a={z}^a&pop{^a}^a}!^a&pop{^a}?^a', '...xyzy!?')  // tests that local lexical scope preserves the variable's private stack
+  expectExpand ('&prepend{123}&cat{xyz}{abc}', '123xyzabc')
+  expectExpand ('&prepend&cat{xyz}{abc}{123}', 'xyzabc123')
+  expectExpand ('&first{&prepend{123}&cat{xyz}{abc}}', '123')
+  expectExpand ('&first{&prepend&cat{xyz}{abc}{123}}', 'xyzabc')
+  expectExpand ('&last{&prepend{123}&cat{xyz}{abc}}', 'abc')
+  expectExpand ('&last{&prepend&cat{xyz}{abc}{123}}', '123')
 
-  expectExpand ('^a={x}^a&push{^a}^a={y}^a&unshift{^a}^a={z}^a&pop{^a}^a&pop{^a}^a', 'xyzxy')
-  expectExpand ('^a={x}^a&push{^a}^a={y}^a&unshift{^a}^a={z}^a&shift{^a}^a&shift{^a}^a', 'xyzyx')
+  expectExpand ('&append{123}&cat{xyz}{abc}', '123xyzabc')
+  expectExpand ('&first&append{123}&cat{xyz}{abc}', '123')
+  expectExpand ('&last&append{123}&cat{xyz}{abc}', 'xyzabc')
 
-  expectExpand ('^a={x}&push^a^a={y}&push^a^a={z}&push^a^a={test}&swap^a^a', 'x', {maxTries:maxTries})
-  expectExpand ('^a={x}&push^a^a={y}&push^a^a={z}&push^a^a={test}&swap^a^a', 'y', {maxTries:maxTries})
-  expectExpand ('^a={x}&push^a^a={y}&push^a^a={z}&push^a^a={test}&swap^a^a', 'z', {maxTries:maxTries})
-  expectExpand ('^a={x}&push^a^a={y}&push^a^a={z}&push^a^a={test}&swap^a^a', 'test', {maxTries:maxTries,fail:true})
-  expectExpand ('^a={x}&push^a^a={y}&push^a^a={z}&push^a^a={test}&swap^a&swap^a^a', 'test', {maxTries:maxTries})
-  expectExpand ('^a={x}&push^a^a={y}&push^a^a={z}&push^a^a={test}&swap^a&swap^a^a', 'x', {maxTries:maxTries})
-  expectExpand ('^a={x}&push^a^a={y}&push^a^a={z}&push^a^a={test}&swap^a&swap^a^a', 'y', {maxTries:maxTries})
-  expectExpand ('^a={x}&push^a^a={y}&push^a^a={z}&push^a^a={test}&swap^a&swap^a^a', 'z', {maxTries:maxTries})
+  expectExpand ('&join{&prepend{123}&cat{xyz}{abc}}{, }', '123, xyz, abc')
   
   // strip
   expectExpand ('&strip{hello}{hello world hello}', ' world ')
@@ -251,6 +252,7 @@ function doTests (testRunner) {
   function expectExpand (lhs, rhs, config) {
     var fail = config && config.fail
     function verify (text, done) {
+      text = bracery.ParseTree.makeString (text)
       if (fail)
         assert.notEqual (text, rhs)
       else
@@ -299,7 +301,7 @@ describe('asynchronous tests', function() {
                   ({},
                    config,
                    { callback: function (expansion) {
-                     var text = expansion.text
+                     var text = bracery.ParseTree.makeString (expansion.text)
                      if (text !== rhs && n < maxTries)
                        tryExpand (n + 1)
                      else

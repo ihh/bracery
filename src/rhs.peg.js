@@ -10,12 +10,12 @@ Node
   / Symbol
   / Conditional
   / LocalAssignment
-  / PushOrPop
   / BinaryFunction
   / Function
   / VarAssignment
   / VarLookup
   / Alternation
+  / EmptyList
   / char:[\$\#&\^] { return char }
 
 NodeList
@@ -63,14 +63,6 @@ LocalAssignment
   = "&let" _ assigns:VarAssignmentList _ scope:FunctionArg { return makeLocalAssignChain (assigns, scope) }
   / "#" _ assigns:VarAssignmentList _ sym:Identifier mods:TraceryModifiers "#" { return makeLocalAssignChain (assigns, [makeTraceryExpr (sym, mods)]) }
 
-PushOrPop
-  = "&" func:("push" / "pop" / "shift" / "unshift" / "swap") arg:VarLookup { return makeFunction (func, [arg]) }
-  / "&" func:("push" / "pop" / "shift" / "unshift" / "swap") "{" _ args:VarLookupList _ "}" { return makeFunction (func, args) }
-
-VarLookupList
-  = head:VarLookup _ tail:VarLookupList { return [head].concat(tail) }
-  / head:VarLookup { return [head] }
-
 BinaryFunction
   = "&" func:BinaryFunctionName strip:FunctionArg source:FunctionArg { return makeFunction (func, [wrapNodes (strip), wrapNodes (source)]) }
 
@@ -80,6 +72,7 @@ BinaryFunctionName = "strip"
   / "eq" / "neq"
   / "same"
   / "and"
+  / "cat" / "prepend" / "append" / "join"
 
 Function
   = "&" func:FunctionName args:FunctionArg { return makeFunction (func, args) }
@@ -88,6 +81,7 @@ FunctionName = "eval" / "quote" / "escape"
   / "plural" / "singular" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive"
   / "gerund" / "adjective" / "negative" / "positive" / "a" / "uc" / "lc" / "cap"
   / "random" / "floor" / "ceil" / "round" / "wordnum" / "dignum" / "ordinal" / "cardinal"
+  / "first" / "last" / "notfirst" / "notlast"
   / "not"
 
 FunctionArg
@@ -98,16 +92,19 @@ Unit
   = sym:Symbol { return [sym] }
   / cond:Conditional { return [cond] }
   / local:LocalAssignment { return [local] }
-  / pushpop:PushOrPop { return [pushpop] }
   / bin:BinaryFunction { return [bin] }
   / func:Function { return [func] }
   / assign:VarAssignment { return [assign] }
   / lookup:VarLookup { return [lookup] }
   / alt:Alternation { return [alt] }
+  / empty:EmptyList { return [empty] }
   / args:DelimitedNodeList { return args }
 
 DelimitedNodeList
   = "{" args:NodeList "}" { return args }
+
+EmptyList
+  = "&{}" { return makeEmptyList() }
 
 Repetition
   = "&rep" unit:Unit "{" min:Number "," max:Number "}" { return validRange (min, max) ? makeRep (unit, min, max) : text() }
@@ -121,7 +118,9 @@ VarLookup
   / "^{" _ varname:Identifier _ "}" { return makeSugaredLookup (varname) }
 
 VarAssignment
-  = "^" varname:Identifier "=" args:FunctionArg { return makeAssign (varname, args) }
+  = "&set^" varname:Identifier args:FunctionArg { return makeAssign (varname, args) }
+  / "&set{" ("^" / "") varname:Identifier "}" args:FunctionArg { return makeAssign (varname, args) }
+  / "^" varname:Identifier "=" args:FunctionArg { return makeAssign (varname, args) }
   / "[" varname:Identifier ":" args:NodeList "]" { return makeAssign (varname, args) }
   / "[" varname:Identifier "=>" opts:AltList "]" { return makeAssign (varname, [makeFunction ('quote', opts.length === 1 ? opts[0] : [makeAlternation (opts)])]) }
 

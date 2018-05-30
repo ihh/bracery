@@ -139,15 +139,21 @@ Bracery.prototype._expandSymbol = function (config) {
   return rhs
 }
 
+function stringifyText (expansion) {
+  if (expansion)
+    expansion.text = ParseTree.makeString (expansion.text)
+  return expansion
+}
+
 Bracery.prototype._expandRhs = function (config) {
   var newConfig = extend ({ expand: this._expandSymbol.bind (this) }, config)
   if (newConfig.callback) {
     var promise = ParseTree.makeRhsExpansionPromise (newConfig)
     if (typeof(newConfig.callback) === 'function')
       promise = promise.then (newConfig.callback)
-    return promise
+    return promise.then (stringifyText)
   }
-  return ParseTree.makeRhsExpansionSync (newConfig)
+  return stringifyText (ParseTree.makeRhsExpansionSync (newConfig))
 }
 
 function validateSymbolName (name) {

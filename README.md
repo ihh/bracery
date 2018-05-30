@@ -245,10 +245,16 @@ Language features include
       - conversely, `&quote{expr}` returns `expr` as a text string, without doing any expansions
       - `&eval{&quote{expr}}` is the same as `expr`, although...
       - there is a configurable limit on the number of dynamic evaluations that an expression can use, to guard against infinite recursion or hammering the server
-   - local scoped variables:
+   - locally scoped variables:
       - Tracery-style `#[x:value1][y:value2]symbol_name#` (what Tracery calls "actions")
       - Bracery-style `&let^x={value1}^y={value2}{something involving x and y}`
-      - each local scope of each variable also has its own private stack. This allows additional dynamic scoping in [Braceplate message sequences](#braceplate-message-sequences). The stack (`&push^x`, `&pop^x` to push/pop variable `x`) can also be used as a queue (`&shift^x`, `&unshift^x`). Or `&swap^x` to exchange `x` with a random element from its stack/queue/array. You know, it's kind of a hack. Just forget you ever read this bullet, it's dangerous knowledge that could hurt those close to you
+   - lists:
+      - `&{}` is the empty list
+      - `&prepend{item}{list}`, `&append{list}{item}`
+      - `&first{list}`, `&last{list}`
+      - `&notfirst{list}`, `&notlast{list}`
+      - `&cat{list1}{list2}`
+      - `&join{list}{item}`
    - repetition:
       - `&rep{x}{3}` expands to `xxx`
       - `&rep{x}{3,5}` expands to `xxx`, `xxxx`, or `xxxxx`

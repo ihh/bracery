@@ -40,11 +40,15 @@ describe('command-line tests (' + binPath + ')', function() {
   // compromise
   expectExpand ('&future{love}', 'will love')
   // command-line options
-  var tree1 = {text:'hello',vars:{},tree:['hello'],nodes:1}
-  var tree2 = {text:'testing',vars:{},tree:[{type:'sym',name:'test1',rhs:['testing']}],nodes:2}
+  var tree1 = {text:'hello',vars:{},tree:['hello'],nodes:1,value:'hello'}
+  var tree2 = {text:'testing',vars:{},tree:[{type:'sym',name:'test1',rhs:['testing']}],nodes:2,value:'testing'}
   expectExpand ('hello', '['+JSON.stringify(tree1,null,2)+']', { opts: '--tree' })
   expectExpand ('$test1', JSON.stringify([tree2]), { opts: '--compact-tree' })
   expectExpand ('#test4#', '$TEST1', { opts: '--async' })
+
+  // empty list test
+  var emptyListTree = {text:'',vars:{},tree:[{type:'list',rhs:[]}],nodes:1,value:[]}
+  expectExpand ('&{}', JSON.stringify([emptyListTree]), { opts: '--compact-tree' })
 
   // dump to file
   var tmpFilename = tmp.tmpNameSync()

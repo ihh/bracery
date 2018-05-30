@@ -1,6 +1,5 @@
 var RhsParser = require('./rhs')
 
-var StackTag = '.STACK'  // pseudo-variable used to store stacks
 var trueVal = '1'  // truthy value used when a result should be truthy but the default result in this context would otherwise be an empty string e.g. &same{}{} or &not{}
 var falseVal = ''  // falsy value
 var zeroVal = '0'  // default zero value for arithmetic operators
@@ -92,7 +91,8 @@ function sampleParseTree (rhs, config) {
     else
       switch (node.type) {
       case 'root':
-        result = { type: 'root',
+      case 'list':
+        result = { type: node.type,
                    rhs: pt.sampleParseTree (node.rhs, config) }
         break
       case 'assign':
@@ -186,6 +186,7 @@ function getSymbolNodes (rhs) {
         r = pt.getSymbolNodes (node.test.concat (node.t, node.f))
         break
       case 'root':
+      case 'list':
       case 'alt_sampled':
         r = pt.getSymbolNodes (node.rhs)
         break
@@ -230,6 +231,7 @@ function parseTreeEmpty (rhs) {
           result = false  // we aren't checking variable values, so just assume any referenced variable is nonempty (yes this will miss some empty trees)
           break
         case 'root':
+        case 'list':
         case 'alt_sampled':
 	  if (node.rhs)
 	    result = pt.parseTreeEmpty (node.rhs)
@@ -282,6 +284,11 @@ function makeRhsText (rhs, makeSymbolName) {
       var nextTok = (n < rhs.length - 1) ? rhs[n+1] : undefined
       var nextIsAlpha = typeof(nextTok) === 'string' && nextTok.match(/^[A-Za-z0-9_]/)
       switch (tok.type) {
+      case 'list':
+        if (tok.rhs.length)
+          throw new Error ("Can't display nonempty list")
+        result = '&{}'
+        break
       case 'root':
         result = pt.makeRhsText (tok.rhs, makeSymbolName)
         break
@@ -460,9 +467,23 @@ function makeRhsExpansionPromise (config) {
                                               { node: child,
                                                 vars: expansion.vars }))
         .then (function (childExpansion) {
+          var leftVal = expansion.value, rightVal = childExpansion.value
+          var leftText = expansion.text, rightText = childExpansion.text
+          var value = (typeof(leftVal) === 'undefined'
+                       ? (typeof(rightVal) === 'undefined'
+                          ? rightText
+                          : rightVal)
+                       : (typeof(leftVal) === 'string'
+                          ? (leftVal + (typeof(rightVal) === 'undefined'
+                                        ? rightText
+                                        : makeString(rightVal)))
+                          : (leftVal.concat ((typeof(rightVal) === 'undefined' || typeof(rightVal) === 'string')
+                                             ? [rightText]
+                                             : rightVal))))
           return extend (expansion,
                          childExpansion,
-                         { text: expansion.text + childExpansion.text,
+                         { text: leftText + rightText,
+                           value: value,
                            tree: expansion.tree.concat (childExpansion.tree),
                            nodes: expansion.nodes + childExpansion.nodes })
         })
@@ -520,6 +541,30 @@ function toNumber (text) {
   return nlp(text).values().numbers()[0] || 0
 }
 
+function cloneItem (item) {
+  return (typeof(item) === 'undefined'
+          ? undefined
+          : (typeof(item) === 'string'
+             ? item
+             : item.map(cloneItem)))
+}
+
+function makeArray (item) {
+  return (typeof(item) === 'undefined'
+          ? []
+          : (typeof(item) === 'string'
+             ? [item]
+             : cloneItem(item)))
+}
+
+function makeString (item) {
+  return (typeof(item) === 'undefined'
+          ? ''
+          : (typeof(item) === 'string'
+             ? item
+             : item.map(makeString).join('')))
+}
+
 var binaryFunction = {
   strip: function (l, r) {
     return r.split(l).join('')
@@ -561,6 +606,18 @@ var binaryFunction = {
   },
   geq: function (l, r) {
     return this.eq(l,r) || this.gt(l,r)
+  },
+  cat: function (l, r, lv, rv) {
+    return makeArray(lv).concat (makeArray(rv))
+  },
+  prepend: function (l, r, lv, rv) {
+    return [cloneItem(lv)].concat (makeArray(rv))
+  },
+  append: function (l, r, lv, rv) {
+    return makeArray(lv).concat ([cloneItem(rv)])
+  },
+  join: function (l, r, lv, rv) {
+    return makeArray(lv).join (makeString(rv))
   }
 }
 
@@ -593,11 +650,6 @@ function makeExpansionPromise (config) {
                 expansion.vars[name] = valExpansion.text
                 expansion.nodes += valExpansion.nodes
                 if (node.local) {
-                  var stack = expansion.vars[StackTag], oldVarStack
-                  if (stack && stack[name]) {
-                    oldVarStack = stack[name].slice(0)
-                    delete stack[name]
-                  }
                   return makeRhsExpansionPromiseForConfig.call (pt, extend ({}, config, { vars: expansion.vars }), resolve, node.local)
                   .then (function (localExpansion) {
                     expansion.text = localExpansion.text
@@ -607,11 +659,6 @@ function makeExpansionPromise (config) {
                       delete expansion.vars[name]
                     else
                       expansion.vars[name] = oldValue
-                    if (oldVarStack) {
-                      stack = expansion.vars[StackTag] = expansion.vars[StackTag] || {}
-                      stack[name] = oldVarStack
-                    } else if (expansion.vars[StackTag])
-                      delete expansion.vars[StackTag][name]
                     return expansionPromise
                   })
                 } else
@@ -639,53 +686,6 @@ function makeExpansionPromise (config) {
             // quote
             if (node.funcname === 'quote') {
               expansion.text = pt.makeRhsText (node.args, makeSymbolName)
-            } else if (node.funcname === 'push' || node.funcname === 'unshift') {
-              // push, unshift
-              node.args.forEach (function (arg) {
-                if (arg.type === 'lookup') {
-                  var stack = (expansion.vars[StackTag] = expansion.vars[StackTag] || {})
-                  var varStack = (stack[arg.varname] = stack[arg.varname] || [])
-                  var pushVal = expansion.vars[arg.varname]
-                  if (node.funcname === 'push')
-                    varStack.push (pushVal)
-                  else
-                    varStack.unshift (pushVal)
-                }
-              })
-            } else if (node.funcname === 'pop' || node.funcname === 'shift' || node.funcname === 'swap') {
-              // pop, shift
-              node.args.forEach (function (arg) {
-                if (arg.type === 'lookup') {
-                  var newVal = falseVal
-                  var stack = expansion.vars[StackTag]
-                  var varStack = stack ? stack[arg.varname] : null
-                  switch (node.funcname) {
-                  case 'swap':
-                    var oldVal = expansion.vars[arg.varname]
-                    if (varStack) {
-                      if (typeof(node.value) === 'undefined')
-                        node.value = randomIndex (varStack, rng)
-                      newVal = varStack[node.value]
-                      varStack[node.value] = oldVal
-                    } else
-                      newVal = oldVal
-                    break
-                  case 'pop':
-                    newVal = varStack ? varStack.pop() : falseVal
-                    break
-                  case 'shift':
-                    newVal = varStack ? varStack.shift() : falseVal
-                  default:
-                    break
-                  }
-                  if (varStack && !varStack.length) {
-                    delete stack[arg.varname]
-                    if (!Object.keys(stack).length)
-                      delete expansion.vars[StackTag]
-                  }
-                  expansion.vars[arg.varname] = newVal
-                }
-              })
             } else if (binaryFunction[node.funcname]) {
               // binary functions
               promise = makeRhsExpansionPromiseFor ([node.args[0]])
@@ -693,7 +693,9 @@ function makeExpansionPromise (config) {
                   return makeRhsExpansionPromiseFor ([node.args[1]])
                     .then (function (rightArg) {
                       expansion.nodes += leftArg.nodes + rightArg.nodes
-                      expansion.text = binaryFunction[node.funcname].call (binaryFunction, leftArg.text, rightArg.text, config)
+                      var binaryResult = binaryFunction[node.funcname].call (binaryFunction, leftArg.text, rightArg.text, leftArg.value, rightArg.value, config)
+                      expansion.value = binaryResult
+                      expansion.text = makeString (binaryResult)
                       return expansionPromise
                     })
                 })
@@ -732,7 +734,31 @@ function makeExpansionPromise (config) {
                   case 'not':
                     expansion.text = arg.match(/\S/) ? '' : trueVal
                     break
-                    
+
+                    // array functions
+                  case 'first':
+                    expansion.text = makeString (makeArray (argExpansion.value)[0] || '')
+                    break
+
+                  case 'last':
+                    var a = makeArray (argExpansion.value)
+                    expansion.text = makeString (a[a.length-1] || '')
+                    break
+
+                  case 'notfirst':
+                    var a = makeArray(argExpansion.value)
+                    a.shift()
+                    expansion.value = a
+                    expansion.text = makeString(a)
+                    break
+
+                  case 'notlast':
+                    var a = makeArray(argExpansion.value)
+                    a.pop()
+                    expansion.value = a
+                    expansion.text = makeString(a)
+                    break
+
                     // basic text functions
                   case 'cap':
                     expansion.text = capitalize (arg)
@@ -859,6 +885,9 @@ function makeExpansionPromise (config) {
               return makeRhsExpansionPromiseFor (node.rhs || [], expr)
                 .then (addExpansionNodes)
             })
+            break
+          case 'list':
+            expansion.text = node.rhs || []
             break
           case 'root':
           case 'alt_sampled':
@@ -1126,6 +1155,10 @@ module.exports = {
   summarizeRhs: summarizeRhs,
   summarizeExpansion: summarizeExpansion,
   finalVarVal: finalVarVal,
+
+  makeString: makeString,
+  makeArray: makeArray,
+
   // English grammar
   conjugate: conjugate,
   was: was,

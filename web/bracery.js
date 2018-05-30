@@ -3564,6 +3564,11 @@ function makeRhsText (rhs, makeSymbolName) {
       case 'func':
         if (binaryFunction[tok.funcname]) {
           result = funcChar + tok.funcname + tok.args.map (function (arg) { return makeFuncArgText (pt, [arg], makeSymbolName) }).join('')
+        } else if (tok.funcname === 'map' || tok.funcname === 'filter' || tok.funcname === 'reduce') {
+          result = funcChar + tok.funcname + varChar + tok.args[0].varname + ':' + makeFuncArgText (pt, tok.args[0].value, makeSymbolName)
+            + (tok.funcname === 'reduce'
+               ? (varChar + tok.args[0].local[0].varname + '=' + makeFuncArgText (pt, tok.args[0].local[0].value, makeSymbolName) + makeFuncArgText (pt, tok.args[0].local[0].local, makeSymbolName))
+               : makeFuncArgText (pt, tok.args[0].local, makeSymbolName))
         } else {
 	  var sugaredName = pt.makeSugaredName (tok, makeSymbolName, nextIsAlpha)
           if (sugaredName && tok.funcname !== 'quote') {
@@ -3794,7 +3799,7 @@ function reduceReduce (expansion, childExpansion, config, resolve) {
   varVal[mapVarName] = childExpansion.value || childExpansion.text
   varVal[resultVarName] = expansion.value || expansion.text
 
-  var sampledResultRhs = this.sampleParseTree (mapRhs, config)
+  var sampledResultRhs = this.sampleParseTree (resultRhs, config)
   return makeRhsExpansionPromiseForConfig.call (pt,
                                                 extend ({}, config, { vars: varVal,
                                                                       reduce: textReduce,

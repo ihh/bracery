@@ -232,7 +232,7 @@ Language features include
       - `&dignum{3}` is `3`, `&wordnum{three}` is `three`
       - `&random{n}`, `&floor{x}`, `&ceil{x}`, `&round{x}` do what you probably expect
       - `&eq{x}{y}`, `&neq{x}{y}`, `&gt{x}{y}`, `&geq{x}{y}`, `&lt{x}{y}`, `&leq{x}{y}` also fairly predictable
-- remove substrings: `&strip{ac}{abacus}` evaluates to `abus`, `&strip{gh}{lightweight}` to `litweit`, etc.
+   - remove substrings: `&strip{ac}{abacus}` evaluates to `abus`, `&strip{gh}{lightweight}` to `litweit`, etc.
 - special functions:
    - conditionals:
       - `&if{testExpr}then{trueExpr}else{falseExpr}`

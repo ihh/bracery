@@ -248,18 +248,18 @@ Language features include
    - locally scoped variables:
       - Tracery-style `#[x:value1][y:value2]symbol_name#` (what Tracery calls "actions")
       - Bracery-style `&let^x={value1}^y={value2}{something involving x and y}`
-   - lists:
-      - `&{}` is the empty list
-      - `&prepend{item}{list}`, `&append{list}{item}` return lists
-      - `&first{list}`, `&last{list}` return individual list items (can be strings or nested lists)
-      - `&notfirst{list}`, `&notlast{list}` return lists
-      - `&cat{list1}{list2}` returns a list
-      - `&join{list}{item}` returns a string
-      - `&islist{x}` returns true if, and only if, `x` is a list
-      - in a string context (i.e. most contexts), a list is invisibly joined as if by `&join{list}{}`
    - repetition:
       - `&rep{x}{3}` expands to `xxx`
       - `&rep{x}{3,5}` expands to `xxx`, `xxxx`, or `xxxxx`
+- lists:
+   - `&{}` is the empty list
+   - `&prepend{item}{list}`, `&append{list}{item}` return lists
+   - `&first{list}`, `&last{list}` return individual list items (can be strings or nested lists)
+   - `&notfirst{list}`, `&notlast{list}` return lists
+   - `&cat{list1}{list2}` returns a list
+   - `&join{list}{item}` returns a string
+   - `&islist{x}` returns true if, and only if, `x` is a list
+   - in a string context (i.e. most contexts), a list is invisibly joined as if by `&join{list}{}`
 - functions, alternations, repetitions, variable assignments, and conditionals can be arbitrarily nested
 - everything can occur asynchronously, so symbols can be resolved and expanded from a remote store
    - but if you have a synchronously resolvable store (i.e. a local Tracery object), everything can work synchronously too

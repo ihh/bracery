@@ -199,7 +199,7 @@ function doTests (testRunner) {
 
   expectExpand ('&join{&prepend{123}&cat{xyz}{abc}}{, }', '123, xyz, abc')
 
-  expectExpand ('&islist{&{}}', '1')
+  expectExpand ('&islist{&{}}', '[]')
   expectExpand ('&islist{}', '')
   expectExpand ('&same{&{}}{}', '')
   expectExpand ('&same{&{}}{&{}}', '1')

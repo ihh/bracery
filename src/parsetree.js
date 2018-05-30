@@ -659,11 +659,12 @@ function makeExpansionPromise (config) {
             promise = makeRhsExpansionPromiseFor (node.value)
               .then (function (valExpansion) {
                 expansion.vars = valExpansion.vars
-                expansion.vars[name] = valExpansion.text
+                expansion.vars[name] = valExpansion.value || valExpansion.text
                 expansion.nodes += valExpansion.nodes
                 if (node.local) {
                   return makeRhsExpansionPromiseForConfig.call (pt, extend ({}, config, { vars: expansion.vars }), resolve, node.local)
                   .then (function (localExpansion) {
+                    expansion.value = localExpansion.value
                     expansion.text = localExpansion.text
                     expansion.nodes += localExpansion.nodes
                     extend (expansion.vars, localExpansion.vars)
@@ -680,7 +681,8 @@ function makeExpansionPromise (config) {
 
           case 'lookup':
             var name = node.varname.toLowerCase()
-            expansion.text = varVal[name] || ''
+            expansion.value = varVal[name] || ''
+            expansion.text = makeString (expansion.value)
             break
 
           case 'cond':

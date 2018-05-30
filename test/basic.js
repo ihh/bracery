@@ -188,10 +188,10 @@ function doTests (testRunner) {
 
   expectExpand ('&prepend{123}&cat{xyz}{abc}', '123xyzabc')
   expectExpand ('&prepend&cat{xyz}{abc}{123}', 'xyzabc123')
-  expectExpand ('&first{&prepend{123}&cat{xyz}{abc}}', '123')
-  expectExpand ('&first{&prepend&cat{xyz}{abc}{123}}', 'xyzabc')
-  expectExpand ('&last{&prepend{123}&cat{xyz}{abc}}', 'abc')
-  expectExpand ('&last{&prepend&cat{xyz}{abc}{123}}', '123')
+  expectExpand ('^list={&prepend{123}&cat{xyz}{abc}}&first^list', '123')
+  expectExpand ('^list={&prepend&cat{xyz}{abc}{123}}&first^list', 'xyzabc')
+  expectExpand ('^list={&prepend{123}&cat{xyz}{abc}}&last^list', 'abc')
+  expectExpand ('^list={&prepend&cat{xyz}{abc}{123}}&last^list', '123')
 
   expectExpand ('&append{123}&cat{xyz}{abc}', '123xyzabc')
   expectExpand ('&first&append{123}&cat{xyz}{abc}', '123')

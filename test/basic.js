@@ -52,25 +52,25 @@ function doTests (testRunner) {
   // quoting
   expectExpand ('$test4', '$TEST1')
   expectExpand ('&eval{$test4}', 'TESTING')
-  expectExpand ('&quote{$test1}', '$test1')
+  expectExpandQuote ('&quote{$test1}', '$test1')
   expectExpand ('\\$test1', '$test1')
   expectExpand ('$', '$')
-  expectExpand ('&quote{$}', '\\$')
-  expectExpand ('&quote{$}test1', '\\$test1')
-  expectExpand ('&quote{$te}st1', '$test1')
-  expectExpand ('&quote{$test1}', '$test1')
-  expectExpand ('&eval{&quote{$}}', '$')
-  expectExpand ('&eval{&quote{$test1}}', 'testing')
-  expectExpand ('&eval{&quote{$te}st1}', 'testing')
-  expectExpand ('&eval{&quote{$}test1}', 'testing', {fail:true})
-  expectExpand ('&eval{&quote{$}test1}', '$test1')
-  expectExpand ('&eval{&eval{&quote{$}test1}}', 'testing')
+  expectExpandQuote ('&quote{$}', '\\$')
+  expectExpandQuote ('&quote{$}test1', '\\$test1')
+  expectExpandQuote ('&quote{$te}st1', '$test1')
+  expectExpandQuote ('&quote{$test1}', '$test1')
+  expectExpandQuote ('&eval{&quote{$}}', '$')
+  expectExpandQuote ('&eval{&quote{$test1}}', 'testing')
+  expectExpandQuote ('&eval{&quote{$te}st1}', 'testing')
+  expectExpandQuote ('&eval{&quote{$}test1}', 'testing', {fail:true})
+  expectExpandQuote ('&eval{&quote{$}test1}', '$test1')
+  expectExpandQuote ('&eval{&eval{&quote{$}test1}}', 'testing')
   expectExpand ('\\$test1', '$test1')
   expectExpand ('&eval{\\$test1}', 'testing')
-  expectExpand ('&quote{#heroPet#}', '#heroPet#')
-  expectExpand ('&quote[a=>b]', '^a={&quote{b}}')
-  expectExpand ('&quote[a=>b|c]', '^a={&quote[b|c]}')
-  expectExpand ('^heropet={freddy}&eval&quote{#heroPet#}', 'freddy')
+  expectExpandQuote ('&quote{#heroPet#}', '#heroPet#')
+  expectExpandQuote ('&quote[a=>b]', '^a={&quote{b}}')
+  expectExpandQuote ('&quote[a=>b|c]', '^a={&quote[b|c]}')
+  expectExpandQuote ('^heropet={freddy}&eval&quote{#heroPet#}', 'freddy')
   
   // case manipulation
   expectExpand ('&quote{$TEST1}', '$TEST1')
@@ -207,15 +207,17 @@ function doTests (testRunner) {
   expectExpand ('&join{&{}x&{}y}{,}', 'x,y')
   expectExpand ('&join{x&{}y&{}}{,}', 'xy')
 
-  expectExpand ('^x=&list{&string{abc}&string{def}}&map^a^x{^a!}', 'abc!def!')
-  expectExpand ('^x=&list{&string{abc}&string{def}}&join&map^a^x{^a!}{ }', 'abc! def!')
+  expectExpand ('^x=&list{&quote{abc}&quote{def}}&map^a^x{^a!}', 'abc!def!')
+  expectExpand ('^x=&list{&quote{abc}&quote{def}}&join&map^a^x{^a!}{ }', 'abc! def!')
 
-  expectExpand ('^x=&list{&string{2}&string{4}&string{6}&string{0}}&filter^n^x&gt{^n}{3}', '46')
-  expectExpand ('^x=&list{&string{2}&string{4}&string{6}&string{0}}&reduce^n^x^r={0}&add^n^r', '12')
-  expectExpand ('^x=&list{&string{2}&string{4}&string{6}&string{0}}&reduce^n:^x^r={zero dogs}&add^r^n', 'twelve dogs')
+  expectExpand ('^x=&list{&quote{2}&quote{4}&quote{6}&quote{0}}&filter^n^x&gt{^n}{3}', '46')
+  expectExpand ('^x=&list{&quote{2}&quote{4}&quote{6}&quote{0}}&reduce^n^x^r={0}&add^n^r', '12')
+  expectExpand ('^x=&list{&quote{2}&quote{4}&quote{6}&quote{0}}&reduce^n:^x^r={zero dogs}&add^r^n', 'twelve dogs')
 
-  expectExpand ('^x={1}^a1={verily}^a2={in troth}&eval&quasiquote{^a&unquote^x indeed}', 'verily indeed')
-  expectExpand ('&quasiquote&unquote&quote&infinitive^y', '&infinitive^y')
+  expectExpand ('^x={1}^a1={verily}^a2={in troth}&eval&quote{^a&unquote^x indeed}', 'verily indeed')
+  expectExpand ('&quote&unquote&quote&infinitive^y', '&infinitive^y')
+
+  expectExpand ('^x={&{}abc&quote{def}}&quotify^x', '&list{&quote{abc}&quote{def}}')
 
   // strip
   expectExpand ('&strip{hello}{hello world hello}', ' world ')
@@ -280,6 +282,12 @@ function doTests (testRunner) {
     it('should expand ' + (lhs || 'the empty string') + ' to ' + (rhs || 'the empty string')
        + (config ? (' with ' + JSON.stringify(config)) : ''),
        testRunner (lhs, rhs, config, verify))
+  }
+
+  // wrapper for quote/quasiquote equivalence tests
+  function expectExpandQuote (lhs, rhs, config) {
+    expectExpand (lhs, rhs, config)
+    expectExpand (lhs.replace(/&quote/g,'&strictquote'), rhs, config)
   }
 }
 

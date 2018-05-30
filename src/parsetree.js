@@ -133,7 +133,7 @@ function sampleParseTree (rhs, config) {
       case 'func':
 	result = { type: 'func',
                    funcname: node.funcname,
-		   args: (node.funcname === 'quote' || node.funcname === 'quasiquote'
+		   args: (node.funcname === 'strictquote' || node.funcname === 'quote'
                           ? node.args
                           : pt.sampleParseTree (node.args, config)) }
         break
@@ -177,8 +177,8 @@ function getSymbolNodes (rhs) {
 	case 'eval':
 	  r = pt.getSymbolNodes (node.args.concat (node.value || []))
 	  break
+	case 'strictquote':
 	case 'quote':
-	case 'quasiquote':
 	case 'unquote':
         default:
 	  r = pt.getSymbolNodes (node.args)
@@ -333,7 +333,7 @@ function makeRhsText (rhs, makeSymbolName) {
                : makeFuncArgText (pt, tok.args[0].local, makeSymbolName))
         } else {
 	  var sugaredName = pt.makeSugaredName (tok, makeSymbolName, nextIsAlpha)
-          if (sugaredName && tok.funcname !== 'quote' && tok.funcname !== 'quasiquote' && tok.funcname !== 'unquote') {
+          if (sugaredName && tok.funcname !== 'strictquote' && tok.funcname !== 'quote' && tok.funcname !== 'unquote') {
 	    result = sugaredName
           } else {
             result = funcChar + tok.funcname + makeFuncArgText (pt, tok.args, makeSymbolName)
@@ -683,6 +683,14 @@ function makeString (item) {
           : '')
 }
 
+function makeGenerator (item) {
+  return (item
+          ? (typeof(item) === 'string'
+             ? (funcChar + 'quote{' + item + '}')
+             : (funcChar + 'list{' + item.map(makeGenerator).join('') + '}'))
+          : '')
+}
+
 function valuesEqual (a, b) {
   if (typeof(a) !== typeof(b))
     return false
@@ -880,10 +888,10 @@ function makeExpansionPromise (config) {
             break
 
           case 'func':
-            if (node.funcname === 'quote') {
+            if (node.funcname === 'strictquote') {
               // quote
               expansion.text = pt.makeRhsText (node.args, makeSymbolName)
-            } else if (node.funcname === 'quasiquote') {
+            } else if (node.funcname === 'quote') {
               // quasiquote
               promise = reduceQuasiquote (pt, config, node.args)
                 .then (function (quasiquoteExpansion) {
@@ -992,9 +1000,9 @@ function makeExpansionPromise (config) {
                     expansion.text = escapeString (arg)
                     break
 
-                    // string
-                  case 'string':
-                    expansion.text = arg
+                    // quotify
+                  case 'quotify':
+                    expansion.text = makeGenerator (argExpansion.value || argExpansion.text)
                     break
 
                     // value
@@ -1437,6 +1445,7 @@ module.exports = {
 
   makeString: makeString,
   makeArray: makeArray,
+  makeGenerator: makeGenerator,
 
   // English grammar
   conjugate: conjugate,

@@ -243,9 +243,10 @@ Language features include
    - dynamic evaluation
       - `&eval{expr}` parses `expr` as Bracery and dynamically expands it
          - conversely, `&quote{expr}` returns `expr` as a text string, without doing any expansions
-         - `&quasiquote{...}`, `&unquote{...}` work pretty much like in Scheme
+         - `&quote{...}`, `&unquote{...}`, `&strictquote{...}` work pretty much like quasiquote/unquote/quote in Scheme
       - `&eval{&quote{expr}}` is the same as `expr`, although...
          - there is a configurable limit on the number of dynamic evaluations that an expression can use, to guard against infinite recursion or hammering the server
+      - `&quotify{expr}` wraps with `&quote` and `&list`
    - locally scoped variables:
       - Tracery-style `#[x:value1][y:value2]symbol_name#` (what Tracery calls "actions")
       - Bracery-style `&let^x={value1}^y={value2}{something involving x and y}`

@@ -83,12 +83,16 @@ BinaryFunctionName = "strip"
 Function
   = "&" func:FunctionName args:FunctionArg { return makeFunction (func, args) }
 
-FunctionName = "eval" / "escape" / "quote" / "quasiquote" / "unquote"
+FunctionName = "eval" / "escape" / StrictQuote / Quote / Unquote
   / "plural" / "singular" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive"
   / "gerund" / "adjective" / "negative" / "positive" / "a" / "uc" / "lc" / "cap"
   / "random" / "floor" / "ceil" / "round" / "wordnum" / "dignum" / "ordinal" / "cardinal"
-  / "list" / "string" / "value" / "json" / "islist" / "first" / "last" / "notfirst" / "notlast"
+  / "list" / "quotify" / "value" / "json" / "islist" / "first" / "last" / "notfirst" / "notlast"
   / "not"
+
+StrictQuote = ("strictquote" / "'") { return 'strictquote' }
+Quote = ("quote" / "`") { return 'quote' }
+Unquote = ("unquote" / ",") { return 'unquote' }
 
 FunctionArg
   = rep:Repetition { return [rep] }

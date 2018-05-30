@@ -3809,12 +3809,24 @@ function makeString (item) {
              : item.map(makeString).join('')))
 }
 
+function valuesEqual (a, b) {
+  if (typeof(a) !== typeof(b))
+    return false
+  if (typeof(a) === 'string')
+    return a === b
+  if (a.length !== b.length)
+    return false
+  return a.reduce (function (equal, a_item, n) {
+    return equal && valuesEqual (a_item, b[n])
+  }, true)
+}
+
 var binaryFunction = {
   strip: function (l, r) {
     return r.split(l).join('')
   },
-  same: function (l, r) {
-    return l === r ? (l || trueVal) : falseVal
+  same: function (l, r, lv, rv) {
+    return valuesEqual (lv, rv) ? (l === falseVal ? trueVal : lv) : falseVal
   },
   and: function (l, r) {
     return l.match(/\S/) && r.match(/\S/) ? (l + r) : falseVal

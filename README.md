@@ -239,7 +239,7 @@ Language features include
       - Evaluates to `trueExpr` if `testExpr` contains any non-whitespace characters, and `falseExpr` otherwise.
       - The `then` and `else` keywords are optional; you can write `&if{testExpr}{trueExpr}{falseExpr}`
       - The conditional test (`testExpr`) can use arithmetic operators `&eq`, `&neq`, `&gt`, `&lt`, `&geq`, `&leq`
-         - also string comparison `&same{x}{y}` and boolean operators `&and{x}{y}`, `&not{x}`
+         - also comparison `&same{x}{y}` and boolean operators `&and{x}{y}`, `&not{x}`
    - dynamic evaluation
       - `&eval{expr}` parses `expr` as Bracery and dynamically expands it
       - conversely, `&quote{expr}` returns `expr` as a text string, without doing any expansions
@@ -250,11 +250,12 @@ Language features include
       - Bracery-style `&let^x={value1}^y={value2}{something involving x and y}`
    - lists:
       - `&{}` is the empty list
-      - `&prepend{item}{list}`, `&append{list}{item}`
-      - `&first{list}`, `&last{list}`
-      - `&notfirst{list}`, `&notlast{list}`
-      - `&cat{list1}{list2}`
-      - `&join{list}{item}`
+      - `&prepend{item}{list}`, `&append{list}{item}` return lists
+      - `&first{list}`, `&last{list}` return individual list items (can be strings or nested lists)
+      - `&notfirst{list}`, `&notlast{list}` return lists
+      - `&cat{list1}{list2}` returns a list
+      - `&join{list}{item}` returns a string
+      - in a string context (i.e. most contexts), a list is invisibly joined as if by `&join{list}{}`
    - repetition:
       - `&rep{x}{3}` expands to `xxx`
       - `&rep{x}{3,5}` expands to `xxx`, `xxxx`, or `xxxxx`

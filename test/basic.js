@@ -176,7 +176,7 @@ function doTests (testRunner) {
   expectExpand ('^a', '')
   expectExpand ('^a', 'x', {vars:vars,a_equals_x:true})
 
-  // cat, first, rest, most, last
+  // lists
   expectExpand ('&{}', '')
   expectExpand ('&cat{&{}}{xyz}', 'xyz')
   expectExpand ('&cat{xyz}{abc}', 'xyzabc')
@@ -198,7 +198,10 @@ function doTests (testRunner) {
   expectExpand ('&last&append{123}&cat{xyz}{abc}', 'xyzabc')
 
   expectExpand ('&join{&prepend{123}&cat{xyz}{abc}}{, }', '123, xyz, abc')
-  
+
+  expectExpand ('&same{&{}}{}', '')
+  expectExpand ('&same{&{}}{&{}}', '1')
+
   // strip
   expectExpand ('&strip{hello}{hello world hello}', ' world ')
   expectExpand ('&strip{$abc}{defcon}', 'con')

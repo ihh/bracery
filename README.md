@@ -259,7 +259,8 @@ Language features include
    - `&cat{list1}{list2}` returns a list
    - `&join{list}{item}` returns a string
    - `&islist{x}` returns true if, and only if, `x` is a list
-   - in a string context (i.e. most contexts), a list is invisibly joined as if by `&join{list}{}`
+   - in a string context (i.e. most contexts), a list is invisibly joined/flattened as if by `&join{list}{}`
+   - in a list context, the empty string becomes the empty list and any nonempty string becomes a single-element list
 - functions, alternations, repetitions, variable assignments, and conditionals can be arbitrarily nested
 - everything can occur asynchronously, so symbols can be resolved and expanded from a remote store
    - but if you have a synchronously resolvable store (i.e. a local Tracery object), everything can work synchronously too

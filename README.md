@@ -5,16 +5,31 @@
 # Bracery
 
 Bracery is a small procedural text generation language (and library).
-It follows a few principles:
+It's heavily influenced by [Tracery](http://tracery.io/) (by [@galaxykate](https://github.com/galaxykate)), and while they are not officially related, one design goal is to be reasonably compatible with the syntax and patterns of Tracery:
 
-- Bracery is heavily influenced by [Tracery](http://tracery.io/) (by [@galaxykate](https://github.com/galaxykate)), and while they are not officially related, one design goal is to be reasonably compatible with the syntax and patterns of Tracery. In particular the Tracery syntax for setting variables, and expanding symbols, is allowed as [syntactic sugar](https://en.wikipedia.org/wiki/Syntactic_sugar) in Bracery. The notion of writing templates in a context-free grammar is exactly the same as with Tracery, but with elements of other languages too
-- Like [ChoiceScript](https://www.choiceofgames.com/make-your-own-games/choicescript-intro/), [Tracery](http://tracery.io/), and other interactive fiction authoring languages, anything in a Bracery program that can't otherwise be parsed as syntax is implicitly a print statement. That is, anything that doesn't look like code will just be copied to the output when the program is run. (This means, incidentally, that many programs are trivially [quines](https://en.wikipedia.org/wiki/Quine_(computing)).)
-- Bracery defines three separate namespaces, distinguished by the prefix character:
-   - `^name` Variables as in Tracery
-   - `&name` Library functions covering basic [natural language processing](https://github.com/spencermountain/compromise) and core [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language))
-   - `$name` User callbacks. Can be defined by the Tracery definitions file, user-supplied functions (synchronous or asynchronous), promises for web services, etc.
+- `[name:value]` sets the value of variable `^name`
+- `#name#` dynamically expands variable `^name`
+- `#[x:value]name#` locally binds `x` to `value` while expanding `#name#`
+
+Like [ChoiceScript](https://www.choiceofgames.com/make-your-own-games/choicescript-intro/),
+[Tracery](http://tracery.io/),
+Twine's [Harlowe](https://twine2.neocities.org/) format,
+and other programming languages for interactive fiction,
+anything in a Bracery program that isn't code is implicitly output.
+So, for example, the Bracery program to generate the text "hello world" is just `hello world`, which is a [quine](https://en.wikipedia.org/wiki/Quine_(computing)).
+
+Bracery defines three separate namespaces, distinguished by the prefix character.
+You can ignore these and just use the Tracery syntax `#name#` if you want, but for a deeper understanding of what's going on:
+
+- `^name` refers to a variable
+- `&name` refers to a core library function or macro
+- `$name` refers to a user extension (local or remote)
+
+Bracery includes elements of other languages and libraries:
+
 - the concept of _alternations_ is borrowed from [regular expressions](https://en.wikipedia.org/wiki/Regular_expression)
-- the rest of the language is mostly [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)), including lists, map, reduce, etc.
+- many natural language processing functions are provided by the [compromise](https://github.com/spencermountain/compromise) library
+- the core language is otherwise modeled on [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)), including lists, dynamic evaluation, etc.
 
 # Usage
 
@@ -431,3 +446,4 @@ You can also use the `templates2dot.js` script to get a visualization of the Mar
 ~~~~
 bin/templates2dot.js -o examples/markov/good_news_bad_news.txt
 ~~~~
+ 

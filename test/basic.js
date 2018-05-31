@@ -71,7 +71,8 @@ function doTests (testRunner) {
   expectExpandQuote ('&quote[a=>b]', '^a={&quote{b}}')
   expectExpandQuote ('&quote[a=>b|c]', '^a={&quote[b|c]}')
   expectExpandQuote ('^heropet={freddy}&eval&quote{#heroPet#}', 'freddy')
-  
+  expectExpandQuote ('&quote{&match/a/{cat}{^0}}', '&match/a/{cat}^0')
+
   // case manipulation
   expectExpand ('&quote{$TEST1}', '$TEST1')
   expectExpand ('&quote{$Test1}', '$Test1')
@@ -278,6 +279,12 @@ function doTests (testRunner) {
   expectExpand ('$dynamo', 'dynamik', {maxTries:maxTries})
   expectExpand ('$dynamo', 'DYNAMIC', {maxTries:maxTries})
 
+  // regexes
+  expectExpand ('&match/a/{cat}{^0^0}', 'aa')
+  expectExpand ('&quotify&match/[aeiou]/g{generic}{&uc^0}', '&list{&quote{E}&quote{E}&quote{I}}')
+  expectExpand ('&replace/a/g{catamaran}{u|o}', 'cutomoron', {maxTries:maxTries})
+  expectExpand ('&join&split/[aeiou]+/{felicitous}{..}', 'f..l..c..t..s')
+  
   // wrapper for individual 'for a given input (lhs), expect the following output (rhs)'-style tests
   // (lhs/rhs = left/right hand side)
   function expectExpand (lhs, rhs, config) {

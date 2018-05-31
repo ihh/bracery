@@ -333,12 +333,12 @@ function makeRhsText (rhs, makeSymbolName) {
           result = funcChar + tok.funcname + tok.args.map (function (arg) { return makeFuncArgText (pt, [arg], makeSymbolName) }).join('')
         } else if (regexFunction[tok.funcname]) {
           result = funcChar + tok.funcname + '/' + pt.makeRhsText ([tok.args[0]], makeSymbolName) + '/' + pt.makeRhsText ([tok.args[1]], makeSymbolName)
-            + tok.args.slice(2).map (function (arg) { return makeFuncArgText (pt, [arg], makeSymbolName) }).join('')
+            + tok.args.slice(2).map (function (arg, n) { return makeFuncArgText (pt, n>0 ? arg.args : [arg], makeSymbolName) }).join('')
         } else if (tok.funcname === 'map' || tok.funcname === 'filter' || tok.funcname === 'reduce') {
           result = funcChar + tok.funcname + varChar + tok.args[0].varname + ':' + makeFuncArgText (pt, tok.args[0].value, makeSymbolName)
             + (tok.funcname === 'reduce'
-               ? (varChar + tok.args[0].local[0].varname + '=' + makeFuncArgText (pt, tok.args[0].local[0].value, makeSymbolName) + makeFuncArgText (pt, tok.args[0].local[0].local, makeSymbolName))
-               : makeFuncArgText (pt, tok.args[0].local, makeSymbolName))
+               ? (varChar + tok.args[0].local[0].varname + '=' + makeFuncArgText (pt, tok.args[0].local[0].value, makeSymbolName) + makeFuncArgText (pt, tok.args[0].local[0].local[0].args, makeSymbolName))
+               : makeFuncArgText (pt, tok.args[0].local[0].args, makeSymbolName))
         } else {
 	  var sugaredName = pt.makeSugaredName (tok, makeSymbolName, nextIsAlpha)
           if (sugaredName && tok.funcname !== 'strictquote' && tok.funcname !== 'quote' && tok.funcname !== 'unquote') {
@@ -685,17 +685,52 @@ var regexFunction = {
     var promise = resolve (expansion)
     var match
     while (match = regex.exec (text)) {
-      promise = promise.then (function (expansion) {
-        var sampledExprTree = pt.sampleParseTree (expr, config)
-        return makeAssignmentPromise.call (pt, config, match.map (function (group, n) { return [''+n, [group]] }), sampledExprTree)
-          .then (function (exprExpansion) {
-            return listReducer (expansion, exprExpansion, config)
-          })
-      })
+      promise = (function (match) {
+	return promise.then (function (expansion) {
+          var sampledExprTree = pt.sampleParseTree (expr, config)
+          return makeAssignmentPromise.call (pt, config, match.map (function (group, n) { return [''+n, [group]] }), sampledExprTree)
+            .then (function (exprExpansion) {
+              return listReducer (expansion, exprExpansion, config)
+            })
+	})
+      }) (match)
       if (!regex.global)
         break
     }
     return promise
+  },
+  replace: function (regex, text, expr, config) {
+    var pt = this
+    var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
+    var expansion = { text: '', vars: config.vars, nodes: 1, tree: [] }
+    var promise = resolve (expansion)
+    var match, nextIndex = 0, endText = text
+    while (match = regex.exec (text)) {
+      promise = (function (match) {
+	var skippedText = text.substr (nextIndex, match.index - nextIndex)
+	nextIndex = match.index + match[0].length
+	endText = text.substr (nextIndex)
+	return promise.then (function (expansion) {
+          var sampledExprTree = pt.sampleParseTree (expr, config)
+          return makeAssignmentPromise.call (pt, config, match.map (function (group, n) { return [''+n, [group]] }), sampledExprTree)
+            .then (function (exprExpansion) {
+              return textReducer (textReducer (expansion, { text: skippedText, nodes: 0 }), exprExpansion)
+            })
+	})
+      }) (match)
+      if (!regex.global)
+        break
+    }
+    return promise.then (function() {
+      return textReducer (expansion, { text: endText, nodes: 0 })
+    })
+  },
+  split: function (regex, text, _expr, config) {
+    var pt = this
+    var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
+    var split = text.split (regex)
+    var expansion = { text: makeString (split), vars: config.vars, nodes: 1, value: split }
+    return resolve (expansion)
   }
 }
 
@@ -842,6 +877,10 @@ function makeAssignmentPromise (config, nameValueList, local) {
       return makeRhsExpansionPromiseForConfig.call (pt, extend ({}, config, { vars: expansion.vars }), resolve, local)
         .then (function (localExpansion) {
           extend (expansion.vars, localExpansion.vars, oldVarVal)
+	  Object.keys(oldVarVal).forEach (function (name) {
+	    if (typeof(oldVarVal[name]) === 'undefined')
+	      delete expansion.vars[name]
+	  })
           expansion.value = localExpansion.value
           expansion.text = localExpansion.text
           expansion.nodes += localExpansion.nodes
@@ -898,7 +937,10 @@ function makeExpansionPromise (config) {
             break
 
           case 'func':
-            if (node.funcname === 'strictquote') {
+	    if (node.expansion) {
+	      // guard against double expansion
+	      extend (expansion, node.expansion)
+            } else if (node.funcname === 'strictquote') {
               // quote
               expansion.text = pt.makeRhsText (node.args, makeSymbolName)
             } else if (node.funcname === 'quote') {
@@ -933,7 +975,7 @@ function makeExpansionPromise (config) {
                                                   extend ({},
                                                           config,
                                                           { mapVarName: node.args[0].varname,
-                                                            mapRhs: node.args[0].local }),
+                                                            mapRhs: node.args[0].local[0].args }),
                                                   mapReducer,
                                                   { value: [] }) (makeArray (listExpansion.value))
                 })
@@ -945,7 +987,7 @@ function makeExpansionPromise (config) {
                                                   extend ({},
                                                           config,
                                                           { mapVarName: node.args[0].varname,
-                                                            mapRhs: node.args[0].local }),
+                                                            mapRhs: node.args[0].local[0].args }),
                                                   filterReducer,
                                                   { value: [] }) (makeArray (listExpansion.value))
                 })
@@ -960,7 +1002,7 @@ function makeExpansionPromise (config) {
                                                               config,
                                                               { mapVarName: node.args[0].varname,
                                                                 resultVarName: node.args[0].local[0].varname,
-                                                                resultRhs: node.args[0].local[0].local }),
+                                                                resultRhs: node.args[0].local[0].local[0].args }),
                                                       reduceReducer,
                                                       { value: initExpansion.value }) (makeArray (listExpansion.value))
                     })
@@ -971,15 +1013,13 @@ function makeExpansionPromise (config) {
                 .then (function (regexArg) {
                   return makeRhsExpansionPromiseFor ([node.args[1]])
                     .then (function (flagsArg) {
-                      promise = makeRhsExpansionPromiseFor ([node.args[2]])
+                      return makeRhsExpansionPromiseFor ([node.args[2]])
                         .then (function (textArg) {
                           expansion.nodes += regexArg.nodes + flagsArg.nodes + textArg.nodes
-                          return regexFunction[node.funcname].call (pt, new RegExp (regexArg.text, flagsArg.text), textArg.text, [node.args[3]], config)
+                          return regexFunction[node.funcname].call (pt, new RegExp (regexArg.text, flagsArg.text), textArg.text, node.args.length > 3 ? node.args[3].args : null, config)
                             .then (addExpansionNodes)
                         })
                     })
-                }).then (function() {
-                  return expansionPromise
                 })
             } else if (binaryFunction[node.funcname]) {
               // binary functions
@@ -1133,9 +1173,7 @@ function makeExpansionPromise (config) {
 
                     // nlp: numbers
                   case 'random':
-                    if (typeof(node.value) === 'undefined')
-                      node.value = (rng() * toNumber(arg)) + ''
-                    expansion.text = node.value
+                    expansion.text = (rng() * toNumber(arg)) + ''
                     break
 
                   case 'floor':
@@ -1175,6 +1213,12 @@ function makeExpansionPromise (config) {
                   return expansion
                 })
             }
+	    promise = promise.then (function (expansion) {
+	      // guard against double expansion
+	      node.expansion = { text: expansion.text,
+				 value: expansion.value }
+	      return expansion
+	    })
             break
           case 'sym':
             var symbolExpansionPromise

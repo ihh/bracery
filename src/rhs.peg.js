@@ -13,7 +13,7 @@ Node
   / MapFunction
   / BinaryFunction
   / Function
-  / VarAssignment
+  / a:VarAssignment _ { return a }
   / VarLookup
   / Alternation
   / EmptyList

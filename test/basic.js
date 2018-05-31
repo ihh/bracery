@@ -141,6 +141,8 @@ function doTests (testRunner) {
   // variables
   expectExpand ('^x={aha}^x', 'aha')
   expectExpand ('[x:aha]^x', 'aha')
+  expectExpand ('[x:aha]\n\n^x', 'aha')
+  expectExpand ('[x:aha]\n\n^x\n\n^x', 'aha\n\naha')
   expectExpand ('^z={zebedee}^zeb={zebadiah}^Zeb ^Z', 'Zebadiah ZEBEDEE')
   expectExpand ('^AbC={air}^aBC={hair}^abC={lair}^abc^Abc^ABC', 'lairLairLAIR')
 
@@ -279,7 +281,7 @@ function doTests (testRunner) {
         assert.equal (text, rhs)
       done()
     }
-    it('should expand ' + (lhs || 'the empty string') + ' to ' + (rhs || 'the empty string')
+    it('should expand ' + (lhs || 'the empty string').replace(/\n/g,'\\n') + ' to ' + (rhs || 'the empty string').replace(/\n/g,'\\n')
        + (config ? (' with ' + JSON.stringify(config)) : ''),
        testRunner (lhs, rhs, config, verify))
   }

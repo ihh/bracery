@@ -4,7 +4,7 @@
 
 # Bracery
 
-Bracery is a small procedural text generation language (and library),
+Bracery is a small language for procedural text generation,
 heavily influenced by [@galaxykate](https://github.com/galaxykate)'s [Tracery](http://tracery.io/).
 
 The main construct in Bracery is the _alternation_, a list of options separated by vertical bars:

@@ -146,6 +146,15 @@ function doTests (testRunner) {
   expectExpand ('^z={zebedee}^zeb={zebadiah}^Zeb ^Z', 'Zebadiah ZEBEDEE')
   expectExpand ('^AbC={air}^aBC={hair}^abC={lair}^abc^Abc^ABC', 'lairLairLAIR')
 
+  // syntax edge cases involving dummy alternations
+  expectExpand ('^abc=[ABC]', '=[ABC]')
+  expectExpand ('^abc={[DEF]}', '')
+  expectExpand ('^abc={[DEF]}^abc', '[DEF]')
+  expectExpand ('^x={a\\|b}^x', 'a|b')
+  expectExpand ('^dummy=[c\\|d]', '=[c|d]')
+  expectExpand ('^x={a\\|b}^r=&eval{[^x]}^r', 'a', {maxTries:maxTries})
+  expectExpand ('^x={a\\|b}^r=&eval{[^x]}^r', 'b', {maxTries:maxTries})
+
   // Tracery variables
   expectExpand ('[myvar:myval]', '')
   expectExpand ('[myvar:myval]^myvar', 'myval')

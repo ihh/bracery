@@ -11,6 +11,12 @@ function makeEmptyList() { return { type: 'list', rhs: [] } }
 
 function wrapNodes (args) { return args.length === 1 ? args[0] : { type: 'root', rhs: args } }
 
+function concatNodes (head, tail) {
+  return typeof(head) === 'string' && tail.length && typeof(tail[0]) === 'string'
+    ? [head + tail[0]].concat(tail.slice(1))
+    : [head].concat(tail)
+}
+
 function makeLocalAssignChain (assigns, scope) {
   var list = assigns.slice(0).reverse().reduce (function (chain, assign) {
     return [makeLocalAssign (assign.varname, assign.value, chain)]

@@ -193,6 +193,8 @@ b.expand ('I [love|hate|like] you $percentage!',
 
 # Technical details
 
+## Namespaces
+
 Bracery defines three separate namespaces, distinguished by the prefix character.
 You can ignore these and just use the Tracery syntax `#name#` if you want, but for a deeper understanding of what's going on:
 
@@ -212,10 +214,6 @@ Bracery keeps faith with this aspect of Tracery's design, expanding `#sentence#`
 However, Bracery also has syntax allowing programmers to access the local variable's value directly (as `^sentence`) or expand the original global nonterminal (as `$sentence`).
 It also introduces dynamic evaluation and conditional primitives, which are required to connect the above elements (`#sentence#`, `$sentence` and `^sentence`),
 but are also quite powerful in their own right.
-
-## Syntax extensions
-
-Bracery has a number of extensions from Tracery syntax, and also a mapping for many Tracery expressions into an alternate form that, often, involves the use of curly braces.
 
 ### Distinction between symbols and variables
 
@@ -257,7 +255,7 @@ Bracery also offers a number of built-in functions for processing text
 (e.g. case, tense, plurals) and lists.
 These are described under [Syntax](#syntax).
 
-## Rationale
+### Rationale
 
 Bracery works just fine as a synchronous library, running from a local symbol definitions file, like Tracery (this is the default when running from the command-line, or using the node API).
 However, Bracery was specifically designed to work well for asynchronous applications where the client is decoupled from the symbol definition store.
@@ -355,7 +353,6 @@ Language features include
       - similarly, `$NONTERMINAL_NAME` is a shorthand for `&uc{$nonterminal_name}`, and  `^VARIABLE_NAME` for `&uc{^variable_name}`
    - some Tracery modifier syntax works, e.g. `#symbol_name.capitalize#` instead of `&cap{#symbol_name#}`
    - the syntax `[name=>value1|value2|value3|...]` is shorthand for `^name={&quote{[value1|value2|value3|...]}` and ensures that every occurrence of `#name#` (or `&eval{^name}`) will be expanded from an independently-sampled one of the values
-      - note that a similar effect could be achieved with a Tracery symbol file of the form `{"name":["value1","value2","value3",...]}`; this would ensure that every occurrence of `$name` would be expanded, as well as `#name#`
 
 Most/all of these features are exercised in the file [test/basic.js](test/basic.js).
 

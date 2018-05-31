@@ -6,25 +6,22 @@ Node
   / "\\t" { return "\t" }
   / "\\" escaped:. { return escaped }
   / text:[^\$\#&\^\{\}\[\]\|\\]+ { return text.join("") }
-  / Repetition
   / Symbol
   / Conditional
   / LocalAssignment
+  / Repetition
   / MapFunction
   / BinaryFunction
   / Function
   / a:VarAssignment _ { return a }
   / VarLookup
-  / Alternation
   / EmptyList
+  / Alternation
+  / args:DummyAlternation { return wrapNodes (args) }
   / char:[\$\#&\^] { return char }
 
 NodeList
-  = head:Node tail:NodeList {
-      return typeof(head) === 'string' && tail.length && typeof(tail[0]) === 'string'
-     	? [head + tail[0]].concat(tail.slice(1))
-        : [head].concat(tail)
-    }
+  = head:Node tail:NodeList { return concatNodes (head, tail) }
   / head:Node { return [head] }
   / "" { return [] }
 
@@ -33,11 +30,7 @@ OuterNode
   / char:. { return char }
 
 OuterNodeList
-  = head:OuterNode tail:OuterNodeList {
-      return typeof(head) === 'string' && tail.length && typeof(tail[0]) === 'string'
-     	? [head + tail[0]].concat(tail.slice(1))
-        : [head].concat(tail)
-    }
+  = head:OuterNode tail:OuterNodeList { return concatNodes (head, tail) }
   / head:OuterNode { return [head] }
   / "" { return [] }
 
@@ -95,21 +88,21 @@ Quote = ("quote" / "`") { return 'quote' }
 Unquote = ("unquote" / ",") { return 'unquote' }
 
 FunctionArg
-  = rep:Repetition { return [rep] }
-  / Unit
-
-Unit
   = sym:Symbol { return [sym] }
   / cond:Conditional { return [cond] }
   / loc:LocalAssignment { return [loc] }
+  / rep:Repetition { return [rep] }
   / mapfunc:MapFunction { return [mapfunc] }
   / bin:BinaryFunction { return [bin] }
   / func:Function { return [func] }
   / assign:VarAssignment { return [assign] }
   / lookup:VarLookup { return [lookup] }
-  / alt:Alternation { return [alt] }
   / empty:EmptyList { return [empty] }
+  / alt:Alternation { return [alt] }
   / args:DelimitedNodeList { return args }
+
+DummyAlternation
+  = "[" args:NodeList "]" { return ['['].concat(args).concat(']') }
 
 DelimitedNodeList
   = "{" args:NodeList "}" { return args }
@@ -118,8 +111,8 @@ EmptyList
   = "&{}" { return makeEmptyList() }
 
 Repetition
-  = "&rep" unit:Unit "{" min:Number "," max:Number "}" { return validRange (min, max) ? makeRep (unit, min, max) : text() }
-  / "&rep" unit:Unit "{" min:Number "}" { return makeRep (unit, min, min) }
+  = "&rep" unit:FunctionArg "{" min:Number "," max:Number "}" { return validRange (min, max) ? makeRep (unit, min, max) : text() }
+  / "&rep" unit:FunctionArg "{" min:Number "}" { return makeRep (unit, min, min) }
 
 Number
   = num:[0-9]+ { return parseInt (num.join('')) }

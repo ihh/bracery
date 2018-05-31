@@ -68,9 +68,7 @@ Darcy traveled with her pet kitten.  Darcy was never wistful, for the kitten was
 
 ### Alternate formats
 
-There are several other ways you can specify these kinds of template
-(including, that is, the overall structure of the sentence, along with the various options for `greetings`, `wizard`, and `earthsea`).
-
+There are several other ways you can specify these kinds of template.
 For example, you can use Tracery-style JSON:
 
 ~~~~

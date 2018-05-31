@@ -1,0 +1,4 @@
+[greetings=>[hello|well met] [now|there]|how [goes|fares] it with [you|thee]]
+[wizard=>wizard|witch|mage|magus|magician|sorcerer|enchanter]
+[earthsea=>earthsea|Earth|Middle Earth|the planet|the world]
+#greetings#, #wizard# of #earthsea#

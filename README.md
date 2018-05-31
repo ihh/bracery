@@ -31,7 +31,7 @@ See [below](#syntax) for details.
 
 ## Web usage
 
-### Simple example
+### An example
 
 The following Bracery code generates lines like
 `how goes it with thee, magician of Middle Earth`
@@ -230,7 +230,7 @@ If you just want the variable value, you can use the caret character prefix, `^n
 So, `b.expand('[name:PERRY] ^name ').text`. will always be `  PERRY  `, again,
 but `b.expand('^name').text` will be the empty string.
 
-### Regex-like shorthands for simple procedural grammars
+### Regex-like shorthands for procedural grammars
 
 Bracery also allows other ways of generating repetitive, regex-like grammars, such as alternations
 

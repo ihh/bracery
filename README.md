@@ -5,11 +5,16 @@
 # Bracery
 
 Bracery is a small procedural text generation language (and library).
-It's heavily influenced by [Tracery](http://tracery.io/) (by [@galaxykate](https://github.com/galaxykate)).
-While not identical to Tracery,
-Bracery is close; it could be said to be an (unofficial) [dialect](https://en.wikipedia.org/wiki/Programming_language#Dialects,_flavors_and_implementations) or derivative
-with syntax inspired by [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) and 
-[Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)).
+It follows a few principles:
+
+- Bracery is heavily influenced by [Tracery](http://tracery.io/) (by [@galaxykate](https://github.com/galaxykate)), and while they are not officially related, one design goal is to be reasonably compatible with the syntax and patterns of Tracery. In particular the Tracery syntax for setting variables, and expanding symbols, is allowed as [syntactic sugar](https://en.wikipedia.org/wiki/Syntactic_sugar) in Bracery. The notion of writing templates in a context-free grammar is exactly the same as with Tracery, but with elements of other languages too
+- Like [ChoiceScript](https://www.choiceofgames.com/make-your-own-games/choicescript-intro/), [Tracery](http://tracery.io/), and other interactive fiction authoring languages, anything in a Bracery program that can't otherwise be parsed as syntax is implicitly a print statement. That is, anything that doesn't look like code will just be copied to the output when the program is run. (This means, incidentally, that many programs are trivially [quines](https://en.wikipedia.org/wiki/Quine_(computing)).)
+- Bracery defines three separate namespaces, distinguished by the prefix character:
+   - `^name` Variables as in Tracery
+   - `&name` Library functions covering basic [natural language processing](https://github.com/spencermountain/compromise) and core [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language))
+   - `$name` User callbacks. Can be defined by the Tracery definitions file, user-supplied functions (synchronous or asynchronous), promises for web services, etc.
+- the concept of _alternations_ is borrowed from [regular expressions](https://en.wikipedia.org/wiki/Regular_expression)
+- the rest of the language is mostly [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)), including lists, map, reduce, etc.
 
 # Usage
 

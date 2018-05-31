@@ -17,6 +17,14 @@ function concatNodes (head, tail) {
     : [head].concat(tail)
 }
 
+function concatReduce (list) {
+  return list.reduce (function (result, item) {
+    return typeof(item) === 'string' && result.length && typeof(result[result.length-1]) === 'string'
+      ? result.slice(0,result.length-1).concat ([result[result.length-1] + item])
+      : result.concat([item])
+  }, [])
+}
+
 function makeLocalAssignChain (assigns, scope) {
   var list = assigns.slice(0).reverse().reduce (function (chain, assign) {
     return [makeLocalAssign (assign.varname, assign.value, chain)]

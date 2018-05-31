@@ -104,7 +104,7 @@ FunctionArg
   / args:DelimitedNodeList { return args }
 
 DummyAlternation
-  = "[" args:NodeList "]" { return ['['].concat(args).concat(']') }
+  = "[" args:NodeList "]" { return concatReduce (['['].concat(args).concat(']')) }
 
 DelimitedNodeList
   = "{" args:NodeList "}" { return args }
@@ -159,23 +159,28 @@ _ "whitespace"
 RegexFunction
   = "&match" pattern:RegularExpressionLiteral text:FunctionArg expr:FunctionArg { return makeFunction ('match', [wrapNodes(pattern.body), wrapNodes(pattern.flags), wrapNodes(text), wrapNodes(expr)]) }
 
+RegexUnquote
+  = "&unquote" args:FunctionArg { return makeFunction ('unquote', args) }
+
 // regex grammar https://gist.github.com/deedubs/1392590
 RegularExpressionLiteral
-  = "/" body:RegularExpressionBody "/" flags:RegularExpressionFlags { return { body: [body], flags: flags ? [flags] : [] } }
+  = "/" body:RegularExpressionBody "/" flags:RegularExpressionFlags { return { body: body, flags: flags } }
 
 RegularExpressionBody
-  = c:RegularExpressionFirstChar chars:RegularExpressionChars { return c + chars }
+  = c:RegularExpressionFirstChar chars:RegularExpressionChars { return concatReduce ([c].concat (chars)) }
 
 RegularExpressionChars
-  = chars:RegularExpressionChar* { return chars.join("") }
+  = chars:RegularExpressionChar* { return chars }
 
 RegularExpressionFirstChar
-  = ![*\\/[] c:RegularExpressionNonTerminator { return c }
+  = RegexUnquote
+  / ![*\\/[] c:RegularExpressionNonTerminator { return c }
   / RegularExpressionBackslashSequence
   / RegularExpressionClass
 
 RegularExpressionChar
-  = ![\\/[] c:RegularExpressionNonTerminator { return c }
+  = RegexUnquote
+  / ![\\/[] c:RegularExpressionNonTerminator { return c }
   / RegularExpressionBackslashSequence
   / RegularExpressionClass
 
@@ -186,17 +191,17 @@ RegularExpressionNonTerminator
   = !LineTerminator c:SourceCharacter { return c }
 
 RegularExpressionClass
-  = "[" chars:RegularExpressionClassChars "]" { return "[" + chars + "]" }
+  = "[" chars:RegularExpressionClassChars "]" { return concatReduce (['['].concat(chars).concat(']')) }
 
 RegularExpressionClassChars
-  = chars:RegularExpressionClassChar* { return chars.join("") }
+  = chars:RegularExpressionClassChar* { return concatReduce (chars) }
 
 RegularExpressionClassChar
   = ![\]\\] c:RegularExpressionNonTerminator { return c }
   / RegularExpressionBackslashSequence
 
 RegularExpressionFlags
-  = parts:[gimuy]* { return parts.join("") }
+  = parts:[gimuy]* { return parts }
 
 LineTerminator
   = [\n\r\u2028\u2029]

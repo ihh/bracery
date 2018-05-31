@@ -5,7 +5,8 @@
 # Bracery
 
 Bracery is a small procedural text generation language (and library).
-It's heavily influenced by [Tracery](http://tracery.io/) (by [@galaxykate](https://github.com/galaxykate)), and while they are not officially related, one design goal is to be reasonably compatible with the syntax and patterns of Tracery:
+It's heavily influenced by [Tracery](http://tracery.io/) (by [@galaxykate](https://github.com/galaxykate)),
+and while they are not officially related, Bracery deliberately uses some Tracery-like syntax:
 
 - `[name:value]` sets the value of a variable called `name`
 - `#name#` dynamically expands a variable called `name`
@@ -24,7 +25,13 @@ Bracery includes elements of other languages and libraries:
 - many natural language processing functions are provided by the [compromise](https://github.com/spencermountain/compromise) library
 - the core language is otherwise modeled on [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)), including lists, dynamic evaluation, etc.
 
-## Quick example
+More details can be found under [Syntax](#syntax).
+
+# Usage
+
+## Web usage
+
+### Simple example
 
 The following Bracery code generates lines like
 `how goes it with thee, magician of Middle Earth`
@@ -37,22 +44,49 @@ and `well met now, magus of the world`
 #greetings#, #wizard# of #earthsea#
 ~~~~
 
-Here it is as a [web example](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/no_defs.html) ([source](web/no_defs.html)).
+Here is that example as a [web demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/no_defs.html) ([source](web/no_defs.html)).
 
-There are several other ways you can specify templates such as this (that is, the overall structure of the sentence, along with the various options for `greetings`, `wizard`, and `earthsea`),
-including Tracery-compatible JSON, a simplified text format, direct through the JavaScript API.
+### Another example
 
-# Usage
+Here is another example, taken from Kate Compton's [online tutorial](http://www.crystalcodepalace.com/traceryTut.html) to Tracery:
 
-## In the browser
+~~~~
+[name=>Arjun|Yuuma|Darcy|Mia|Chiaki|Izzi|Azra|Lina]
+[animal=>unicorn|raven|sparrow|scorpion|coyote|eagle|owl|lizard|zebra|duck|kitten]
+[mood=>vexed|indignant|impassioned|wistful|astute|courteous]
+[story=>#hero# traveled with her pet #heroPet#.  #hero# was never #mood#, for the #heroPet# was always too #mood#.]
+[origin=>#[hero:#name#][heroPet:#animal#]story#]
+#origin#
+~~~~
+
+Here's the [web demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/travel.html) ([source](web/travel.html))
+for Kate's example, which generates lines like the following:
+
+~~~~
+Darcy traveled with her pet kitten.  Darcy was never wistful, for the kitten was always too astute.
+~~~~
+
+### Alternate formats
+
+There are several other ways you can specify these kinds of template
+(including, that is, the overall structure of the sentence, along with the various options for `greetings`, `wizard`, and `earthsea`).
+
+For example, you can use Tracery-style JSON:
+
+~~~~
+{"name": ["Arjun","Yuuma","Darcy","Mia","Chiaki","Izzi","Azra","Lina"],
+"animal": ["unicorn","raven","sparrow","scorpion","coyote","eagle","owl","lizard","zebra","duck","kitten"],
+"mood": ["vexed","indignant","impassioned","wistful","astute","courteous"],
+"story": ["#hero# traveled with her pet #heroPet#.  #hero# was never #mood#, for the #heroPet# was always too #mood#."],
+"origin": ["#[hero:#name#][heroPet:#animal#]story#"]}
+~~~~
 
 Here is a [web demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/index.html) ([source](web/index.html))
-taken from Kate Compton's [online tutorial](http://www.crystalcodepalace.com/traceryTut.html) to Tracery.
-The symbol definitions from this example are duplicated below (under [From NodeJS](#from-nodejs))
-and can also be [found](examples/travel.json), along with other examples from Kate's online tutorial,
+using the JSON symbol definitions.
+These can also be [found](examples/travel.json), along with other examples from Kate's online tutorial,
 in the [examples](examples/) directory of this repository.
 
-## From the command line
+## Command-line usage
 
 Give Bracery some text to expand:
 
@@ -135,7 +169,7 @@ var b = new bracery.Bracery
 console.log (b.expand('I [love|hate|like] you $percentage!').text)
 ~~~~
 
-They can also, if a `callback` is specified in the configuration object that's the optional second argument to `expand`,
+They can also, if a `callback` is specified,
 be bound to functions that return [promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) of strings:
 
 ~~~~

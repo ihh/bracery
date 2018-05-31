@@ -513,8 +513,7 @@ function mapReducer (expansion, childExpansion, config, resolve) {
                                              config,
                                              { reduce: textReducer,
                                                init: {} }),
-                                     mapVarName,
-                                     [childExpansion.value || childExpansion.text],
+                                     [[mapVarName, [childExpansion.value || childExpansion.text]]],
                                      pt.sampleParseTree (mapRhs, config))
     .then (function (mappedChildExpansion) {
       return listReducer.call (pt, expansion, mappedChildExpansion, config, resolve)
@@ -531,8 +530,7 @@ function filterReducer (expansion, childExpansion, config, resolve) {
                                              config,
                                              { reduce: textReducer,
                                                init: {} }),
-                                     mapVarName,
-                                     [childExpansion.value || childExpansion.text],
+                                     [[mapVarName, [childExpansion.value || childExpansion.text]]],
                                      pt.sampleParseTree (mapRhs, config))
     .then (function (mappedChildExpansion) {
       return mappedChildExpansion.text.match(/\S/) ? listReducer.call (pt, expansion, childExpansion, config, resolve) : expansion
@@ -544,31 +542,15 @@ function reduceReducer (expansion, childExpansion, config, resolve) {
   var mapVarName = config.mapVarName
   var resultVarName = config.resultVarName
   var resultRhs = config.resultRhs
-  var varVal = expansion.vars
 
-  var oldMapValue = varVal[mapVarName], oldResultValue = varVal[resultVarName]
-  varVal[mapVarName] = childExpansion.value || childExpansion.text
-  varVal[resultVarName] = expansion.value || expansion.text
-
-  var sampledResultRhs = this.sampleParseTree (resultRhs, config)
-  return makeRhsExpansionPromiseForConfig.call (pt,
-                                                extend ({}, config, { vars: varVal,
-                                                                      reduce: textReducer,
-                                                                      init: {} }),
-                                                resolve,
-                                                sampledResultRhs)
-    .then (function (reducedExpansion) {
-      var restoredVars = extend ({}, reducedExpansion.vars)
-      if (typeof(oldMapValue) === 'undefined')
-        delete restoredVars[mapVarName]
-      else
-        restoredVars[mapVarName] = oldMapValue
-      if (typeof(oldResultValue) === 'undefined')
-        delete restoredVars[resultVarName]
-      else
-        restoredVars[resultVarName] = oldResultValue
-      return extend (reducedExpansion, { vars: restoredVars })
-    })
+  return makeAssignmentPromise.call (pt,
+                                     extend ({},
+                                             config,
+                                             { reduce: textReducer,
+                                               init: {} }),
+                                     [[mapVarName, [childExpansion.value || childExpansion.text]],
+                                      [resultVarName, [expansion.value || expansion.text]]],
+                                     pt.sampleParseTree (resultRhs, config))
 }
 
 function makeRhsExpansionPromise (config) {
@@ -812,35 +794,38 @@ function makeQuasiquoteExpansionPromise (config) {
   })
 }
 
-function makeAssignmentPromise (config, name, value, local) {
+function makeAssignmentPromise (config, nameValueList, local) {
   var pt = this
-  var varVal = config.vars || {}
+  var varVal = config.vars || {}, oldVarVal = {}
   var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
   var expansion = { text: '', vars: varVal, nodes: 1 }
-  name = name.toLowerCase()
-  var oldValue = varVal[name]
-  var promise = makeRhsExpansionReducer (pt, config, textReducer, {}) (value)
-      .then (function (valExpansion) {
-        expansion.vars = valExpansion.vars
-        expansion.vars[name] = valExpansion.value || valExpansion.text
-        expansion.nodes += valExpansion.nodes
-        if (local) {
-          return makeRhsExpansionPromiseForConfig.call (pt, extend ({}, config, { vars: expansion.vars }), resolve, local)
-            .then (function (localExpansion) {
-              expansion.value = localExpansion.value
-              expansion.text = localExpansion.text
-              expansion.nodes += localExpansion.nodes
-              extend (expansion.vars, localExpansion.vars)
-              if (typeof(oldValue) === 'undefined')
-                delete expansion.vars[name]
-              else
-                expansion.vars[name] = oldValue
-              return expansion
-            })
-        } else
+  var promise = resolve()
+  nameValueList.forEach (function (nameValue) {
+    var name = nameValue[0].toLowerCase(), value = nameValue[1]
+    oldVarVal[name] = varVal[name]
+    promise = promise.then (function() {
+      return makeRhsExpansionReducer (pt, config, textReducer, {}) (value)
+        .then (function (valExpansion) {
+          extend (expansion.vars, valExpansion.vars)
+          expansion.vars[name] = valExpansion.value || valExpansion.text
+          expansion.nodes += valExpansion.nodes
+        })
+    })
+  })
+  return promise.then (function() {
+    if (local)
+      return makeRhsExpansionPromiseForConfig.call (pt, extend ({}, config, { vars: expansion.vars }), resolve, local)
+        .then (function (localExpansion) {
+          extend (expansion.vars, localExpansion.vars, oldVarVal)
+          expansion.value = localExpansion.value
+          expansion.text = localExpansion.text
+          expansion.nodes += localExpansion.nodes
           return expansion
-      })
-  return promise
+        })
+    else
+      return expansion
+  })
+  return promise.then (function() { return expansion })
 }
 
 function makeExpansionPromise (config) {
@@ -867,7 +852,7 @@ function makeExpansionPromise (config) {
           case 'assign':
             var name = node.varname.toLowerCase()
             var oldValue = varVal[name]
-            promise = makeAssignmentPromise.call (pt, config, node.varname, node.value, node.local)
+            promise = makeAssignmentPromise.call (pt, config, [[node.varname, node.value]], node.local)
             break
 
           case 'lookup':

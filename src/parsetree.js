@@ -331,6 +331,9 @@ function makeRhsText (rhs, makeSymbolName) {
       case 'func':
         if (binaryFunction[tok.funcname]) {
           result = funcChar + tok.funcname + tok.args.map (function (arg) { return makeFuncArgText (pt, [arg], makeSymbolName) }).join('')
+        } else if (regexFunction[tok.funcname]) {
+          result = funcChar + tok.funcname + '/' + pt.makeRhsText ([tok.args[0]], makeSymbolName) + '/' + pt.makeRhsText ([tok.args[1]], makeSymbolName)
+            + tok.args.slice(2).map (function (arg) { return makeFuncArgText (pt, [arg], makeSymbolName) }).join('')
         } else if (tok.funcname === 'map' || tok.funcname === 'filter' || tok.funcname === 'reduce') {
           result = funcChar + tok.funcname + varChar + tok.args[0].varname + ':' + makeFuncArgText (pt, tok.args[0].value, makeSymbolName)
             + (tok.funcname === 'reduce'
@@ -467,7 +470,7 @@ function makeExpansionSync (config) {
   return result
 }
 
-function textReducer (expansion, childExpansion, config, resolve) {
+function textReducer (expansion, childExpansion) {
   var leftVal = expansion.value, rightVal = childExpansion.value
   var leftText = expansion.text, rightText = childExpansion.text
   var value = (typeof(leftVal) === 'undefined'
@@ -489,7 +492,7 @@ function textReducer (expansion, childExpansion, config, resolve) {
                    nodes: expansion.nodes + childExpansion.nodes })
 }
 
-function listReducer (expansion, childExpansion, config, resolve) {
+function listReducer (expansion, childExpansion) {
   var leftVal = expansion.value, rightVal = childExpansion.value
   var leftText = expansion.text, rightText = childExpansion.text
   var value = leftVal.concat ((typeof(rightVal) === 'undefined' || typeof(rightVal) === 'string')
@@ -503,7 +506,7 @@ function listReducer (expansion, childExpansion, config, resolve) {
                    nodes: expansion.nodes + childExpansion.nodes })
 }
 
-function mapReducer (expansion, childExpansion, config, resolve) {
+function mapReducer (expansion, childExpansion, config) {
   var pt = this
   var mapRhs = config.mapRhs
   var mapVarName = config.mapVarName
@@ -516,11 +519,11 @@ function mapReducer (expansion, childExpansion, config, resolve) {
                                      [[mapVarName, [childExpansion.value || childExpansion.text]]],
                                      pt.sampleParseTree (mapRhs, config))
     .then (function (mappedChildExpansion) {
-      return listReducer.call (pt, expansion, mappedChildExpansion, config, resolve)
+      return listReducer.call (pt, expansion, mappedChildExpansion, config)
     })
 }
 
-function filterReducer (expansion, childExpansion, config, resolve) {
+function filterReducer (expansion, childExpansion, config) {
   var pt = this
   var mapRhs = config.mapRhs
   var mapVarName = config.mapVarName
@@ -533,11 +536,11 @@ function filterReducer (expansion, childExpansion, config, resolve) {
                                      [[mapVarName, [childExpansion.value || childExpansion.text]]],
                                      pt.sampleParseTree (mapRhs, config))
     .then (function (mappedChildExpansion) {
-      return mappedChildExpansion.text.match(/\S/) ? listReducer.call (pt, expansion, childExpansion, config, resolve) : expansion
+      return mappedChildExpansion.text.match(/\S/) ? listReducer.call (pt, expansion, childExpansion, config) : expansion
     })
 }
 
-function reduceReducer (expansion, childExpansion, config, resolve) {
+function reduceReducer (expansion, childExpansion, config) {
   var pt = this
   var mapVarName = config.mapVarName
   var resultVarName = config.resultVarName
@@ -577,7 +580,7 @@ function makeRhsExpansionPromise (config) {
                                                 { node: child,
                                                   vars: expansion.vars }))
         .then (function (childExpansion) {
-          return reduce.call (pt, expansion, childExpansion, config, resolve)
+          return reduce.call (pt, expansion, childExpansion, config)
         })
     })
   }, resolve (init))
@@ -674,6 +677,28 @@ function valuesEqual (a, b) {
   }, true)
 }
 
+var regexFunction = {
+  match: function (regex, text, expr, config) {
+    var pt = this
+    var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
+    var expansion = { text: '', vars: config.vars, nodes: 1, tree: [], value: [] }
+    var promise = resolve (expansion)
+    var match
+    while (match = regex.exec (text)) {
+      promise = promise.then (function (expansion) {
+        var sampledExprTree = pt.sampleParseTree (expr, config)
+        return makeAssignmentPromise.call (pt, config, match.map (function (group, n) { return [''+n, [group]] }), sampledExprTree)
+          .then (function (exprExpansion) {
+            return listReducer (expansion, exprExpansion, config)
+          })
+      })
+      if (!regex.global)
+        break
+    }
+    return promise
+  }
+}
+
 var binaryFunction = {
   strip: function (l, r) {
     return r.split(l).join('')
@@ -711,10 +736,10 @@ var binaryFunction = {
     return toNumber(l) === toNumber(r) ? falseVal : l
   },
   leq: function (l, r) {
-    return this.eq(l,r) || this.lt(l,r)
+    return binaryFunction.eq(l,r) || binaryFunction.lt(l,r)
   },
   geq: function (l, r) {
-    return this.eq(l,r) || this.gt(l,r)
+    return binaryFunction.eq(l,r) || binaryFunction.gt(l,r)
   },
   cat: function (l, r, lv, rv) {
     return makeArray(lv).concat (makeArray(rv))
@@ -940,6 +965,22 @@ function makeExpansionPromise (config) {
                                                       { value: initExpansion.value }) (makeArray (listExpansion.value))
                     })
                 })
+            } else if (regexFunction[node.funcname]) {
+              // regex functions
+              promise = makeRhsExpansionPromiseFor ([node.args[0]])
+                .then (function (regexArg) {
+                  return makeRhsExpansionPromiseFor ([node.args[1]])
+                    .then (function (flagsArg) {
+                      promise = makeRhsExpansionPromiseFor ([node.args[2]])
+                        .then (function (textArg) {
+                          expansion.nodes += regexArg.nodes + flagsArg.nodes + textArg.nodes
+                          return regexFunction[node.funcname].call (pt, new RegExp (regexArg.text, flagsArg.text), textArg.text, [node.args[3]], config)
+                            .then (addExpansionNodes)
+                        })
+                    })
+                }).then (function() {
+                  return expansionPromise
+                })
             } else if (binaryFunction[node.funcname]) {
               // binary functions
               promise = makeRhsExpansionPromiseFor ([node.args[0]])
@@ -947,7 +988,7 @@ function makeExpansionPromise (config) {
                   return makeRhsExpansionPromiseFor ([node.args[1]])
                     .then (function (rightArg) {
                       expansion.nodes += leftArg.nodes + rightArg.nodes
-                      var binaryResult = binaryFunction[node.funcname].call (binaryFunction, leftArg.text, rightArg.text, leftArg.value, rightArg.value, config)
+                      var binaryResult = binaryFunction[node.funcname] (leftArg.text, rightArg.text, leftArg.value, rightArg.value, config)
                       expansion.value = binaryResult
                       expansion.text = makeString (binaryResult)
                       return expansionPromise

@@ -7,10 +7,11 @@ Node
   / "\\" escaped:. { return escaped }
   / text:[^\$\#&\^\{\}\[\]\|\\]+ { return text.join("") }
   / Symbol
-  / Conditional
   / LocalAssignment
   / Repetition
+  / Conditional
   / MapFunction
+  / RegexFunction
   / BinaryFunction
   / Function
   / a:VarAssignment _ { return a }
@@ -89,11 +90,12 @@ Unquote = ("unquote" / ",") { return 'unquote' }
 
 FunctionArg
   = sym:Symbol { return [sym] }
-  / cond:Conditional { return [cond] }
   / loc:LocalAssignment { return [loc] }
   / rep:Repetition { return [rep] }
+  / cond:Conditional { return [cond] }
   / mapfunc:MapFunction { return [mapfunc] }
   / bin:BinaryFunction { return [bin] }
+  / reg:RegexFunction { return [reg] }
   / func:Function { return [func] }
   / assign:VarAssignment { return [assign] }
   / lookup:VarLookup { return [lookup] }
@@ -120,6 +122,7 @@ Number
 VarLookup
   = "^" varname:Identifier { return makeSugaredLookup (varname) }
   / "^{" _ varname:Identifier _ "}" { return makeSugaredLookup (varname) }
+  / "^" varname:Number { return makeLookup ('' + varname) }
 
 VarAssignment
   = "&set^" varname:Identifier args:FunctionArg { return makeAssign (varname, args) }
@@ -151,3 +154,52 @@ Identifier
 
 _ "whitespace"
   = [ \t\n\r]*
+
+
+RegexFunction
+  = "&match" pattern:RegularExpressionLiteral text:FunctionArg expr:FunctionArg { return makeFunction ('match', [wrapNodes(pattern.body), wrapNodes(pattern.flags), wrapNodes(text), wrapNodes(expr)]) }
+
+// regex grammar https://gist.github.com/deedubs/1392590
+RegularExpressionLiteral
+  = "/" body:RegularExpressionBody "/" flags:RegularExpressionFlags { return { body: [body], flags: flags ? [flags] : [] } }
+
+RegularExpressionBody
+  = c:RegularExpressionFirstChar chars:RegularExpressionChars { return c + chars }
+
+RegularExpressionChars
+  = chars:RegularExpressionChar* { return chars.join("") }
+
+RegularExpressionFirstChar
+  = ![*\\/[] c:RegularExpressionNonTerminator { return c }
+  / RegularExpressionBackslashSequence
+  / RegularExpressionClass
+
+RegularExpressionChar
+  = ![\\/[] c:RegularExpressionNonTerminator { return c }
+  / RegularExpressionBackslashSequence
+  / RegularExpressionClass
+
+RegularExpressionBackslashSequence
+  = "\\" c:RegularExpressionNonTerminator { return "\\" + c }
+
+RegularExpressionNonTerminator
+  = !LineTerminator c:SourceCharacter { return c }
+
+RegularExpressionClass
+  = "[" chars:RegularExpressionClassChars "]" { return "[" + chars + "]" }
+
+RegularExpressionClassChars
+  = chars:RegularExpressionClassChar* { return chars.join("") }
+
+RegularExpressionClassChar
+  = ![\]\\] c:RegularExpressionNonTerminator { return c }
+  / RegularExpressionBackslashSequence
+
+RegularExpressionFlags
+  = parts:[gimuy]* { return parts.join("") }
+
+LineTerminator
+  = [\n\r\u2028\u2029]
+
+SourceCharacter
+  = .

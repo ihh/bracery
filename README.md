@@ -72,11 +72,11 @@ There are several other ways you can specify these kinds of template.
 For example, you can use Tracery-style JSON:
 
 ~~~~
-{"name": ["Arjun","Yuuma","Darcy","Mia","Chiaki","Izzi","Azra","Lina"],
-"animal": ["unicorn","raven","sparrow","scorpion","coyote","eagle","owl","lizard","zebra","duck","kitten"],
-"mood": ["vexed","indignant","impassioned","wistful","astute","courteous"],
-"story": ["#hero# traveled with her pet #heroPet#.  #hero# was never #mood#, for the #heroPet# was always too #mood#."],
-"origin": ["#[hero:#name#][heroPet:#animal#]story#"]}
+{ "name": ["Arjun","Yuuma","Darcy","Mia","Chiaki","Izzi","Azra","Lina"],
+  "animal": ["unicorn","raven","sparrow","scorpion","coyote","eagle","owl","lizard","zebra","duck","kitten"],
+  "mood": ["vexed","indignant","impassioned","wistful","astute","courteous"],
+  "story": ["#hero# traveled with her pet #heroPet#.  #hero# was never #mood#, for the #heroPet# was always too #mood#."],
+  "origin": ["#[hero:#name#][heroPet:#animal#]story#"] }
 ~~~~
 
 Here is a [web demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/index.html) ([source](web/index.html))

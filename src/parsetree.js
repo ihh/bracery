@@ -507,25 +507,17 @@ function mapReducer (expansion, childExpansion, config, resolve) {
   var pt = this
   var mapRhs = config.mapRhs
   var mapVarName = config.mapVarName
-  var varVal = expansion.vars
 
-  var oldValue = varVal[mapVarName]
-  varVal[mapVarName] = childExpansion.value || childExpansion.text
-
-  var sampledMapRhs = this.sampleParseTree (mapRhs, config)
-  return makeRhsExpansionPromiseForConfig.call (pt,
-                                                extend ({}, config, { vars: varVal,
-                                                                      reduce: textReducer,
-                                                                      init: {} }),
-                                                resolve,
-                                                sampledMapRhs)
+  return makeAssignmentPromise.call (pt,
+                                     extend ({},
+                                             config,
+                                             { reduce: textReducer,
+                                               init: {} }),
+                                     mapVarName,
+                                     [childExpansion.value || childExpansion.text],
+                                     pt.sampleParseTree (mapRhs, config))
     .then (function (mappedChildExpansion) {
-      var restoredVars = extend ({}, mappedChildExpansion.vars)
-      if (typeof(oldValue) === 'undefined')
-        delete restoredVars[mapVarName]
-      else
-        restoredVars[mapVarName] = oldValue
-      return listReducer.call (pt, expansion, extend (mappedChildExpansion, { vars: restoredVars }), config, resolve)
+      return listReducer.call (pt, expansion, mappedChildExpansion, config, resolve)
     })
 }
 
@@ -533,25 +525,17 @@ function filterReducer (expansion, childExpansion, config, resolve) {
   var pt = this
   var mapRhs = config.mapRhs
   var mapVarName = config.mapVarName
-  var varVal = expansion.vars
 
-  var oldValue = varVal[mapVarName]
-  varVal[mapVarName] = childExpansion.value || childExpansion.text
-
-  var sampledMapRhs = this.sampleParseTree (mapRhs, config)
-  return makeRhsExpansionPromiseForConfig.call (pt,
-                                                extend ({}, config, { vars: varVal,
-                                                                      reduce: textReducer,
-                                                                      init: {} }),
-                                                resolve,
-                                                sampledMapRhs)
+  return makeAssignmentPromise.call (pt,
+                                     extend ({},
+                                             config,
+                                             { reduce: textReducer,
+                                               init: {} }),
+                                     mapVarName,
+                                     [childExpansion.value || childExpansion.text],
+                                     pt.sampleParseTree (mapRhs, config))
     .then (function (mappedChildExpansion) {
-      var restoredVars = extend ({}, mappedChildExpansion.vars)
-      if (typeof(oldValue) === 'undefined')
-        delete restoredVars[mapVarName]
-      else
-        restoredVars[mapVarName] = oldValue
-      return mappedChildExpansion.text.match(/\S/) ? listReducer.call (pt, expansion, extend (childExpansion, { vars: restoredVars }), config, resolve) : expansion
+      return mappedChildExpansion.text.match(/\S/) ? listReducer.call (pt, expansion, childExpansion, config, resolve) : expansion
     })
 }
 
@@ -828,6 +812,37 @@ function makeQuasiquoteExpansionPromise (config) {
   })
 }
 
+function makeAssignmentPromise (config, name, value, local) {
+  var pt = this
+  var varVal = config.vars || {}
+  var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
+  var expansion = { text: '', vars: varVal, nodes: 1 }
+  name = name.toLowerCase()
+  var oldValue = varVal[name]
+  var promise = makeRhsExpansionReducer (pt, config, textReducer, {}) (value)
+      .then (function (valExpansion) {
+        expansion.vars = valExpansion.vars
+        expansion.vars[name] = valExpansion.value || valExpansion.text
+        expansion.nodes += valExpansion.nodes
+        if (local) {
+          return makeRhsExpansionPromiseForConfig.call (pt, extend ({}, config, { vars: expansion.vars }), resolve, local)
+            .then (function (localExpansion) {
+              expansion.value = localExpansion.value
+              expansion.text = localExpansion.text
+              expansion.nodes += localExpansion.nodes
+              extend (expansion.vars, localExpansion.vars)
+              if (typeof(oldValue) === 'undefined')
+                delete expansion.vars[name]
+              else
+                expansion.vars[name] = oldValue
+              return expansion
+            })
+        } else
+          return expansion
+      })
+  return promise
+}
+
 function makeExpansionPromise (config) {
   var pt = this
   var node = config.node
@@ -852,27 +867,7 @@ function makeExpansionPromise (config) {
           case 'assign':
             var name = node.varname.toLowerCase()
             var oldValue = varVal[name]
-            promise = makeRhsExpansionPromiseFor (node.value)
-              .then (function (valExpansion) {
-                expansion.vars = valExpansion.vars
-                expansion.vars[name] = valExpansion.value || valExpansion.text
-                expansion.nodes += valExpansion.nodes
-                if (node.local) {
-                  return makeRhsExpansionPromiseForConfig.call (pt, extend ({}, config, { vars: expansion.vars }), resolve, node.local)
-                    .then (function (localExpansion) {
-                      expansion.value = localExpansion.value
-                      expansion.text = localExpansion.text
-                      expansion.nodes += localExpansion.nodes
-                      extend (expansion.vars, localExpansion.vars)
-                      if (typeof(oldValue) === 'undefined')
-                        delete expansion.vars[name]
-                      else
-                        expansion.vars[name] = oldValue
-                      return expansionPromise
-                    })
-                } else
-                  return expansionPromise
-              })
+            promise = makeAssignmentPromise.call (pt, config, node.varname, node.value, node.local)
             break
 
           case 'lookup':

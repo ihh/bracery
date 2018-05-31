@@ -25,7 +25,7 @@ So, for example, the Bracery program to generate the text "hello world" is just 
 
 Bracery includes elements of other languages and libraries:
 
-- the syntax for setting and expanding variables is from Tracery
+- some syntax for setting and expanding variables comes from Tracery
 - alternations are borrowed from [regular expressions](https://en.wikipedia.org/wiki/Regular_expression)
 - many natural language processing functions are provided by the [compromise](https://github.com/spencermountain/compromise) library
 - the core language is otherwise modeled on [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)), including lists, dynamic evaluation, etc.

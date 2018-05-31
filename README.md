@@ -25,7 +25,7 @@ Bracery includes elements of other languages and libraries:
 - many natural language processing functions are provided by the [compromise](https://github.com/spencermountain/compromise) library
 - the core language is otherwise modeled on [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)), including lists, dynamic evaluation, etc.
 
-More details can be found under [Syntax](#syntax).
+See [below](#syntax) for details.
 
 # Usage
 

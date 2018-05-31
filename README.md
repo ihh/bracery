@@ -4,28 +4,33 @@
 
 # Bracery
 
-Bracery is a small procedural text generation language (and library).
-It's heavily influenced by [Tracery](http://tracery.io/) (by [@galaxykate](https://github.com/galaxykate)),
-and while they are not officially related, Bracery deliberately uses some Tracery-like syntax:
+Bracery is a small procedural text generation language (and library),
+heavily influenced by [@galaxykate](https://github.com/galaxykate)'s [Tracery](http://tracery.io/).
 
-- `[name:value]` sets the value of a variable called `name`
-- `#name#` dynamically expands a variable called `name`
-- `#[x:value]name#` locally binds variable `x` to `value` while expanding `#name#`
+The main construct in Bracery is the _alternation_, a list of options separated by vertical bars:
 
-Like [ChoiceScript](https://www.choiceofgames.com/make-your-own-games/choicescript-intro/),
-[Tracery](http://tracery.io/),
-Twine's [Harlowe](https://twine2.neocities.org/) format,
-and other programming languages for interactive fiction,
-anything in a Bracery program that isn't code is implicitly output.
+~~~~
+I feel [happy|sad|angry|bored]
+~~~~
+
+Bind a variable to an alternation, and you have a context-free grammar:
+
+~~~~
+[mood=>happy|sad|angry|bored]
+I felt #mood#, and now I feel #mood#.
+~~~~
+
+In a Bracery program, anything that isn't code is implicitly output.
 So, for example, the Bracery program to generate the text "hello world" is just `hello world`, which is a [quine](https://en.wikipedia.org/wiki/Quine_(computing)).
 
 Bracery includes elements of other languages and libraries:
 
-- the concept of _alternations_ is borrowed from [regular expressions](https://en.wikipedia.org/wiki/Regular_expression)
+- the syntax for setting and expanding variables is from Tracery
+- alternations are borrowed from [regular expressions](https://en.wikipedia.org/wiki/Regular_expression)
 - many natural language processing functions are provided by the [compromise](https://github.com/spencermountain/compromise) library
 - the core language is otherwise modeled on [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)), including lists, dynamic evaluation, etc.
 
-See [below](#syntax) for details.
+More language details are [below](#syntax).
 
 # Usage
 
@@ -100,8 +105,8 @@ curl -O https://raw.githubusercontent.com/ihh/bracery/master/examples/travel.jso
 
 bracery -d travel.json
 bracery -d travel.json -n5
-bracery -d travel.json -n5 --eval '$origin And then they met $name.'
-bracery -d travel.json -n5 --eval '$origin And they had [fun|trouble|no luck], until they met $name.'
+bracery -d travel.json -n5 --eval '$origin And then they met #name#.'
+bracery -d travel.json -n5 --eval '$origin And they had [fun|trouble|no luck], until they met #name#.'
 bracery -d travel.json --tree
 bracery -d travel.json --repl
 bracery -d travel.json -n5 --async

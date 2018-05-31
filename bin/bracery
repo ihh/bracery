@@ -14,9 +14,9 @@ var bracery = require('..'),
 
 // parse command-line options
 var opt = getopt.create([
-  ['d' , 'defs=PATH+'       , 'load symbol definitions from JSON or Bracery plaintext file(s)'],
+  ['d' , 'defs=PATH+'       , 'load symbol definitions from JSON or Bracery file(s)'],
   ['o' , 'output=PATH'      , 'save symbol definitions to JSON file'],
-  ['O' , 'output-text=PATH' , 'save symbol definitions to Bracery plaintext file'],
+  ['O' , 'output-text=PATH' , 'save symbol definitions to Bracery file'],
   ['s' , 'symbols=EXPR+'    , 'evaluate JSON symbol definitions from command line'],
   ['e' , 'eval=EXPR+'       , 'evaluate expression(s) text'],
   ['f' , 'file=PATH+'       , 'evaluate expression text from file(s)'],
@@ -173,8 +173,10 @@ function addRulesFile (filename) {
     result = addRules (rules)
   } catch (e) {
     result = addRulesText (text)
-    if (Object.keys(result).length === 0)
-      console.warn ('ignoring ' + filename + ' (could not parse)')
+    if (Object.keys(result).length === 0) {
+      opt.options.file = opt.options.file || []
+      opt.options.file.push (filename)
+    }
   }
   return result
 }

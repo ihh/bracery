@@ -311,7 +311,12 @@ function makeRhsText (rhs, makeSymbolName) {
           result = assign
 	break
       case 'alt':
-        result = leftSquareBraceChar + tok.opts.map (function (opt) { return pt.makeRhsText(opt,makeSymbolName) }).join('|') + rightSquareBraceChar
+        result = leftSquareBraceChar + tok.opts.map (function (opt, n) {
+          var optText = pt.makeRhsText(opt,makeSymbolName)
+          if (n === 0)
+            optText = optText.replace (/(:|=>)/g, function (_m, g) { return '\\' + g })
+          return optText
+        }).join('|') + rightSquareBraceChar
 	break
       case 'rep':
         result = funcChar + 'rep' + makeFuncArgText (pt, tok.unit, makeSymbolName) + leftBraceChar + tok.min + (tok.max !== tok.min ? (',' + tok.max) : '') + rightBraceChar

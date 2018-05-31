@@ -43,6 +43,14 @@ describe('validation', function() {
   validate ('&reduce^n{^x}^r{zero dogs}{&add{^r}{^n}}', '&reduce^n:^x^r={zero dogs}&add^r^n')
   validate ('&map^n:^x{^n,}')
   validate ('&map^n{^x}{^n,}', '&map^n:^x{^n,}')
+
+  validate ('[a=>b|c]', '^a={&quote[b|c]}')
+  validate ('[a\\=>b|c]', '[a\\=>b|c]')
+  validate ('[c|a\\=>b]', '[c|a=>b]')
+
+  validate ('[a:b|c]', '[a\\:b|c]')
+  validate ('[a:b\\|c]', '^a={b\\|c}')
+
 })
 
 function validate (lhs, norm, config) {

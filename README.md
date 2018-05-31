@@ -13,7 +13,7 @@ The main construct in Bracery is the _alternation_, a list of options separated 
 I feel [happy|sad|angry|bored]
 ~~~~
 
-Bind a variable to an alternation, and you have a context-free grammar:
+Bind a variable to an alternation, and you have a [context-free grammar](https://en.wikipedia.org/wiki/Context-free_grammar):
 
 ~~~~
 [mood=>happy|sad|angry|bored]

@@ -19,6 +19,7 @@ var opt = getopt.create([
   ['O' , 'output-text=PATH' , 'save symbol definitions to Bracery plaintext file'],
   ['s' , 'symbols=EXPR+'    , 'evaluate JSON symbol definitions from command line'],
   ['e' , 'eval=EXPR+'       , 'evaluate expression(s) text'],
+  ['f' , 'file=PATH+'       , 'evaluate expression text from file(s)'],
   ['n' , 'num=NUMBER'       , 'number of randomized samples to output'],
   ['c' , 'config=JSON'      , 'specify config params (e.g. maxDepth, maxRecursion, maxLength, maxNodes, maxReps)'],
   ['V' , 'validate=EXPR+'   , 'validate and normalize text, without expanding'],
@@ -212,6 +213,11 @@ if (opt.options.validate)
 // evaluate any expressions
 if (opt.options.eval)
   opt.options.eval.forEach (expand)
+
+if (opt.options.file)
+  opt.options.file.forEach (function (filename) {
+    expand (fs.readFileSync (filename).toString())
+  })
 
 // run template Markov chain
 if (opt.options.markov || opt.options.quiz) {

@@ -7,9 +7,9 @@
 Bracery is a small procedural text generation language (and library).
 It's heavily influenced by [Tracery](http://tracery.io/) (by [@galaxykate](https://github.com/galaxykate)), and while they are not officially related, one design goal is to be reasonably compatible with the syntax and patterns of Tracery:
 
-- `[name:value]` sets the value of variable `^name`
-- `#name#` dynamically expands variable `^name`
-- `#[x:value]name#` locally binds `x` to `value` while expanding `#name#`
+- `[name:value]` sets the value of a variable called `name`
+- `#name#` dynamically expands a variable called `name`
+- `#[x:value]name#` locally binds variable `x` to `value` while expanding `#name#`
 
 Like [ChoiceScript](https://www.choiceofgames.com/make-your-own-games/choicescript-intro/),
 [Tracery](http://tracery.io/),
@@ -18,29 +18,38 @@ and other programming languages for interactive fiction,
 anything in a Bracery program that isn't code is implicitly output.
 So, for example, the Bracery program to generate the text "hello world" is just `hello world`, which is a [quine](https://en.wikipedia.org/wiki/Quine_(computing)).
 
-Bracery defines three separate namespaces, distinguished by the prefix character.
-You can ignore these and just use the Tracery syntax `#name#` if you want, but for a deeper understanding of what's going on:
-
-- `^name` refers to a variable
-- `&name` refers to a core library function or macro
-- `$name` refers to a user extension (local or remote)
-
 Bracery includes elements of other languages and libraries:
 
 - the concept of _alternations_ is borrowed from [regular expressions](https://en.wikipedia.org/wiki/Regular_expression)
 - many natural language processing functions are provided by the [compromise](https://github.com/spencermountain/compromise) library
 - the core language is otherwise modeled on [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)), including lists, dynamic evaluation, etc.
 
+## Quick example
+
+The following Bracery code generates lines like
+`how goes it with thee, magician of Middle Earth`
+and `well met now, magus of the world`
+
+~~~~
+[greetings=>[hello|well met] [now|there]|how [goes|fares] it with [you|thee]]
+[wizard=>wizard|witch|mage|magus|magician|sorcerer|enchanter]
+[earthsea=>earthsea|Earth|Middle Earth|the planet|the world]
+#greetings#, #wizard# of #earthsea#
+~~~~
+
+Here it is as a [web example](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/no_defs.html) ([source](web/no_defs.html)).
+
+There are several other ways you can specify templates such as this (that is, the overall structure of the sentence, along with the various options for `greetings`, `wizard`, and `earthsea`),
+including Tracery-compatible JSON, a simplified text format, direct through the JavaScript API.
+
 # Usage
 
 ## In the browser
 
-[Basic demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/index.html) (source in [web/index.html](web/index.html))
-
-The symbol definitions in this example are from Kate Compton (@galaxykate)'s [online tutorial](http://www.crystalcodepalace.com/traceryTut.html) to Tracery.
-They are used throughout this README as an example,
-duplicated below (under [From NodeJS](#from-nodejs)).
-These symbol defintions can also be [found](examples/travel.json), along with other examples from Kate's online tutorial,
+Here is a [web demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/index.html) ([source](web/index.html))
+taken from Kate Compton's [online tutorial](http://www.crystalcodepalace.com/traceryTut.html) to Tracery.
+The symbol definitions from this example are duplicated below (under [From NodeJS](#from-nodejs))
+and can also be [found](examples/travel.json), along with other examples from Kate's online tutorial,
 in the [examples](examples/) directory of this repository.
 
 ## From the command line
@@ -145,7 +154,16 @@ b.expand ('I [love|hate|like] you $percentage!',
           { callback: function (expansion) { console.log (expansion.text) } })
 ~~~~
 
-# Comparison with Tracery
+# Technical details
+
+Bracery defines three separate namespaces, distinguished by the prefix character.
+You can ignore these and just use the Tracery syntax `#name#` if you want, but for a deeper understanding of what's going on:
+
+- `^name` refers to a variable
+- `&name` refers to a core library function or macro
+- `$name` refers to a user extension (local or remote)
+
+## Comparison with Tracery
 
 In Tracery, variables and symbols share the same namespace, as part of the design.
 For example, `#sentence#` is the syntax to expand the nonterminal symbol `sentence`,
@@ -199,7 +217,7 @@ See [tests](test/) for more examples using the JavaScript API.
 ### Built-in functions
 
 Bracery also offers a number of built-in functions for processing text
-(e.g. case, tense, plurals).
+(e.g. case, tense, plurals) and lists.
 These are described under [Syntax](#syntax).
 
 ## Rationale

@@ -71,6 +71,7 @@ MapFunction
 RegexFunction
   = "&match" pattern:RegularExpressionLiteral text:FunctionArg expr:QuotedFunctionArg { return makeRegexFunction ('match', pattern, text, expr) }
   / "&replace" pattern:RegularExpressionLiteral text:FunctionArg expr:QuotedFunctionArg { return makeRegexFunction ('replace', pattern, text, expr) }
+  / "&split" text:FunctionArg { return makeRegexFunction ('split', { body: ['[ \\t\\r\\n]+'], flags: [] }, text) }
   / "&split" pattern:RegularExpressionLiteral text:FunctionArg { return makeRegexFunction ('split', pattern, text) }
 
 RegexUnquote

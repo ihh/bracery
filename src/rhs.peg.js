@@ -5,7 +5,7 @@ Node
   = "\\n" { return "\n" }
   / "\\t" { return "\t" }
   / "\\" escaped:. { return escaped }
-  / text:[^\~\#&\$\{\}\[\]\|\\]+ { return text.join("") }
+  / Text
   / Symbol
   / LocalAssignment
   / Repetition
@@ -31,6 +31,8 @@ OuterNodeList
   = head:OuterNode tail:OuterNodeList { return concatNodes (head, tail) }
   / head:OuterNode { return [head] }
   / "" { return [] }
+
+Text = text:[^\~\#&\$\{\}\[\]\|\\]+ { return text.join("") }
 
 Symbol
   = sym:SymIdentifier args:ArgList { return makeSugaredSymbol (sym, makeArgList (args)) }
@@ -68,6 +70,7 @@ Function
   / UnaryFunction
   / BinaryVarFunction
   / UnaryVarFunction
+  / "&" v:DelimitedNodeList { return makeFunction ('value', v) }
 
 MapFunction
   = "&map" varname:MapVarIdentifier list:FunctionArg func:QuotedFunctionArg { return makeListFunction ('map', varname, list, func) }

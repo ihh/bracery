@@ -320,6 +320,9 @@ function doTests (testRunner) {
   expectExpand ('&~json{{1}{{2}}{{{3}}}}', 'x="1" y=["2"] z=[["3"]]')
   expectExpand ('&~json&list{1{2}{3}}', 'x="1" y=["2"] z=["3"]')
 
+  // shorthand for &value and &list (precise generators)
+  expectExpand ('&quotify{{&{a}&{b}{&{c}&{d}}e&{f}}}', '&list{&value{a}&value{b}&list{&value{c}&value{d}}&value{e}&value{f}}')
+
   // call, apply, function
   expectExpand ('$func=&function$first$second{0=&quotify$$0 1=$first 2=$second} &call{$func}{A}{B}', ' 0=&list{&value{A}&value{B}} 1=A 2=B')
   expectExpand ('$func=&function$first$second{0=&quotify$$0 1=$first 2=$second} $y=&list{&value{one}&value{two}} &apply{$func}$y', '  0=&list{&value{one}&value{two}} 1=one 2=two')

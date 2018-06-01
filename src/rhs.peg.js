@@ -13,9 +13,9 @@ Node
   / Function
   / VarAssignment
   / VarLookup
-  / EmptyList
   / Alternation
   / args:DummyAlternation { return wrapNodes (args) }
+  / List
   / char:[\~\#&\$] { return char }
 
 NodeList
@@ -127,7 +127,6 @@ FunctionArg
   / func:Function { return [func] }
   / assign:VarAssignment { return [assign] }
   / lookup:VarLookup { return [lookup] }
-  / empty:EmptyList { return [empty] }
   / alt:Alternation { return [alt] }
   / args:DelimitedNodeList { return args }
 
@@ -137,8 +136,8 @@ DummyAlternation
 DelimitedNodeList
   = "{" args:NodeList "}" { return args }
 
-EmptyList
-  = "&{}" { return makeEmptyList() }
+List
+  = "{" args:NodeList "}" { return makeFunction ('list', args) }
 
 Repetition
   = "&rep" unit:FunctionArg "{" min:Number "," max:Number "}" { return validRange (min, max) ? makeRep (unit, min, max) : text() }

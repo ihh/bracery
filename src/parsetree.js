@@ -1,5 +1,6 @@
 var RhsParser = require('./rhs')
 
+function isTruthy (x) { return makeString(x).match(/\S/) }
 var trueVal = '1'  // truthy value used when a result should be truthy but the default result in this context would otherwise be an empty string e.g. &same{}{} or &not{}
 var falseVal = ''  // falsy value
 var zeroVal = '0'  // default zero value for arithmetic operators
@@ -77,6 +78,7 @@ function parseTextDefs (text) {
 
 // Parse tree constants
 var symChar = '~', varChar = '$', funcChar = '&', leftBraceChar = '{', rightBraceChar = '}', leftSquareBraceChar = '[', rightSquareBraceChar = ']', assignChar = '=', traceryChar = '#'
+var nodeArgKeys = ['rhs','args','unit','value','local','cond','t','f']
 
 // Parse tree manipulations
 // sampleParseTree is the main method for constructing a new, clean parse tree from a template.
@@ -88,10 +90,25 @@ function sampleParseTree (rhs, config) {
     var result, index
     if (typeof(node) === 'string')
       result = node
-    else
+    else if (config.quoteLevel > 0) {
+      if (node.type === 'func' && node.funcname === 'unquote')
+	result = { type: 'func',
+                   funcname: 'unquote',
+                   args: pt.sampleParseTree (node.args, extend ({}, config, { quoteLevel: (config.quoteLevel || 0) - 1 })) }
+      else {
+        result = extend ({}, node)
+        if (node.type === 'func' && node.funcname === 'quote')
+          config = extend ({}, config, { quoteLevel: (config.quoteLevel || 0) + 1 })
+        nodeArgKeys.forEach (function (key) {
+          if (node[key])
+            result[key] = pt.sampleParseTree (node[key], config)
+        })
+        if (node.opts)
+          result.opts = node.opts.map (function (opt) { return pt.sampleParseTree (opt, config) })
+      }
+    } else
       switch (node.type) {
       case 'root':
-      case 'list':
         result = { type: node.type,
                    rhs: pt.sampleParseTree (node.rhs, config) }
         break
@@ -134,9 +151,11 @@ function sampleParseTree (rhs, config) {
       case 'func':
 	result = { type: 'func',
                    funcname: node.funcname,
-		   args: (node.funcname === 'strictquote' || node.funcname === 'quote'
+		   args: (node.funcname === 'strictquote'
                           ? node.args
-                          : pt.sampleParseTree (node.args, config)) }
+                          : (node.funcname === 'quote'
+                             ? pt.sampleParseTree (node.args, extend ({}, config, { quoteLevel: (config.quoteLevel || 0) + 1 }))
+                             : pt.sampleParseTree (node.args, config))) }
         break
       case 'lookup':
 	result = node
@@ -190,7 +209,6 @@ function getSymbolNodes (rhs) {
         r = pt.getSymbolNodes (node.test.concat (node.t, node.f))
         break
       case 'root':
-      case 'list':
       case 'alt_sampled':
         r = pt.getSymbolNodes (node.rhs)
         break
@@ -213,7 +231,7 @@ function parseTreeEmpty (rhs) {
   var pt = this
   return rhs.reduce (function (result, node) {
     if (result) {
-      if (typeof(node) === 'string' && node.match(/\S/))
+      if (typeof(node) === 'string' && isTruthy (node))
 	result = false
       else {
         switch (node.type) {
@@ -235,7 +253,6 @@ function parseTreeEmpty (rhs) {
           result = false  // we aren't checking variable values, so just assume any referenced variable is nonempty (yes this will miss some empty trees)
           break
         case 'root':
-        case 'list':
         case 'alt_sampled':
 	  if (node.rhs)
 	    result = pt.parseTreeEmpty (node.rhs)
@@ -290,11 +307,6 @@ function makeRhsText (rhs, makeSymbolName) {
       switch (tok.type) {
       case 'unquote':
         result = tok.text
-        break
-      case 'list':
-        if (tok.rhs.length)
-          throw new Error ("Can't display nonempty list")
-        result = '&{}'
         break
       case 'root':
         result = pt.makeRhsText (tok.rhs, makeSymbolName)
@@ -539,7 +551,7 @@ function filterReducer (expansion, childExpansion, config) {
                                      [[mapVarName, [childExpansion.value || childExpansion.text]]],
                                      pt.sampleParseTree (mapRhs, config))
     .then (function (mappedChildExpansion) {
-      return mappedChildExpansion.text.match(/\S/) ? listReducer.call (pt, expansion, childExpansion, config) : expansion
+      return isTruthy (mappedChildExpansion.text) ? listReducer.call (pt, expansion, childExpansion, config) : expansion
     })
 }
 
@@ -663,7 +675,7 @@ function makeString (item) {
 function makeGenerator (item) {
   return (item
           ? (typeof(item) === 'string'
-             ? (funcChar + 'quote{' + item + '}')
+             ? (funcChar + 'value{' + item + '}')
              : (funcChar + 'list{' + item.map(makeGenerator).join('') + '}'))
           : '')
 }
@@ -769,10 +781,10 @@ var binaryFunction = {
     return r.split(l).join('')
   },
   same: function (l, r, lv, rv) {
-    return valuesEqual (lv, rv) ? (l.match(/\S/) ? lv : trueVal) : falseVal
+    return valuesEqual (lv, rv) ? (isTruthy(l) ? lv : trueVal) : falseVal
   },
   and: function (l, r) {
-    return l.match(/\S/) && r.match(/\S/) ? (l + r) : falseVal
+    return isTruthy(l) && isTruthy(r) ? (l + r) : falseVal
   },
   add: function (l, r) {
     var lVals = nlp(l).values()
@@ -858,8 +870,12 @@ function makeQuasiquoteExpansionPromise (config) {
       expansion.text = node
       expansion.tree = [node]
       return resolve (expansion)
+    } else if (node.type === 'func' && node.funcname === 'quote') {
+      config = extend ({}, config, { quoteLevel: config.quoteLevel + 1 })
     } else if (node.type === 'func' && node.funcname === 'unquote') {
-      return makeRhsExpansionReducer (pt, extend ({}, config, { makeExpansionPromise: null }), textReducer, {}) (node.args)
+      config = extend ({}, config, { quoteLevel: config.quoteLevel - 1 })
+      if (config.quoteLevel <= 0)
+        return makeRhsExpansionReducer (pt, extend (config, { makeExpansionPromise: null }), textReducer, {}) (node.args)
         .then (function (unquoteExpansion) {
           unquoteExpansion.tree = [{ type: 'unquote', text: unquoteExpansion.text }]
           return addExpansionNodes (unquoteExpansion)
@@ -867,7 +883,7 @@ function makeQuasiquoteExpansionPromise (config) {
     }
   }
   var nodeCopy = extend ({}, node)
-  return ['rhs','args','local','value','test','t','f'].reduce (function (promise, rhsKey) {
+  return nodeArgKeys.reduce (function (promise, rhsKey) {
     var rhsVal = node[rhsKey]
     return (rhsVal
             ? promise.then (function() {
@@ -961,7 +977,7 @@ function makeExpansionPromise (config) {
           case 'cond':
             promise = makeRhsExpansionPromiseFor (node.test)
               .then (function (testExpansion) {
-                var testValue = testExpansion.text.match(/\S/) ? true : false
+                var testValue = isTruthy (testExpansion.text) ? true : false
                 var testResult = testValue ? node.t : node.f
                 node.value = testValue  // for debugging
                 expansion.nodes += testExpansion.nodes
@@ -978,7 +994,7 @@ function makeExpansionPromise (config) {
               expansion.text = pt.makeRhsText (node.args, makeSymbolName)
             } else if (node.funcname === 'quote') {
               // quasiquote
-              promise = reduceQuasiquote (pt, config, node.args)
+              promise = reduceQuasiquote (pt, extend ({}, config, { quoteLevel: 1 }), node.args)
                 .then (function (quasiquoteExpansion) {
                   addExpansionNodes (quasiquoteExpansion)
                   expansion.text = pt.makeRhsText (quasiquoteExpansion.tree, makeSymbolName)
@@ -1132,7 +1148,7 @@ function makeExpansionPromise (config) {
 
                     // not
                   case 'not':
-                    expansion.text = arg.match(/\S/) ? '' : trueVal
+                    expansion.text = isTruthy (arg) ? '' : trueVal
                     break
 
                     // list functions
@@ -1294,10 +1310,6 @@ function makeExpansionPromise (config) {
               return makeRhsExpansionPromiseFor (node.rhs || [], expr)
                 .then (addExpansionNodes)
             })
-            break
-          case 'list':
-            expansion.value = node.rhs || []
-            expansion.text = makeString (expansion.value)
             break
           case 'root':
           case 'alt_sampled':

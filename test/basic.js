@@ -73,6 +73,14 @@ function doTests (testRunner) {
   expectExpandQuote ('$heropet={freddy}&eval&quote{#heroPet#}', 'freddy')
   expectExpandQuote ('&quote{&match/a/{cat}{$$0}}', '&match/a/{cat}$$0')
 
+  expectExpand ('$x=3 &quote{x(&unquote$x)=&quote{&unquote$x}}', 'x(3)=&quote&unquote$x')
+  expectExpand ('$x=3 &eval&quote{x(&unquote$x)=&quote{&unquote$x}}', 'x(3)=3')
+
+  expectExpand ('&quote{a|b}', '[a|b]')
+  expectExpand ('&quote&unquote{a|b}', 'a', {maxTries:maxTries})
+  expectExpand ('&quote&unquote{a|b}', 'b', {maxTries:maxTries})
+  expectExpand ('&quote&quote&unquote{a|b}', '&quote&unquote[a|b]')
+
   // case manipulation
   expectExpand ('&quote{~TEST1}', '~TEST1')
   expectExpand ('&quote{~Test1}', '~Test1')
@@ -197,8 +205,8 @@ function doTests (testRunner) {
   expectExpand ('$a', 'x', {vars:vars,a_equals_x:true})
 
   // lists
-  expectExpand ('&{}', '')
-  expectExpand ('&cat{&{}}{xyz}', 'xyz')
+  expectExpand ('{}', '')
+  expectExpand ('&cat{{}}{xyz}', 'xyz')
   expectExpand ('&cat{xyz}{abc}', 'xyzabc')
   expectExpand ('&cat{123}&cat{xyz}{abc}', '123xyzabc')
   expectExpand ('&first{&cat{123}&cat{xyz}{abc}}', '123')
@@ -219,13 +227,13 @@ function doTests (testRunner) {
 
   expectExpand ('&join{&prepend{123}&cat{xyz}{abc}}{, }', '123, xyz, abc')
 
-  expectExpand ('&islist{&{}}', '[]')
+  expectExpand ('&islist{{}}', '[]')
   expectExpand ('&islist{}', '')
-  expectExpand ('&same{&{}}{}', '')
-  expectExpand ('&same{&{}}{&{}}', '1')
+  expectExpand ('&same{{}}{}', '')
+  expectExpand ('&same{{}}{{}}', '1')
 
-  expectExpand ('&join{&{}x&{}y}{,}', 'x,y')
-  expectExpand ('&join{x&{}y&{}}{,}', 'xy')
+  expectExpand ('&join{{}x{}y}{,}', 'x,y')
+  expectExpand ('&join{x{}y{}}{,}', 'xy')
 
   expectExpand ('$x=&list{&quote{abc}&quote{def}}&map$a$x{$a!}', 'abc!def!')
   expectExpand ('$x=&list{&quote{abc}&quote{def}}&join&map$a$x{$a!}{ }', 'abc! def!')
@@ -237,7 +245,7 @@ function doTests (testRunner) {
   expectExpand ('$x={1}$a1={verily}$a2={in troth}&eval&quote{$a&unquote$x indeed}', 'verily indeed')
   expectExpand ('&quote&unquote&quote&infinitive$y', '&infinitive$y')
 
-  expectExpand ('$x={&{}abc&quote{def}}&quotify$x', '&list{&quote{abc}&quote{def}}')
+  expectExpand ('$x={{}abc&quote{def}}&quotify$x', '&list{&value{abc}&value{def}}')
 
   expectExpand ('&push$x{a}&push$x{b}&uc&push$x{c}&push$x{...}&join$x{,} &shift$x $dots:=&pop$x $quirk:=uh, &shift$x $dots &unshift$x&cat{x}{t} &uc&join$x$dots',
                 'a,b,c,... a ... uh,b ... X...T...C')  // a lot going on in this one. Spaces must be exactly correct (of course)
@@ -293,7 +301,7 @@ function doTests (testRunner) {
 
   // regexes
   expectExpand ('&match/a/{cat}{$$0$$0}', 'aa')
-  expectExpand ('&quotify&match/[aeiou]/g{generic}{&uc$$0}', '&list{&quote{E}&quote{E}&quote{I}}')
+  expectExpand ('&quotify&match/[aeiou]/g{generic}{&uc$$0}', '&list{&value{E}&value{E}&value{I}}')
   expectExpand ('&replace/a/g{catamaran}{u|o}', 'cutomoron', {maxTries:maxTries})
   expectExpand ('&join&split/[aeiou]+/{felicitous}{..}', 'f..l..c..t..s')
   

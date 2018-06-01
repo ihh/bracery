@@ -59,9 +59,12 @@ LocalAssignment
   / "#" _ assigns:VarAssignmentList _ sym:Identifier mods:TraceryModifiers "#" { return makeLocalAssignChain (assigns, [makeTraceryExpr (sym, mods)]) }
 
 MapFunction
-  = "&map$" varname:Identifier (":" / "") list:FunctionArg func:FunctionArg { return makeListFunction ('map', varname, list, [makeQuote (func)]) }
-  / "&filter$" varname:Identifier (":" / "") list:FunctionArg func:FunctionArg { return makeListFunction ('filter', varname, list, [makeQuote (func)]) }
-  / "&reduce$" varname:Identifier (":" / "") list:FunctionArg "$" result:Identifier ("=" / "") init:FunctionArg func:FunctionArg { return makeListFunction ('reduce', varname, list, [makeLocalAssign (result, init, [makeQuote (func)])]) }
+  = "&map$" varname:Identifier (":" / "") list:FunctionArg func:QuotedFunctionArg { return makeListFunction ('map', varname, list, func) }
+  / "&filter$" varname:Identifier (":" / "") list:FunctionArg func:QuotedFunctionArg { return makeListFunction ('filter', varname, list, func) }
+  / "&reduce$" varname:Identifier (":" / "") list:FunctionArg "$" result:Identifier ("=" / "") init:FunctionArg func:QuotedFunctionArg { return makeReduceFunction (varname, list, result, init, func) }
+
+QuotedFunctionArg
+  = func:FunctionArg { return [makeQuote (func)] }
 
 BinaryFunction
   = "&" func:BinaryFunctionName left:FunctionArg right:FunctionArg { return makeFunction (func, [wrapNodes (left), wrapNodes (right)]) }
@@ -162,8 +165,8 @@ _ "whitespace"
 
 
 RegexFunction
-  = "&match" pattern:RegularExpressionLiteral text:FunctionArg expr:FunctionArg { return makeRegexFunction ('match', pattern, text, expr) }
-  / "&replace" pattern:RegularExpressionLiteral text:FunctionArg expr:FunctionArg { return makeRegexFunction ('replace', pattern, text, expr) }
+  = "&match" pattern:RegularExpressionLiteral text:FunctionArg expr:QuotedFunctionArg { return makeRegexFunction ('match', pattern, text, expr) }
+  / "&replace" pattern:RegularExpressionLiteral text:FunctionArg expr:QuotedFunctionArg { return makeRegexFunction ('replace', pattern, text, expr) }
   / "&split" pattern:RegularExpressionLiteral text:FunctionArg { return makeRegexFunction ('split', pattern, text) }
 
 RegexUnquote

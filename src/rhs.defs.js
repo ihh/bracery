@@ -12,7 +12,8 @@ function wrapNodes (args) { return args.length === 1 ? args[0] : { type: 'root',
 
 function makeQuote (args) { return makeFunction ('quote', args) }
 function makeListFunction (func, listvar, list, inner) { return makeFunction (func, [makeLocalAssign (listvar, list, inner)]) }
-function makeRegexFunction (func, pattern, text, expr) { return makeFunction (func, [wrapNodes(pattern.body), wrapNodes(pattern.flags), wrapNodes(text)].concat (expr ? [makeQuote(expr)] : [])) }
+function makeReduceFunction (varname, list, result, init, func) { return makeListFunction ('reduce', varname, list, [makeLocalAssign (result, init, func)]) }
+function makeRegexFunction (func, pattern, text, expr) { return makeFunction (func, [wrapNodes(pattern.body), wrapNodes(pattern.flags), wrapNodes(text)].concat (expr || [])) }
 
 function makeGroupVarName (n) { return '$' + n }
 

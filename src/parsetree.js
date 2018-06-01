@@ -284,8 +284,8 @@ function isTraceryExpr (node, makeSymbolName) {
     && node.test[0].varname.toLowerCase() === makeSymbolName (node.f[0]).toLowerCase()
 }
 
-function makeFuncArgText (pt, args, makeSymbolName) {
-  var noBraces = args.length === 1 && (args[0].type === 'func' || args[0].type === 'lookup' || args[0].type === 'alt')
+function makeFuncArgText (pt, args, makeSymbolName, forceBraces) {
+  var noBraces = !forceBraces && args.length === 1 && (args[0].type === 'func' || args[0].type === 'lookup' || args[0].type === 'alt')
   return (noBraces ? '' : leftBraceChar) + pt.makeRhsText (args, makeSymbolName) + (noBraces ? '' : rightBraceChar)
 }
 
@@ -353,9 +353,11 @@ function makeRhsText (rhs, makeSymbolName) {
             + (tok.funcname === 'reduce'
                ? (varChar + tok.args[0].local[0].varname + '=' + makeFuncArgText (pt, tok.args[0].local[0].value, makeSymbolName) + makeFuncArgText (pt, tok.args[0].local[0].local[0].args, makeSymbolName))
                : makeFuncArgText (pt, tok.args[0].local[0].args, makeSymbolName))
+        } else if (tok.funcname === 'strictquote' || tok.funcname === 'quote' || tok.funcname === 'unquote') {
+          result = funcChar + tok.funcname + makeFuncArgText (pt, tok.args, makeSymbolName, tok.funcname === 'unquote')
         } else {
 	  var sugaredName = pt.makeSugaredName (tok, makeSymbolName, nextIsAlpha)
-          if (sugaredName && tok.funcname !== 'strictquote' && tok.funcname !== 'quote' && tok.funcname !== 'unquote') {
+          if (sugaredName) {
 	    result = sugaredName
           } else {
             result = funcChar + tok.funcname + makeFuncArgText (pt, tok.args, makeSymbolName)

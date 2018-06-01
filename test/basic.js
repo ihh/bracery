@@ -74,13 +74,13 @@ function doTests (testRunner) {
   expectExpandQuote ('$heropet={freddy}&eval&quote{#heroPet#}', 'freddy')
   expectExpandQuote ('&quote{&match/a/{cat}{$$0}}', '&match/a/{cat}$$0')
 
-  expectExpand ('$x=3 &quote{x(&unquote$x)=&quote{&unquote$x}}', 'x(3)=&quote&unquote$x')
+  expectExpand ('$x=3 &quote{x(&unquote$x)=&quote{&unquote$x}}', 'x(3)=&quote&unquote{$x}')
   expectExpand ('$x=3 &eval&quote{x(&unquote$x)=&quote{&unquote$x}}', 'x(3)=3')
 
   expectExpand ('&quote{a|b}', '[a|b]')
   expectExpand ('&quote&unquote{a|b}', 'a', {maxTries:maxTries})
   expectExpand ('&quote&unquote{a|b}', 'b', {maxTries:maxTries})
-  expectExpand ('&quote&quote&unquote{a|b}', '&quote&unquote[a|b]')
+  expectExpand ('&quote&quote&unquote{a|b}', '&quote&unquote{[a|b]}')
 
   expectExpandQuote ('&quote{~hello{abc}{def}}', '~hello{abc}{def}')
   expectExpand ('&quote&quote{~hello{abc}{def}}', '&quote{~hello{abc}{def}}')

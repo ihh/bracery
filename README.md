@@ -25,7 +25,7 @@ Bind a variable to an alternation, and you have a [context-free grammar](https:/
 I felt #mood#, and now I feel #mood#.
 ~~~~
 
-Wnything that isn't code is implicitly output.
+Anything that isn't code is implicitly output.
 So, for example, the Bracery program to generate the text "hello world" is just `hello world`, which is a [quine](https://en.wikipedia.org/wiki/Quine_(computing)).
 
 # Usage

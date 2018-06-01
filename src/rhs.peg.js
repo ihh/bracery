@@ -64,9 +64,14 @@ Function
   / UnaryVarFunction
 
 MapFunction
-  = "&map$" varname:Identifier (":" / "") list:FunctionArg func:QuotedFunctionArg { return makeListFunction ('map', varname, list, func) }
-  / "&filter$" varname:Identifier (":" / "") list:FunctionArg func:QuotedFunctionArg { return makeListFunction ('filter', varname, list, func) }
-  / "&reduce$" varname:Identifier (":" / "") list:FunctionArg "$" result:Identifier ("=" / "") init:FunctionArg func:QuotedFunctionArg { return makeReduceFunction (varname, list, result, init, func) }
+  = "&map" varname:MapVarIdentifier list:FunctionArg func:QuotedFunctionArg { return makeListFunction ('map', varname, list, func) }
+  / "&filter" varname:MapVarIdentifier list:FunctionArg func:QuotedFunctionArg { return makeListFunction ('filter', varname, list, func) }
+  / "&reduce" varname:MapVarIdentifier list:FunctionArg result:VarIdentifier ("=" / "") init:FunctionArg func:QuotedFunctionArg { return makeReduceFunction (varname, list, result, init, func) }
+
+MapVarIdentifier
+  = name:VarIdentifier (":" / "") { return name }
+  / "{" name:VarIdentifier "}" { return name }
+  / "" { return "_" }
 
 RegexFunction
   = "&match" pattern:RegularExpressionLiteral text:FunctionArg expr:QuotedFunctionArg { return makeRegexFunction ('match', pattern, text, expr) }

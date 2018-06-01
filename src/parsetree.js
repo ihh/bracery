@@ -350,7 +350,7 @@ function makeRhsText (rhs, makeSymbolName) {
           result = funcChar + tok.funcname + '/' + pt.makeRhsText ([tok.args[0]], makeSymbolName) + '/' + pt.makeRhsText ([tok.args[1]], makeSymbolName)
             + tok.args.slice(2).map (function (arg, n) { return makeFuncArgText (pt, n>0 ? arg.args : [arg], makeSymbolName) }).join('')
         } else if (tok.funcname === 'map' || tok.funcname === 'filter' || tok.funcname === 'reduce') {
-          result = funcChar + tok.funcname + varChar + tok.args[0].varname + ':' + makeFuncArgText (pt, tok.args[0].value, makeSymbolName)
+          result = funcChar + tok.funcname + (tok.args[0].varname === '_' ? '' : (varChar + tok.args[0].varname + ':')) + makeFuncArgText (pt, tok.args[0].value, makeSymbolName)
             + (tok.funcname === 'reduce'
                ? (varChar + tok.args[0].local[0].varname + '=' + makeFuncArgText (pt, tok.args[0].local[0].value, makeSymbolName) + makeFuncArgText (pt, tok.args[0].local[0].local[0].args, makeSymbolName))
                : makeFuncArgText (pt, tok.args[0].local[0].args, makeSymbolName))

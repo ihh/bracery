@@ -20,6 +20,10 @@ function makeDefineFunction (args, inner) {
   return makeQuote ([makeLocalAssignChain (args.map (function (arg, n) { return makeAssign (arg, [makeLookup (makeGroupVarName (n + 1))]) }), inner)])
 }
 
+function makeArgList (args) {
+  return args && args.length ? [makeFunction ('list', args.map (wrapNodes))] : undefined
+}
+
 function makeGroupVarName (n) { return '$' + n }
 
 function concatNodes (head, tail) {

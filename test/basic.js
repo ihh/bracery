@@ -8,6 +8,7 @@ var initJson = { abc: 'def',
                  world: ['world', 'planet'],
                  dynamo: function (config) { return [config.random() < .5 ? 'dynamik' : 'DYNAMIC'] },
                  lambda: function (config, x, y) { return x + 'world' + y },
+                 json: function (config, x, y, z) { return 'x=' + JSON.stringify(x) + ' y=' + JSON.stringify(y) + ' z=' + JSON.stringify(z) },
                  test1: 'testing',
                  test2: '~TEST1',
                  test3: 'x~test3',
@@ -85,6 +86,8 @@ function doTests (testRunner) {
   expectExpandQuote ('&quote{~hello{abc}{def}}', '~hello{abc}{def}')
   expectExpand ('&quote&quote{~hello{abc}{def}}', '&quote{~hello{abc}{def}}')
 
+  expectExpandQuote ('&quote{&~{ lambda }{$y}}', '&~lambda$y')
+  
   // case manipulation
   expectExpand ('&quote{~TEST1}', '~TEST1')
   expectExpand ('&quote{~Test1}', '~Test1')
@@ -304,6 +307,18 @@ function doTests (testRunner) {
   expectExpand ('~dynamo', 'DYNAMIC', {maxTries:maxTries})
 
   expectExpand ('~lambda{hi, }{!!!}', 'hi, world!!!')
+  expectExpand ('$y=&cat{hi, }{!!!}&~lambda$y', 'hi, world!!!')
+
+  expectExpand ('~lambda', 'undefinedworldundefined')
+  expectExpand ('&~lambda{}', 'undefinedworldundefined')
+  expectExpand ('~lambda{}', 'worldundefined')
+  expectExpand ('~lambda{$undef}', 'worldundefined')
+
+  expectExpand ('&~json{{1}{2}{3}}', 'x="1" y="2" z="3"')
+  expectExpand ('&~json{1{2}{3}}', 'x="123" y=undefined z=undefined')
+  expectExpand ('&~json{{1{2}{{3}}}}', 'x="1" y=["2"] z=[["3"]]')
+  expectExpand ('&~json{{1}{{2}}{{{3}}}}', 'x="1" y=["2"] z=[["3"]]')
+  expectExpand ('&~json&list{1{2}{3}}', 'x="1" y=["2"] z=["3"]')
 
   // call, apply, function
   expectExpand ('$func=&function$first$second{0=&quotify$$0 1=$first 2=$second} &call{$func}{A}{B}', ' 0=&list{&value{A}&value{B}} 1=A 2=B')

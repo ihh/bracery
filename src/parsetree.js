@@ -78,8 +78,8 @@ function parseTextDefs (text) {
 
 // Parse tree constants
 var symChar = '~', varChar = '$', funcChar = '&', leftBraceChar = '{', rightBraceChar = '}', leftSquareBraceChar = '[', rightSquareBraceChar = ']', assignChar = '=', traceryChar = '#'
-var nodeArgKeys = ['rhs','args','unit','value','local','cond','t','f']
-var nodeListArgKeys = ['opts','bind']
+var nodeArgKeys = ['rhs','args','unit','value','local','cond','t','f','bind']
+var nodeListArgKeys = ['opts']
 
 // Parse tree manipulations
 // sampleParseTree is the main method for constructing a new, clean parse tree from a template.
@@ -169,7 +169,7 @@ function sampleParseTree (rhs, config) {
             result[key] = node[key]
         })
         if (node.bind)
-          result.bind = node.bind.map (function (arg) { return pt.sampleParseTree (arg, config) })
+          result.bind = pt.sampleParseTree (node.bind, config)
 	break
       }
     return result
@@ -279,7 +279,7 @@ function isTraceryExpr (node, makeSymbolName) {
     && node.test.length === 1 && typeof(node.test[0]) === 'object' && node.test[0].type === 'lookup'
     && node.t.length === 1 && typeof(node.t[0]) === 'object' && node.t[0].type === 'func'
     && node.t[0].funcname === 'eval' && node.t[0].args.length === 1 && node.t[0].args[0].type === 'lookup'
-    && node.f.length === 1 && typeof(node.f[0]) === 'object' && node.f[0].type === 'sym' && !(node.f[0].bind && node.f[0].bind.length)
+    && node.f.length === 1 && typeof(node.f[0]) === 'object' && node.f[0].type === 'sym' && !(node.f[0].bind && node.f[0].bind.length && node.f[0].bind[0].args && node.f[0].bind[0].args.length)
     && node.test[0].varname.toLowerCase() === node.t[0].args[0].varname.toLowerCase()
     && node.test[0].varname.toLowerCase() === makeSymbolName (node.f[0]).toLowerCase()
 }
@@ -354,7 +354,7 @@ function makeRhsText (rhs, makeSymbolName) {
                ? (varChar + tok.args[0].local[0].varname + '=' + makeFuncArgText (pt, tok.args[0].local[0].value, makeSymbolName) + makeFuncArgText (pt, tok.args[0].local[0].local[0].args, makeSymbolName))
                : makeFuncArgText (pt, tok.args[0].local[0].args, makeSymbolName))
         } else if (tok.funcname === 'call') {
-          result = funcChar + tok.funcname + makeFuncArgText (pt, [tok.args[0]], makeSymbolName) + makeArgList.call (pt, tok.args[1].args.map (function (arg) { return [arg] }), makeSymbolName)
+          result = funcChar + tok.funcname + makeFuncArgText (pt, [tok.args[0]], makeSymbolName) + makeArgList.call (pt, tok.args[1].args, makeSymbolName)
         } else if (tok.funcname === 'strictquote' || tok.funcname === 'quote' || tok.funcname === 'unquote') {
           result = funcChar + tok.funcname + makeFuncArgText (pt, tok.args, makeSymbolName, tok.funcname === 'unquote')
         } else {
@@ -371,9 +371,14 @@ function makeRhsText (rhs, makeSymbolName) {
         break
       default:
       case 'sym':
-        result = (nextIsAlpha && !(tok.bind && tok.bind.length)
-                  ? (symChar + leftBraceChar + makeSymbolName(tok) + rightBraceChar)
-                  : (symChar + makeSymbolName(tok) + makeArgList.call (pt, tok.bind, makeSymbolName)))
+        var hasArgList = tok.bind && tok.bind.length && tok.bind[0].type === 'func' && tok.bind[0].funcname === 'list'
+        var hasNonemptyArgList = hasArgList && tok.bind[0].args.length
+        var isApply = tok.bind && !hasArgList
+        result = (isApply
+                  ? (funcChar + symChar + makeSymbolName(tok) + makeFuncArgText (pt, tok.bind))
+                  : (nextIsAlpha && !hasNonemptyArgList
+                     ? (symChar + leftBraceChar + makeSymbolName(tok) + rightBraceChar)
+                     : (symChar + makeSymbolName(tok) + makeArgList.call (pt, tok.bind, makeSymbolName))))
 	break
       }
     }
@@ -383,7 +388,9 @@ function makeRhsText (rhs, makeSymbolName) {
 
 function makeArgList (args, makeSymbolName) {
   var pt = this
-  return args ? args.map (function (arg) { return leftBraceChar + pt.makeRhsText (arg, makeSymbolName) + rightBraceChar }).join('') : ''
+  return (args && args.length && args[0].args && args[0].args.length
+          ? args[0].args.map (function (arg) { return leftBraceChar + pt.makeRhsText ([arg], makeSymbolName) + rightBraceChar }).join('')
+          : '')
 }
 
 function makeSugaredName (funcNode, makeSymbolName, nextIsAlpha) {
@@ -956,7 +963,7 @@ function makeAssignmentPromise (config, nameValueList, local, visible) {
     var name = nameValue[0].toLowerCase(), value = nameValue[1], valueExpansion = nameValue[2]
     oldVarVal[name] = varVal[name]
     promise = promise.then (function() {
-      return (valueExpansion
+      return (typeof(valueExpansion) !== 'undefined'
               ? resolve ({ nodes: 0, value: valueExpansion })
               : makeRhsExpansionReducer (pt, config, textReducer, {}) (value))
     }).then (function (valExpansion) {
@@ -1342,21 +1349,28 @@ function makeExpansionPromise (config) {
             if (!node.rhs && config.expand)
               symbolExpansionPromise = handlerPromise ([node, varVal, depth], resolve(), config.before, 'expand')
               .then (function() {
-                return makeAssignmentPromise.call (pt,
-                                                   extend ({}, config, { vars: varVal }),
-                                                   (node.bind
-                                                    ? (node.bind.map (function (arg, n) { return [makeGroupVarName (n + 1), arg] })
+                return (node.bind
+                        ? (makeRhsExpansionPromiseFor (node.bind)
+                           .then (function (bindExpansion) {
+                             expansion.nodes += bindExpansion.nodes
+                             return makeArray (bindExpansion.value || bindExpansion.text)
+                           }))
+                        : resolve([]))
+                  .then (function (args) {
+                    return makeAssignmentPromise.call (pt,
+                                                       extend ({}, config, { vars: varVal }),
+                                                       args.map (function (arg, n) { return [makeGroupVarName (n + 1), null, arg] })
                                                        .concat ([[makeGroupVarName(0),
                                                                   [{ type: 'func',
                                                                      funcname: 'list',
-                                                                     args: node.bind.map (function (_arg, n) { return { type: 'lookup', varname: makeGroupVarName (n + 1) } }) }]]]))
-                                                    : []),
-                                                   function (localConfig) {
-                                                     // the expand callback should call sampleParseTree() and return the sampled tree
-                                                     return config.expand (extend ({},
-                                                                                   localConfig,
-                                                                                   { node: node }))
-                                                   })
+                                                                     args: args.map (function (_arg, n) { return { type: 'lookup', varname: makeGroupVarName (n + 1) } }) }]]]),
+                                                       function (localConfig) {
+                                                         // the expand callback should call sampleParseTree() and return the sampled tree
+                                                         return config.expand (extend ({},
+                                                                                       localConfig,
+                                                                                       { node: node }))
+                                                       })
+                  })
               }).then (function (rhs) {
                 node.rhs = rhs
                 return handlerPromise ([node, varVal, depth, rhs], resolve(), config.after, 'expand')

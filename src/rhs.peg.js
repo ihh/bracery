@@ -33,9 +33,13 @@ OuterNodeList
   / "" { return [] }
 
 Symbol
-  = "~" sym:Identifier args:ArgList { return makeSugaredSymbol (sym, args) }
-  / "~{" _ sym:Identifier _ "}" args:ArgList { return makeSugaredSymbol (sym, args) }
+  = sym:SymIdentifier args:ArgList { return makeSugaredSymbol (sym, makeArgList (args)) }
+  / "&" sym:SymIdentifier args:FunctionArg { return makeSugaredSymbol (sym, args) }
   / "#" sym:Identifier mods:TraceryModifiers "#" { return makeTraceryExpr (sym, mods) }
+
+SymIdentifier
+  = "~" sym:Identifier { return sym }
+  / "~{" _ sym:Identifier _ "}" { return sym }
 
 TraceryModifiers
   = mod:TraceryModifier mods:TraceryModifiers { return [mod].concat (mods) }

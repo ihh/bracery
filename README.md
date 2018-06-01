@@ -5,7 +5,12 @@
 # Bracery
 
 Bracery is a small language for procedural text generation,
-heavily influenced by [@galaxykate](https://github.com/galaxykate)'s [Tracery](http://tracery.io/).
+combining elements of other languages and libraries:
+
+- variable expansions from [@galaxykate](https://github.com/galaxykate)'s [Tracery](http://tracery.io/)
+- alternations, borrowed from [regular expressions](https://en.wikipedia.org/wiki/Regular_expression)
+- natural language processing functions from the [compromise](https://github.com/spencermountain/compromise) library
+- lists and a few other things from [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language))
 
 The main construct in Bracery is the _alternation_, a list of options separated by vertical bars:
 
@@ -22,15 +27,6 @@ I felt #mood#, and now I feel #mood#.
 
 In a Bracery program, anything that isn't code is implicitly output.
 So, for example, the Bracery program to generate the text "hello world" is just `hello world`, which is a [quine](https://en.wikipedia.org/wiki/Quine_(computing)).
-
-Bracery includes elements of other languages and libraries:
-
-- some syntax for setting and expanding variables comes from Tracery
-- alternations are borrowed from [regular expressions](https://en.wikipedia.org/wiki/Regular_expression)
-- many natural language processing functions are provided by the [compromise](https://github.com/spencermountain/compromise) library
-- the core language is otherwise modeled on [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)), including lists, dynamic evaluation, etc.
-
-More language details are [below](#syntax).
 
 # Usage
 

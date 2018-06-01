@@ -304,6 +304,7 @@ function doTests (testRunner) {
   expectExpand ('&quotify&match/[aeiou]/g{generic}{&uc$$0}', '&list{&value{E}&value{E}&value{I}}')
   expectExpand ('&replace/a/g{catamaran}{u|o}', 'cutomoron', {maxTries:maxTries})
   expectExpand ('&join&split/[aeiou]+/{felicitous}{..}', 'f..l..c..t..s')
+  expectExpand ('&join&split{a   bc   d}{,}', 'a,bc,d')
   
   // wrapper for individual 'for a given input (lhs), expect the following output (rhs)'-style tests
   // (lhs/rhs = left/right hand side)

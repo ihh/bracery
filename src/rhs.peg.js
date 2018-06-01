@@ -71,6 +71,7 @@ MapFunction
 RegexFunction
   = "&match" pattern:RegularExpressionLiteral text:FunctionArg expr:QuotedFunctionArg { return makeRegexFunction ('match', pattern, text, expr) }
   / "&replace" pattern:RegularExpressionLiteral text:FunctionArg expr:QuotedFunctionArg { return makeRegexFunction ('replace', pattern, text, expr) }
+  / "&split" text:FunctionArg { return makeRegexFunction ('split', { body: ['[ \\t\\r\\n]+'], flags: [] }, text) }
   / "&split" pattern:RegularExpressionLiteral text:FunctionArg { return makeRegexFunction ('split', pattern, text) }
 
 RegexUnquote
@@ -165,7 +166,7 @@ VarAssignment
   = "&set$" varname:Identifier args:FunctionArg { return makeAssign (varname, args) }
   / "&set{" ("$" / "") varname:Identifier "}" args:FunctionArg { return makeAssign (varname, args) }
   / "[" varname:Identifier ":" args:NodeList "]" { return makeAssign (varname, args) }
-  / "[" varname:Identifier "=>" opts:AltList "]" _ { return makeAssign (varname, [makeFunction ('quote', opts.length === 1 ? opts[0] : [makeAlternation (opts)])]) }
+  / "[" varname:Identifier "=>" opts:AltList "]" _ { return makeAssign (varname, [makeQuote (opts.length === 1 ? opts[0] : [makeAlternation (opts)])]) }
   / "$" varname:Identifier "=" target:VarAssignmentTarget { return makeAssign (varname, target) }
   / "$" varname:Identifier ":=" target:VarAssignmentTarget { return makeAssign (varname, target, true) }
 

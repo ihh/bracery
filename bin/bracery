@@ -65,10 +65,12 @@ if (opt.options.client) {
     return new Promise (function (resolve, reject) {
       request.post ({ url: opt.options.client,
                       json: true,
-                      body: { text: '$' + config.node.name.toLowerCase() } },
+                      body: { text: bracery.ParseTree.symChar + config.node.name.toLowerCase() } },
                     function (err, res, body) {
                       if (err)
                         reject (err)
+                      else if (!(body.expansion && body.expansion.tree[0]))
+                        reject (body)
                       else
                         resolve (body.expansion.tree[0].rhs)
                     })

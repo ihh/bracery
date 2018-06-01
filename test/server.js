@@ -10,9 +10,9 @@ var initJson = { abc: 'def',
                  hello: '[hello|hi]',
                  world: ['world', 'planet'],
                  test1: 'testing',
-                 test2: '$TEST1',
-                 test3: 'x$test3',
-                 test4: '&quote{$TEST1}' }
+                 test2: '~TEST1',
+                 test3: 'x~test3',
+                 test4: '&quote{~TEST1}' }
 
 var binPath = 'bin/bracery'
 var port = 8001
@@ -22,9 +22,9 @@ var serverTimeout = 4000 // number of milliseconds after that before test fails
 
 describe('client/server tests (' + binPath + ')', function() {
   // client/server test
-  testServer ('$abc', 'def')
-  testServer ('&cap&lc&eval$test2', 'Testing')
-  testServer ('&cap{$test3}', 'Xxx')
+  testServer ('~abc', 'def')
+  testServer ('&cap&lc&eval~test2', 'Testing')
+  testServer ('&cap{~test3}', 'Xxx')
 })
 
 function makeCmdLine (config, initJson, opts, lhs) {

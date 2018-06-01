@@ -5,7 +5,7 @@ Node
   = "\\n" { return "\n" }
   / "\\t" { return "\t" }
   / "\\" escaped:. { return escaped }
-  / text:[^\$\#&\^\{\}\[\]\|\\]+ { return text.join("") }
+  / text:[^\~\#&\$\{\}\[\]\|\\]+ { return text.join("") }
   / Symbol
   / LocalAssignment
   / Repetition
@@ -19,7 +19,7 @@ Node
   / EmptyList
   / Alternation
   / args:DummyAlternation { return wrapNodes (args) }
-  / char:[\$\#&\^] { return char }
+  / char:[\~\#&\$] { return char }
 
 NodeList
   = head:Node tail:NodeList { return concatNodes (head, tail) }
@@ -36,8 +36,8 @@ OuterNodeList
   / "" { return [] }
 
 Symbol
-  = "$" sym:Identifier { return makeSugaredSymbol (sym) }
-  / "${" _ sym:Identifier _ "}" { return makeSugaredSymbol (sym) }
+  = "~" sym:Identifier { return makeSugaredSymbol (sym) }
+  / "~{" _ sym:Identifier _ "}" { return makeSugaredSymbol (sym) }
   / "#" sym:Identifier mods:TraceryModifiers "#" { return makeTraceryExpr (sym, mods) }
 
 TraceryModifiers
@@ -59,9 +59,9 @@ LocalAssignment
   / "#" _ assigns:VarAssignmentList _ sym:Identifier mods:TraceryModifiers "#" { return makeLocalAssignChain (assigns, [makeTraceryExpr (sym, mods)]) }
 
 MapFunction
-  = "&map^" varname:Identifier (":" / "") list:FunctionArg func:FunctionArg { return makeListFunction ('map', varname, list, [makeQuote (func)]) }
-  / "&filter^" varname:Identifier (":" / "") list:FunctionArg func:FunctionArg { return makeListFunction ('filter', varname, list, [makeQuote (func)]) }
-  / "&reduce^" varname:Identifier (":" / "") list:FunctionArg "^" result:Identifier ("=" / "") init:FunctionArg func:FunctionArg { return makeListFunction ('reduce', varname, list, [makeLocalAssign (result, init, [makeQuote (func)])]) }
+  = "&map$" varname:Identifier (":" / "") list:FunctionArg func:FunctionArg { return makeListFunction ('map', varname, list, [makeQuote (func)]) }
+  / "&filter$" varname:Identifier (":" / "") list:FunctionArg func:FunctionArg { return makeListFunction ('filter', varname, list, [makeQuote (func)]) }
+  / "&reduce$" varname:Identifier (":" / "") list:FunctionArg "$" result:Identifier ("=" / "") init:FunctionArg func:FunctionArg { return makeListFunction ('reduce', varname, list, [makeLocalAssign (result, init, [makeQuote (func)])]) }
 
 BinaryFunction
   = "&" func:BinaryFunctionName left:FunctionArg right:FunctionArg { return makeFunction (func, [wrapNodes (left), wrapNodes (right)]) }
@@ -120,20 +120,25 @@ Number
   = num:[0-9]+ { return parseInt (num.join('')) }
 
 VarLookup
-  = "^" varname:Identifier { return makeSugaredLookup (varname) }
-  / "^{" _ varname:Identifier _ "}" { return makeSugaredLookup (varname) }
-  / "^" varname:Number { return makeLookup ('' + varname) }
+  = "$" varname:Identifier { return makeSugaredLookup (varname) }
+  / "${" _ varname:Identifier _ "}" { return makeSugaredLookup (varname) }
+  / "$$" num:Number { return makeLookup (makeGroupVarName (num)) }
 
 VarAssignment
-  = "&set^" varname:Identifier args:FunctionArg { return makeAssign (varname, args) }
-  / "&set{" ("^" / "") varname:Identifier "}" args:FunctionArg { return makeAssign (varname, args) }
-  / "^" varname:Identifier "=" args:FunctionArg { return makeAssign (varname, args) }
+  = "&set$" varname:Identifier args:FunctionArg { return makeAssign (varname, args) }
+  / "&set{" ("$" / "") varname:Identifier "}" args:FunctionArg { return makeAssign (varname, args) }
+  / "$" varname:Identifier "=" target:VarAssignmentTarget { return makeAssign (varname, target) }
+  / "$" varname:Identifier ":=" target:VarAssignmentTarget { return makeAssign (varname, target, true) }
   / "[" varname:Identifier ":" args:NodeList "]" { return makeAssign (varname, args) }
   / "[" varname:Identifier "=>" opts:AltList "]" { return makeAssign (varname, [makeFunction ('quote', opts.length === 1 ? opts[0] : [makeAlternation (opts)])]) }
 
 VarAssignmentList
   = head:VarAssignment _ tail:VarAssignmentList { return [head].concat(tail) }
   / head:VarAssignment { return [head] }
+
+VarAssignmentTarget
+  = FunctionArg
+  / chars:[^ \t\n\r\=\~\#&\$\{\}\[\]\|\\]+ { return [chars.join("")] }
 
 Alternation
   = "{" head:NodeList "|" tail:AltList "}" { return makeAlternation ([head].concat(tail)) }

@@ -105,8 +105,8 @@ curl -O https://raw.githubusercontent.com/ihh/bracery/master/examples/travel.jso
 
 bracery -d travel.json
 bracery -d travel.json -n5
-bracery -d travel.json -n5 --eval '$origin And then they met #name#.'
-bracery -d travel.json -n5 --eval '$origin And they had [fun|trouble|no luck], until they met #name#.'
+bracery -d travel.json -n5 --eval '~origin And then they met #name#.'
+bracery -d travel.json -n5 --eval '~origin And they had [fun|trouble|no luck], until they met #name#.'
 bracery -d travel.json --tree
 bracery -d travel.json --repl
 bracery -d travel.json -n5 --async
@@ -161,7 +161,7 @@ and so on.
 
 ### Dynamic bindings
 
-When using the node API, symbols can be bound to JavaScript functions that return strings:
+When using the node API, tilde-prefixed symbols like `~name` can be bound to JavaScript functions:
 
 ~~~~
 var bracery = require('../bracery')
@@ -169,11 +169,11 @@ var bracery = require('../bracery')
 var b = new bracery.Bracery
   ({"percentage": function (config) { return Math.round (config.random() * 100) + ' percent' }})
 
-console.log (b.expand('I [love|hate|like] you $percentage!').text)
+console.log (b.expand('I [love|hate|like] you ~percentage!').text)
 ~~~~
 
-They can also, if a `callback` is specified,
-be bound to functions that return [promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) of strings:
+If a `callback` is specified,
+the functions can return [promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise):
 
 ~~~~
 var bracery = require('../bracery')
@@ -187,7 +187,7 @@ var b = new bracery.Bracery ({ percentage: function (config) {
 }})
 
 console.log ('Calculating...')
-b.expand ('I [love|hate|like] you $percentage!',
+b.expand ('I [love|hate|like] you ~percentage!',
           { callback: function (expansion) { console.log (expansion.text) } })
 ~~~~
 
@@ -198,9 +198,9 @@ b.expand ('I [love|hate|like] you $percentage!',
 Bracery defines three separate namespaces, distinguished by the prefix character.
 You can ignore these and just use the Tracery syntax `#name#` if you want, but for a deeper understanding of what's going on:
 
-- `^name` refers to a variable
+- `$name` refers to a variable
 - `&name` refers to a core library function or macro
-- `$name` refers to a user extension (local or remote)
+- `~name` refers to a user extension (local or remote)
 
 ## Comparison with Tracery
 
@@ -211,25 +211,25 @@ If the variable has been specified in the local context of the running program (
 then that specified value overrides the original nonterminal symbol definition (if there was one).
 
 Bracery keeps faith with this aspect of Tracery's design, expanding `#sentence#` the same way as Tracery does, with locally-specified variables overriding globally-specified symbol definitions.
-However, Bracery also has syntax allowing programmers to access the local variable's value directly (as `^sentence`) or expand the original global nonterminal (as `$sentence`).
-It also introduces dynamic evaluation and conditional primitives, which are required to connect the above elements (`#sentence#`, `$sentence` and `^sentence`),
+However, Bracery also has syntax allowing programmers to access the local variable's value directly (as `$sentence`) or expand the original global nonterminal (as `~sentence`).
+It also introduces dynamic evaluation and conditional primitives, which are required to connect the above elements (`#sentence#`, `~sentence` and `$sentence`),
 but are also quite powerful in their own right.
 
 ### Distinction between symbols and variables
 
 As well as the flanking hash-character notation that Tracery uses for symbol expansions from the grammar, `#symbol#`,
-Bracery allows the dollar character prefix, `$symbol`.
+Bracery allows the dollar character prefix, `~symbol`.
 The Bracery variant carries the additional, specific nuance that you want to use the original symbol definitions file (or other authority) to expand the symbol,
 as opposed to any subsequently defined variables.
 
 Thus, if `b` is the Bracery object with the example grammar defined in the [NodeJS](#from-nodejs) section above,
 then `b.expand('[name:PERRY] #name# ').text` will always give the result `  PERRY  `,
-but `b.expand('[name:PERRY] $name ').text` will give `  Arjun  `, or `  Yuuma  `, or `  Darcy  ` and so on,
+but `b.expand('[name:PERRY] ~name ').text` will give `  Arjun  `, or `  Yuuma  `, or `  Darcy  ` and so on,
 according to the example grammar.
 
-If you just want the variable value, you can use the caret character prefix, `^name`, which will evaluate to the empty string if the variable has not been defined.
-So, `b.expand('[name:PERRY] ^name ').text`. will always be `  PERRY  `, again,
-but `b.expand('^name').text` will be the empty string.
+If you just want the variable value, you can use the caret character prefix, `$name`, which will evaluate to the empty string if the variable has not been defined.
+So, `b.expand('[name:PERRY] $name ').text`. will always be `  PERRY  `, again,
+but `b.expand('$name').text` will be the empty string.
 
 ### Regex-like shorthands for procedural grammars
 
@@ -276,7 +276,7 @@ Language features include
 
 - named nonterminals:
    - Tracery-style `#symbol_name#`
-   - Bracery-style `$symbol_name` or `${symbol_name}`
+   - Bracery-style `~symbol_name` or `~{symbol_name}`
    - subtle difference: the Tracery style allows the symbol definition to be overridden by a local variable
 - alternations (anonymous nonterminals):
    - `[option1|option 2|Option number three|Some other option...]`
@@ -286,8 +286,8 @@ Language features include
       - `[variable_name:value]` to assign
       - `#variable_name#` to retrieve and expand (names are case-insensitive)
    - Bracery-style
-      - `^variable_name={value}` to assign
-      - `^variable_name` or `^{variable_name}` to retrieve (without expanding)
+      - `$variable_name={value}` to assign
+      - `$variable_name` or `${variable_name}` to retrieve (without expanding)
    - the Tracery-style syntax `#variable_name#` evaluates the variable dynamically, if defined
 - built-in text-processing functions:
    - `&plural{...}` (plural), `&a{...}` ("a" or "an")
@@ -322,7 +322,7 @@ Language features include
       - `&quotify{expr}` wraps with `&quote` and `&list`
    - locally scoped variables:
       - Tracery-style `#[x:value1][y:value2]symbol_name#` (what Tracery calls "actions")
-      - Bracery-style `&let^x={value1}^y={value2}{something involving x and y}`
+      - Bracery-style `&let$x={value1}$y={value2}{something involving x and y}`
    - repetition:
       - `&rep{x}{3}` expands to `xxx`
       - `&rep{x}{3,5}` expands to `xxx`, `xxxx`, or `xxxxx`
@@ -338,21 +338,21 @@ Language features include
       - `&notfirst{list}`, `&notlast{list}` return lists
       - `&cat{list1}{list2}` returns a list
       - `&join{list}{item}` returns a string
-      - `&map^varname:{list}{expr}` and `&filter^varname:{list}{expr}` return lists
-      - `&reduce^varname:{list}^result={init}{expr}` can return list or string
+      - `&map$varname:{list}{expr}` and `&filter$varname:{list}{expr}` return lists
+      - `&reduce$varname:{list}$result={init}{expr}` can return list or string
    - when coerced into a list context by one of the above functions, the empty string becomes the empty list and any nonempty string becomes a single-element list
    - when coerced into a string context (i.e. most contexts), a list is invisibly joined/flattened as if by `&join{list}{}`
 - functions, alternations, repetitions, variable assignments, and conditionals can be arbitrarily nested
 - everything can occur asynchronously, so symbols can be resolved and expanded from a remote store
    - but if you have a synchronously resolvable store (i.e. a local Tracery object), everything can work synchronously too
 - syntactic sugar/hacks/apologies
-   - the Tracery-style expression `#name#` is parsed and implemented as `&if{^name}then{&eval{^name}}else{$name}`. Tracery overloads the same namespace for symbol and variable names, and uses the variable if it's defined; this quasi-macro reproduces that behavior (almost)
-   - braces around single-argument functions or symbols can be omitted, e.g. `^currency=&cap&plural$name` means the same as `^currency={&cap{&plural{$name}}}`
+   - the Tracery-style expression `#name#` is parsed and implemented as `&if{$name}then{&eval{$name}}else{~name}`. Tracery overloads the same namespace for symbol and variable names, and uses the variable if it's defined; this quasi-macro reproduces that behavior (almost)
+   - braces around single-argument functions or symbols can be omitted, e.g. `$currency=&cap&plural~name` means the same as `$currency={&cap{&plural{~name}}}`
    - variable and symbol names are case-insensitive
-      - the case used when a variable is referenced can be a shorthand for capitalization: you can use `$Nonterminal_name` as a shorthand for `&cap{$nonterminal_name}`, and `^Variable_name` for `&cap{^variable_name}`
-      - similarly, `$NONTERMINAL_NAME` is a shorthand for `&uc{$nonterminal_name}`, and  `^VARIABLE_NAME` for `&uc{^variable_name}`
+      - the case used when a variable is referenced can be a shorthand for capitalization: you can use `~Nonterminal_name` as a shorthand for `&cap{~nonterminal_name}`, and `$Variable_name` for `&cap{$variable_name}`
+      - similarly, `~NONTERMINAL_NAME` is a shorthand for `&uc{~nonterminal_name}`, and  `$VARIABLE_NAME` for `&uc{$variable_name}`
    - some Tracery modifier syntax works, e.g. `#symbol_name.capitalize#` instead of `&cap{#symbol_name#}`
-   - the syntax `[name=>value1|value2|value3|...]` is shorthand for `^name={&quote{[value1|value2|value3|...]}` and ensures that every occurrence of `#name#` (or `&eval{^name}`) will be expanded from an independently-sampled one of the values
+   - the syntax `[name=>value1|value2|value3|...]` is shorthand for `$name={&quote{[value1|value2|value3|...]}` and ensures that every occurrence of `#name#` (or `&eval{$name}`) will be expanded from an independently-sampled one of the values
 
 Most/all of these features are exercised in the file [test/basic.js](test/basic.js).
 
@@ -441,7 +441,7 @@ Successive messages are generated by matching tags between consecutive templates
 Each message has the following fields:
 - an associated template
 - an _expansion tree_ that is a parse tree generated from the Bracery grammar defined by the template's source text
-- a set of _future-tags_ which by default are the same as the template's future-tags, but can be overridden by the `^tags` variable, if that variable is assigned a value in the expansion tree
+- a set of _future-tags_ which by default are the same as the template's future-tags, but can be overridden by the `$tags` variable, if that variable is assigned a value in the expansion tree
 - (if not the first message in the thread) a _predecessor_ message, with appropriate overlap between the predecessor's future-tags and the template's past-tags
 
 The root node of the expansion tree "inherits" any variable assignments from the predecessor,
@@ -457,7 +457,7 @@ Templates can be specified in JSON or in the following plaintext shorthand
 
 ~~~~
 100@template_author>Template title#past_tag1 past_tag2#future_tag1 future_tag2 future_tag3
-The template itself, featuring $nonterminals, [alternations|etc.]
+The template itself, featuring $variables, ~nonterminals, [alternations|etc.]
 (it can be split over multiple lines)
 ~~~~
 

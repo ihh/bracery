@@ -8,9 +8,9 @@ var initJson = { abc: 'def',
                  world: ['world', 'planet'],
                  dynamo: function (config) { return [config.random() < .5 ? 'dynamik' : 'DYNAMIC'] },
                  test1: 'testing',
-                 test2: '$TEST1',
-                 test3: 'x$test3',
-                 test4: '&quote{$TEST1}' }
+                 test2: '~TEST1',
+                 test3: 'x~test3',
+                 test4: '&quote{~TEST1}' }
 
 var nTestSymbols = Object.keys(initJson).length  // number of symbols in initial grammar
 
@@ -22,62 +22,62 @@ function doTests (testRunner) {
   var maxTries = 100
 
   // the tests themselves
-  expectExpand ('$hello $world', 'hello world', {maxTries:maxTries})
-  expectExpand ('$hello $world', 'hello planet', {maxTries:maxTries})
-  expectExpand ('$hello $world', 'hi world', {maxTries:maxTries})
-  expectExpand ('$hello $world', 'hi planet', {maxTries:maxTries})
-  expectExpand ('$hello $world', 'yo earth', {maxTries:maxTries,fail:true})
+  expectExpand ('~hello ~world', 'hello world', {maxTries:maxTries})
+  expectExpand ('~hello ~world', 'hello planet', {maxTries:maxTries})
+  expectExpand ('~hello ~world', 'hi world', {maxTries:maxTries})
+  expectExpand ('~hello ~world', 'hi planet', {maxTries:maxTries})
+  expectExpand ('~hello ~world', 'yo earth', {maxTries:maxTries,fail:true})
 
   // simple expansions
-  expectExpand ('$test1', 'testing')
-  expectExpand ('$test1', 'testings', {fail:true})
-  expectExpand ('$test1', 'TESTING', {fail:true})
-  expectExpand ('$test2', 'TESTING')
+  expectExpand ('~test1', 'testing')
+  expectExpand ('~test1', 'testings', {fail:true})
+  expectExpand ('~test1', 'TESTING', {fail:true})
+  expectExpand ('~test2', 'TESTING')
 
-  // default is to expand $abc to 'def', as that is the alphabetically earliest symbol
+  // default is to expand ~abc (to 'def'), as that is the alphabetically earliest symbol
   expectExpand ('', 'def')
 
   // look out! recursion
-  expectExpand ('$test3', 'xxx')
-  expectExpand ('$test3', 'xxx', { maxDepth: 5 })
-  expectExpand ('$test3', 'xxxxx', { maxDepth: 5, maxRecursion: 10 })
-  expectExpand ('$test3', 'xxxx', { maxRecursion: 4 })
-  expectExpand ('$test3', 'xxxxxxxxxx', { maxRecursion: 10 })
-  expectExpand ('$test3 $test3 $test3', 'xxxxxxxxxx xxxxxxxxxx xxxxxxxxxx', { maxRecursion: 10 })
-  expectExpand ('$test3', 'xxxxxxxxxx', { maxRecursion: 10, maxLength: 5 })
-  expectExpand ('$test3 $test3 $test3', 'xxxxxxxxxx', { maxRecursion: 10, maxLength: 5 })
-  expectExpand ('$test3 $test3 $test3', 'xxxxxxxxxx xxxxxxxxxx', { maxRecursion: 10, maxLength: 15 })
-  expectExpand ('$test3 $test3 $test3', 'xxxxxxxxxx', { maxRecursion: 10, maxNodes: 5 })
+  expectExpand ('~test3', 'xxx')
+  expectExpand ('~test3', 'xxx', { maxDepth: 5 })
+  expectExpand ('~test3', 'xxxxx', { maxDepth: 5, maxRecursion: 10 })
+  expectExpand ('~test3', 'xxxx', { maxRecursion: 4 })
+  expectExpand ('~test3', 'xxxxxxxxxx', { maxRecursion: 10 })
+  expectExpand ('~test3 ~test3 ~test3', 'xxxxxxxxxx xxxxxxxxxx xxxxxxxxxx', { maxRecursion: 10 })
+  expectExpand ('~test3', 'xxxxxxxxxx', { maxRecursion: 10, maxLength: 5 })
+  expectExpand ('~test3 ~test3 ~test3', 'xxxxxxxxxx', { maxRecursion: 10, maxLength: 5 })
+  expectExpand ('~test3 ~test3 ~test3', 'xxxxxxxxxx xxxxxxxxxx', { maxRecursion: 10, maxLength: 15 })
+  expectExpand ('~test3 ~test3 ~test3', 'xxxxxxxxxx', { maxRecursion: 10, maxNodes: 5 })
   
   // quoting
-  expectExpand ('$test4', '$TEST1')
-  expectExpand ('&eval{$test4}', 'TESTING')
-  expectExpandQuote ('&quote{$test1}', '$test1')
-  expectExpand ('\\$test1', '$test1')
-  expectExpand ('$', '$')
-  expectExpandQuote ('&quote{$}', '\\$')
-  expectExpandQuote ('&quote{$}test1', '\\$test1')
-  expectExpandQuote ('&quote{$te}st1', '$test1')
-  expectExpandQuote ('&quote{$test1}', '$test1')
-  expectExpandQuote ('&eval{&quote{$}}', '$')
-  expectExpandQuote ('&eval{&quote{$test1}}', 'testing')
-  expectExpandQuote ('&eval{&quote{$te}st1}', 'testing')
-  expectExpandQuote ('&eval{&quote{$}test1}', 'testing', {fail:true})
-  expectExpandQuote ('&eval{&quote{$}test1}', '$test1')
-  expectExpandQuote ('&eval{&eval{&quote{$}test1}}', 'testing')
-  expectExpand ('\\$test1', '$test1')
-  expectExpand ('&eval{\\$test1}', 'testing')
+  expectExpand ('~test4', '~TEST1')
+  expectExpand ('&eval{~test4}', 'TESTING')
+  expectExpandQuote ('&quote{~test1}', '~test1')
+  expectExpand ('\\~test1', '~test1')
+  expectExpand ('~', '~')
+  expectExpandQuote ('&quote{~}', '\\~')
+  expectExpandQuote ('&quote{~}test1', '\\~test1')
+  expectExpandQuote ('&quote{~te}st1', '~test1')
+  expectExpandQuote ('&quote{~test1}', '~test1')
+  expectExpandQuote ('&eval{&quote{~}}', '~')
+  expectExpandQuote ('&eval{&quote{~test1}}', 'testing')
+  expectExpandQuote ('&eval{&quote{~te}st1}', 'testing')
+  expectExpandQuote ('&eval{&quote{~}test1}', 'testing', {fail:true})
+  expectExpandQuote ('&eval{&quote{~}test1}', '~test1')
+  expectExpandQuote ('&eval{&eval{&quote{~}test1}}', 'testing')
+  expectExpand ('\\~test1', '~test1')
+  expectExpand ('&eval{\\~test1}', 'testing')
   expectExpandQuote ('&quote{#heroPet#}', '#heroPet#')
-  expectExpandQuote ('&quote[a=>b]', '^a={&quote{b}}')
-  expectExpandQuote ('&quote[a=>b|c]', '^a={&quote[b|c]}')
-  expectExpandQuote ('^heropet={freddy}&eval&quote{#heroPet#}', 'freddy')
-  expectExpandQuote ('&quote{&match/a/{cat}{^0}}', '&match/a/{cat}^0')
+  expectExpandQuote ('&quote[a=>b]', '$a={&quote{b}}')
+  expectExpandQuote ('&quote[a=>b|c]', '$a={&quote[b|c]}')
+  expectExpandQuote ('$heropet={freddy}&eval&quote{#heroPet#}', 'freddy')
+  expectExpandQuote ('&quote{&match/a/{cat}{$$0}}', '&match/a/{cat}$$0')
 
   // case manipulation
-  expectExpand ('&quote{$TEST1}', '$TEST1')
-  expectExpand ('&quote{$Test1}', '$Test1')
-  expectExpand ('$TEST1', 'TESTING')
-  expectExpand ('$Test1', 'Testing')
+  expectExpand ('&quote{~TEST1}', '~TEST1')
+  expectExpand ('&quote{~Test1}', '~Test1')
+  expectExpand ('~TEST1', 'TESTING')
+  expectExpand ('~Test1', 'Testing')
   expectExpand ('&uc{abc}', 'ABC')
   expectExpand ('&lc{AbC}', 'abc')
   expectExpand ('&cap{&lc{AbC}}', 'Abc')
@@ -140,29 +140,32 @@ function doTests (testRunner) {
   expectExpand ('&cardinal{third}', 'three')
 
   // variables
-  expectExpand ('^x={aha}^x', 'aha')
-  expectExpand ('[x:aha]^x', 'aha')
-  expectExpand ('[x:aha]\n\n^x', 'aha')
-  expectExpand ('[x:aha]\n\n^x\n\n^x', 'aha\n\naha')
-  expectExpand ('^z={zebedee}^zeb={zebadiah}^Zeb ^Z', 'Zebadiah ZEBEDEE')
-  expectExpand ('^AbC={air}^aBC={hair}^abC={lair}^abc^Abc^ABC', 'lairLairLAIR')
+  expectExpand ('$x={aha}$x', 'aha')
+  expectExpand ('$x=aha $x', 'aha')
+  expectExpand ('$x:=aha', 'aha')
+  expectExpand ('$x:=o h$x', 'oho')
+  expectExpand ('[x:aha]$x', 'aha')
+  expectExpand ('[x:aha]\n\n$x', 'aha')
+  expectExpand ('[x:aha]\n\n$x\n\n$x', 'aha\n\naha')
+  expectExpand ('$z={zebedee}$zeb={zebadiah}$Zeb $Z', 'Zebadiah ZEBEDEE')
+  expectExpand ('$AbC={air}$aBC={hair}$abC={lair}$abc$Abc$ABC', 'lairLairLAIR')
 
   // syntax edge cases involving dummy alternations
-  expectExpand ('^abc=[ABC]', '=[ABC]')
-  expectExpand ('^abc={[DEF]}', '')
-  expectExpand ('^abc={[DEF]}^abc', '[DEF]')
-  expectExpand ('^x={a\\|b}^x', 'a|b')
-  expectExpand ('^dummy=[c\\|d]', '=[c|d]')
-  expectExpand ('^x={a\\|b}^r=&eval{[^x]}^r', 'a', {maxTries:maxTries})
-  expectExpand ('^x={a\\|b}^r=&eval{[^x]}^r', 'b', {maxTries:maxTries})
+  expectExpand ('$abc=[ABC]', '=[ABC]')
+  expectExpand ('$abc={[DEF]}', '')
+  expectExpand ('$abc={[DEF]}$abc', '[DEF]')
+  expectExpand ('$x={a\\|b}$x', 'a|b')
+  expectExpand ('$dummy=[c\\|d]', '=[c|d]')
+  expectExpand ('$x={a\\|b}$r=&eval{[$x]}$r', 'a', {maxTries:maxTries})
+  expectExpand ('$x={a\\|b}$r=&eval{[$x]}$r', 'b', {maxTries:maxTries})
 
   // Tracery variables
   expectExpand ('[myvar:myval]', '')
-  expectExpand ('[myvar:myval]^myvar', 'myval')
+  expectExpand ('[myvar:myval]$myvar', 'myval')
   expectExpand ('[myvar:myval]#myvar#', 'myval')
-  expectExpand ('[myvar=>myval]^myvar', 'myval')
+  expectExpand ('[myvar=>myval]$myvar', 'myval')
   expectExpand ('[myvar=>myval]#myvar#', 'myval')
-  expectExpand ('[myvar=>myval1|myval2]^myvar', '[myval1|myval2]')
+  expectExpand ('[myvar=>myval1|myval2]$myvar', '[myval1|myval2]')
   expectExpand ('[myvar=>myval1|myval2]#myvar#', 'myval1', {maxTries:maxTries})
   expectExpand ('[myvar=>myval1|myval2]#myvar#', 'myval2', {maxTries:maxTries})
 
@@ -172,21 +175,21 @@ function doTests (testRunner) {
   expectExpand ('#test1.capitalizeAll#', 'TESTING')
 
   // Tracery-style overriding
-  expectExpand ('^test1={OVERLOAD}#test1#', 'OVERLOAD')
+  expectExpand ('$test1={OVERLOAD}#test1#', 'OVERLOAD')
   expectExpand ('[test1:OVERLOAD]#test1#', 'OVERLOAD')
-  expectExpand ('^test1={OVERLOAD}$test1', 'testing')
-  expectExpand ('^test1={$test4}#test1#', 'TESTING')
+  expectExpand ('$test1={OVERLOAD}~test1', 'testing')
+  expectExpand ('$test1={~test4}#test1#', 'TESTING')
 
   // local scope
-  expectExpand ('^a={A}^b={B}^a^b&let^a={x}^b={y}{^a^b}^a^b', 'ABxyAB')
-  expectExpand ('^a={A}^b={B}^a^b&let ^a={x}  ^b={y}  {^a^b}^a^b', 'ABxyAB')
-  expectExpand ('^a={a}^b={^{a}b^a}^ab=&quote{^a^b}#[a:3^b][b:5^a]ab#^a^b', '3aba53abaaaba')
+  expectExpand ('$a={A}$b={B}$a$b&let$a={x}$b={y}{$a$b}$a$b', 'ABxyAB')
+  expectExpand ('$a={A}$b={B}$a$b&let $a={x}  $b={y}  {$a$b}$a$b', 'ABxyAB')
+  expectExpand ('$a={a}$b={${a}b$a}$ab=&quote{$a$b}#[a:3$b][b:5$a]ab#$a$b', '3aba53abaaaba')
   
   // variable persistence
   var vars = {}
-  expectExpand ('^a={x}^a', 'x', {vars:vars})
-  expectExpand ('^a', '')
-  expectExpand ('^a', 'x', {vars:vars,a_equals_x:true})
+  expectExpand ('$a={x}$a', 'x', {vars:vars})
+  expectExpand ('$a', '')
+  expectExpand ('$a', 'x', {vars:vars,a_equals_x:true})
 
   // lists
   expectExpand ('&{}', '')
@@ -200,10 +203,10 @@ function doTests (testRunner) {
 
   expectExpand ('&prepend{123}&cat{xyz}{abc}', '123xyzabc')
   expectExpand ('&prepend&cat{xyz}{abc}{123}', 'xyzabc123')
-  expectExpand ('^list={&prepend{123}&cat{xyz}{abc}}&first^list', '123')
-  expectExpand ('^list={&prepend&cat{xyz}{abc}{123}}&first^list', 'xyzabc')
-  expectExpand ('^list={&prepend{123}&cat{xyz}{abc}}&last^list', 'abc')
-  expectExpand ('^list={&prepend&cat{xyz}{abc}{123}}&last^list', '123')
+  expectExpand ('$list={&prepend{123}&cat{xyz}{abc}}&first$list', '123')
+  expectExpand ('$list={&prepend&cat{xyz}{abc}{123}}&first$list', 'xyzabc')
+  expectExpand ('$list={&prepend{123}&cat{xyz}{abc}}&last$list', 'abc')
+  expectExpand ('$list={&prepend&cat{xyz}{abc}{123}}&last$list', '123')
 
   expectExpand ('&append{123}&cat{xyz}{abc}', '123xyzabc')
   expectExpand ('&first&append{123}&cat{xyz}{abc}', '123')
@@ -219,28 +222,28 @@ function doTests (testRunner) {
   expectExpand ('&join{&{}x&{}y}{,}', 'x,y')
   expectExpand ('&join{x&{}y&{}}{,}', 'xy')
 
-  expectExpand ('^x=&list{&quote{abc}&quote{def}}&map^a^x{^a!}', 'abc!def!')
-  expectExpand ('^x=&list{&quote{abc}&quote{def}}&join&map^a^x{^a!}{ }', 'abc! def!')
+  expectExpand ('$x=&list{&quote{abc}&quote{def}}&map$a$x{$a!}', 'abc!def!')
+  expectExpand ('$x=&list{&quote{abc}&quote{def}}&join&map$a$x{$a!}{ }', 'abc! def!')
 
-  expectExpand ('^x=&list{&quote{2}&quote{4}&quote{6}&quote{0}}&filter^n^x&gt{^n}{3}', '46')
-  expectExpand ('^x=&list{&quote{2}&quote{4}&quote{6}&quote{0}}&reduce^n^x^r={0}&add^n^r', '12')
-  expectExpand ('^x=&list{&quote{2}&quote{4}&quote{6}&quote{0}}&reduce^n:^x^r={zero dogs}&add^r^n', 'twelve dogs')
+  expectExpand ('$x=&list{&quote{2}&quote{4}&quote{6}&quote{0}}&filter$n$x&gt{$n}{3}', '46')
+  expectExpand ('$x=&list{&quote{2}&quote{4}&quote{6}&quote{0}}&reduce$n$x$r={0}&add$n$r', '12')
+  expectExpand ('$x=&list{&quote{2}&quote{4}&quote{6}&quote{0}}&reduce$n:$x$r={zero dogs}&add$r$n', 'twelve dogs')
 
-  expectExpand ('^x={1}^a1={verily}^a2={in troth}&eval&quote{^a&unquote^x indeed}', 'verily indeed')
-  expectExpand ('&quote&unquote&quote&infinitive^y', '&infinitive^y')
+  expectExpand ('$x={1}$a1={verily}$a2={in troth}&eval&quote{$a&unquote$x indeed}', 'verily indeed')
+  expectExpand ('&quote&unquote&quote&infinitive$y', '&infinitive$y')
 
-  expectExpand ('^x={&{}abc&quote{def}}&quotify^x', '&list{&quote{abc}&quote{def}}')
+  expectExpand ('$x={&{}abc&quote{def}}&quotify$x', '&list{&quote{abc}&quote{def}}')
 
   // strip
   expectExpand ('&strip{hello}{hello world hello}', ' world ')
-  expectExpand ('&strip{$abc}{defcon}', 'con')
-  expectExpand ('${abc}', 'def')
-  expectExpand ('${abc}con', 'defcon')
-  expectExpand ('${abc}con', 'defcon')
-  expectExpand ('&strip{$abc}{${abc}con}', 'con')
-  expectExpand ('&strip{$abc}{${abc}con defcon}', 'con con')
+  expectExpand ('&strip{~abc}{defcon}', 'con')
+  expectExpand ('~{abc}', 'def')
+  expectExpand ('~{abc}con', 'defcon')
+  expectExpand ('~{abc}con', 'defcon')
+  expectExpand ('&strip{~abc}{~{abc}con}', 'con')
+  expectExpand ('&strip{~abc}{~{abc}con defcon}', 'con con')
 
-  expectExpand ('^b={b}^x={Batch}^y=&strip&strip^b{abc}&strip{t}^x^y', 'Bh')
+  expectExpand ('$b={b}$x={Batch}$y=&strip&strip$b{abc}&strip{t}$x$y', 'Bh')
 
   // same, and, not
   expectExpand ('&same{abc}{def}', '')
@@ -263,10 +266,10 @@ function doTests (testRunner) {
   expectExpand ('&rep{Test}{6}', 'TestTest', {maxReps:2})
   
   // eval
-  expectExpand ('^a={$}^b={test}^c={1}&eval{^a&cap{^b}^c}', 'Testing')
-  expectExpand ('^a={1}^b={2}^c={3}&let^a={$}^b={test}^c={1}&eval{^a&cap{^b}^c}^a&cap{^b}^c', 'Testing123')
-  expectExpand ('^a={1}^b={2}^c={3}&let^a={$}^b={test}^c={1}{&eval{^a&cap{^b}^c}}^a&cap{^b}^c', 'Testing123')
-  expectExpand ('^a={1}^b={2}^c={3}&let^a={$}^b={test}^c={1}{&eval{^a&cap{^b}^c}^a&cap{^b}^c}', 'Testing$Test1')
+  expectExpand ('$a={~}$b={test}$c={1}&eval{$a&cap{$b}$c}', 'Testing')
+  expectExpand ('$a={1}$b={2}$c={3}&let$a={~}$b={test}$c={1}&eval{$a&cap{$b}$c}$a&cap{$b}$c', 'Testing123')
+  expectExpand ('$a={1}$b={2}$c={3}&let$a={~}$b={test}$c={1}{&eval{$a&cap{$b}$c}}$a&cap{$b}$c', 'Testing123')
+  expectExpand ('$a={1}$b={2}$c={3}&let$a={~}$b={test}$c={1}{&eval{$a&cap{$b}$c}$a&cap{$b}$c}', 'Testing~Test1')
 
   // down with fixed nonterminals
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'yo earthling', {maxTries:maxTries})
@@ -276,12 +279,12 @@ function doTests (testRunner) {
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'hello world', {maxTries:maxTries,fail:true})
 
   // dynamic function binding
-  expectExpand ('$dynamo', 'dynamik', {maxTries:maxTries})
-  expectExpand ('$dynamo', 'DYNAMIC', {maxTries:maxTries})
+  expectExpand ('~dynamo', 'dynamik', {maxTries:maxTries})
+  expectExpand ('~dynamo', 'DYNAMIC', {maxTries:maxTries})
 
   // regexes
-  expectExpand ('&match/a/{cat}{^0^0}', 'aa')
-  expectExpand ('&quotify&match/[aeiou]/g{generic}{&uc^0}', '&list{&quote{E}&quote{E}&quote{I}}')
+  expectExpand ('&match/a/{cat}{$$0$$0}', 'aa')
+  expectExpand ('&quotify&match/[aeiou]/g{generic}{&uc$$0}', '&list{&quote{E}&quote{E}&quote{I}}')
   expectExpand ('&replace/a/g{catamaran}{u|o}', 'cutomoron', {maxTries:maxTries})
   expectExpand ('&join&split/[aeiou]+/{felicitous}{..}', 'f..l..c..t..s')
   

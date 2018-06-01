@@ -177,7 +177,7 @@ Bracery.prototype.getDefaultSymbol = function() {
 }
 
 Bracery.prototype.expand = function (braceryText, config) {
-  braceryText = braceryText || ('$' + this.getDefaultSymbol())
+  braceryText = braceryText || (ParseTree.symChar + this.getDefaultSymbol())
   if (typeof(braceryText) !== 'string')
     throw new Error ('the text to be expanded must be a string')
   return this._expandRhs (extend ({ vars: {} }, config, { rhsText: braceryText }))

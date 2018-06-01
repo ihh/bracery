@@ -1,7 +1,7 @@
 function makeRep (unit, min, max) { return { type: 'rep', unit: unit, min: min, max: max } }
 function makeSymbol (name) { return { type: 'sym', name: name.toLowerCase() } }
 function makeLookup (name) { return { type: 'lookup', varname: name } }
-function makeAssign (name, value) { return { type: 'assign', varname: name, value: value } }
+function makeAssign (name, value, visible) { return { type: 'assign', varname: name, value: value, visible: visible } }
 function makeLocalAssign (name, value, scope) { return { type: 'assign', varname: name, value: value, local: scope } }
 function makeAlternation (opts) { return { type: 'alt', opts: opts } }
 function makeFunction (name, args) { return { type: 'func', funcname: name, args: args } }
@@ -13,6 +13,8 @@ function wrapNodes (args) { return args.length === 1 ? args[0] : { type: 'root',
 function makeQuote (args) { return makeFunction ('quote', args) }
 function makeListFunction (func, listvar, list, inner) { return makeFunction (func, [makeLocalAssign (listvar, list, inner)]) }
 function makeRegexFunction (func, pattern, text, expr) { return makeFunction (func, [wrapNodes(pattern.body), wrapNodes(pattern.flags), wrapNodes(text)].concat (expr ? [makeQuote(expr)] : [])) }
+
+function makeGroupVarName (n) { return '$' + n }
 
 function concatNodes (head, tail) {
   return typeof(head) === 'string' && tail.length && typeof(tail[0]) === 'string'

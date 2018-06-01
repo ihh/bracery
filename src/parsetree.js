@@ -76,7 +76,7 @@ function parseTextDefs (text) {
 }
 
 // Parse tree constants
-var symChar = '$', varChar = '^', funcChar = '&', leftBraceChar = '{', rightBraceChar = '}', leftSquareBraceChar = '[', rightSquareBraceChar = ']', assignChar = '=', traceryChar = '#'
+var symChar = '~', varChar = '$', funcChar = '&', leftBraceChar = '{', rightBraceChar = '}', leftSquareBraceChar = '[', rightSquareBraceChar = ']', assignChar = '=', traceryChar = '#'
 
 // Parse tree manipulations
 // sampleParseTree is the main method for constructing a new, clean parse tree from a template.
@@ -99,7 +99,8 @@ function sampleParseTree (rhs, config) {
 	result = { type: 'assign',
                    varname: node.varname,
 		   value: pt.sampleParseTree (node.value, config),
-                   local: node.local ? pt.sampleParseTree (node.local, config) : undefined }
+                   local: node.local ? pt.sampleParseTree (node.local, config) : undefined,
+                   visible: node.visible }
         break
       case 'alt':
         index = pt.randomIndex (node.opts)
@@ -273,7 +274,7 @@ function makeFuncArgText (pt, args, makeSymbolName) {
 }
 
 function escapeString (text) {
-  return text.replace(/[\$&\^\{\}\|\\]/g,function(m){return'\\'+m})
+  return text.replace(/[\$&\~\{\}\|\\]/g,function(m){return'\\'+m})
 }
 
 function makeRhsText (rhs, makeSymbolName) {
@@ -304,7 +305,7 @@ function makeRhsText (rhs, makeSymbolName) {
                   : (varChar + tok.varname))
 	break
       case 'assign':
-        var assign = varChar + tok.varname + assignChar + leftBraceChar + pt.makeRhsText(tok.value,makeSymbolName) + rightBraceChar
+        var assign = varChar + tok.varname + (tok.visible ? ':' : '') + assignChar + leftBraceChar + pt.makeRhsText(tok.value,makeSymbolName) + rightBraceChar
         if (tok.local)
           result = funcChar + 'let' + assign + leftBraceChar + pt.makeRhsText(tok.local,makeSymbolName) + rightBraceChar
         else
@@ -677,6 +678,8 @@ function valuesEqual (a, b) {
   }, true)
 }
 
+function makeGroupVarName (n) { return varChar + n }
+
 var regexFunction = {
   match: function (regex, text, expr, config) {
     var pt = this
@@ -688,7 +691,7 @@ var regexFunction = {
       promise = (function (match) {
 	return promise.then (function (expansion) {
           var sampledExprTree = pt.sampleParseTree (expr, config)
-          return makeAssignmentPromise.call (pt, config, match.map (function (group, n) { return [''+n, [group]] }), sampledExprTree)
+          return makeAssignmentPromise.call (pt, config, match.map (function (group, n) { return [makeGroupVarName(n), [group]] }), sampledExprTree)
             .then (function (exprExpansion) {
               return listReducer (expansion, exprExpansion, config)
             })
@@ -854,7 +857,7 @@ function makeQuasiquoteExpansionPromise (config) {
   })
 }
 
-function makeAssignmentPromise (config, nameValueList, local) {
+function makeAssignmentPromise (config, nameValueList, local, visible) {
   var pt = this
   var varVal = config.vars || {}, oldVarVal = {}
   var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
@@ -867,8 +870,13 @@ function makeAssignmentPromise (config, nameValueList, local) {
       return makeRhsExpansionReducer (pt, config, textReducer, {}) (value)
         .then (function (valExpansion) {
           extend (expansion.vars, valExpansion.vars)
-          expansion.vars[name] = valExpansion.value || valExpansion.text
+          var newValue = valExpansion.value || valExpansion.text
+          expansion.vars[name] = newValue
           expansion.nodes += valExpansion.nodes
+          if (visible) {
+            expansion.value = newValue
+            expansion.text = makeString (newValue)
+          }
         })
     })
   })
@@ -916,7 +924,7 @@ function makeExpansionPromise (config) {
           case 'assign':
             var name = node.varname.toLowerCase()
             var oldValue = varVal[name]
-            promise = makeAssignmentPromise.call (pt, config, [[node.varname, node.value]], node.local)
+            promise = makeAssignmentPromise.call (pt, config, [[node.varname, node.value]], node.local, node.visible)
             break
 
           case 'lookup':
@@ -1541,4 +1549,3 @@ module.exports = {
   randomElement: randomElement,
   nRandomElements: nRandomElements
 }
-

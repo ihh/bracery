@@ -145,8 +145,10 @@ function doTests (testRunner) {
   expectExpand ('$x:=aha', 'aha')
   expectExpand ('$x:=o h$x', 'oho')
   expectExpand ('[x:aha]$x', 'aha')
-  expectExpand ('[x:aha]\n\n$x', 'aha')
-  expectExpand ('[x:aha]\n\n$x\n\n$x', 'aha\n\naha')
+  expectExpand ('[x:aha]\n\n$x', '\n\naha')
+  expectExpand ('[x:aha]\n\n$x\n\n$x', '\n\naha\n\naha')
+  expectExpand ('$x=aha\n\n$x', 'aha')
+  expectExpand ('$x=aha\n\n$x\n\n$x', 'aha\n\naha')
   expectExpand ('$z={zebedee}$zeb={zebadiah}$Zeb $Z', 'Zebadiah ZEBEDEE')
   expectExpand ('$AbC={air}$aBC={hair}$abC={lair}$abc$Abc$ABC', 'lairLairLAIR')
 
@@ -233,6 +235,10 @@ function doTests (testRunner) {
   expectExpand ('&quote&unquote&quote&infinitive$y', '&infinitive$y')
 
   expectExpand ('$x={&{}abc&quote{def}}&quotify$x', '&list{&quote{abc}&quote{def}}')
+
+  expectExpand ('&push$x{a}&push$x{b}&uc&push$x{c}&push$x{...}&join$x{,} &shift$x $dots:=&pop$x $quirk:=uh, &shift$x $dots &unshift$x&cat{x}{t} &uc&join$x$dots',
+                'a,b,c,... a ... uh,b ... X...T...C')  // a lot going on in this one. Spaces must be exactly correct (of course)
+  expectExpand ('$x=5 &inc$x x=$x $x=10 &dec$x x=$x', 'x=6 x=9')  // note exact spaces
 
   // strip
   expectExpand ('&strip{hello}{hello world hello}', ' world ')
@@ -360,7 +366,7 @@ describe('asynchronous tests', function() {
   })
 })
 
-describe('double expansion tests', function() {
+describe('idempotent double expansion tests', function() {
   doTests (function (lhs, rhs, config, verify) {
     var maxTries = (config && config.maxTries) || 1
     return function (done) {

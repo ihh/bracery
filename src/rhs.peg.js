@@ -10,11 +10,8 @@ Node
   / LocalAssignment
   / Repetition
   / Conditional
-  / MapFunction
-  / RegexFunction
-  / BinaryFunction
   / Function
-  / a:VarAssignment _ { return a }
+  / VarAssignment
   / VarLookup
   / EmptyList
   / Alternation
@@ -58,16 +55,39 @@ LocalAssignment
   = "&let" _ assigns:VarAssignmentList _ scope:FunctionArg { return makeLocalAssignChain (assigns, scope) }
   / "#" _ assigns:VarAssignmentList _ sym:Identifier mods:TraceryModifiers "#" { return makeLocalAssignChain (assigns, [makeTraceryExpr (sym, mods)]) }
 
+Function
+  = MapFunction
+  / RegexFunction
+  / BinaryFunction
+  / UnaryFunction
+  / BinaryVarFunction
+  / UnaryVarFunction
+
 MapFunction
   = "&map$" varname:Identifier (":" / "") list:FunctionArg func:QuotedFunctionArg { return makeListFunction ('map', varname, list, func) }
   / "&filter$" varname:Identifier (":" / "") list:FunctionArg func:QuotedFunctionArg { return makeListFunction ('filter', varname, list, func) }
   / "&reduce$" varname:Identifier (":" / "") list:FunctionArg "$" result:Identifier ("=" / "") init:FunctionArg func:QuotedFunctionArg { return makeReduceFunction (varname, list, result, init, func) }
 
-QuotedFunctionArg
-  = func:FunctionArg { return [makeQuote (func)] }
+RegexFunction
+  = "&match" pattern:RegularExpressionLiteral text:FunctionArg expr:QuotedFunctionArg { return makeRegexFunction ('match', pattern, text, expr) }
+  / "&replace" pattern:RegularExpressionLiteral text:FunctionArg expr:QuotedFunctionArg { return makeRegexFunction ('replace', pattern, text, expr) }
+  / "&split" pattern:RegularExpressionLiteral text:FunctionArg { return makeRegexFunction ('split', pattern, text) }
+
+RegexUnquote
+  = "&unquote" args:FunctionArg { return makeFunction ('unquote', args) }
 
 BinaryFunction
   = "&" func:BinaryFunctionName left:FunctionArg right:FunctionArg { return makeFunction (func, [wrapNodes (left), wrapNodes (right)]) }
+
+UnaryFunction
+  = "&" func:UnaryFunctionName args:FunctionArg { return makeFunction (func, args) }
+
+BinaryVarFunction
+  = "&" func:VoidBinaryVarFunctionName v:VarFunctionArg right:FunctionArg _ { return makeFunction (func, [wrapNodes (v), wrapNodes (right)]) }
+
+UnaryVarFunction
+  = "&" func:UnaryVarFunctionName v:VarFunctionArg { return makeFunction (func, v) }
+  / "&" func:VoidUnaryVarFunctionName v:VarFunctionArg _ { return makeFunction (func, v) }
 
 BinaryFunctionName = "strip"
   / "add" / "subtract" / "multiply" / "divide"
@@ -77,28 +97,33 @@ BinaryFunctionName = "strip"
   / "and"
   / "cat" / "prepend" / "append" / "join"
 
-Function
-  = "&" func:FunctionName args:FunctionArg { return makeFunction (func, args) }
-
-FunctionName = "eval" / "escape" / StrictQuote / Quote / Unquote
+UnaryFunctionName = "eval" / "escape" / StrictQuote / Quote / Unquote
   / "plural" / "singular" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive"
   / "gerund" / "adjective" / "negative" / "positive" / "a" / "uc" / "lc" / "cap"
   / "random" / "floor" / "ceil" / "round" / "wordnum" / "dignum" / "ordinal" / "cardinal"
   / "list" / "quotify" / "value" / "json" / "islist" / "first" / "last" / "notfirst" / "notlast"
   / "not"
 
+VoidBinaryVarFunctionName = "push" / "unshift"
+UnaryVarFunctionName = "shift" / "pop"
+VoidUnaryVarFunctionName = "inc" / "dec"
+
 StrictQuote = ("strictquote" / "'") { return 'strictquote' }
 Quote = ("quote" / "`") { return 'quote' }
 Unquote = ("unquote" / ",") { return 'unquote' }
+
+QuotedFunctionArg
+  = func:FunctionArg { return [makeStrictQuote (func)] }
+
+VarFunctionArg
+  = lookup:PlainVarLookup { return [makeStrictQuote ([lookup])] }
+  / "{" lookup:PlainVarLookup "}" { return [makeStrictQuote ([lookup])] }
 
 FunctionArg
   = sym:Symbol { return [sym] }
   / loc:LocalAssignment { return [loc] }
   / rep:Repetition { return [rep] }
   / cond:Conditional { return [cond] }
-  / mapfunc:MapFunction { return [mapfunc] }
-  / bin:BinaryFunction { return [bin] }
-  / reg:RegexFunction { return [reg] }
   / func:Function { return [func] }
   / assign:VarAssignment { return [assign] }
   / lookup:VarLookup { return [lookup] }
@@ -123,25 +148,31 @@ Number
   = num:[0-9]+ { return parseInt (num.join('')) }
 
 VarLookup
-  = "$" varname:Identifier { return makeSugaredLookup (varname) }
-  / "${" _ varname:Identifier _ "}" { return makeSugaredLookup (varname) }
-  / "$$" num:Number { return makeLookup (makeGroupVarName (num)) }
+  = "$$" num:Number { return makeLookup (makeGroupVarName (num)) }
+  / varname:VarIdentifier { return makeSugaredLookup (varname) }
 
-VarAssignment
-  = "&set$" varname:Identifier args:FunctionArg { return makeAssign (varname, args) }
-  / "&set{" ("$" / "") varname:Identifier "}" args:FunctionArg { return makeAssign (varname, args) }
-  / "$" varname:Identifier "=" target:VarAssignmentTarget { return makeAssign (varname, target) }
-  / "$" varname:Identifier ":=" target:VarAssignmentTarget { return makeAssign (varname, target, true) }
-  / "[" varname:Identifier ":" args:NodeList "]" { return makeAssign (varname, args) }
-  / "[" varname:Identifier "=>" opts:AltList "]" { return makeAssign (varname, [makeFunction ('quote', opts.length === 1 ? opts[0] : [makeAlternation (opts)])]) }
+PlainVarLookup
+  = varname:VarIdentifier { return makeLookup (varname) }
+
+VarIdentifier
+  = "$" varname:Identifier { return varname }
+  / "${" _ varname:Identifier _ "}" { return varname }
 
 VarAssignmentList
   = head:VarAssignment _ tail:VarAssignmentList { return [head].concat(tail) }
   / head:VarAssignment { return [head] }
 
+VarAssignment
+  = "&set$" varname:Identifier args:FunctionArg { return makeAssign (varname, args) }
+  / "&set{" ("$" / "") varname:Identifier "}" args:FunctionArg { return makeAssign (varname, args) }
+  / "[" varname:Identifier ":" args:NodeList "]" { return makeAssign (varname, args) }
+  / "[" varname:Identifier "=>" opts:AltList "]" { return makeAssign (varname, [makeFunction ('quote', opts.length === 1 ? opts[0] : [makeAlternation (opts)])]) }
+  / "$" varname:Identifier "=" target:VarAssignmentTarget { return makeAssign (varname, target) }
+  / "$" varname:Identifier ":=" target:VarAssignmentTarget { return makeAssign (varname, target, true) }
+
 VarAssignmentTarget
   = FunctionArg
-  / chars:[^ \t\n\r\=\~\#&\$\{\}\[\]\|\\]+ { return [chars.join("")] }
+  / chars:[^ \t\n\r\=\~\#&\$\{\}\[\]\|\\]+ _ { return [chars.join("")] }
 
 Alternation
   = "{" head:NodeList "|" tail:AltList "}" { return makeAlternation ([head].concat(tail)) }
@@ -164,15 +195,8 @@ _ "whitespace"
   = [ \t\n\r]*
 
 
-RegexFunction
-  = "&match" pattern:RegularExpressionLiteral text:FunctionArg expr:QuotedFunctionArg { return makeRegexFunction ('match', pattern, text, expr) }
-  / "&replace" pattern:RegularExpressionLiteral text:FunctionArg expr:QuotedFunctionArg { return makeRegexFunction ('replace', pattern, text, expr) }
-  / "&split" pattern:RegularExpressionLiteral text:FunctionArg { return makeRegexFunction ('split', pattern, text) }
-
-RegexUnquote
-  = "&unquote" args:FunctionArg { return makeFunction ('unquote', args) }
-
-// regex grammar https://gist.github.com/deedubs/1392590
+// Regular expression PegJS grammar via https://gist.github.com/deedubs/1392590
+// modified to return arrays, allowing &unquote{...}
 RegularExpressionLiteral
   = "/" body:RegularExpressionBody "/" flags:RegularExpressionFlags { return { body: body, flags: flags } }
 

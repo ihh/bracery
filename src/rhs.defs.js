@@ -10,7 +10,7 @@ function makeConditional (testArg, trueArg, falseArg) { return { type: 'cond', t
 function makeEmptyList() { return { type: 'list', rhs: [] } }
 function wrapNodes (args) { return args.length === 1 ? args[0] : { type: 'root', rhs: args } }
 
-function makeQuote (args) { return makeFunction ('quote', args) }
+function makeStrictQuote (args) { return makeFunction ('strictquote', args) }
 function makeListFunction (func, listvar, list, inner) { return makeFunction (func, [makeLocalAssign (listvar, list, inner)]) }
 function makeReduceFunction (varname, list, result, init, func) { return makeListFunction ('reduce', varname, list, [makeLocalAssign (result, init, func)]) }
 function makeRegexFunction (func, pattern, text, expr) { return makeFunction (func, [wrapNodes(pattern.body), wrapNodes(pattern.flags), wrapNodes(text)].concat (expr || [])) }

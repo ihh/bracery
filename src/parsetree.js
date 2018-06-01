@@ -1104,10 +1104,12 @@ function makeExpansionPromise (config) {
                   return makeRhsExpansionPromiseFor ([node.args[1]])
                     .then (function (rightArg) {
                       expansion.nodes += leftArg.nodes + rightArg.nodes
-                      var binaryResult = binaryFunction[node.funcname] (leftArg.text, rightArg.text, leftArg.value, rightArg.value, config)
-                      expansion.value = binaryResult
-                      expansion.text = makeString (binaryResult)
-                      return expansionPromise
+                      return resolve (binaryFunction[node.funcname] (leftArg.text, rightArg.text, leftArg.value, rightArg.value, config))
+                        .then (function (binaryResult) {
+                          expansion.value = binaryResult
+                          expansion.text = makeString (binaryResult)
+                          return expansionPromise
+                        })
                     })
                 })
 	    } else {

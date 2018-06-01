@@ -18,6 +18,7 @@ var opt = getopt.create([
   ['o' , 'output=PATH'      , 'save symbol definitions to JSON file'],
   ['O' , 'output-text=PATH' , 'save symbol definitions to Bracery file'],
   ['s' , 'symbols=EXPR+'    , 'evaluate JSON symbol definitions from command line'],
+  ['E' , 'evalsym=EXPR+'    , 'evaluate symbol definitions as JavaScript (use with caution!)'],
   ['e' , 'eval=EXPR+'       , 'evaluate expression(s) text'],
   ['f' , 'file=PATH+'       , 'evaluate expression text from file(s)'],
   ['n' , 'num=NUMBER'       , 'number of randomized samples to output'],
@@ -151,6 +152,9 @@ function addRules (rules) {
     addedRules = true
   return r
 }
+function addRulesEval (rulesExpr) {
+  return addRules (eval ('(' + rulesExpr + ')'))
+}
 function addRulesTracery (rulesJSON) {
   return addRules (JSON.parse (rulesJSON))
 }
@@ -187,6 +191,8 @@ if (opt.options.defs)
 if (opt.options.symbols)
   opt.options.symbols.forEach (addRulesTracery)
 opt.argv.forEach (addRulesFile)
+if (opt.options.evalsym)
+  opt.options.evalsym.forEach (addRulesEval)
 
 if (opt.options.output)
   fs.writeFileSync (opt.options.output, JSON.stringify (b.toJSON(), null, 2))

@@ -58,6 +58,8 @@ LocalAssignment
 Function
   = MapFunction
   / RegexFunction
+  / CallFunction
+  / DefineFunction
   / BinaryFunction
   / UnaryFunction
   / BinaryVarFunction
@@ -82,6 +84,21 @@ RegexFunction
 RegexUnquote
   = "&unquote" args:FunctionArg { return makeFunction ('unquote', args) }
 
+CallFunction
+  = "&call" expr:FunctionArg args:ArgList { return makeFunction ('call', [wrapNodes (expr), makeFunction ('list', args.map (wrapNodes))]) }
+  / "&" lookup:VarLookup args:ArgList { return makeFunction ('call', [lookup, makeFunction ('list', args.map (wrapNodes))]) }
+
+DefineFunction
+  = "&function" args:ArgIdentifierList expr:FunctionArg { return makeDefineFunction (args, expr) }
+
+ArgIdentifierList
+  = head:ArgIdentifier tail:ArgIdentifierList { return [head].concat (tail) }
+  / head:ArgIdentifier { return [head] }
+
+ArgIdentifier
+  = VarIdentifier
+  / "{" name:VarIdentifier "}" { return name }
+
 BinaryFunction
   = "&" func:BinaryFunctionName left:FunctionArg right:FunctionArg { return makeFunction (func, [wrapNodes (left), wrapNodes (right)]) }
 
@@ -95,13 +112,15 @@ UnaryVarFunction
   = "&" func:UnaryVarFunctionName v:VarFunctionArg { return makeFunction (func, v) }
   / "&" func:VoidUnaryVarFunctionName v:VarFunctionArg _ { return makeFunction (func, v) }
 
-BinaryFunctionName = "strip"
+BinaryFunctionName
+  = "strip"
   / "add" / "subtract" / "multiply" / "divide"
   / "gt" / "geq" / "lt" / "leq"
   / "eq" / "neq"
   / "same"
   / "and"
   / "cat" / "prepend" / "append" / "join"
+  / "apply"
 
 UnaryFunctionName = "eval" / "escape" / StrictQuote / Quote / Unquote
   / "plural" / "singular" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive"

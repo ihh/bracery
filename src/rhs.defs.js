@@ -16,6 +16,10 @@ function makeListFunction (func, listvar, list, inner) { return makeFunction (fu
 function makeReduceFunction (varname, list, result, init, func) { return makeListFunction ('reduce', varname, list, [makeLocalAssign (result, init, func)]) }
 function makeRegexFunction (func, pattern, text, expr) { return makeFunction (func, [wrapNodes(pattern.body), wrapNodes(pattern.flags), wrapNodes(text)].concat (expr || [])) }
 
+function makeDefineFunction (args, inner) {
+  return makeQuote ([makeLocalAssignChain (args.map (function (arg, n) { return makeAssign (arg, [makeLookup (makeGroupVarName (n + 1))]) }), inner)])
+}
+
 function makeGroupVarName (n) { return '$' + n }
 
 function concatNodes (head, tail) {

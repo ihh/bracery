@@ -302,7 +302,16 @@ function doTests (testRunner) {
   // dynamic function binding
   expectExpand ('~dynamo', 'dynamik', {maxTries:maxTries})
   expectExpand ('~dynamo', 'DYNAMIC', {maxTries:maxTries})
+
   expectExpand ('~lambda{hi, }{!!!}', 'hi, world!!!')
+
+  // call, apply, function
+  expectExpand ('$func=&function$first$second{0=&quotify$$0 1=$first 2=$second} &call{$func}{A}{B}', ' 0=&list{&value{A}&value{B}} 1=A 2=B')
+  expectExpand ('$func=&function$first$second{0=&quotify$$0 1=$first 2=$second} $y=&list{&value{one}&value{two}} &apply{$func}$y', '  0=&list{&value{one}&value{two}} 1=one 2=two')
+
+  expectExpand ('&function$first$second{1=$first 2=$second}', '&let$first={$$1}{&let$second={$$2}{1=$first 2=$second}}')
+  expectExpand ('$x=99 &function$first$second{1=$first 2=$second x=$x}', '&let$first={$$1}{&let$second={$$2}{1=$first 2=$second x=$x}}')
+  expectExpand ('$x=99 &function$first$second{1=$first 2=$second x=&unquote$x}', '&let$first={$$1}{&let$second={$$2}{1=$first 2=$second x=99}}')
 
   // regexes
   expectExpand ('&match/a/{cat}{$$0$$0}', 'aa')

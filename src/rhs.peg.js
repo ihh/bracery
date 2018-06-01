@@ -33,8 +33,8 @@ OuterNodeList
   / "" { return [] }
 
 Symbol
-  = "~" sym:Identifier { return makeSugaredSymbol (sym) }
-  / "~{" _ sym:Identifier _ "}" { return makeSugaredSymbol (sym) }
+  = "~" sym:Identifier args:ArgList { return makeSugaredSymbol (sym, args) }
+  / "~{" _ sym:Identifier _ "}" args:ArgList { return makeSugaredSymbol (sym, args) }
   / "#" sym:Identifier mods:TraceryModifiers "#" { return makeTraceryExpr (sym, mods) }
 
 TraceryModifiers
@@ -144,6 +144,10 @@ DelimitedNodeList
 
 List
   = "{" args:NodeList "}" { return makeFunction ('list', args) }
+
+ArgList
+  = head:DelimitedNodeList tail:ArgList { return [head].concat (tail) }
+  / "" { return [] }
 
 Repetition
   = "&rep" unit:FunctionArg "{" min:Number "," max:Number "}" { return validRange (min, max) ? makeRep (unit, min, max) : text() }

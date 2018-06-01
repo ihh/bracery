@@ -1,5 +1,5 @@
 function makeRep (unit, min, max) { return { type: 'rep', unit: unit, min: min, max: max } }
-function makeSymbol (name) { return { type: 'sym', name: name.toLowerCase() } }
+function makeSymbol (name, args) { return { type: 'sym', name: name.toLowerCase(), bind: args } }
 function makeLookup (name) { return { type: 'lookup', varname: name } }
 function makeAssign (name, value, visible) { return { type: 'assign', varname: name, value: value, visible: visible } }
 function makeLocalAssign (name, value, scope) { return { type: 'assign', varname: name, value: value, local: scope } }
@@ -42,8 +42,8 @@ function makeLocalAssignChain (assigns, scope) {
 function makeCapped (args) { return makeFunction ('cap', args) }
 function makeUpperCase (args) { return makeFunction ('uc', args) }
 
-function sugarize (name, makeNode) {
-  var node = makeNode (name)
+function sugarize (makeNode, name, args) {
+  var node = makeNode (name, args)
   if (name.match(/^[0-9_]*[A-Z].*[a-z]/))
     return makeCapped ([node])
   else if (name.match(/[A-Z]/) && !name.match(/[a-z]/))
@@ -51,12 +51,12 @@ function sugarize (name, makeNode) {
   return node
 }
 
-function makeSugaredSymbol (name) {
-  return sugarize (name, makeSymbol)
+function makeSugaredSymbol (name, args) {
+  return sugarize (makeSymbol, name, args)
 }
 
 function makeSugaredLookup (name) {
-  return sugarize (name, makeLookup)
+  return sugarize (makeLookup, name)
 }
 
 function makeTraceryExpr (sym, mods) {

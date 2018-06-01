@@ -7,6 +7,7 @@ var initJson = { abc: 'def',
                  hello: '[hello|hi]',
                  world: ['world', 'planet'],
                  dynamo: function (config) { return [config.random() < .5 ? 'dynamik' : 'DYNAMIC'] },
+                 lambda: function (config, x, y) { return x + 'world' + y },
                  test1: 'testing',
                  test2: '~TEST1',
                  test3: 'x~test3',
@@ -80,6 +81,9 @@ function doTests (testRunner) {
   expectExpand ('&quote&unquote{a|b}', 'a', {maxTries:maxTries})
   expectExpand ('&quote&unquote{a|b}', 'b', {maxTries:maxTries})
   expectExpand ('&quote&quote&unquote{a|b}', '&quote&unquote[a|b]')
+
+  expectExpandQuote ('&quote{~hello{abc}{def}}', '~hello{abc}{def}')
+  expectExpand ('&quote&quote{~hello{abc}{def}}', '&quote{~hello{abc}{def}}')
 
   // case manipulation
   expectExpand ('&quote{~TEST1}', '~TEST1')
@@ -298,6 +302,7 @@ function doTests (testRunner) {
   // dynamic function binding
   expectExpand ('~dynamo', 'dynamik', {maxTries:maxTries})
   expectExpand ('~dynamo', 'DYNAMIC', {maxTries:maxTries})
+  expectExpand ('~lambda{hi, }{!!!}', 'hi, world!!!')
 
   // regexes
   expectExpand ('&match/a/{cat}{$$0$$0}', 'aa')

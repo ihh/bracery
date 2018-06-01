@@ -123,7 +123,7 @@ Bracery.prototype._expandSymbol = function (config) {
   if (rules) {
     if (typeof(rules) === 'function') {
       // call dynamically bound function
-      rhs = rules (extend ({ random: this.rng }, config))
+      rhs = rules.apply (this, [extend ({ random: this.rng }, config)].concat (config.vars[ParseTree.varChar+'0'] || []))
       // if result is a string, forgivingly wrap it as a single-element array
       if (typeof(rhs) === 'string')
         rhs = [rhs]

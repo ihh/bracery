@@ -176,7 +176,14 @@ b.expand ('I [love|hate|like] you ~percentage!',
 
 # Tutorial
 
-The main construct in Bracery is the _alternation_, a list of options separated by vertical bars:
+The first thing to know about Bracery is that anything that isn't code is implicitly output.
+So, for example, the Bracery program to generate the text "hello world" is just `hello world`, which is a [quine](https://en.wikipedia.org/wiki/Quine_(computing)).
+In fact, all strings are valid Bracery programs, and most Bracery programs are quines,
+in that the default thing for Bracery to do if it can't otherwise parse or recognize the input stream
+is simply to echo it back to the output.
+In this, Bracery is like other interactive fiction languages (ChoiceScript, Tracery, Twine formats, etc.) and markup languages (Markdown, etc.).
+
+The main construct for generating variation in Bracery is the _alternation_, a list of options separated by vertical bars:
 
 ~~~~
 I feel [happy|sad|angry|bored]
@@ -196,6 +203,7 @@ I feel bored
 ~~~~
 
 or one of the others.
+Each option in an alternation is deemed equally likely.
 
 You can use variables to remember the outcome of a random choice, for repetition, or delayed effect:
 
@@ -247,8 +255,14 @@ Maybe tomorrow, I'll be #new_mood#?
 Note that binding a variable such as `$new_mood` to an alternation is equivalent to setting up a
 transformation rule for a symbol in a [context-free grammar](https://en.wikipedia.org/wiki/Context-free_grammar).
 
-Anything that isn't code is implicitly output.
-So, for example, the Bracery program to generate the text "hello world" is just `hello world`, which is a [quine](https://en.wikipedia.org/wiki/Quine_(computing)).
+Alternations can be nested, so (for example) we can create `very` and `slightly` sub-categories of `bored`:
+
+~~~~
+[new_mood=>happy|sad|angry|[very|slightly] bored]
+[mood:#new_mood#]
+I feel #mood#. And when I'm #mood#, then #mood# is all I feel.
+Maybe tomorrow, I'll be #new_mood#?
+~~~~
 
 # Technical details
 

@@ -371,7 +371,7 @@ function makeRhsText (rhs, makeSymbolName) {
         } else if (regexFunction[tok.funcname]) {
           result = funcChar + tok.funcname + '/' + pt.makeRhsText ([tok.args[0]], makeSymbolName) + '/' + pt.makeRhsText ([tok.args[1]], makeSymbolName)
             + tok.args.slice(2).map (function (arg, n) { return makeFuncArgText (pt, n>0 ? arg.args : [arg], makeSymbolName) }).join('')
-        } else if (tok.funcname === 'map' || tok.funcname === 'filter' || tok.funcname === 'reduce') {
+        } else if (tok.funcname === 'map' || tok.funcname === 'filter' || tok.funcname === 'weightsort' || tok.funcname === 'lexsort' || tok.funcname === 'reduce') {
           result = funcChar + tok.funcname + (tok.args[0].varname === '_' ? '' : (varChar + tok.args[0].varname + ':')) + makeFuncArgText (pt, tok.args[0].value, makeSymbolName)
             + (tok.funcname === 'reduce'
                ? (varChar + tok.args[0].local[0].varname + '=' + makeFuncArgText (pt, tok.args[0].local[0].value, makeSymbolName) + makeFuncArgText (pt, tok.args[0].local[0].local[0].args, makeSymbolName))
@@ -870,6 +870,12 @@ var binaryFunction = {
   geq: function (l, r) {
     return binaryFunction.eq(l,r) || binaryFunction.gt(l,r)
   },
+  min: function (l, r, lv, rv) {
+    return isTruthy (binaryFunction.leq(l,r)) ? lv : rv
+  },
+  max: function (l, r, lv, rv) {
+    return isTruthy (binaryFunction.geq(l,r)) ? lv : rv
+  },
   cat: function (l, r, lv, rv) {
     return makeArray(lv).concat (makeArray(rv))
   },
@@ -1122,6 +1128,31 @@ function makeExpansionPromise (config) {
                                                             mapRhs: node.args[0].local[0].args }),
                                                   mapReducer,
                                                   { value: [] }) (makeArray (listExpansion.value))
+                })
+            } else if (node.funcname === 'weightsort' || node.funcname === 'lexsort') {
+              // weightsort/lexsort. first arg is &let$VAR:LIST{&strictquote{EXPR}}
+              promise = makeRhsExpansionPromiseFor (node.args[0].value)
+                .then (function (listExpansion) {
+                  var list = makeArray (listExpansion.value)
+                  return makeRhsExpansionReducer (pt,
+                                                  extend ({},
+                                                          config,
+                                                          { mapVarName: node.args[0].varname,
+                                                            mapRhs: node.args[0].local[0].args }),
+                                                  mapReducer,
+                                                  { value: [] }) (list)
+                    .then (function (weightListExpansion) {
+                      var weights = makeArray (weightListExpansion.value).map (node.funcname === 'weightsort' ? toNumber : makeString)
+                      var indices = listExpansion.value.map (function (_val, n) { return n })
+                      var sortedIndices = indices.sort (node.funcname === 'weightsort'
+                                                        ? function (a, b) { return weights[a] - weights[b] }
+                                                        : function (a, b) { return String.prototype.localeCompare.call (weights[a], weights[b]) })
+                      extend (expansion.vars, weightListExpansion.vars)
+                      expansion.nodes += listExpansion.nodes + weightListExpansion.nodes
+                      expansion.value = sortedIndices.map (function (index) { return list[index] })
+                      expansion.text = makeString (expansion.value)
+                      return expansion
+                    })
                 })
             } else if (node.funcname === 'filter') {
               // filter. first arg is &let$VAR:LIST{&strictquote{TEST}}
@@ -1385,6 +1416,10 @@ function makeExpansionPromise (config) {
 
                   case 'round':
                     expansion.text = Math.round (toNumber(arg)) + ''
+                    break
+
+                  case 'abs':
+                    expansion.text = Math.abs (toNumber(arg))
                     break
 
                   case 'wordnum':

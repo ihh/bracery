@@ -77,14 +77,15 @@ Function
   / List
 
 MapFunction
-  = "&map" varname:MapVarIdentifier list:FunctionArg func:QuotedFunctionArg { return makeListFunction ('map', varname, list, func) }
-  / "&filter" varname:MapVarIdentifier list:FunctionArg func:QuotedFunctionArg { return makeListFunction ('filter', varname, list, func) }
+  = "&" name:MapFunctionName varname:MapVarIdentifier list:FunctionArg func:QuotedFunctionArg { return makeListFunction (name, varname, list, func) }
+  / "&" name:MapFunctionName list:FunctionArg func:QuotedFunctionArg { return makeListFunction (name, '_', list, func) }
   / "&reduce" varname:MapVarIdentifier list:FunctionArg result:VarIdentifier ("=" / "") init:FunctionArg func:QuotedFunctionArg { return makeReduceFunction (varname, list, result, init, func) }
+
+MapFunctionName = "map" / "filter" / "weightsort" / "lexsort"
 
 MapVarIdentifier
   = name:VarIdentifier (":" / "") { return name }
   / "{" name:VarIdentifier "}" { return name }
-  / "" { return "_" }
 
 RegexFunction
   = "&match" pattern:RegularExpressionLiteral text:FunctionArg expr:QuotedFunctionArg { return makeRegexFunction ('match', pattern, text, expr) }
@@ -143,6 +144,7 @@ BinaryFunctionName
   / "add" / "subtract" / "multiply" / "divide"
   / "gt" / "geq" / "lt" / "leq"
   / "eq" / "neq"
+  / "min" / "max"
   / "same"
   / "and"
   / "cat" / "prepend" / "append" / "join"
@@ -151,7 +153,8 @@ BinaryFunctionName
 UnaryFunctionName = "eval" / "escape" / StrictQuote / Quote / Unquote
   / "plural" / "singular" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive"
   / "gerund" / "adjective" / "negative" / "positive" / "a" / "uc" / "lc" / "cap"
-  / "random" / "floor" / "ceil" / "round" / "wordnum" / "dignum" / "ordinal" / "cardinal"
+  / "random" / "floor" / "ceil" / "round" / "abs"
+  / "wordnum" / "dignum" / "ordinal" / "cardinal"
   / "list" / "quotify" / "value" / "json" / "islist" / "first" / "last" / "notfirst" / "notlast"
   / "strlen" / "length" / "shuffle"
   / "not"

@@ -56,7 +56,7 @@ $earthsea=&quote{[earthsea|Earth|Middle Earth|the planet|the world]}
 &eval{$greetings}, &eval{$wizard} of &eval{$earthsea}
 ~~~~
 
-And if you are a programmer, then you will probably recognize this kind of thing too (hint: [lambdas](https://en.wikipedia.org/wiki/Anonymous_function)):
+And if you are a programmer, then you will probably recognize this kind of thing too ([lambdas](https://en.wikipedia.org/wiki/Anonymous_function)):
 
 ~~~~
 $greetings=[hello|well met|how goes it|greetings]

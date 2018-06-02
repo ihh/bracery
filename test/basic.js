@@ -268,6 +268,9 @@ function doTests (testRunner) {
 
   expectExpand ('$x=&split{fresh word salad} &join{&shuffle{$x}}{ }', 'salad word fresh', {maxTries:maxTries})
 
+  expectExpand ('$x=&{&.1&.3&.2&.11}&json$x $y=&weightsort{$x}{$_} &json$y', '[["1","3","2","11"]] [["1","2","3","11"]]')
+  expectExpand ('$x=&{&.1&.3&.2&.11}&json$x $y=&lexsort{$x}{$_} &json$y', '[["1","3","2","11"]] [["1","11","2","3"]]')
+
   // strip
   expectExpand ('&strip{hello}{hello world hello}', ' world ')
   expectExpand ('&strip{~abc}{defcon}', 'con')

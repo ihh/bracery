@@ -72,6 +72,7 @@ Function
   / BinaryVarFunction
   / UnaryVarFunction
   / MathFunction
+  / LinkFunction
   / List
 
 MapFunction
@@ -126,6 +127,9 @@ UnaryVarFunction
 MathFunction
   = "&math{" _ math:MathExpr _ "}" { return makeFunction ('math', [math]) }
   / "&math{}" { return makeFunction ('math', []) }
+
+LinkFunction
+  = "&link" text:FunctionArg link:FunctionArg { return makeFunction ('link', [wrapNodes(text), makeQuote(link)]) }
 
 List
   = "&{" args:NodeList "}" { return makeFunction ('list', args) }

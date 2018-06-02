@@ -362,7 +362,9 @@ function makeRhsText (rhs, makeSymbolName) {
 				 ['else',tok.f]].map (function (keyword_arg) { return keyword_arg[0] + leftBraceChar + pt.makeRhsText (keyword_arg[1], makeSymbolName) + rightBraceChar }).join('')))
         break;
       case 'func':
-        if (binaryFunction[tok.funcname] || tok.funcname === 'apply') {
+        if (tok.funcname === 'link') {
+          result = funcChar + tok.funcname + makeFuncArgText (pt, [tok.args[0]], makeSymbolName) + makeFuncArgText (pt, [tok.args[1].args[0]], makeSymbolName)
+        } else if (binaryFunction[tok.funcname] || tok.funcname === 'apply') {
           result = funcChar + tok.funcname + tok.args.map (function (arg) { return makeFuncArgText (pt, [arg], makeSymbolName) }).join('')
         } else if (varFunction[tok.funcname]) {
           result = funcChar + tok.funcname + varChar + tok.args[0].args[0].varname + (tok.args.length > 1 ? makeFuncArgText (pt, tok.args.slice(1), makeSymbolName) : '')
@@ -866,7 +868,10 @@ var binaryFunction = {
     return makeArray(lv).concat ([cloneItem(rv)])
   },
   join: function (l, r, lv, rv) {
-    return makeArray(lv).join (makeString(rv))
+    return makeArray(lv).join (r)
+  },
+  link: function (l, r, lv, rv, config) {
+    return funcChar + 'link' + leftBraceChar + l + rightBraceChar + leftBraceChar + r + rightBraceChar
   }
 }
 
@@ -1177,7 +1182,7 @@ function makeExpansionPromise (config) {
                   return makeRhsExpansionPromiseFor ([node.args[1]])
                     .then (function (rightArg) {
                       expansion.nodes += leftArg.nodes + rightArg.nodes
-                      return resolve (binaryFunction[node.funcname] (leftArg.text, rightArg.text, leftArg.value, rightArg.value, config))
+                      return resolve (binaryFunction[node.funcname].call (pt, leftArg.text, rightArg.text, leftArg.value, rightArg.value, config))
                         .then (function (binaryResult) {
                           expansion.value = binaryResult
                           expansion.text = makeString (binaryResult)

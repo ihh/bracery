@@ -50,7 +50,7 @@ Here is that example as a [web demo](http://htmlpreview.github.io/?https://githu
 
 The above example uses some [syntactic sugar](https://en.wikipedia.org/wiki/Syntactic_sugar)
 in the way variables are assigned and expanded.
-If you're a programmer, you might find it easier to see what's going on without the sugar:
+If you're a programmer, you might find it easier to see what's going on without the sugar (namely, [dynamic evaluation](https://en.wikipedia.org/wiki/Eval)):
 
 ~~~~
 $greetings=&quote{[hello|well met|how goes it|greetings]}
@@ -62,7 +62,7 @@ $earthsea=&quote{[earthsea|Earth|Middle Earth|the planet|the world]}
 &eval{$greetings}, &eval{$wizard} of &eval{$earthsea}
 ~~~~
 
-And if you are a programmer, then you will probably recognize this kind of thing too:
+And if you are a programmer, then you will probably recognize this kind of thing too (hint: [lambdas](https://en.wikipedia.org/wiki/Anonymous_function)):
 
 ~~~~
 $greetings=[hello|well met|how goes it|greetings]
@@ -74,7 +74,7 @@ $sentence=&function{$name}{$greetings, $name}
 &$sentence{$wizard of $earthsea}
 ~~~~
 
-And maybe this as well:
+And maybe this as well ([lists](https://en.wikipedia.org/wiki/List_(abstract_data_type))):
 
 ~~~~
 $greetings=[hello|well met|how goes it|greetings]
@@ -92,6 +92,7 @@ which gives jumbled-up output like
 witch the hello, of world
 ~~~~
 
+You may also recognize that Bracery's alternations form a [context-free grammars](https://en.wikipedia.org/wiki/Context-free_grammar).
 However, you don't need to use any of these programmer-oriented features, if you just want to write generative text.
 Just [start typing](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/no_defs.html) and go!
 

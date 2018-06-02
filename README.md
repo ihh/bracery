@@ -74,6 +74,27 @@ $sentence=&function{$name}{$greetings, $name}
 &$sentence{$wizard of $earthsea}
 ~~~~
 
+And maybe this as well:
+
+~~~~
+$greetings=[hello|well met|how goes it|greetings]
+$wizard=[wizard|witch|mage|magus|magician|sorcerer|enchanter]
+$earthsea=[earthsea|Earth|Middle Earth|the planet|the world]
+
+$sentence={$greetings, $wizard of $earthsea}
+
+&join{&shuffle{&split{$sentence}}}{ }
+~~~~
+
+which gives jumbled-up output like
+
+~~~~
+witch the hello, of world
+~~~~
+
+However, you don't need to use any of these programmer-oriented features, if you just want to write generative text.
+Just [start typing](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/no_defs.html) and go!
+
 ### Another example
 
 Here is another example, taken from Kate Compton's [online tutorial](http://www.crystalcodepalace.com/traceryTut.html) to Tracery:

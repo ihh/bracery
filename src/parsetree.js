@@ -722,6 +722,16 @@ function makeGenerator (item) {
           : '')
 }
 
+function shuffleArray (a, rng) {
+  for (var n = 0; n < a.length - 1; ++n) {
+    var m = Math.floor (rng() * (a.length - n))
+    var tmp = a[n]
+    a[n] = a[m]
+    a[m] = tmp
+  }
+  return a
+}
+
 function valuesEqual (a, b) {
   if (typeof(a) !== typeof(b))
     return false
@@ -1252,6 +1262,11 @@ function makeExpansionPromise (config) {
 
                   case 'length':
                     expansion.text = '' + makeArray (argExpansion.value).length
+                    break
+
+                    // shuffle
+                  case 'shuffle':
+                    expansion.value = shuffleArray (makeArray (argExpansion.value), config.rng || Math.random)
                     break
 
                     // value, unquote, math: identity functions

@@ -153,7 +153,7 @@ UnaryFunctionName = "eval" / "escape" / StrictQuote / Quote / Unquote
   / "gerund" / "adjective" / "negative" / "positive" / "a" / "uc" / "lc" / "cap"
   / "random" / "floor" / "ceil" / "round" / "wordnum" / "dignum" / "ordinal" / "cardinal"
   / "list" / "quotify" / "value" / "json" / "islist" / "first" / "last" / "notfirst" / "notlast"
-  / "strlen" / "length"
+  / "strlen" / "length" / "shuffle"
   / "not"
   / "comment"
 

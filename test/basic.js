@@ -266,6 +266,8 @@ function doTests (testRunner) {
                 'a,b,c,... a ... uh,b ... X...T...C')  // a lot going on in this one. Spaces must be exactly correct (of course)
   expectExpand ('$x=5 &inc$x x=$x $x=10 &dec$x x=$x', 'x=6 x=9')  // note exact spaces
 
+  expectExpand ('$x=&split{fresh word salad} &join{&shuffle{$x}}{ }', 'salad word fresh', {maxTries:maxTries})
+
   // strip
   expectExpand ('&strip{hello}{hello world hello}', ' world ')
   expectExpand ('&strip{~abc}{defcon}', 'con')

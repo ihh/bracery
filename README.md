@@ -19,17 +19,60 @@ combining elements of other languages and libraries:
 ### An example
 
 The following Bracery code generates lines like
-`how goes it with thee, magician of Middle Earth`
-and `well met now, magus of the world`
+`how goes it, magician of Middle Earth`
+and `well met, magus of the world`
 
 ~~~~
-[greetings=>[hello|well met] [now|there]|how [goes|fares] it with [you|thee]]
+[hello|well met|how goes it|greetings],
+[wizard|witch|mage|magus|magician|sorcerer|enchanter] of
+[earthsea|Earth|Middle Earth|the planet|the world]
+~~~~
+
+Same example, using variables to keep track of the choices:
+
+~~~~
+$greetings=[hello|well met|how goes it|greetings]
+$wizard=[wizard|witch|mage|magus|magician|sorcerer|enchanter]
+$earthsea=[earthsea|Earth|Middle Earth|the planet|the world]
+$greetings, $wizard of $earthsea
+~~~~
+
+Using variables to represent Bracery code:
+
+~~~~
+[greetings=>hello|well met|how goes it|greetings]
 [wizard=>wizard|witch|mage|magus|magician|sorcerer|enchanter]
 [earthsea=>earthsea|Earth|Middle Earth|the planet|the world]
 #greetings#, #wizard# of #earthsea#
 ~~~~
 
 Here is that example as a [web demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/no_defs.html) ([source](web/no_defs.html)).
+
+The above example uses some [syntactic sugar](https://en.wikipedia.org/wiki/Syntactic_sugar)
+in the way variables are assigned and expanded.
+If you're a programmer, you might find it easier to see what's going on without the sugar:
+
+~~~~
+$greetings=&quote{[hello|well met|how goes it|greetings]}
+
+$wizard=&quote{[wizard|witch|mage|magus|magician|sorcerer|enchanter]}
+
+$earthsea=&quote{[earthsea|Earth|Middle Earth|the planet|the world]}
+
+&eval{$greetings}, &eval{$wizard} of &eval{$earthsea}
+~~~~
+
+And if you are a programmer, then you will probably recognize this kind of thing too:
+
+~~~~
+$greetings=[hello|well met|how goes it|greetings]
+$wizard=[wizard|witch|mage|magus|magician|sorcerer|enchanter]
+$earthsea=[earthsea|Earth|Middle Earth|the planet|the world]
+
+$sentence=&function{$name}{$greetings, $name}
+
+&$sentence{$wizard of $earthsea}
+~~~~
 
 ### Another example
 
@@ -51,7 +94,7 @@ for Kate's example, which generates lines like the following:
 Darcy traveled with her pet kitten.  Darcy was never wistful, for the kitten was always too astute.
 ~~~~
 
-### Alternate formats
+#### Alternate formats
 
 There are several other ways you can specify these kinds of template.
 For example, you can use Tracery-style JSON:
@@ -291,7 +334,7 @@ but are also quite powerful in their own right.
 ### Distinction between symbols and variables
 
 As well as the flanking hash-character notation that Tracery uses for symbol expansions from the grammar, `#symbol#`,
-Bracery allows the dollar character prefix, `~symbol`.
+Bracery allows the tilde character prefix, `~symbol`.
 The Bracery variant carries the additional, specific nuance that you want to use the original symbol definitions file (or other authority) to expand the symbol,
 as opposed to any subsequently defined variables.
 

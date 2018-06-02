@@ -443,6 +443,9 @@ Language features include
       - `&eq{x}{y}`, `&neq{x}{y}`, `&gt{x}{y}`, `&geq{x}{y}`, `&lt{x}{y}`, `&leq{x}{y}` also fairly predictable
    - remove substrings: `&strip{ac}{abacus}` evaluates to `abus`, `&strip{gh}{lightweight}` to `litweit`, etc.
 - special functions:
+   - repetition:
+      - `&rep{x}{3}` expands to `xxx`
+      - `&rep{x}{3,5}` expands to `xxx`, `xxxx`, or `xxxxx`
    - conditionals:
       - `&if{testExpr}then{trueExpr}else{falseExpr}`
       - Evaluates to `trueExpr` if `testExpr` contains any non-whitespace characters, and `falseExpr` otherwise.
@@ -459,9 +462,14 @@ Language features include
    - locally scoped variables:
       - Tracery-style `#[x:value1][y:value2]symbol_name#` (what Tracery calls "actions")
       - Bracery-style `&let$x={value1}$y={value2}{something involving x and y}`
-   - repetition:
-      - `&rep{x}{3}` expands to `xxx`
-      - `&rep{x}{3,5}` expands to `xxx`, `xxxx`, or `xxxxx`
+   - first-class functions (or, at the very least, frequent-flyer functions that got an upgrade)
+      - `&call{expr}{arg1}{arg2}{arg3...}` binds `$$1` to `arg1`, `$$2` to `arg2`, `$$3` to `arg3`... before expanding `expr`
+         - in other words, `&let$$1={arg1}{&let$$2={arg2}{&let$$3={arg3}{...}}}	   `
+      - `&apply{expr}{args}` is the same but the arguments are in list form
+      - `&function$arg1$arg2$arg3{...}` is exactly the same as `&quote{&let$arg1={$$1}{&let$arg2={$$2}{&let$arg3={$$3}{...}}}}`
+      - you can also pass args to user extensions e.g. `~extension{arg1}{arg2}{arg3}`
+         - the 'apply' form of this is `&~extension{arglist}`
+      - `&$x` is short for `&call{$x}`
 - lists:
    - `&list{...}` or just `&{...}` creates an explicit nested list context, vs the default concatenation context
       - `&{}` is the empty list, equivalent to `&list{}`

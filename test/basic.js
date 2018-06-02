@@ -23,6 +23,11 @@ function doTests (testRunner) {
   // test parameters
   var maxTries = 100
 
+  // Theo's alternation test
+  expectExpand ('$Theo:=[dad|mom] $theo $theo come to [Africa|our house|nowhere] [just kidding |seriously] ha ha ha ha ha ',
+                'dad dad dad come to nowhere just kidding  ha ha ha ha ha ',
+                { maxTries: maxTries })
+  
   // the tests themselves
   expectExpand ('~hello ~world', 'hello world', {maxTries:maxTries})
   expectExpand ('~hello ~world', 'hello planet', {maxTries:maxTries})

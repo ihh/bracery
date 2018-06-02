@@ -363,7 +363,7 @@ function makeRhsText (rhs, makeSymbolName) {
         break;
       case 'func':
         if (tok.funcname === 'link') {
-          result = funcChar + tok.funcname + makeFuncArgText (pt, [tok.args[0]], makeSymbolName) + makeFuncArgText (pt, [tok.args[1].args[0]], makeSymbolName)
+          result = funcChar + tok.funcname + [tok.args[0], tok.args[1], tok.args[2].args[0]].map (function (arg) { return makeFuncArgText (pt, [arg], makeSymbolName) }).join('')
         } else if (binaryFunction[tok.funcname] || tok.funcname === 'apply') {
           result = funcChar + tok.funcname + tok.args.map (function (arg) { return makeFuncArgText (pt, [arg], makeSymbolName) }).join('')
         } else if (varFunction[tok.funcname]) {
@@ -871,11 +871,6 @@ var binaryFunction = {
   },
   join: function (l, r, lv, rv) {
     return makeArray(lv).join (r)
-  },
-  link: function (l, r, lv, rv, config) {
-    return (config.makeLink
-            ? config.makeLink.call (this, l, r, lv, rv, config)
-            : (funcChar + 'link' + leftBraceChar + l + rightBraceChar + leftBraceChar + r + rightBraceChar))
   }
 }
 
@@ -1190,6 +1185,25 @@ function makeExpansionPromise (config) {
                         .then (function (binaryResult) {
                           expansion.value = binaryResult
                           expansion.text = makeString (binaryResult)
+                          return expansionPromise
+                        })
+                    })
+                })
+            } else if (node.funcname === 'link') {
+              promise = makeRhsExpansionPromiseFor ([node.args[0]])
+                .then (function (typeArg) {
+                  return makeRhsExpansionPromiseFor ([node.args[1]])
+                    .then (function (textArg) {
+                      return makeRhsExpansionPromiseFor ([node.args[2]])
+                        .then (function (linkArg) {
+                          expansion.nodes += typeArg.nodes + textArg.nodes + linkArg.nodes
+                          expansion.text = (config.makeLink
+                                            ? config.makeLink (typeArg, textArg, linkArg)
+                                            : (funcChar + node.funcname
+                                               + leftBraceChar + typeArg.text + rightBraceChar
+                                               + leftBraceChar + textArg.text + rightBraceChar
+                                               + leftBraceChar + linkArg.text + rightBraceChar))
+                          expansion.value = expansion.text
                           return expansionPromise
                         })
                     })

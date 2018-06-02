@@ -367,9 +367,9 @@ function doTests (testRunner) {
   expectExpand ('&quote&math{  (   $a  *   $d    )-$b+$c  }', '&math{($a * $d) - $b + $c}')
 
   // link
-  expectExpand ('$x=3 &link{$x}{$x}', '&link{3}{$x}')
-  expectExpand ('&quote&link{$x}{$x}', '&link$x$x')
-  expectExpand ('$x=3 &link{$x}{$x}', '3==>$x', {makeLink:function(l,r){return l+'==>'+r}})
+  expectExpand ('$x=3 &link{test$x}{$x}{$x}', '&link{test3}{3}{$x}')
+  expectExpand ('&quote&link{test}{$x}{$x}', '&link{test}$x$x')
+  expectExpand ('$x=3 &link{test}{$x}{$x}', 'test:3==>$x', {makeLink:function(type,text,link){return type.text+':'+text.text+'==>'+link.text}})
 
   // wrapper for individual 'for a given input (lhs), expect the following output (rhs)'-style tests
   // (lhs/rhs = left/right hand side)

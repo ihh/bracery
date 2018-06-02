@@ -3607,7 +3607,7 @@ function makeRhsText (rhs, makeSymbolName) {
         break;
       case 'func':
         if (tok.funcname === 'link') {
-          result = funcChar + tok.funcname + makeFuncArgText (pt, [tok.args[0]], makeSymbolName) + makeFuncArgText (pt, [tok.args[1].args[0]], makeSymbolName)
+          result = funcChar + tok.funcname + [tok.args[0], tok.args[1], tok.args[2].args[0]].map (function (arg) { return makeFuncArgText (pt, [arg], makeSymbolName) })
         } else if (binaryFunction[tok.funcname] || tok.funcname === 'apply') {
           result = funcChar + tok.funcname + tok.args.map (function (arg) { return makeFuncArgText (pt, [arg], makeSymbolName) }).join('')
         } else if (varFunction[tok.funcname]) {
@@ -4115,11 +4115,6 @@ var binaryFunction = {
   },
   join: function (l, r, lv, rv) {
     return makeArray(lv).join (r)
-  },
-  link: function (l, r, lv, rv, config) {
-    return (config.makeLink
-            ? config.makeLink.call (this, l, r, lv, rv, config)
-            : (funcChar + 'link' + leftBraceChar + l + rightBraceChar + leftBraceChar + r + rightBraceChar))
   }
 }
 
@@ -4434,6 +4429,25 @@ function makeExpansionPromise (config) {
                         .then (function (binaryResult) {
                           expansion.value = binaryResult
                           expansion.text = makeString (binaryResult)
+                          return expansionPromise
+                        })
+                    })
+                })
+            } else if (node.funcname === 'link') {
+              promise = makeRhsExpansionPromiseFor ([node.args[0]])
+                .then (function (typeArg) {
+                  return makeRhsExpansionPromiseFor ([node.args[1]])
+                    .then (function (textArg) {
+                      return makeRhsExpansionPromiseFor ([node.args[2]])
+                        .then (function (linkArg) {
+                          expansion.nodes += typeArg.nodes + textArg.nodes + linkArg.nodes
+                          expansion.text = (config.makeLink
+                                            ? config.makeLink (typeArg, textArg, linkArg)
+                                            : (funcChar + node.funcname
+                                               + leftBraceChar + typeArg.text + rightBraceChar
+                                               + leftBraceChar + textArg.text + rightBraceChar
+                                               + leftBraceChar + linkArg.text + rightBraceChar))
+                          expansion.value = expansion.text
                           return expansionPromise
                         })
                     })
@@ -5237,7 +5251,7 @@ function peg$parse(input, options) {
       peg$c116 = function() { return makeFunction ('math', []) },
       peg$c117 = "&link",
       peg$c118 = peg$literalExpectation("&link", false),
-      peg$c119 = function(text, link) { return makeFunction ('link', [wrapNodes(text), makeQuote(link)]) },
+      peg$c119 = function(type, text, link) { return makeFunction ('link', [wrapNodes(type), wrapNodes(text), makeQuote(link)]) },
       peg$c120 = "&{",
       peg$c121 = peg$literalExpectation("&{", false),
       peg$c122 = function(args) { return makeFunction ('list', args) },
@@ -7355,7 +7369,7 @@ function peg$parse(input, options) {
   }
 
   function peg$parseLinkFunction() {
-    var s0, s1, s2, s3;
+    var s0, s1, s2, s3, s4;
 
     s0 = peg$currPos;
     if (input.substr(peg$currPos, 5) === peg$c117) {
@@ -7370,9 +7384,15 @@ function peg$parse(input, options) {
       if (s2 !== peg$FAILED) {
         s3 = peg$parseFunctionArg();
         if (s3 !== peg$FAILED) {
-          peg$savedPos = s0;
-          s1 = peg$c119(s2, s3);
-          s0 = s1;
+          s4 = peg$parseFunctionArg();
+          if (s4 !== peg$FAILED) {
+            peg$savedPos = s0;
+            s1 = peg$c119(s2, s3, s4);
+            s0 = s1;
+          } else {
+            peg$currPos = s0;
+            s0 = peg$FAILED;
+          }
         } else {
           peg$currPos = s0;
           s0 = peg$FAILED;

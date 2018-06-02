@@ -133,7 +133,7 @@ MathFunction
   / "&math{}" { return makeFunction ('math', []) }
 
 LinkFunction
-  = "&link" text:FunctionArg link:FunctionArg { return makeFunction ('link', [wrapNodes(text), makeQuote(link)]) }
+  = "&link" type:FunctionArg text:FunctionArg link:FunctionArg { return makeFunction ('link', [wrapNodes(type), wrapNodes(text), makeQuote(link)]) }
 
 List
   = "&{" args:NodeList "}" { return makeFunction ('list', args) }

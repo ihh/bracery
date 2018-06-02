@@ -260,7 +260,7 @@ function peg$parse(input, options) {
       peg$c116 = function() { return makeFunction ('math', []) },
       peg$c117 = "&link",
       peg$c118 = peg$literalExpectation("&link", false),
-      peg$c119 = function(text, link) { return makeFunction ('link', [wrapNodes(text), makeQuote(link)]) },
+      peg$c119 = function(type, text, link) { return makeFunction ('link', [wrapNodes(type), wrapNodes(text), makeQuote(link)]) },
       peg$c120 = "&{",
       peg$c121 = peg$literalExpectation("&{", false),
       peg$c122 = function(args) { return makeFunction ('list', args) },
@@ -2378,7 +2378,7 @@ function peg$parse(input, options) {
   }
 
   function peg$parseLinkFunction() {
-    var s0, s1, s2, s3;
+    var s0, s1, s2, s3, s4;
 
     s0 = peg$currPos;
     if (input.substr(peg$currPos, 5) === peg$c117) {
@@ -2393,9 +2393,15 @@ function peg$parse(input, options) {
       if (s2 !== peg$FAILED) {
         s3 = peg$parseFunctionArg();
         if (s3 !== peg$FAILED) {
-          peg$savedPos = s0;
-          s1 = peg$c119(s2, s3);
-          s0 = s1;
+          s4 = peg$parseFunctionArg();
+          if (s4 !== peg$FAILED) {
+            peg$savedPos = s0;
+            s1 = peg$c119(s2, s3, s4);
+            s0 = s1;
+          } else {
+            peg$currPos = s0;
+            s0 = peg$FAILED;
+          }
         } else {
           peg$currPos = s0;
           s0 = peg$FAILED;

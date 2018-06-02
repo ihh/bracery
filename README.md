@@ -14,10 +14,6 @@ combining elements of other languages and libraries:
 
 # Usage
 
-## Web usage
-
-### An example
-
 The following Bracery code generates lines like
 `how goes it, magician of Middle Earth`
 and `well met, magus of the world`
@@ -28,7 +24,7 @@ and `well met, magus of the world`
 [earthsea|Earth|Middle Earth|the planet|the world]
 ~~~~
 
-Same example, using variables to keep track of the choices:
+Here's the same example, but using variables to keep track of the choices:
 
 ~~~~
 $greetings=[hello|well met|how goes it|greetings]
@@ -37,7 +33,7 @@ $earthsea=[earthsea|Earth|Middle Earth|the planet|the world]
 $greetings, $wizard of $earthsea
 ~~~~
 
-Using variables to represent Bracery code:
+You can also use variables to represent Bracery code:
 
 ~~~~
 [greetings=>hello|well met|how goes it|greetings]
@@ -45,8 +41,6 @@ Using variables to represent Bracery code:
 [earthsea=>earthsea|Earth|Middle Earth|the planet|the world]
 #greetings#, #wizard# of #earthsea#
 ~~~~
-
-Here is that example as a [web demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/no_defs.html) ([source](web/no_defs.html)).
 
 The above example uses some [syntactic sugar](https://en.wikipedia.org/wiki/Syntactic_sugar)
 in the way variables are assigned and expanded.
@@ -92,13 +86,16 @@ which gives jumbled-up output like
 witch the hello, of world
 ~~~~
 
-You may also recognize that Bracery's alternations form a [context-free grammars](https://en.wikipedia.org/wiki/Context-free_grammar).
+You may also recognize that Bracery's alternations form a [context-free grammar](https://en.wikipedia.org/wiki/Context-free_grammar).
 However, you don't need to use any of these programmer-oriented features, if you just want to write generative text.
 Just [start typing](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/no_defs.html) and go!
 
-### Another example
 
-Here is another example, taken from Kate Compton's [online tutorial](http://www.crystalcodepalace.com/traceryTut.html) to Tracery:
+## Web usage
+
+The "wizard of earthsea" example is available as a [web demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/no_defs.html) ([source](web/no_defs.html)).
+
+Here's another example, taken from Kate Compton's [online tutorial](http://www.crystalcodepalace.com/traceryTut.html) to Tracery:
 
 ~~~~
 [name=>Arjun|Yuuma|Darcy|Mia|Chiaki|Izzi|Azra|Lina]
@@ -116,9 +113,9 @@ for Kate's example, which generates lines like the following:
 Darcy traveled with her pet kitten.  Darcy was never wistful, for the kitten was always too astute.
 ~~~~
 
-#### Alternate formats
+### Alternate formats
 
-There are several other ways you can specify these kinds of template.
+There are several other ways you can specify the definitions.
 For example, you can use Tracery-style JSON:
 
 ~~~~
@@ -278,6 +275,7 @@ I feel $mood. And when I'm $mood, then $mood is all I feel.
 ~~~~
 
 Example output:
+
 ~~~~
 I feel bored. And when I'm bored, then bored is all I feel.
 ~~~~
@@ -290,6 +288,7 @@ To be specific, we can define a variable `$new_mood` that contains exactly the s
 Then, whenever we want a new mood, we can _evaluate_ (i.e. expand, a.k.a. transform) this string.
 
 This might look like this:
+
 ~~~~
 $new_mood=&quote{[happy|sad|angry|bored]}
 $mood=&eval{$new_mood}
@@ -298,17 +297,17 @@ Maybe tomorrow, I'll be &eval{$new_mood}?
 ~~~~
 
 Example output:
+
 ~~~~
 I feel bored. And when I'm bored, then bored is all I feel.
 Maybe tomorrow, I'll be angry?
 ~~~~
 
-The assignation pattern `$variable=&quote{[alternation|...]}` is common enough to merit its own shorthand, `[variable=>alternation|...]`.
-Similarly, the expansion pattern `&eval{$variable}` gets the shorthand `&$variable`, or alternatively, `#variable#`
-(a syntax Tracery users may recognize).
-To assign a more general (e.g. space-containing) value to a variable, one can use `$variable={value}` or `[variable:value]` (again, c.f. Tracery for the latter syntax).
+The assignation pattern `$variable=&quote{[alternation|...]}` is common enough to get its own shorthand, `[variable=>alternation|...]`.
+Similarly, the expansion pattern `&eval{$variable}` gets the shorthand `#variable#` --- a syntax Tracery users may recognize.
+Another piece of Tracery syntax is `[variable:value]` to set a variable's value.
 
-Using these shortcuts, we can write the same program as
+Putting these together, we can write the same program in Tracery-esque style (it's not quite Tracery, but it's close):
 
 ~~~~
 [new_mood=>happy|sad|angry|bored]
@@ -316,9 +315,6 @@ Using these shortcuts, we can write the same program as
 I feel #mood#. And when I'm #mood#, then #mood# is all I feel.
 Maybe tomorrow, I'll be #new_mood#?
 ~~~~
-
-Note that binding a variable such as `$new_mood` to an alternation is equivalent to setting up a
-transformation rule for a symbol in a [context-free grammar](https://en.wikipedia.org/wiki/Context-free_grammar).
 
 Alternations can be nested, so (for example) we can create `very` and `slightly` sub-categories of `bored`:
 
@@ -328,6 +324,8 @@ Alternations can be nested, so (for example) we can create `very` and `slightly`
 I feel #mood#. And when I'm #mood#, then #mood# is all I feel.
 Maybe tomorrow, I'll be #new_mood#?
 ~~~~
+
+Many more details of the language are available in the following section.
 
 # Technical details
 

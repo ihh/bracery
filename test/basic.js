@@ -277,6 +277,15 @@ function doTests (testRunner) {
 
   expectExpand ('$b={b}$x={Batch}$y=&strip&strip$b{abc}&strip{t}$x$y', 'Bh')
 
+  // strlen, length, comment
+  expectExpand ('$x=hello &strlen$x', '5')
+  expectExpand ('$x=hello &length$x', '1')
+  expectExpand ('$x=&split{hello world} &length$x', '2')
+  expectExpand ('$x=&split{hello world} &strlen$x', '10')
+
+  expectExpand ('&comment{hello world}', '')
+  expectExpandQuote ('&quote&comment{hello world}', '&comment{hello world}')
+
   // same, and, not
   expectExpand ('&same{abc}{def}', '')
   expectExpand ('&same{abc}{abc}', 'abc')
@@ -334,11 +343,11 @@ function doTests (testRunner) {
   expectExpand ('$a=3 &value{{{[$a]}}}', '{{[3]}}')
 
   // call, apply, function
-  expectExpand ('$func=&function$first$second{0=&quotify$$0 1=$first 2=$second} &call{$func}{A}{B}', ' 0=&list{&value{A}&value{B}} 1=A 2=B')
-  expectExpand ('$func=&function{$first$second}{0=&quotify$$0 1=$first 2=$second} &call{$func}{A}{B}', ' 0=&list{&value{A}&value{B}} 1=A 2=B')
-  expectExpand ('$func=&function{}{here we go} &$func &$func', ' here we go here we go')
+  expectExpand ('$func=&function$first$second{0=&quotify$$0 1=$first 2=$second} &call{$func}{A}{B}', '0=&list{&value{A}&value{B}} 1=A 2=B')
+  expectExpand ('$func=&function{$first$second}{0=&quotify$$0 1=$first 2=$second} &call{$func}{A}{B}', '0=&list{&value{A}&value{B}} 1=A 2=B')
+  expectExpand ('$func=&function{}{here we go} &$func &$func', 'here we go here we go')
   expectExpand ('$func=&function{here we go} &$func &$func', '=&function{here we go}  ')
-  expectExpand ('$func=&function$first$second{0=&quotify$$0 1=$first 2=$second} $y=&list{&value{one}&value{two}} &apply{$func}$y', '  0=&list{&value{one}&value{two}} 1=one 2=two')
+  expectExpand ('$func=&function$first$second{0=&quotify$$0 1=$first 2=$second} $y=&list{&value{one}&value{two}} &apply{$func}$y', '0=&list{&value{one}&value{two}} 1=one 2=two')
 
   expectExpand ('&function$first$second{1=$first 2=$second}', '&let$first={$$1}{&let$second={$$2}{1=$first 2=$second}}')
   expectExpand ('$x=99 &function$first$second{1=$first 2=$second x=$x}', '&let$first={$$1}{&let$second={$$2}{1=$first 2=$second x=$x}}')

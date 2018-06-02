@@ -153,7 +153,9 @@ UnaryFunctionName = "eval" / "escape" / StrictQuote / Quote / Unquote
   / "gerund" / "adjective" / "negative" / "positive" / "a" / "uc" / "lc" / "cap"
   / "random" / "floor" / "ceil" / "round" / "wordnum" / "dignum" / "ordinal" / "cardinal"
   / "list" / "quotify" / "value" / "json" / "islist" / "first" / "last" / "notfirst" / "notlast"
+  / "strlen" / "length"
   / "not"
+  / "comment"
 
 NullaryFunctionName = "vars"
 
@@ -221,7 +223,7 @@ VarAssignment
   / "&set{" ("$" / "") varname:Identifier "}" args:FunctionArg { return makeAssign (varname, args) }
   / "[" varname:Identifier ":" args:NodeList "]" { return makeAssign (varname, args) }
   / "[" varname:Identifier "=>" opts:AltList "]" _ { return makeAssign (varname, [makeQuote (opts.length === 1 ? opts[0] : [makeAlternation (opts)])]) }
-  / "$" varname:Identifier "=" target:VarAssignmentTarget { return makeAssign (varname, target) }
+  / "$" varname:Identifier "=" target:VarAssignmentTarget _ { return makeAssign (varname, target) }
   / "$" varname:Identifier ":=" target:VarAssignmentTarget { return makeAssign (varname, target, true) }
 
 VarAssignmentTarget

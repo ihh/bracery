@@ -1231,6 +1231,15 @@ function makeExpansionPromise (config) {
                     expansion.text = makeGenerator (argExpansion.value || argExpansion.text)
                     break
 
+                    // strlen, length
+                  case 'strlen':
+                    expansion.text = '' + argExpansion.text.length
+                    break
+
+                  case 'length':
+                    expansion.text = '' + makeArray (argExpansion.value).length
+                    break
+
                     // value, unquote, math: identity functions
                   case 'value':
                   case 'unquote':
@@ -1365,6 +1374,10 @@ function makeExpansionPromise (config) {
                     expansion.text = nlp(arg).values().toCardinal().out()
                     break
 
+                    // comment
+                  case 'comment':
+                    break
+                    
                     // default
                   default:
                     expansion.text = arg

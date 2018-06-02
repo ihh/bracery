@@ -5,6 +5,7 @@ Node
   = "\\n" { return "\n" }
   / "\\t" { return "\t" }
   / "\\" escaped:. { return escaped }
+  / "&." text:Text { return makeFunction ('value', [text]) }
   / Text
   / Symbol
   / LocalAssignment
@@ -14,8 +15,8 @@ Node
   / VarAssignment
   / VarLookup
   / Alternation
-  / args:DummyAlternation { return wrapNodes (args) }
   / List
+  / args:DummyBrackets { return wrapNodes (args) }
   / char:[\~\#&\$] { return char }
 
 NodeList
@@ -32,7 +33,7 @@ OuterNodeList
   / head:OuterNode { return [head] }
   / "" { return [] }
 
-Text = text:[^\~\#&\$\{\}\[\]\|\\]+ { return text.join("") }
+Text = chars:[^\~\#&\$\{\}\[\]\|\\]+ { return chars.join("") }
 
 Symbol
   = sym:SymIdentifier args:ArgList { return makeSugaredSymbol (sym, makeArgList (args)) }
@@ -70,7 +71,7 @@ Function
   / UnaryFunction
   / BinaryVarFunction
   / UnaryVarFunction
-  / "&" v:DelimitedNodeList { return makeFunction ('value', v) }
+  / List
 
 MapFunction
   = "&map" varname:MapVarIdentifier list:FunctionArg func:QuotedFunctionArg { return makeListFunction ('map', varname, list, func) }
@@ -97,6 +98,8 @@ CallFunction
 
 DefineFunction
   = "&function" args:ArgIdentifierList expr:FunctionArg { return makeDefineFunction (args, expr) }
+  / "&function" "{" args:ArgIdentifierList "}" expr:FunctionArg { return makeDefineFunction (args, expr) }
+  / "&function{}" expr:FunctionArg { return makeDefineFunction ([], expr) }
 
 ArgIdentifierList
   = head:ArgIdentifier tail:ArgIdentifierList { return [head].concat (tail) }
@@ -118,6 +121,9 @@ BinaryVarFunction
 UnaryVarFunction
   = "&" func:UnaryVarFunctionName v:VarFunctionArg { return makeFunction (func, v) }
   / "&" func:VoidUnaryVarFunctionName v:VarFunctionArg _ { return makeFunction (func, v) }
+
+List
+  = "&{" args:NodeList "}" { return makeFunction ('list', args) }
 
 BinaryFunctionName
   = "strip"
@@ -162,14 +168,12 @@ FunctionArg
   / alt:Alternation { return [alt] }
   / args:DelimitedNodeList { return args }
 
-DummyAlternation
+DummyBrackets
   = "[" args:NodeList "]" { return concatReduce (['['].concat(args).concat(']')) }
+  / "{" args:NodeList "}" { return concatReduce (['{'].concat(args).concat('}')) }
 
 DelimitedNodeList
   = "{" args:NodeList "}" { return args }
-
-List
-  = "{" args:NodeList "}" { return makeFunction ('list', args) }
 
 ArgList
   = head:DelimitedNodeList tail:ArgList { return [head].concat (tail) }

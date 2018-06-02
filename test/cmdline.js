@@ -48,7 +48,7 @@ describe('command-line tests (' + binPath + ')', function() {
 
   // empty list test
   var emptyListTree = {text:'',vars:{},tree:[{type:'func',funcname:'list',args:[],expansion:{text:'',value:[],vars:{}}}],nodes:1,value:[]}
-  expectExpand ('{}', JSON.stringify([emptyListTree]), { opts: '--compact-tree' })
+  expectExpand ('&{}', JSON.stringify([emptyListTree]), { opts: '--compact-tree' })
 
   // dump to file
   var tmpFilename = tmp.tmpNameSync()

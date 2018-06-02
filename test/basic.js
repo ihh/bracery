@@ -212,8 +212,9 @@ function doTests (testRunner) {
   expectExpand ('$a', 'x', {vars:vars,a_equals_x:true})
 
   // lists
-  expectExpand ('{}', '')
-  expectExpand ('&cat{{}}{xyz}', 'xyz')
+  expectExpand ('{}', '{}')
+  expectExpand ('&{}', '')
+  expectExpand ('&cat{&{}}{xyz}', 'xyz')
   expectExpand ('&cat{xyz}{abc}', 'xyzabc')
   expectExpand ('&cat{123}&cat{xyz}{abc}', '123xyzabc')
   expectExpand ('&first{&cat{123}&cat{xyz}{abc}}', '123')
@@ -234,13 +235,13 @@ function doTests (testRunner) {
 
   expectExpand ('&join{&prepend{123}&cat{xyz}{abc}}{, }', '123, xyz, abc')
 
-  expectExpand ('&islist{{}}', '[]')
+  expectExpand ('&islist{&{}}', '[]')
   expectExpand ('&islist{}', '')
-  expectExpand ('&same{{}}{}', '')
-  expectExpand ('&same{{}}{{}}', '1')
+  expectExpand ('&same{&{}}{}', '')
+  expectExpand ('&same{&{}}{&{}}', '1')
 
-  expectExpand ('&join{{}x{}y}{,}', 'x,y')
-  expectExpand ('&join{x{}y{}}{,}', 'xy')
+  expectExpand ('&join{&{}x&{}y}{,}', 'x,y')
+  expectExpand ('&join{x&{}y&{}}{,}', 'xy')
 
   expectExpand ('$x=&list{&quote{abc}&quote{def}}&map$a$x{$a!}', 'abc!def!')
   expectExpand ('$x=&list{&quote{abc}&quote{def}}&join&map$a$x{$a!}{ }', 'abc! def!')
@@ -252,7 +253,7 @@ function doTests (testRunner) {
   expectExpand ('$x={1}$a1={verily}$a2={in troth}&eval&quote{$a&unquote$x indeed}', 'verily indeed')
   expectExpand ('&quote&unquote&quote&infinitive$y', '&infinitive$y')
 
-  expectExpand ('$x={{}abc&quote{def}}&quotify$x', '&list{&value{abc}&value{def}}')
+  expectExpand ('$x={&{}abc&quote{def}}&quotify$x', '&list{&value{abc}&value{def}}')
 
   expectExpand ('&push$x{a}&push$x{b}&uc&push$x{c}&push$x{...}&join$x{,} &shift$x $dots:=&pop$x $quirk:=uh, &shift$x $dots &unshift$x&cat{x}{t} &uc&join$x$dots',
                 'a,b,c,... a ... uh,b ... X...T...C')  // a lot going on in this one. Spaces must be exactly correct (of course)
@@ -314,17 +315,22 @@ function doTests (testRunner) {
   expectExpand ('~lambda{}', 'worldundefined')
   expectExpand ('~lambda{$undef}', 'worldundefined')
 
-  expectExpand ('&~json{{1}{2}{3}}', 'x="1" y="2" z="3"')
-  expectExpand ('&~json{1{2}{3}}', 'x="123" y=undefined z=undefined')
-  expectExpand ('&~json{{1{2}{{3}}}}', 'x="1" y=["2"] z=[["3"]]')
-  expectExpand ('&~json{{1}{{2}}{{{3}}}}', 'x="1" y=["2"] z=[["3"]]')
-  expectExpand ('&~json&list{1{2}{3}}', 'x="1" y=["2"] z=["3"]')
+  // shorthands for &value and &list (precise generators)
+  expectExpand ('&~json{&{1}&{2}&{3}}', 'x="1" y="2" z="3"')
+  expectExpand ('&~json{1&{2}&{3}}', 'x="123" y=undefined z=undefined')
+  expectExpand ('&~json{&{1&{2}&{&{3}}}}', 'x="1" y=["2"] z=[["3"]]')
+  expectExpand ('&~json{&{1}&{&{2}}&{&{&{3}}}}', 'x="1" y=["2"] z=[["3"]]')
+  expectExpand ('&~json&list{1&{2}&{3}}', 'x="1" y=["2"] z=["3"]')
 
-  // shorthand for &value and &list (precise generators)
-  expectExpand ('&quotify{{&{a}&{b}{&{c}&{d}}e&{f}}}', '&list{&value{a}&value{b}&list{&value{c}&value{d}}&value{e}&value{f}}')
+  expectExpand ('&quotify{&{&.a&.b&{&.c&.d}e&.f}}', '&list{&value{a}&value{b}&list{&value{c}&value{d}}&value{e}&value{f}}')
+
+  expectExpand ('$a=3 &value{{{[$a]}}}', '{{[3]}}')
 
   // call, apply, function
   expectExpand ('$func=&function$first$second{0=&quotify$$0 1=$first 2=$second} &call{$func}{A}{B}', ' 0=&list{&value{A}&value{B}} 1=A 2=B')
+  expectExpand ('$func=&function{$first$second}{0=&quotify$$0 1=$first 2=$second} &call{$func}{A}{B}', ' 0=&list{&value{A}&value{B}} 1=A 2=B')
+  expectExpand ('$func=&function{}{here we go} &$func &$func', ' here we go here we go')
+  expectExpand ('$func=&function{here we go} &$func &$func', '=&function{here we go}  ')
   expectExpand ('$func=&function$first$second{0=&quotify$$0 1=$first 2=$second} $y=&list{&value{one}&value{two}} &apply{$func}$y', '  0=&list{&value{one}&value{two}} 1=one 2=two')
 
   expectExpand ('&function$first$second{1=$first 2=$second}', '&let$first={$$1}{&let$second={$$2}{1=$first 2=$second}}')

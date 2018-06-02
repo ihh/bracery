@@ -325,8 +325,8 @@ Language features include
       - `&rep{x}{3}` expands to `xxx`
       - `&rep{x}{3,5}` expands to `xxx`, `xxxx`, or `xxxxx`
 - lists:
-   - `&list{...}` creates an explicit nested list context, vs the default concatenation context
-      - `{}` is the empty list, equivalent to `&list{}`
+   - `&list{...}` or just `&{...}` creates an explicit nested list context, vs the default concatenation context
+      - `&{}` is the empty list, equivalent to `&list{}`
       - beginning a concatenation context with `{}` (or any other list) makes it a list context
       - beginning a concatenation context with a string, or wrapping it in `&string{...}` makes it a string context
    - `&islist{x}` returns true if, and only if, `x` is a list

@@ -78,10 +78,12 @@ Function
 
 MapFunction
   = "&" name:MapFunctionName varname:MapVarIdentifier list:FunctionArg func:QuotedFunctionArg { return makeListFunction (name, varname, list, func) }
-  / "&" name:MapFunctionName list:FunctionArg func:QuotedFunctionArg { return makeListFunction (name, '_', list, func) }
+  / "&" name:MapFunctionName list:FunctionArg func:QuotedFunctionArg { return makeListFunction (name, defaultListVarName, list, func) }
+  / "&" name:DefaultableMapFunctionName list:FunctionArg { return makeListFunction (name, defaultListVarName, list, [makeQuote ([makeLookup (defaultListVarName)])]) }
   / "&reduce" varname:MapVarIdentifier list:FunctionArg result:VarIdentifier ("=" / "") init:FunctionArg func:QuotedFunctionArg { return makeReduceFunction (varname, list, result, init, func) }
 
-MapFunctionName = "map" / "filter" / "weightsort" / "lexsort"
+MapFunctionName = "map" / DefaultableMapFunctionName
+DefaultableMapFunctionName = "filter" / "weightsort" / "lexsort"
 
 MapVarIdentifier
   = name:VarIdentifier (":" / "") { return name }
@@ -90,7 +92,7 @@ MapVarIdentifier
 RegexFunction
   = "&match" pattern:RegularExpressionLiteral text:FunctionArg expr:QuotedFunctionArg { return makeRegexFunction ('match', pattern, text, expr) }
   / "&replace" pattern:RegularExpressionLiteral text:FunctionArg expr:QuotedFunctionArg { return makeRegexFunction ('replace', pattern, text, expr) }
-  / "&split" text:FunctionArg { return makeRegexFunction ('split', { body: ['[ \\t\\r\\n]+'], flags: [] }, text) }
+  / "&split" text:FunctionArg { return makeRegexFunction ('split', { body: [defaultSplitPattern], flags: [] }, text) }
   / "&split" pattern:RegularExpressionLiteral text:FunctionArg { return makeRegexFunction ('split', pattern, text) }
 
 RegexUnquote
@@ -115,6 +117,7 @@ ArgIdentifier
 
 BinaryFunction
   = "&" func:BinaryFunctionName left:FunctionArg right:FunctionArg { return makeFunction (func, [wrapNodes (left), wrapNodes (right)]) }
+  / "&join" left:FunctionArg { return makeFunction ('join', [wrapNodes (left), defaultJoinText]) }
 
 UnaryFunction
   = "&" func:UnaryFunctionName args:FunctionArg { return makeFunction (func, args) }
@@ -123,11 +126,13 @@ NullaryFunction
   = "&" func:NullaryFunctionName { return makeFunction (func, []) }
 
 BinaryVarFunction
-  = "&" func:VoidBinaryVarFunctionName v:VarFunctionArg right:FunctionArg _ { return makeFunction (func, [wrapNodes (v), wrapNodes (right)]) }
+  = "&" func:PushOrUnshift v:VarFunctionArg right:FunctionArg _ { return makeFunction (func, [wrapNodes (v), wrapNodes (right)]) }
+  / "&" func:PushOrUnshift right:FunctionArg _ { return makeFunction (func, [makeStrictQuote ([makeLookup (defaultListVarName)]), wrapNodes (right)]) }
 
 UnaryVarFunction
-  = "&" func:UnaryVarFunctionName v:VarFunctionArg { return makeFunction (func, v) }
-  / "&" func:VoidUnaryVarFunctionName v:VarFunctionArg _ { return makeFunction (func, v) }
+  = "&" func:ShiftOrPop v:VarFunctionArg { return makeFunction (func, v) }
+  / "&" func:ShiftOrPop { return makeFunction (func, [makeStrictQuote ([makeLookup (defaultListVarName)])] ) }
+  / "&" func:IncOrDec v:VarFunctionArg _ { return makeFunction (func, v) }
 
 MathFunction
   = "&math{" _ math:MathExpr _ "}" { return makeFunction ('math', [math]) }
@@ -162,9 +167,9 @@ UnaryFunctionName = "eval" / "escape" / StrictQuote / Quote / Unquote
 
 NullaryFunctionName = "vars"
 
-VoidBinaryVarFunctionName = "push" / "unshift"
-UnaryVarFunctionName = "shift" / "pop"
-VoidUnaryVarFunctionName = "inc" / "dec"
+PushOrUnshift = "push" / "unshift"
+ShiftOrPop = "shift" / "pop"
+IncOrDec = "inc" / "dec"
 
 StrictQuote = ("strictquote" / "'") { return 'strictquote' }
 Quote = ("quote" / "`") { return 'quote' }

@@ -77,7 +77,7 @@ $earthsea=[earthsea|Earth|Middle Earth|the planet|the world]
 
 $sentence={$greetings, $wizard of $earthsea}
 
-&join{&shuffle{&split{$sentence}}}{ }
+&join{&shuffle{&split{$sentence}}}
 ~~~~
 
 which gives jumbled-up output like

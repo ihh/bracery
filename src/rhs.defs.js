@@ -25,6 +25,9 @@ function makeArgList (args) {
   return args && args.length ? [makeFunction ('list', args.map (wrapNodes))] : undefined
 }
 
+var defaultListVarName = '_'
+var defaultJoinText = ' '
+var defaultSplitPattern = '[ \\t\\r\\n]+'
 function makeGroupVarName (n) { return '$' + n }
 
 function concatNodes (head, tail) {

@@ -271,6 +271,10 @@ function doTests (testRunner) {
   expectExpand ('$x=&{&.1&.3&.2&.11}&json$x $y=&weightsort{$x}{$_} &json$y', '[["1","3","2","11"]] [["1","2","3","11"]]')
   expectExpand ('$x=&{&.1&.3&.2&.11}&json$x $y=&lexsort{$x}{$_} &json$y', '[["1","3","2","11"]] [["1","11","2","3"]]')
 
+  expectExpand ('$x=hello &push$x $x=well $x $x=&pop $x', 'well hello')  // default arguments to &push and &pop
+  expectExpand ('&join&split/,/{hello,world}', 'hello world')  // default argument to &join
+  expectExpand ('&lexsort&split{a c d b}', 'abcd')  // default argument to &lexsort
+
   // strip
   expectExpand ('&strip{hello}{hello world hello}', ' world ')
   expectExpand ('&strip{~abc}{defcon}', 'con')

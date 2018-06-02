@@ -69,6 +69,7 @@ Function
   / DefineFunction
   / BinaryFunction
   / UnaryFunction
+  / NullaryFunction
   / BinaryVarFunction
   / UnaryVarFunction
   / MathFunction
@@ -117,6 +118,9 @@ BinaryFunction
 UnaryFunction
   = "&" func:UnaryFunctionName args:FunctionArg { return makeFunction (func, args) }
 
+NullaryFunction
+  = "&" func:NullaryFunctionName { return makeFunction (func, []) }
+
 BinaryVarFunction
   = "&" func:VoidBinaryVarFunctionName v:VarFunctionArg right:FunctionArg _ { return makeFunction (func, [wrapNodes (v), wrapNodes (right)]) }
 
@@ -150,6 +154,8 @@ UnaryFunctionName = "eval" / "escape" / StrictQuote / Quote / Unquote
   / "random" / "floor" / "ceil" / "round" / "wordnum" / "dignum" / "ordinal" / "cardinal"
   / "list" / "quotify" / "value" / "json" / "islist" / "first" / "last" / "notfirst" / "notlast"
   / "not"
+
+NullaryFunctionName = "vars"
 
 VoidBinaryVarFunctionName = "push" / "unshift"
 UnaryVarFunctionName = "shift" / "pop"

@@ -376,6 +376,8 @@ function makeRhsText (rhs, makeSymbolName) {
             + (tok.funcname === 'reduce'
                ? (varChar + tok.args[0].local[0].varname + '=' + makeFuncArgText (pt, tok.args[0].local[0].value, makeSymbolName) + makeFuncArgText (pt, tok.args[0].local[0].local[0].args, makeSymbolName))
                : makeFuncArgText (pt, tok.args[0].local[0].args, makeSymbolName))
+        } else if (tok.funcname === 'vars') {
+          result = funcChar + tok.funcname
         } else if (tok.funcname === 'call') {
           result = funcChar + tok.funcname + makeFuncArgText (pt, [tok.args[0]], makeSymbolName) + makeArgList.call (pt, tok.args[1].args, makeSymbolName)
         } else if (tok.funcname === 'strictquote' || tok.funcname === 'quote' || tok.funcname === 'unquote') {
@@ -1216,6 +1218,12 @@ function makeExpansionPromise (config) {
                     // escape
                   case 'escape':
                     expansion.text = escapeString (arg)
+                    break
+
+                    // vars
+                  case 'vars':
+                    expansion.value = Object.keys (varVal).sort()
+                    expansion.text = makeString (expansion.value)
                     break
 
                     // quotify

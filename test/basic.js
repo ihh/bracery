@@ -170,6 +170,8 @@ function doTests (testRunner) {
   expectExpand ('$z={zebedee}$zeb={zebadiah}$Zeb $Z', 'Zebadiah ZEBEDEE')
   expectExpand ('$AbC={air}$aBC={hair}$abC={lair}$abc$Abc$ABC', 'lairLairLAIR')
 
+  expectExpand ('$x=3 $y=8 &map&vars{\[$_:&eval{\$$_}\]}', '[x:3][y:8]')  // how to quote the environment...
+
   // syntax edge cases involving dummy alternations
   expectExpand ('$abc=[ABC]', '=[ABC]')
   expectExpand ('$abc={[DEF]}', '')

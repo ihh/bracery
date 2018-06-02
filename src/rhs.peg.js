@@ -71,6 +71,7 @@ Function
   / UnaryFunction
   / BinaryVarFunction
   / UnaryVarFunction
+  / MathFunction
   / List
 
 MapFunction
@@ -121,6 +122,10 @@ BinaryVarFunction
 UnaryVarFunction
   = "&" func:UnaryVarFunctionName v:VarFunctionArg { return makeFunction (func, v) }
   / "&" func:VoidUnaryVarFunctionName v:VarFunctionArg _ { return makeFunction (func, v) }
+
+MathFunction
+  = "&math{" _ math:MathExpr _ "}" { return makeFunction ('math', [math]) }
+  / "&math{}" { return makeFunction ('math', []) }
 
 List
   = "&{" args:NodeList "}" { return makeFunction ('list', args) }
@@ -234,7 +239,36 @@ _ "whitespace"
   = [ \t\n\r]*
 
 
-// Regular expression PegJS grammar via https://gist.github.com/deedubs/1392590
+// Math grammar
+// via https://stackoverflow.com/a/30798758
+MathExpr
+  = AdditiveExpr
+
+AdditiveExpr
+  = first:MultiplicativeExpr rest:(_ ("+" / "-") _ MultiplicativeExpr)+ {
+    return rest.reduce (function (left, next) {
+      var op = next[1], right = next[3]
+      return makeFunction (op === '+' ? 'add' : 'subtract', [left, right])
+    }, first)
+  }
+  / MultiplicativeExpr
+
+MultiplicativeExpr
+  = first:PrimaryExpr rest:(_ ("*" / "/") _ PrimaryExpr)+ {
+    return rest.reduce (function (left, next) {
+      var op = next[1], right = next[3]
+      return makeFunction (op === '*' ? 'multiply' : 'divide', [left, right])
+    }, first)
+  }
+  / PrimaryExpr
+
+PrimaryExpr
+  = n:Number { return n }
+  / arg:FunctionArg { return wrapNodes (arg) }
+  / "(" _ additive:AdditiveExpr _ ")" { return makeFunction ('value', [additive]) }
+
+// Regular expression PegJS grammar
+// via https://gist.github.com/deedubs/1392590
 // modified to return arrays, allowing &unquote{...}
 RegularExpressionLiteral
   = "/" body:RegularExpressionBody "/" flags:RegularExpressionFlags { return { body: body, flags: flags } }

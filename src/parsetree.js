@@ -293,6 +293,27 @@ function escapeString (text) {
   return text.replace(/[\$&\~\{\}\|\\]/g,function(m){return'\\'+m})
 }
 
+function makeMathExpr (pt, args, op, makeSymbolName) {
+  return makeMathText (pt, args[0], makeSymbolName) + ' ' + op + ' ' + makeMathText (pt, args[1], makeSymbolName)
+}
+  
+function makeMathText (pt, tok, makeSymbolName) {
+  if (typeof(tok) !== 'string' && tok.type === 'func') {
+    switch (tok.funcname) {
+    case 'add': return makeMathExpr (pt, tok.args, '+', makeSymbolName)
+    case 'subtract': return makeMathExpr (pt, tok.args, '-', makeSymbolName)
+    case 'multiply': return makeMathExpr (pt, tok.args, '*', makeSymbolName)
+    case 'divide': return makeMathExpr (pt, tok.args, '/', makeSymbolName)
+    case 'value':
+      if (tok.args.length === 1)
+        return '(' + makeMathText (pt, tok.args[0], makeSymbolName) + ')'
+    default:
+      break
+    }
+  }
+  return makeRhsText.call (pt, [tok], makeSymbolName)
+}
+
 function makeRhsText (rhs, makeSymbolName) {
   var pt = this
   makeSymbolName = makeSymbolName || defaultMakeSymbolName
@@ -357,6 +378,8 @@ function makeRhsText (rhs, makeSymbolName) {
           result = funcChar + tok.funcname + makeFuncArgText (pt, [tok.args[0]], makeSymbolName) + makeArgList.call (pt, tok.args[1].args, makeSymbolName)
         } else if (tok.funcname === 'strictquote' || tok.funcname === 'quote' || tok.funcname === 'unquote') {
           result = funcChar + tok.funcname + makeFuncArgText (pt, tok.args, makeSymbolName, tok.funcname === 'unquote')
+        } else if (tok.funcname === 'math') {
+          return funcChar + tok.funcname + leftBraceChar + makeMathText (pt, tok.args[0], makeSymbolName) + rightBraceChar
         } else {
 	  var sugaredName = pt.makeSugaredName (tok, makeSymbolName, nextIsAlpha)
           if (sugaredName) {
@@ -371,7 +394,7 @@ function makeRhsText (rhs, makeSymbolName) {
         break
       default:
       case 'sym':
-        var hasArgList = tok.bind && tok.bind.length && tok.bind[0].type === 'func' && tok.bind[0].funcname === 'list'
+        var hasArgList = tok.bind && tok.bind.length && tok.bind[0] && tok.bind[0].type === 'func' && tok.bind[0].funcname === 'list'
         var hasNonemptyArgList = hasArgList && tok.bind[0].args.length
         var isApply = tok.bind && !hasArgList
         result = (isApply
@@ -1193,9 +1216,10 @@ function makeExpansionPromise (config) {
                     expansion.text = makeGenerator (argExpansion.value || argExpansion.text)
                     break
 
-                    // value
+                    // value, unquote, math: identity functions
                   case 'value':
                   case 'unquote':
+                  case 'math':
                     expansion.value = argExpansion.value
                     expansion.text = arg
                     break

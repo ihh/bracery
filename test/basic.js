@@ -344,7 +344,12 @@ function doTests (testRunner) {
   expectExpand ('&join&split/[aeiou]+/{felicitous}{..}', 'f..l..c..t..s')
   expectExpand ('&join&split{a   bc   d}{,}', 'a,bc,d')
   expectExpand ('&join&map&split{a bc def}{"$_"}{, }', '"a", "bc", "def"')
-  
+
+  // math
+  expectExpand ('$a=4 $d=3 $b=5 $c=2 &math{($a * $d) - $b + $c}', '9')
+  expectExpand ('$a=4 $d=3 $b=5 $c=2 &math{&value{zero} + ($a * $d) - $b + $c}', 'nine')
+  expectExpand ('&quote&math{  (   $a  *   $d    )-$b+$c  }', '&math{($a * $d) - $b + $c}')
+
   // wrapper for individual 'for a given input (lhs), expect the following output (rhs)'-style tests
   // (lhs/rhs = left/right hand side)
   function expectExpand (lhs, rhs, config) {

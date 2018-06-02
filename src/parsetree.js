@@ -871,7 +871,9 @@ var binaryFunction = {
     return makeArray(lv).join (r)
   },
   link: function (l, r, lv, rv, config) {
-    return funcChar + 'link' + leftBraceChar + l + rightBraceChar + leftBraceChar + r + rightBraceChar
+    return (config.makeLink
+            ? config.makeLink.call (this, l, r, lv, rv, config)
+            : (funcChar + 'link' + leftBraceChar + l + rightBraceChar + leftBraceChar + r + rightBraceChar))
   }
 }
 

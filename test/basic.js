@@ -353,6 +353,7 @@ function doTests (testRunner) {
   // link
   expectExpand ('$x=3 &link{$x}{$x}', '&link{3}{$x}')
   expectExpand ('&quote&link{$x}{$x}', '&link$x$x')
+  expectExpand ('$x=3 &link{$x}{$x}', '3==>$x', {makeLink:function(l,r){return l+'==>'+r}})
 
   // wrapper for individual 'for a given input (lhs), expect the following output (rhs)'-style tests
   // (lhs/rhs = left/right hand side)

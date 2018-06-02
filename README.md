@@ -12,82 +12,6 @@ combining elements of other languages and libraries:
 - natural language processing functions from the [compromise](https://github.com/spencermountain/compromise) library
 - lists and a few other things from [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language))
 
-## Tutorial
-
-The main construct in Bracery is the _alternation_, a list of options separated by vertical bars:
-
-~~~~
-I feel [happy|sad|angry|bored]
-~~~~
-
-When this "Bracery program" is "run" (or the text is expanded, the transformative grammar applied, or however you want to think of it),
-the output will be something like
-
-~~~~
-I feel happy
-~~~~
-
-or maybe
-
-~~~~
-I feel bored
-~~~~
-
-or one of the others.
-
-You can use variables to remember the outcome of a random choice, for repetition, or delayed effect:
-
-~~~~
-$mood=[happy|sad|angry|bored]
-I feel $mood. And when I'm $mood, then $mood is all I feel.
-~~~~
-
-Example output:
-~~~~
-I feel bored. And when I'm bored, then bored is all I feel.
-~~~~
-
-What if you want a potentially _different_ mood, but sampled from that same range of four moods?
-Do you have to copy and paste the `[happy|sad|angry|bored]` list? Of course not!
-Bracery's `&quote` and `&eval` constructs come to your rescue.
-
-To be specific, we can define a variable `$new_mood` that contains exactly the string `[happy|sad|angry|bored]`.
-Then, whenever we want a new mood, we can _evaluate_ (i.e. expand, a.k.a. transform) this string.
-
-This might look like this:
-~~~~
-$new_mood=&quote{[happy|sad|angry|bored]}
-$mood=&eval{$new_mood}
-I feel $mood. And when I'm $mood, then $mood is all I feel.
-Maybe tomorrow, I'll be &eval{$new_mood}?
-~~~~
-
-Example output:
-~~~~
-I feel bored. And when I'm bored, then bored is all I feel.
-Maybe tomorrow, I'll be angry?
-~~~~
-
-The assignation pattern `$variable=&quote{[alternation|...]}` is common enough to merit its own shorthand, `[variable=>alternation|...]`.
-Similarly, the expansion pattern `&eval{$variable}` gets the shorthand `&$variable`, or alternatively, `#variable#`
-(a syntax Tracery users may recognize).
-To assign a more general (e.g. space-containing) value to a variable, one can use `$variable={value}` or `[variable:value]` (again, c.f. Tracery for the latter syntax).
-
-Using these shortcuts, we can write the same program as
-
-~~~~
-[new_mood=>happy|sad|angry|bored]
-[mood:#new_mood#]
-I feel #mood#. And when I'm #mood#, then #mood# is all I feel.
-Maybe tomorrow, I'll be #new_mood#?
-~~~~
-
-Note that binding a variable such as `$new_mood` to an alternation is equivalent to setting up a
-transformation rule for a symbol in a [context-free grammar](https://en.wikipedia.org/wiki/Context-free_grammar).
-
-Anything that isn't code is implicitly output.
-So, for example, the Bracery program to generate the text "hello world" is just `hello world`, which is a [quine](https://en.wikipedia.org/wiki/Quine_(computing)).
-
 # Usage
 
 ## Web usage
@@ -248,6 +172,83 @@ console.log ('Calculating...')
 b.expand ('I [love|hate|like] you ~percentage!',
           { callback: function (expansion) { console.log (expansion.text) } })
 ~~~~
+
+
+# Tutorial
+
+The main construct in Bracery is the _alternation_, a list of options separated by vertical bars:
+
+~~~~
+I feel [happy|sad|angry|bored]
+~~~~
+
+When this "Bracery program" is "run" (or the text is expanded, the transformative grammar applied, or however you want to think of it),
+the output will be something like
+
+~~~~
+I feel happy
+~~~~
+
+or maybe
+
+~~~~
+I feel bored
+~~~~
+
+or one of the others.
+
+You can use variables to remember the outcome of a random choice, for repetition, or delayed effect:
+
+~~~~
+$mood=[happy|sad|angry|bored]
+I feel $mood. And when I'm $mood, then $mood is all I feel.
+~~~~
+
+Example output:
+~~~~
+I feel bored. And when I'm bored, then bored is all I feel.
+~~~~
+
+What if you want a potentially _different_ mood, but sampled from that same range of four moods?
+Do you have to copy and paste the `[happy|sad|angry|bored]` list? Of course not!
+Bracery's `&quote` and `&eval` constructs come to your rescue.
+
+To be specific, we can define a variable `$new_mood` that contains exactly the string `[happy|sad|angry|bored]`.
+Then, whenever we want a new mood, we can _evaluate_ (i.e. expand, a.k.a. transform) this string.
+
+This might look like this:
+~~~~
+$new_mood=&quote{[happy|sad|angry|bored]}
+$mood=&eval{$new_mood}
+I feel $mood. And when I'm $mood, then $mood is all I feel.
+Maybe tomorrow, I'll be &eval{$new_mood}?
+~~~~
+
+Example output:
+~~~~
+I feel bored. And when I'm bored, then bored is all I feel.
+Maybe tomorrow, I'll be angry?
+~~~~
+
+The assignation pattern `$variable=&quote{[alternation|...]}` is common enough to merit its own shorthand, `[variable=>alternation|...]`.
+Similarly, the expansion pattern `&eval{$variable}` gets the shorthand `&$variable`, or alternatively, `#variable#`
+(a syntax Tracery users may recognize).
+To assign a more general (e.g. space-containing) value to a variable, one can use `$variable={value}` or `[variable:value]` (again, c.f. Tracery for the latter syntax).
+
+Using these shortcuts, we can write the same program as
+
+~~~~
+[new_mood=>happy|sad|angry|bored]
+[mood:#new_mood#]
+I feel #mood#. And when I'm #mood#, then #mood# is all I feel.
+Maybe tomorrow, I'll be #new_mood#?
+~~~~
+
+Note that binding a variable such as `$new_mood` to an alternation is equivalent to setting up a
+transformation rule for a symbol in a [context-free grammar](https://en.wikipedia.org/wiki/Context-free_grammar).
+
+Anything that isn't code is implicitly output.
+So, for example, the Bracery program to generate the text "hello world" is just `hello world`, which is a [quine](https://en.wikipedia.org/wiki/Quine_(computing)).
 
 # Technical details
 

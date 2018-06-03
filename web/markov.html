@@ -30,10 +30,10 @@ cousin
 	<div>
 <textarea id="tempdefs" style="width: 100%; min-height: 15em; resize: vertical;">
 @goodnews>Good news # root bad_news # good_news
-^subject={$common_item}[I [love|dig|really like] &plural^subject!|&cap&plural^subject are [great|awesome|amazing]!]
+$subject={~common_item}[I [love|dig|really like] &plural$subject!|&cap&plural$subject are [great|awesome|amazing]!]
 
 @badnews>Bad news # good_news # bad_news
-[Yeah? Well &a^subject [ate|stepped on] your $relative.|Nope.|I disagree.|[Meh|Whatever]. &plural&cap^subject [suck|are [bad|weak|boring]].]
+[Yeah? Well &a$subject [ate|stepped on] your ~relative.|Nope.|I disagree.|[Meh|Whatever]. &plural&cap$subject [suck|are [bad|weak|boring]].]
 </textarea>
 	</div>
 	<br><p>

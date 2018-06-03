@@ -52,12 +52,13 @@
 	    treeElement.innerText = JSON.stringify (expansion.tree)
 	  }
 	  function reset() {
-            
-	    evalElement.value = new URL(window.location).searchParams.get('text')
-              || (['[greetings=>[hello|well met] [now|there]|how [goes|fares] it with [you|thee]]',
-	           '[wizard=>wizard|witch|mage|magus|magician|sorcerer|enchanter]',
-	           '[earthsea=>earthsea|Earth|Middle Earth|the planet|the world]',
-	           '#greetings#, #wizard# of #earthsea#'].join('\n')+'\n')
+            // hack: pass in text via hash, to work around hosts (e.g. github HTML preview) that won't allow URI parameters
+	    evalElement.value = (window.location.hash
+                                 ? window.decodeURIComponent (window.location.hash.substr(1))
+                                 : (['[greetings=>[hello|well met] [now|there]|how [goes|fares] it with [you|thee]]',
+	                             '[wizard=>wizard|witch|mage|magus|magician|sorcerer|enchanter]',
+	                             '[earthsea=>earthsea|Earth|Middle Earth|the planet|the world]',
+	                             '#greetings#, #wizard# of #earthsea#'].join('\n')+'\n'))
 	    update()
 	  }
 	  function update (evt) {

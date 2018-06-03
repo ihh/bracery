@@ -284,9 +284,9 @@ function isTraceryExpr (node, makeSymbolName) {
     && node.test[0].varname.toLowerCase() === makeSymbolName (node.f[0]).toLowerCase()
 }
 
-function makeFuncArgText (pt, args, makeSymbolName, forceBraces) {
+function makeFuncArgTree (pt, args, makeSymbolName, forceBraces) {
   var noBraces = !forceBraces && args.length === 1 && (args[0].type === 'func' || args[0].type === 'lookup' || args[0].type === 'alt')
-  return (noBraces ? '' : leftBraceChar) + pt.makeRhsText (args, makeSymbolName) + (noBraces ? '' : rightBraceChar)
+  return [noBraces ? '' : leftBraceChar, pt.makeRhsTree (args, makeSymbolName), noBraces ? '' : rightBraceChar]
 }
 
 function escapeString (text) {
@@ -294,10 +294,10 @@ function escapeString (text) {
 }
 
 function makeMathExpr (pt, args, op, makeSymbolName) {
-  return makeMathText (pt, args[0], makeSymbolName) + ' ' + op + ' ' + makeMathText (pt, args[1], makeSymbolName)
+  return [makeMathTree (pt, args[0], makeSymbolName), ' ', op, ' ', makeMathTree (pt, args[1], makeSymbolName)]
 }
   
-function makeMathText (pt, tok, makeSymbolName) {
+function makeMathTree (pt, tok, makeSymbolName) {
   if (typeof(tok) !== 'string' && tok.type === 'func') {
     switch (tok.funcname) {
     case 'add': return makeMathExpr (pt, tok.args, '+', makeSymbolName)
@@ -306,15 +306,19 @@ function makeMathText (pt, tok, makeSymbolName) {
     case 'divide': return makeMathExpr (pt, tok.args, '/', makeSymbolName)
     case 'value':
       if (tok.args.length === 1)
-        return '(' + makeMathText (pt, tok.args[0], makeSymbolName) + ')'
+        return ['(', makeMathTree (pt, tok.args[0], makeSymbolName), ')']
     default:
       break
     }
   }
-  return makeRhsText.call (pt, [tok], makeSymbolName)
+  return makeRhsTree.call (pt, [tok], makeSymbolName)
 }
 
 function makeRhsText (rhs, makeSymbolName) {
+  return makeString (this.makeRhsTree (rhs, makeSymbolName))
+}
+
+function makeRhsTree (rhs, makeSymbolName) {
   var pt = this
   makeSymbolName = makeSymbolName || defaultMakeSymbolName
   return rhs.map (function (tok, n) {
@@ -329,67 +333,69 @@ function makeRhsText (rhs, makeSymbolName) {
         result = tok.text
         break
       case 'root':
-        result = pt.makeRhsText (tok.rhs, makeSymbolName)
+        result = pt.makeRhsTree (tok.rhs, makeSymbolName)
         break
       case 'lookup':
         result = (nextIsAlpha
-                  ? (varChar + leftBraceChar + tok.varname + rightBraceChar)
-                  : (varChar + tok.varname))
+                  ? [varChar, leftBraceChar, tok.varname, rightBraceChar]
+                  : [varChar, tok.varname])
 	break
       case 'assign':
-        var assign = varChar + tok.varname + (tok.visible ? ':' : '') + assignChar + leftBraceChar + pt.makeRhsText(tok.value,makeSymbolName) + rightBraceChar
+        var assign = [varChar, tok.varname, (tok.visible ? ':' : '') + assignChar, leftBraceChar, pt.makeRhsTree(tok.value,makeSymbolName), rightBraceChar]
         if (tok.local)
-          result = funcChar + 'let' + assign + leftBraceChar + pt.makeRhsText(tok.local,makeSymbolName) + rightBraceChar
+          result = [funcChar, 'let'].concat (assign, [leftBraceChar, pt.makeRhsTree(tok.local,makeSymbolName), rightBraceChar])
         else
           result = assign
 	break
       case 'alt':
-        result = leftSquareBraceChar + tok.opts.map (function (opt, n) {
-          var optText = pt.makeRhsText(opt,makeSymbolName)
-          if (n === 0)
-            optText = optText.replace (/(:|=>)/g, function (_m, g) { return '\\' + g })
-          return optText
-        }).join('|') + rightSquareBraceChar
+        result = tok.opts.reduce (function (memo, opt, n) {
+          var optTree = pt.makeRhsTree(opt,makeSymbolName)
+          if (n === 0 && optTree.length && typeof(optTree[0]) === 'string')
+            optTree[0] = optTree[0].replace (/(:|=>)/g, function (_m, g) { return '\\' + g })
+          return memo.concat([optTree]).concat (n < tok.opts.length - 1 ? ['|'] : [])
+        }, [leftSquareBraceChar]).concat ([rightSquareBraceChar])
 	break
       case 'rep':
-        result = funcChar + 'rep' + makeFuncArgText (pt, tok.unit, makeSymbolName) + leftBraceChar + tok.min + (tok.max !== tok.min ? (',' + tok.max) : '') + rightBraceChar
+        result = [funcChar, 'rep', makeFuncArgTree (pt, tok.unit, makeSymbolName), leftBraceChar, tok.min + (tok.max !== tok.min ? (',' + tok.max) : ''), rightBraceChar]
 	break
       case 'cond':
         result = (isTraceryExpr (tok, makeSymbolName)
-                  ? (traceryChar + tok.test[0].varname + traceryChar)
-                  : (funcChar + [['if',tok.test],
-				 ['then',tok.t],
-				 ['else',tok.f]].map (function (keyword_arg) { return keyword_arg[0] + leftBraceChar + pt.makeRhsText (keyword_arg[1], makeSymbolName) + rightBraceChar }).join('')))
+                  ? [traceryChar, tok.test[0].varname, traceryChar]
+                  : [['if',tok.test],
+		     ['then',tok.t],
+		     ['else',tok.f]].reduce (function (memo, keyword_arg, n) {
+                       return memo.concat ([(n ? '' : funcChar) + keyword_arg[0], leftBraceChar, pt.makeRhsTree (keyword_arg[1], makeSymbolName), rightBraceChar])
+                     }, []))
         break;
       case 'func':
         if (tok.funcname === 'link') {
-          result = funcChar + tok.funcname + [tok.args[0], tok.args[1], tok.args[2].args[0]].map (function (arg) { return makeFuncArgText (pt, [arg], makeSymbolName) }).join('')
+          result = [funcChar, tok.funcname].concat ([tok.args[0], tok.args[1], tok.args[2].args[0]].map (function (arg) { return makeFuncArgTree (pt, [arg], makeSymbolName) }))
         } else if (binaryFunction[tok.funcname] || tok.funcname === 'apply') {
-          result = funcChar + tok.funcname + tok.args.map (function (arg) { return makeFuncArgText (pt, [arg], makeSymbolName) }).join('')
+          result = [funcChar, tok.funcname].concat (tok.args.map (function (arg) { return makeFuncArgTree (pt, [arg], makeSymbolName) }))
         } else if (varFunction[tok.funcname]) {
-          result = funcChar + tok.funcname + varChar + tok.args[0].args[0].varname + (tok.args.length > 1 ? makeFuncArgText (pt, tok.args.slice(1), makeSymbolName) : '')
+          result = [funcChar, tok.funcname, varChar, tok.args[0].args[0].varname].concat (tok.args.length > 1 ? [makeFuncArgTree (pt, tok.args.slice(1), makeSymbolName)] : [])
         } else if (regexFunction[tok.funcname]) {
-          result = funcChar + tok.funcname + '/' + pt.makeRhsText ([tok.args[0]], makeSymbolName) + '/' + pt.makeRhsText ([tok.args[1]], makeSymbolName)
-            + tok.args.slice(2).map (function (arg, n) { return makeFuncArgText (pt, n>0 ? arg.args : [arg], makeSymbolName) }).join('')
+          result = [funcChar, tok.funcname, '/', pt.makeRhsTree ([tok.args[0]], makeSymbolName), '/', pt.makeRhsTree ([tok.args[1]], makeSymbolName)]
+            .concat (tok.args.slice(2).map (function (arg, n) { return makeFuncArgTree (pt, n>0 ? arg.args : [arg], makeSymbolName) }))
         } else if (tok.funcname === 'map' || tok.funcname === 'filter' || tok.funcname === 'weightsort' || tok.funcname === 'lexsort' || tok.funcname === 'reduce') {
-          result = funcChar + tok.funcname + (tok.args[0].varname === '_' ? '' : (varChar + tok.args[0].varname + ':')) + makeFuncArgText (pt, tok.args[0].value, makeSymbolName)
-            + (tok.funcname === 'reduce'
-               ? (varChar + tok.args[0].local[0].varname + '=' + makeFuncArgText (pt, tok.args[0].local[0].value, makeSymbolName) + makeFuncArgText (pt, tok.args[0].local[0].local[0].args, makeSymbolName))
-               : makeFuncArgText (pt, tok.args[0].local[0].args, makeSymbolName))
+          result = [funcChar, tok.funcname, (tok.args[0].varname === '_' ? '' : [varChar, tok.args[0].varname, ':']), makeFuncArgTree (pt, tok.args[0].value, makeSymbolName)]
+            .concat (tok.funcname === 'reduce'
+                     ? [varChar, tok.args[0].local[0].varname, '=', makeFuncArgTree (pt, tok.args[0].local[0].value, makeSymbolName), makeFuncArgTree (pt, tok.args[0].local[0].local[0].args, makeSymbolName)]
+                     : [makeFuncArgTree (pt, tok.args[0].local[0].args, makeSymbolName)])
         } else if (tok.funcname === 'vars') {
-          result = funcChar + tok.funcname
+          result = [funcChar, tok.funcname]
         } else if (tok.funcname === 'call') {
-          result = funcChar + tok.funcname + makeFuncArgText (pt, [tok.args[0]], makeSymbolName) + makeArgList.call (pt, tok.args[1].args, makeSymbolName)
+          result = [funcChar, tok.funcname, makeFuncArgTree (pt, [tok.args[0]], makeSymbolName)].concat (makeArgList.call (pt, tok.args[1].args, makeSymbolName))
         } else if (tok.funcname === 'strictquote' || tok.funcname === 'quote' || tok.funcname === 'unquote') {
-          result = funcChar + tok.funcname + makeFuncArgText (pt, tok.args, makeSymbolName, tok.funcname === 'unquote')
+          result = [funcChar, tok.funcname, makeFuncArgTree (pt, tok.args, makeSymbolName, tok.funcname === 'unquote')]
         } else if (tok.funcname === 'math') {
-          return funcChar + tok.funcname + leftBraceChar + makeMathText (pt, tok.args[0], makeSymbolName) + rightBraceChar
+          return [funcChar, tok.funcname, leftBraceChar, makeMathTree (pt, tok.args[0], makeSymbolName), rightBraceChar]
         } else {
 	  var sugaredName = pt.makeSugaredName (tok, makeSymbolName, nextIsAlpha)
           if (sugaredName) {
 	    result = sugaredName
           } else {
-            result = funcChar + tok.funcname + makeFuncArgText (pt, tok.args, makeSymbolName)
+            result = [funcChar, tok.funcname, makeFuncArgTree (pt, tok.args, makeSymbolName)]
           }
         }
 	break
@@ -402,22 +408,22 @@ function makeRhsText (rhs, makeSymbolName) {
         var hasNonemptyArgList = hasArgList && tok.bind[0].args.length
         var isApply = tok.bind && !hasArgList
         result = (isApply
-                  ? (funcChar + symChar + makeSymbolName(tok) + makeFuncArgText (pt, tok.bind))
+                  ? [[funcChar, symChar, makeSymbolName(tok)], makeFuncArgTree (pt, tok.bind)]
                   : (nextIsAlpha && !hasNonemptyArgList
-                     ? (symChar + leftBraceChar + makeSymbolName(tok) + rightBraceChar)
-                     : (symChar + makeSymbolName(tok) + makeArgList.call (pt, tok.bind, makeSymbolName))))
+                     ? [[symChar, leftBraceChar, makeSymbolName(tok), rightBraceChar]]
+                     : [[symChar, makeSymbolName(tok)]].concat (makeArgList.call (pt, tok.bind, makeSymbolName))))
 	break
       }
     }
     return result
-  }).join('')
+  })
 }
 
 function makeArgList (args, makeSymbolName) {
   var pt = this
   return (args && args.length && args[0].args && args[0].args.length
-          ? args[0].args.map (function (arg) { return leftBraceChar + pt.makeRhsText ([arg], makeSymbolName) + rightBraceChar }).join('')
-          : '')
+          ? args[0].args.map (function (arg) { return [leftBraceChar, pt.makeRhsTree ([arg], makeSymbolName), rightBraceChar] })
+          : [])
 }
 
 function makeSugaredName (funcNode, makeSymbolName, nextIsAlpha) {
@@ -433,12 +439,13 @@ function makeSugaredName (funcNode, makeSymbolName, nextIsAlpha) {
     }
     if (name) {
       name = name.toLowerCase()
-      var lChar = nextIsAlpha ? leftBraceChar : ''
-      var rChar = nextIsAlpha ? rightBraceChar : ''
+      var s
       if (funcNode.funcname === 'cap' && name.match(/[a-z]/))
-	sugaredName = prefixChar + lChar + name.replace(/[a-z]/,function(c){return c.toUpperCase()}) + rChar
+        s = name.replace(/[a-z]/,function(c){return c.toUpperCase()})
       else if (funcNode.funcname === 'uc' && name.match(/[a-z]/))
-	sugaredName = prefixChar + lChar + name.toUpperCase() + rChar
+        s = name.toUpperCase()
+      if (s)
+        sugaredName = nextIsAlpha ? [prefixChar, leftBraceChar, s, rightBraceChar] : [prefixChar, s]
     }
   }
   return sugaredName
@@ -1268,6 +1275,13 @@ function makeExpansionPromise (config) {
                       .then (addExpansionNodes)
                     break
 
+                    // parse
+                  case 'parse':
+                    node.evaltree = parseRhs (arg)
+                    expansion.value = pt.makeRhsTree (node.evaltree, makeSymbolName)
+                    expansion.text = makeString (expansion.value)
+                    break
+
                     // call, apply
                   case 'call':
                   case 'apply':
@@ -1767,6 +1781,7 @@ module.exports = {
   isTraceryExpr: isTraceryExpr,
   makeSugaredName: makeSugaredName,
   makeRhsText: makeRhsText,
+  makeRhsTree: makeRhsTree,
   makeExpansionText: makeExpansionText,
   makeRhsExpansionText: makeRhsExpansionText,
 

@@ -332,6 +332,9 @@ function doTests (testRunner) {
   expectExpand ('$a={1}$b={2}$c={3}&let$a={~}$b={test}$c={1}{&eval{$a&cap{$b}$c}}$a&cap{$b}$c', 'Testing123')
   expectExpand ('$a={1}$b={2}$c={3}&let$a={~}$b={test}$c={1}{&eval{$a&cap{$b}$c}$a&cap{$b}$c}', 'Testing~Test1')
 
+  // parse
+  expectExpand ('&json&parse&quote{$x=[a|b]}', '[[["$","x","=","{",[["[",["a"],"|",["b"],"]"]],"}"]]]')
+
   // down with fixed nonterminals
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'yo earthling', {maxTries:maxTries})
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'oy earthling', {maxTries:maxTries})

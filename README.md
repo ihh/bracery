@@ -22,7 +22,7 @@ and `well met, magus of the world`
 [hello|well met|how goes it|greetings], [wizard|witch|mage|magus|magician|sorcerer|enchanter] of [earthsea|Earth|Middle Earth|the planet|the world]
 ~~~~
 
-<!--DEMO--> _[Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%2C%20%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%20of%20%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D)_
+<!--DEMO--> <em> [Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%2C%20%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%20of%20%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D) </em>
 
 Here's the same example, but using variables to keep track of the choices:
 
@@ -33,7 +33,7 @@ $earthsea=[earthsea|Earth|Middle Earth|the planet|the world]
 $greetings, $wizard of $earthsea
 ~~~~
 
-<!--DEMO--> _[Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24greetings%3D%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%24wizard%3D%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%24earthsea%3D%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%24greetings%2C%20%24wizard%20of%20%24earthsea)_
+<!--DEMO--> <em> [Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24greetings%3D%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%24wizard%3D%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%24earthsea%3D%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%24greetings%2C%20%24wizard%20of%20%24earthsea) </em>
 
 You can also use variables to represent Bracery code itself:
 
@@ -44,7 +44,7 @@ You can also use variables to represent Bracery code itself:
 #greetings#, #wizard# of #earthsea#
 ~~~~
 
-<!--DEMO--> _[Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bgreetings%3D%3Ehello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%5Bwizard%3D%3Ewizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%5Bearthsea%3D%3Eearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%23greetings%23%2C%20%23wizard%23%20of%20%23earthsea%23)_
+<!--DEMO--> <em> [Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bgreetings%3D%3Ehello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%5Bwizard%3D%3Ewizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%5Bearthsea%3D%3Eearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%23greetings%23%2C%20%23wizard%23%20of%20%23earthsea%23) </em>
 
 The above example uses some [syntactic sugar](https://en.wikipedia.org/wiki/Syntactic_sugar)
 in the way variables are assigned and expanded.
@@ -60,7 +60,7 @@ $earthsea=&quote{[earthsea|Earth|Middle Earth|the planet|the world]}
 &eval{$greetings}, &eval{$wizard} of &eval{$earthsea}
 ~~~~
 
-<!--DEMO--> _[Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24greetings%3D%26quote%7B%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%7D%0A%0A%24wizard%3D%26quote%7B%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%7D%0A%0A%24earthsea%3D%26quote%7B%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%7D%0A%0A%26eval%7B%24greetings%7D%2C%20%26eval%7B%24wizard%7D%20of%20%26eval%7B%24earthsea%7D)_
+<!--DEMO--> <em> [Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24greetings%3D%26quote%7B%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%7D%0A%0A%24wizard%3D%26quote%7B%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%7D%0A%0A%24earthsea%3D%26quote%7B%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%7D%0A%0A%26eval%7B%24greetings%7D%2C%20%26eval%7B%24wizard%7D%20of%20%26eval%7B%24earthsea%7D) </em>
 
 And if you are a programmer, then you will probably recognize this kind of thing too ([lambdas](https://en.wikipedia.org/wiki/Anonymous_function)):
 
@@ -74,7 +74,7 @@ $sentence=&function{$name}{$greetings, $name}
 &$sentence{$wizard of $earthsea}
 ~~~~
 
-<!--DEMO--> _[Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24greetings%3D%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%24wizard%3D%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%24earthsea%3D%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%0A%24sentence%3D%26function%7B%24name%7D%7B%24greetings%2C%20%24name%7D%0A%0A%26%24sentence%7B%24wizard%20of%20%24earthsea%7D)_
+<!--DEMO--> <em> [Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24greetings%3D%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%24wizard%3D%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%24earthsea%3D%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%0A%24sentence%3D%26function%7B%24name%7D%7B%24greetings%2C%20%24name%7D%0A%0A%26%24sentence%7B%24wizard%20of%20%24earthsea%7D) </em>
 
 And maybe this as well ([lists](https://en.wikipedia.org/wiki/List_(abstract_data_type))):
 
@@ -88,7 +88,7 @@ $sentence={$greetings, $wizard of $earthsea}
 &join{&shuffle{&split{$sentence}}}
 ~~~~
 
-<!--DEMO--> _[Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24greetings%3D%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%24wizard%3D%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%24earthsea%3D%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%0A%24sentence%3D%7B%24greetings%2C%20%24wizard%20of%20%24earthsea%7D%0A%0A%26join%7B%26shuffle%7B%26split%7B%24sentence%7D%7D%7D)_
+<!--DEMO--> <em> [Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24greetings%3D%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%24wizard%3D%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%24earthsea%3D%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%0A%24sentence%3D%7B%24greetings%2C%20%24wizard%20of%20%24earthsea%7D%0A%0A%26join%7B%26shuffle%7B%26split%7B%24sentence%7D%7D%7D) </em>
 
 which gives jumbled-up output like
 
@@ -116,7 +116,7 @@ Here's another example, taken from Kate Compton's [online tutorial](http://www.c
 #origin#
 ~~~~
 
-<!--DEMO--> _[Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bname%3D%3EArjun%7CYuuma%7CDarcy%7CMia%7CChiaki%7CIzzi%7CAzra%7CLina%5D%0A%5Banimal%3D%3Eunicorn%7Craven%7Csparrow%7Cscorpion%7Ccoyote%7Ceagle%7Cowl%7Clizard%7Czebra%7Cduck%7Ckitten%5D%0A%5Bmood%3D%3Evexed%7Cindignant%7Cimpassioned%7Cwistful%7Castute%7Ccourteous%5D%0A%5Bstory%3D%3E%23hero%23%20traveled%20with%20her%20pet%20%23heroPet%23.%20%20%23hero%23%20was%20never%20%23mood%23%2C%20for%20the%20%23heroPet%23%20was%20always%20too%20%23mood%23.%5D%0A%5Borigin%3D%3E%23%5Bhero%3A%23name%23%5D%5BheroPet%3A%23animal%23%5Dstory%23%5D%0A%23origin%23)_
+<!--DEMO--> <em> [Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bname%3D%3EArjun%7CYuuma%7CDarcy%7CMia%7CChiaki%7CIzzi%7CAzra%7CLina%5D%0A%5Banimal%3D%3Eunicorn%7Craven%7Csparrow%7Cscorpion%7Ccoyote%7Ceagle%7Cowl%7Clizard%7Czebra%7Cduck%7Ckitten%5D%0A%5Bmood%3D%3Evexed%7Cindignant%7Cimpassioned%7Cwistful%7Castute%7Ccourteous%5D%0A%5Bstory%3D%3E%23hero%23%20traveled%20with%20her%20pet%20%23heroPet%23.%20%20%23hero%23%20was%20never%20%23mood%23%2C%20for%20the%20%23heroPet%23%20was%20always%20too%20%23mood%23.%5D%0A%5Borigin%3D%3E%23%5Bhero%3A%23name%23%5D%5BheroPet%3A%23animal%23%5Dstory%23%5D%0A%23origin%23) </em>
 
 This example generates lines like the following:
 
@@ -262,7 +262,7 @@ The main construct for generating variation in Bracery is the _alternation_, a l
 I feel [happy|sad|angry|bored]
 ~~~~
 
-<!--DEMO--> _[Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#I%20feel%20%5Bhappy%7Csad%7Cangry%7Cbored%5D)_
+<!--DEMO--> <em> [Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#I%20feel%20%5Bhappy%7Csad%7Cangry%7Cbored%5D) </em>
 
 When this "Bracery program" is "run" (or the text is expanded, the transformative grammar applied, or however you want to think of it),
 the output will be something like
@@ -287,7 +287,7 @@ $mood=[happy|sad|angry|bored]
 I feel $mood. And when I'm $mood, then $mood is all I feel.
 ~~~~
 
-<!--DEMO--> _[Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24mood%3D%5Bhappy%7Csad%7Cangry%7Cbored%5D%0AI%20feel%20%24mood.%20And%20when%20I'm%20%24mood%2C%20then%20%24mood%20is%20all%20I%20feel.)_
+<!--DEMO--> <em> [Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24mood%3D%5Bhappy%7Csad%7Cangry%7Cbored%5D%0AI%20feel%20%24mood.%20And%20when%20I'm%20%24mood%2C%20then%20%24mood%20is%20all%20I%20feel.) </em>
 
 Example output:
 
@@ -311,7 +311,7 @@ I feel $mood. And when I'm $mood, then $mood is all I feel.
 Maybe tomorrow, I'll be &eval{$new_mood}?
 ~~~~
 
-<!--DEMO--> _[Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24new_mood%3D%26quote%7B%5Bhappy%7Csad%7Cangry%7Cbored%5D%7D%0A%24mood%3D%26eval%7B%24new_mood%7D%0AI%20feel%20%24mood.%20And%20when%20I'm%20%24mood%2C%20then%20%24mood%20is%20all%20I%20feel.%0AMaybe%20tomorrow%2C%20I'll%20be%20%26eval%7B%24new_mood%7D%3F)_
+<!--DEMO--> <em> [Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24new_mood%3D%26quote%7B%5Bhappy%7Csad%7Cangry%7Cbored%5D%7D%0A%24mood%3D%26eval%7B%24new_mood%7D%0AI%20feel%20%24mood.%20And%20when%20I'm%20%24mood%2C%20then%20%24mood%20is%20all%20I%20feel.%0AMaybe%20tomorrow%2C%20I'll%20be%20%26eval%7B%24new_mood%7D%3F) </em>
 
 Example output:
 
@@ -333,7 +333,7 @@ I feel #mood#. And when I'm #mood#, then #mood# is all I feel.
 Maybe tomorrow, I'll be #new_mood#?
 ~~~~
 
-<!--DEMO--> _[Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bnew_mood%3D%3Ehappy%7Csad%7Cangry%7Cbored%5D%0A%5Bmood%3A%23new_mood%23%5D%0AI%20feel%20%23mood%23.%20And%20when%20I'm%20%23mood%23%2C%20then%20%23mood%23%20is%20all%20I%20feel.%0AMaybe%20tomorrow%2C%20I'll%20be%20%23new_mood%23%3F)_
+<!--DEMO--> <em> [Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bnew_mood%3D%3Ehappy%7Csad%7Cangry%7Cbored%5D%0A%5Bmood%3A%23new_mood%23%5D%0AI%20feel%20%23mood%23.%20And%20when%20I'm%20%23mood%23%2C%20then%20%23mood%23%20is%20all%20I%20feel.%0AMaybe%20tomorrow%2C%20I'll%20be%20%23new_mood%23%3F) </em>
 
 Alternations can be nested, so (for example) we can create `very` and `slightly` sub-categories of `bored`:
 
@@ -344,7 +344,7 @@ I feel #mood#. And when I'm #mood#, then #mood# is all I feel.
 Maybe tomorrow, I'll be #new_mood#?
 ~~~~
 
-<!--DEMO--> _[Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bnew_mood%3D%3Ehappy%7Csad%7Cangry%7C%5Bvery%7Cslightly%5D%20bored%5D%0A%5Bmood%3A%23new_mood%23%5D%0AI%20feel%20%23mood%23.%20And%20when%20I'm%20%23mood%23%2C%20then%20%23mood%23%20is%20all%20I%20feel.%0AMaybe%20tomorrow%2C%20I'll%20be%20%23new_mood%23%3F)_
+<!--DEMO--> <em> [Try this](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bnew_mood%3D%3Ehappy%7Csad%7Cangry%7C%5Bvery%7Cslightly%5D%20bored%5D%0A%5Bmood%3A%23new_mood%23%5D%0AI%20feel%20%23mood%23.%20And%20when%20I'm%20%23mood%23%2C%20then%20%23mood%23%20is%20all%20I%20feel.%0AMaybe%20tomorrow%2C%20I'll%20be%20%23new_mood%23%3F) </em>
 
 Many more details of the language are available in the following sections.
 
@@ -667,5 +667,6 @@ You can also use the `templates2dot.js` script to get a visualization of the Mar
 bin/templates2dot.js -o examples/markov/good_news_bad_news.txt
 ~~~~
  
+
 
 

@@ -1286,13 +1286,22 @@ function makeExpansionPromise (config) {
                     expansion.text = makeGenerator (argExpansion.value || argExpansion.text)
                     break
 
-                    // strlen, length
+                    // strlen, length, reverse, revstr
                   case 'strlen':
                     expansion.text = '' + argExpansion.text.length
                     break
 
                   case 'length':
                     expansion.text = '' + makeArray (argExpansion.value).length
+                    break
+
+                  case 'revstr':
+                    expansion.text = argExpansion.text.split('').reverse().join('')
+                    break
+
+                  case 'reverse':
+                    expansion.value = makeArray (argExpansion.value).reverse()
+                    expansion.text = makeString (expansion.value)
                     break
 
                     // shuffle

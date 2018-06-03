@@ -161,7 +161,7 @@ UnaryFunctionName = "eval" / "escape" / StrictQuote / Quote / Unquote
   / "random" / "floor" / "ceil" / "round" / "abs"
   / "wordnum" / "dignum" / "ordinal" / "cardinal"
   / "list" / "quotify" / "value" / "json" / "islist" / "first" / "last" / "notfirst" / "notlast"
-  / "strlen" / "length" / "shuffle"
+  / "strlen" / "length" / "shuffle" / "reverse" / "revstr"
   / "not"
   / "comment"
 
@@ -292,6 +292,7 @@ PrimaryExpr
 // modified to return arrays, allowing &unquote{...}
 RegularExpressionLiteral
   = "/" body:RegularExpressionBody "/" flags:RegularExpressionFlags { return { body: body, flags: flags } }
+  / "//" flags:RegularExpressionFlags { return { body: [], flags: flags } }
 
 RegularExpressionBody
   = c:RegularExpressionFirstChar chars:RegularExpressionChars { return concatReduce ([c].concat (chars)) }

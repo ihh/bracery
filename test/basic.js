@@ -275,6 +275,11 @@ function doTests (testRunner) {
   expectExpand ('&join&split/,/{hello,world}', 'hello world')  // default argument to &join
   expectExpand ('&lexsort&split{a c d b}', 'abcd')  // default argument to &lexsort
 
+  expectExpand ('&revstr{abcde}', 'edcba')
+  expectExpand ('&reverse{abcde}', 'abcde')
+  expectExpand ('&reverse&split//{abcde}', 'edcba')  // empty regex in &split
+  expectExpand ('&reverse&split/b/{abcde}', 'cdea')
+
   // strip
   expectExpand ('&strip{hello}{hello world hello}', ' world ')
   expectExpand ('&strip{~abc}{defcon}', 'con')

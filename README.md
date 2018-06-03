@@ -14,7 +14,8 @@ combining elements of other languages and libraries:
 
 # Usage
 
-The following Bracery code generates lines like
+The following [Bracery code](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html&text="%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%2C%20%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%20of%20%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D")
+generates lines like
 `how goes it, magician of Middle Earth`
 and `well met, magus of the world`
 
@@ -24,7 +25,8 @@ and `well met, magus of the world`
 [earthsea|Earth|Middle Earth|the planet|the world]
 ~~~~
 
-Here's the same example, but using variables to keep track of the choices:
+Here's the [same example](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html&text="%24greetings%3D%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%24wizard%3D%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%24earthsea%3D%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%24greetings%2C%20%24wizard%20of%20%24earthsea%0A"),
+but using variables to keep track of the choices:
 
 ~~~~
 $greetings=[hello|well met|how goes it|greetings]
@@ -33,7 +35,7 @@ $earthsea=[earthsea|Earth|Middle Earth|the planet|the world]
 $greetings, $wizard of $earthsea
 ~~~~
 
-You can also use variables to represent Bracery code:
+You can also [use variables](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html&text="%5Bgreetings%3D%3Ehello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%5Bwizard%3D%3Ewizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%5Bearthsea%3D%3Eearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%23greetings%23%2C%20%23wizard%23%20of%20%23earthsea%23%0A") to represent Bracery code:
 
 ~~~~
 [greetings=>hello|well met|how goes it|greetings]
@@ -88,12 +90,12 @@ witch the hello, of world
 
 You may also recognize that Bracery's alternations form a [context-free grammar](https://en.wikipedia.org/wiki/Context-free_grammar).
 However, you don't need to use any of these programmer-oriented features, if you just want to write generative text.
-Just [start typing](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/no_defs.html) and go!
+Just [start typing](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html&text="%24greetings%3D%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%24wizard%3D%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%24earthsea%3D%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%24greetings%2C%20%24wizard%20of%20%24earthsea") and go!
 
 
 ## Web usage
 
-The "wizard of earthsea" example is available as a [web demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/no_defs.html) ([source](web/no_defs.html)).
+The "wizard of earthsea" example is available as a [web demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html) ([source](web/demo.html)).
 
 Here's another example, taken from Kate Compton's [online tutorial](http://www.crystalcodepalace.com/traceryTut.html) to Tracery:
 
@@ -106,7 +108,7 @@ Here's another example, taken from Kate Compton's [online tutorial](http://www.c
 #origin#
 ~~~~
 
-Here's the [web demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/travel.html) ([source](web/travel.html))
+Here's a [web demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/travel.html) ([source](web/travel.html))
 for Kate's example, which generates lines like the following:
 
 ~~~~
@@ -128,8 +130,8 @@ For example, you can use Tracery-style JSON:
 }
 ~~~~
 
-Here is a [web demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/index.html) ([source](web/index.html))
-using the JSON symbol definitions.
+Here is a [web demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/tracery.html) ([source](web/tracery.html))
+using the Tracery-style JSON symbol definitions.
 These can also be [found](examples/travel.json), along with other examples from Kate's online tutorial,
 in the [examples](examples/) directory of this repository.
 

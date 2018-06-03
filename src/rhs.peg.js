@@ -90,10 +90,12 @@ MapVarIdentifier
   / "{" name:VarIdentifier "}" { return name }
 
 RegexFunction
-  = "&match" pattern:RegularExpressionLiteral text:FunctionArg expr:QuotedFunctionArg { return makeRegexFunction ('match', pattern, text, expr) }
-  / "&replace" pattern:RegularExpressionLiteral text:FunctionArg expr:QuotedFunctionArg { return makeRegexFunction ('replace', pattern, text, expr) }
+  = "&" name:BinaryRegexFunctionName pattern:RegularExpressionLiteral text:FunctionArg expr:QuotedFunctionArg { return makeRegexFunction (name, pattern, text, expr) }
+  / "&" name:UnaryRegexFunctionName pattern:RegularExpressionLiteral text:FunctionArg { return makeRegexFunction (name, pattern, text) }
   / "&split" text:FunctionArg { return makeRegexFunction ('split', { body: [defaultSplitPattern], flags: [] }, text) }
-  / "&split" pattern:RegularExpressionLiteral text:FunctionArg { return makeRegexFunction ('split', pattern, text) }
+
+BinaryRegexFunctionName = "match" / "replace"
+UnaryRegexFunctionName = "grep" / "split"
 
 RegexUnquote
   = "&unquote" args:FunctionArg { return makeFunction ('unquote', args) }
@@ -145,8 +147,7 @@ List
   = "&{" args:NodeList "}" { return makeFunction ('list', args) }
 
 BinaryFunctionName
-  = "strip"
-  / "add" / "subtract" / "multiply" / "divide"
+  = "add" / "subtract" / "multiply" / "divide"
   / "gt" / "geq" / "lt" / "leq"
   / "eq" / "neq"
   / "min" / "max"
@@ -155,11 +156,12 @@ BinaryFunctionName
   / "cat" / "prepend" / "append" / "join"
   / "apply"
 
-UnaryFunctionName = "eval" / "escape" / StrictQuote / Quote / Unquote
-  / "plural" / "singular" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive"
-  / "gerund" / "adjective" / "negative" / "positive" / "a" / "uc" / "lc" / "cap"
+UnaryFunctionName
+  = "eval" / "escape" / StrictQuote / Quote / Unquote
   / "random" / "floor" / "ceil" / "round" / "abs"
   / "wordnum" / "dignum" / "ordinal" / "cardinal"
+  / "plural" / "singular" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive"
+  / "gerund" / "adjective" / "negative" / "positive" / "a" / "uc" / "lc" / "cap"
   / "list" / "quotify" / "value" / "json" / "islist" / "first" / "last" / "notfirst" / "notlast"
   / "strlen" / "length" / "shuffle" / "reverse" / "revstr"
   / "not"

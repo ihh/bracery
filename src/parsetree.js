@@ -825,13 +825,17 @@ var regexFunction = {
     var split = text.split (regex)
     var expansion = { text: makeString (split), vars: config.vars, nodes: 1, value: split }
     return resolve (expansion)
+  },
+  grep: function (regex, list, _expr, config) {
+    var pt = this
+    var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
+    var grepped = list.filter (regex.test.bind (regex))
+    var expansion = { text: makeString (grepped), vars: config.vars, nodes: 1, value: grepped }
+    return resolve (expansion)
   }
 }
 
 var binaryFunction = {
-  strip: function (l, r) {
-    return r.split(l).join('')
-  },
   same: function (l, r, lv, rv) {
     return valuesEqual (lv, rv) ? (isTruthy(l) ? lv : trueVal) : falseVal
   },
@@ -1191,7 +1195,8 @@ function makeExpansionPromise (config) {
                       return makeRhsExpansionPromiseFor ([node.args[2]])
                         .then (function (textArg) {
                           expansion.nodes += regexArg.nodes + flagsArg.nodes + textArg.nodes
-                          return regexFunction[node.funcname].call (pt, new RegExp (regexArg.text, flagsArg.text), textArg.text, node.args.length > 3 ? node.args[3].args : null, config)
+                          var arg = node.funcname === 'grep' ? textArg.value : textArg.text
+                          return regexFunction[node.funcname].call (pt, new RegExp (regexArg.text, flagsArg.text), arg, node.args.length > 3 ? node.args[3].args : null, config)
                             .then (addExpansionNodes)
                         })
                     })

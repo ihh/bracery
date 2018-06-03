@@ -21,19 +21,19 @@ describe('validation', function() {
   validate ('&rep{~x}{03}', '&rep{~x}{3}')
   validate ('&rep{~x}{3,5}')
 
-  validate ('&strip$x$y')
-  validate ('&strip{$x}$y', '&strip$x$y')
-  validate ('&strip$x{$y}', '&strip$x$y')
-  validate ('&strip{$x}{$y}', '&strip$x$y')
+  validate ('&eq$x$y')
+  validate ('&eq{$x}$y', '&eq$x$y')
+  validate ('&eq$x{$y}', '&eq$x$y')
+  validate ('&eq{$x}{$y}', '&eq$x$y')
 
-  validate ('&strip$x{abc}')
-  validate ('&strip{$x}{abc}', '&strip$x{abc}')
+  validate ('&eq$x{abc}')
+  validate ('&eq{$x}{abc}', '&eq$x{abc}')
 
-  validate ('&strip{abc}$y')
-  validate ('&strip{abc}{$y}', '&strip{abc}$y')
+  validate ('&eq{abc}$y')
+  validate ('&eq{abc}{$y}', '&eq{abc}$y')
 
-  validate ('&strip{~abc}{~{abc}def}')
-  validate ('$y=&strip&strip$b{abc}&strip{t}$x', '$y={&strip&strip$b{abc}&strip{t}$x}')
+  validate ('&eq{~abc}{~{abc}def}')
+  validate ('$y=&eq&eq$b{abc}&eq{t}$x', '$y={&eq&eq$b{abc}&eq{t}$x}')
 
   validate ('&set$y{xyz}', '$y={xyz}')
   validate ('&set{$y}{xyz}', '$y={xyz}')

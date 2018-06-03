@@ -441,7 +441,10 @@ Language features include
       - `&dignum{3}` is `3`, `&wordnum{three}` is `three`
       - `&random{n}`, `&floor{x}`, `&ceil{x}`, `&round{x}` do what you probably expect
       - `&eq{x}{y}`, `&neq{x}{y}`, `&gt{x}{y}`, `&geq{x}{y}`, `&lt{x}{y}`, `&leq{x}{y}` also fairly predictable
-   - remove substrings: `&strip{ac}{abacus}` evaluates to `abus`, `&strip{gh}{lightweight}` to `litweit`, etc.
+   - regular expressions:
+      - `&match/regex/flags{text}{expr}' returns a list of `expr` evaluations (`$$1`, `$$2`, etc are bound to matching groups)
+      - `&replace/regex/flags{text}{replacement}' returns a string
+      - `&split/regex/flags{text}' or just `&split{text}' returns a list
 - special functions:
    - repetition:
       - `&rep{x}{3}` expands to `xxx`

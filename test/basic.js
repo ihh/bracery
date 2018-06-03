@@ -159,6 +159,11 @@ function doTests (testRunner) {
   expectExpand ('&cardinal{3rd}', '3')
   expectExpand ('&cardinal{third}', 'three')
 
+  expectExpand ('&abs{-3}', '3')
+  expectExpand ('&max{four}{6}', '6')
+  expectExpand ('&max{four}{2}', 'four')
+  expectExpand ('&min{-10}{twenty}', '-10')
+
   // variables
   expectExpand ('$x={aha}$x', 'aha')
   expectExpand ('$x=aha $x', 'aha')
@@ -280,16 +285,17 @@ function doTests (testRunner) {
   expectExpand ('&reverse&split//{abcde}', 'edcba')  // empty regex in &split
   expectExpand ('&reverse&split/b/{abcde}', 'cdea')
 
-  // strip
-  expectExpand ('&strip{hello}{hello world hello}', ' world ')
-  expectExpand ('&strip{~abc}{defcon}', 'con')
+  // these used to be tests of &strip, now obsoleted by &replace (and thus &strip has been stripped and replaced by &replace)
+  expectExpand ('&replace/hello/g{hello world hello}{}', ' world ')
+  expectExpand ('&replace/&unquote{~abc}/{defcon}{}', 'con')
   expectExpand ('~{abc}', 'def')
   expectExpand ('~{abc}con', 'defcon')
   expectExpand ('~{abc}con', 'defcon')
-  expectExpand ('&strip{~abc}{~{abc}con}', 'con')
-  expectExpand ('&strip{~abc}{~{abc}con defcon}', 'con con')
+  expectExpand ('&replace/&unquote{~abc}/{~{abc}con}{}', 'con')
+  expectExpand ('&replace/&unquote{~abc}/{~{abc}con defcon}{}', 'con defcon')
+  expectExpand ('&replace/&unquote{~abc}/g{~{abc}con defcon}{}', 'con con')
 
-  expectExpand ('$b={b}$x={Batch}$y=&strip&strip$b{abc}&strip{t}$x$y', 'Bh')
+  expectExpand ('$b={b}$x={Batch}$y=&replace/&unquote&replace/&unquote{$b}/{abc}{}/&replace/t/$x{}{}$y', 'Bh')
 
   // strlen, length, comment
   expectExpand ('$x=hello &strlen$x', '5')
@@ -374,6 +380,8 @@ function doTests (testRunner) {
   expectExpand ('&join&split/[aeiou]+/{felicitous}{..}', 'f..l..c..t..s')
   expectExpand ('&join&split{a   bc   d}{,}', 'a,bc,d')
   expectExpand ('&join&map&split{a bc def}{"$_"}{, }', '"a", "bc", "def"')
+
+  expectExpand ('&grep/a/&split{cat dog man lizard}', 'catmanlizard')
 
   // math
   expectExpand ('$a=4 $d=3 $b=5 $c=2 &math{($a * $d) - $b + $c}', '9')

@@ -33,8 +33,6 @@ OuterNodeList
   / head:OuterNode { return [head] }
   / "" { return [] }
 
-Text = chars:[^\~\#&\$\{\}\[\]\|\\]+ { return chars.join("") }
-
 Symbol
   = sym:SymIdentifier args:ArgList { return makeSugaredSymbol (sym, makeArgList (args)) }
   / "&" sym:SymIdentifier args:FunctionArg { return makeSugaredSymbol (sym, args) }
@@ -210,9 +208,6 @@ Repetition
   = "&rep" unit:FunctionArg "{" min:Number "," max:Number "}" { return validRange (min, max) ? makeRep (unit, min, max) : text() }
   / "&rep" unit:FunctionArg "{" min:Number "}" { return makeRep (unit, min, min) }
 
-Number
-  = num:[0-9]+ { return parseInt (num.join('')) }
-
 VarLookup
   = "$$" num:Number { return makeLookup (makeGroupVarName (num)) }
   / varname:VarIdentifier { return makeSugaredLookup (varname) }
@@ -254,12 +249,17 @@ CappedIdentifier
 UpperCaseIdentifier
   = firstChar:[A-Z] rest:[A-Z_0-9]* { return firstChar + rest.join("") }
 
+// Atoms
+Text = chars:[^\~\#&\$\{\}\[\]\|\\]+ { return chars.join("") }
+
+Number
+  = num:[0-9]+ { return parseInt (num.join('')) }
+
 Identifier
   = firstChar:[A-Za-z_] rest:[A-Za-z_0-9]* { return firstChar + rest.join("") }
 
 _ "whitespace"
   = [ \t\n\r]*
-
 
 // Math grammar
 // via https://stackoverflow.com/a/30798758

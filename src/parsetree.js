@@ -348,12 +348,14 @@ function makeRhsTree (rhs, makeSymbolName) {
           result = assign
 	break
       case 'alt':
-        result = tok.opts.reduce (function (memo, opt, n) {
-          var optTree = pt.makeRhsTree(opt,makeSymbolName)
-          if (n === 0 && optTree.length && typeof(optTree[0]) === 'string')
-            optTree[0] = optTree[0].replace (/(:|=>)/g, function (_m, g) { return '\\' + g })
-          return memo.concat([optTree]).concat (n < tok.opts.length - 1 ? [pipeChar] : [])
-        }, [leftSquareBraceChar]).concat ([rightSquareBraceChar])
+        result = [leftSquareBraceChar,
+                  tok.opts.map (function (opt, n) {
+                    var optTree = pt.makeRhsTree(opt,makeSymbolName)
+                    if (n === 0 && optTree.length && typeof(optTree[0]) === 'string')
+                      optTree[0] = optTree[0].replace (/(:|=>)/g, function (_m, g) { return '\\' + g })
+                    return [optTree].concat (n < tok.opts.length - 1 ? [pipeChar] : [])
+                  }),
+                  rightSquareBraceChar]
 	break
       case 'rep':
         result = [funcChar, 'rep', makeFuncArgTree (pt, tok.unit, makeSymbolName), [leftBraceChar, tok.min + (tok.max !== tok.min ? (',' + tok.max) : ''), rightBraceChar]]

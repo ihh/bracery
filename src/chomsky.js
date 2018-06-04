@@ -175,4 +175,96 @@ function toposortSymbols (cfg) {
   return trans
 }
 
-module.exports = { makeChomskyNormalCFG: makeChomskyNormalCFG }
+function getSplit (text, i, j, k) {
+  return { subseq: [text.substr(i,k-i), text.substr(k,j-k)],
+	   start: [i, k],
+	   end: [k, j],
+	   len: [k-i, j-k] }
+}
+
+function ruleWeight (cfg, inside, split, rhs) {
+  return rhs.rhs.reduce (function (w, node, pos) {
+    return w * (node.type === 'term'
+		? (node.text === split.subseq[pos] ? 1 : 0)
+		: (inside[split.start[pos]][split.len[pos]][node.name] || 0))
+  }, rhs.weight)
+}
+
+function sampleTrace (cfg, text, inside, i, j, lhs, rng) {
+  rng = rng || Math.random
+  var applications = [], weights = [], totalWeight = 0
+  for (var k = i; k <= j; ++k) {
+    var split = getSplit (text, i, j, k)
+    cfg.cfg[lhs].opts.forEach (function (rhs) {
+      var w = ruleWeight (cfg, inside, split, rhs)
+      applications.push ({ split: split, rhs: rhs})
+      weights.push (w)
+      totalWeight += w
+    })
+  }
+  var r = rng() * totalWeight, n
+  for (n = 0; n < applications.length - 1; ++n)
+    if ((r -= weights[n]) <= 0)
+      break
+  var app = applications[n], split = app.split, rhs = app.rhs
+  return [lhs].concat (rhs.rhs.map (function (node, pos) {
+    return node.type === 'term' ? node.text : sampleTrace (cfg, text, inside, split.start[pos], split.end[pos], node.name, rng)
+  }))
+}
+
+function transformTrace (cfg, trace) {
+  return trace.slice(1).reduce (function (t, node) {
+    if (typeof(node) === 'string')
+      return t.concat ([node])
+    var name = node[0], type = cfg.cfg[name].type, rest = transformTrace (cfg, node).slice(1)
+    switch (type) {
+    case 'sym':
+      return t.concat ([[ParseTree.traceryChar + name + ParseTree.traceryChar].concat (rest)])
+    case 'alt':
+      return t.concat ([['alt'].concat (rest)])
+    case 'elim':
+      return t.concat (rest)
+    default:
+      throw new Error ('unknown node type')
+      break
+    }
+  }, [trace[0]])
+}
+
+function fillInside (cfg, text) {
+  var len = text.length
+  var inside = new Array(len+1).fill(0).map (function (_, n) {
+    return new Array(len+1-n).fill(0).map (function() {
+      return {}
+    })
+  })
+  var insideFillOrder = (cfg.sort || Object.keys(cfg.cfg).sort()).slice(0).reverse()
+  for (var i = len; i >= 0; --i)
+    for (var j = i; j <= len; ++j)
+      for (var k = i; k <= j; ++k) {
+	var split = getSplit (text, i, j, k)
+	insideFillOrder.forEach (function (lhs) {
+	  cfg.cfg[lhs].opts.forEach (function (rhs) {
+	    var weight = ruleWeight (cfg, inside, split, rhs)
+	    inside[i][j-i][lhs] = (inside[i][j-i][lhs] || 0) + weight
+	  })
+	})
+      }
+  return inside
+}
+
+function parseInside (cfg, text, rng) {
+  var inside = fillInside (cfg, text)
+  var trace = sampleTrace (cfg, text, inside, 0, text.length, cfg.start, rng)
+  return ['root'].concat (transformTrace (cfg, trace).slice(1))
+}
+
+function parse (config) {
+  var bracery = config.bracery
+  var root = config.root || (ParseTree.traceryChar + bracery.getDefaultSymbol() + ParseTree.traceryChar)
+  var cfg = makeChomskyNormalCFG (bracery, config.vars || {}, root)
+  return parseInside (cfg, config.text, config.rng || bracery.rng)
+}
+
+module.exports = { makeChomskyNormalCFG: makeChomskyNormalCFG,
+		   parse: parse }

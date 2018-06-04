@@ -153,9 +153,10 @@ BinaryFunctionName
   / "and"
   / "cat" / "prepend" / "append" / "join"
   / "apply"
+  / "parse"
 
 UnaryFunctionName
-  = "eval" / "parse" / "escape" / StrictQuote / Quote / Unquote
+  = "eval" / "syntax" / "escape" / StrictQuote / Quote / Unquote
   / "random" / "floor" / "ceil" / "round" / "abs"
   / "wordnum" / "dignum" / "ordinal" / "cardinal"
   / "plural" / "singular" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive"

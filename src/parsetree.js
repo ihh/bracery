@@ -1281,8 +1281,8 @@ function makeExpansionPromise (config) {
                       .then (addExpansionNodes)
                     break
 
-                    // parse
-                  case 'parse':
+                    // syntax
+                  case 'syntax':
                     node.evaltree = parseRhs (arg)
                     expansion.value = pt.makeRhsTree (node.evaltree, makeSymbolName)
                     expansion.text = makeString (expansion.value)

@@ -48,7 +48,7 @@ You can also use variables to represent Bracery code itself:
 
 The above example uses some [syntactic sugar](https://en.wikipedia.org/wiki/Syntactic_sugar)
 in the way variables are assigned and expanded.
-If you're a programmer, you might find it easier to see what's going on without the sugar (namely, [dynamic evaluation](https://en.wikipedia.org/wiki/Eval)):
+Without that sugar, what's really going on is [dynamic evaluation](https://en.wikipedia.org/wiki/Eval):
 
 ~~~~
 $greetings=&quote{[hello|well met|how goes it|greetings]}
@@ -62,7 +62,7 @@ $earthsea=&quote{[earthsea|Earth|Middle Earth|the planet|the world]}
 
 <!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24greetings%3D%26quote%7B%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%7D%0A%0A%24wizard%3D%26quote%7B%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%7D%0A%0A%24earthsea%3D%26quote%7B%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%7D%0A%0A%26eval%7B%24greetings%7D%2C%20%26eval%7B%24wizard%7D%20of%20%26eval%7B%24earthsea%7D">Try this</a> </em>
 
-And if you are a programmer, then you will probably recognize this kind of thing too ([lambdas](https://en.wikipedia.org/wiki/Anonymous_function)):
+Programmers may recognize this kind of thing too ([lambdas](https://en.wikipedia.org/wiki/Anonymous_function)):
 
 ~~~~
 $greetings=[hello|well met|how goes it|greetings]

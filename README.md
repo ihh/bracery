@@ -35,20 +35,7 @@ $greetings, $wizard of $earthsea
 
 <!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24greetings%3D%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%24wizard%3D%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%24earthsea%3D%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%24greetings%2C%20%24wizard%20of%20%24earthsea">Try this</a> </em>
 
-You can also use variables to represent Bracery code itself:
-
-~~~~
-[greetings=>hello|well met|how goes it|greetings]
-[wizard=>wizard|witch|mage|magus|magician|sorcerer|enchanter]
-[earthsea=>earthsea|Earth|Middle Earth|the planet|the world]
-#greetings#, #wizard# of #earthsea#
-~~~~
-
-<!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bgreetings%3D%3Ehello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%5Bwizard%3D%3Ewizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%5Bearthsea%3D%3Eearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%23greetings%23%2C%20%23wizard%23%20of%20%23earthsea%23">Try this</a> </em>
-
-The above example uses some [syntactic sugar](https://en.wikipedia.org/wiki/Syntactic_sugar)
-in the way variables are assigned and expanded.
-Here's the same code without the sugar, revealing what's really going on ([dynamic evaluation](https://en.wikipedia.org/wiki/Eval)):
+You can also use variables to store Bracery code itself, for later expansion:
 
 ~~~~
 $greetings=&quote{[hello|well met|how goes it|greetings]}
@@ -61,6 +48,19 @@ $earthsea=&quote{[earthsea|Earth|Middle Earth|the planet|the world]}
 ~~~~
 
 <!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24greetings%3D%26quote%7B%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%7D%0A%0A%24wizard%3D%26quote%7B%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%7D%0A%0A%24earthsea%3D%26quote%7B%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%7D%0A%0A%26eval%7B%24greetings%7D%2C%20%26eval%7B%24wizard%7D%20of%20%26eval%7B%24earthsea%7D">Try this</a> </em>
+
+The above example uses [dynamic evaluation](https://en.wikipedia.org/wiki/Eval).
+Here's the same code with some [syntactic sugar](https://en.wikipedia.org/wiki/Syntactic_sugar)
+for the way variables are assigned and expanded:
+
+~~~~
+[greetings=>hello|well met|how goes it|greetings]
+[wizard=>wizard|witch|mage|magus|magician|sorcerer|enchanter]
+[earthsea=>earthsea|Earth|Middle Earth|the planet|the world]
+#greetings#, #wizard# of #earthsea#
+~~~~
+
+<!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bgreetings%3D%3Ehello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%5Bwizard%3D%3Ewizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%5Bearthsea%3D%3Eearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%23greetings%23%2C%20%23wizard%23%20of%20%23earthsea%23">Try this</a> </em>
 
 Programmers may recognize this kind of thing too ([lambdas](https://en.wikipedia.org/wiki/Anonymous_function)):
 

@@ -523,7 +523,7 @@ function peg$parse(input, options) {
             return makeFunction (op === '*' ? 'multiply' : 'divide', [left, right])
           }, first)
         },
-      peg$c372 = function(n) { return n },
+      peg$c372 = function(n) { return n.toString() },
       peg$c373 = function(arg) { return wrapNodes (arg) },
       peg$c374 = "(",
       peg$c375 = peg$literalExpectation("(", false),

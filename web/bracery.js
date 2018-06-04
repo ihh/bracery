@@ -3563,7 +3563,7 @@ function makeFuncArgTree (pt, args, makeSymbolName, forceBraces) {
 }
 
 function escapeString (text) {
-  return text.replace(/[\$&\~\{\}\[\]\|\\]/g,function(m){return'\\'+m})
+  return text.replace(/[\$&\~#\{\}\[\]\|\\]/g,function(m){return'\\'+m})
 }
 
 function makeMathExpr (pt, args, op, makeSymbolName) {
@@ -3621,12 +3621,14 @@ function makeRhsTree (rhs, makeSymbolName) {
           result = assign
 	break
       case 'alt':
-        result = tok.opts.reduce (function (memo, opt, n) {
-          var optTree = pt.makeRhsTree(opt,makeSymbolName)
-          if (n === 0 && optTree.length && typeof(optTree[0]) === 'string')
-            optTree[0] = optTree[0].replace (/(:|=>)/g, function (_m, g) { return '\\' + g })
-          return memo.concat([optTree]).concat (n < tok.opts.length - 1 ? [pipeChar] : [])
-        }, [leftSquareBraceChar]).concat ([rightSquareBraceChar])
+        result = [leftSquareBraceChar,
+                  tok.opts.map (function (opt, n) {
+                    var optTree = pt.makeRhsTree(opt,makeSymbolName)
+                    if (n === 0 && optTree.length && typeof(optTree[0]) === 'string')
+                      optTree[0] = optTree[0].replace (/(:|=>)/g, function (_m, g) { return '\\' + g })
+                    return [optTree].concat (n < tok.opts.length - 1 ? [pipeChar] : [])
+                  }),
+                  rightSquareBraceChar]
 	break
       case 'rep':
         result = [funcChar, 'rep', makeFuncArgTree (pt, tok.unit, makeSymbolName), [leftBraceChar, tok.min + (tok.max !== tok.min ? (',' + tok.max) : ''), rightBraceChar]]
@@ -5624,7 +5626,7 @@ function peg$parse(input, options) {
             return makeFunction (op === '*' ? 'multiply' : 'divide', [left, right])
           }, first)
         },
-      peg$c372 = function(n) { return n },
+      peg$c372 = function(n) { return n.toString() },
       peg$c373 = function(arg) { return wrapNodes (arg) },
       peg$c374 = "(",
       peg$c375 = peg$literalExpectation("(", false),

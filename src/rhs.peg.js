@@ -285,7 +285,7 @@ MultiplicativeExpr
   / PrimaryExpr
 
 PrimaryExpr
-  = n:Number { return n }
+  = n:Number { return n.toString() }
   / arg:FunctionArg { return wrapNodes (arg) }
   / "(" _ additive:AdditiveExpr _ ")" { return makeFunction ('value', [additive]) }
 

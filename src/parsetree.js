@@ -273,12 +273,16 @@ function parseTreeEmpty (rhs) {
   }, true)
 }
 
+function isEvalVar (node) {
+  return typeof(node) === 'object' && node.type === 'func'
+    && node.funcname === 'eval' && node.args.length === 1 && node.args[0].type === 'lookup'
+}
+
 function isTraceryExpr (node, makeSymbolName) {
   makeSymbolName = makeSymbolName || defaultMakeSymbolName
   return typeof(node) === 'object' && node.type === 'cond'
     && node.test.length === 1 && typeof(node.test[0]) === 'object' && node.test[0].type === 'lookup'
-    && node.t.length === 1 && typeof(node.t[0]) === 'object' && node.t[0].type === 'func'
-    && node.t[0].funcname === 'eval' && node.t[0].args.length === 1 && node.t[0].args[0].type === 'lookup'
+    && node.t.length === 1 && isEvalVar (node.t[0])
     && node.f.length === 1 && typeof(node.f[0]) === 'object' && node.f[0].type === 'sym' && !(node.f[0].bind && node.f[0].bind.length && node.f[0].bind[0].args && node.f[0].bind[0].args.length)
     && node.test[0].varname.toLowerCase() === node.t[0].args[0].varname.toLowerCase()
     && node.test[0].varname.toLowerCase() === makeSymbolName (node.f[0]).toLowerCase()
@@ -1782,6 +1786,7 @@ module.exports = {
   getSymbolNodes: getSymbolNodes,
   parseTreeEmpty: parseTreeEmpty,
   isTraceryExpr: isTraceryExpr,
+  isEvalVar: isEvalVar,
   makeSugaredName: makeSugaredName,
   makeRhsText: makeRhsText,
   makeRhsTree: makeRhsTree,

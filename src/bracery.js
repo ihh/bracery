@@ -1,6 +1,7 @@
 var Template = require('./template')
 var ParseTree = require('./parsetree')
 var Validator = require('./validator')
+var Chomsky = require('./chomsky')
 var RhsParser = ParseTree.RhsParser
 var extend = ParseTree.extend
 
@@ -234,6 +235,7 @@ module.exports = { Bracery: Bracery,
                    ParseTree: ParseTree,
                    RhsParser: RhsParser,
                    Validator: Validator,
+		   Chomsky: Chomsky,
                    Template: Template,
                    Promise: Promise,
                    nlp: nlp }

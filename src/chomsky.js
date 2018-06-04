@@ -1,12 +1,13 @@
 var ParseTree = require('./ParseTree')
 
+// despite the name, this doesn't quite return Chomsky normal form, as we do not eliminate empty rules or transitions
 function makeChomskyNormalCFG (bracery, vars, rhs) {
   if (!rhs) {
     rhs = vars
     vars = {}
   }
   var cfg = {}
-  var start = makeChomskyNormalSymbol (bracery, vars, cfg, [typeof(rhs) === 'string' ? ParseTree.parseRhs(rhs) : rhs])
+  var start = makeChomskyNormalSymbol (bracery, vars, cfg, [typeof(rhs) === 'string' ? ParseTree.parseRhs(rhs) : rhs], 'start')
   if (!start)
     return null
   var toposort = toposortSymbols (cfg)
@@ -27,41 +28,43 @@ function makeChomskyNormalRules (bracery, vars, cfg, name) {
     })
   else
     opts = []
-  return makeChomskyNormalSymbol (bracery, vars, cfg, opts, name)
+  return makeChomskyNormalSymbol (bracery, vars, cfg, opts, 'sym', name)
 }
 
-function makeChomskyNormalSymbol (bracery, vars, cfg, rhsList, name, weight) {
+function makeChomskyNormalSymbol (bracery, vars, cfg, rhsList, type, name, weight) {
   name = name || (Object.keys(cfg).filter(function(name){return name.match(/^[0-9]+$/)}).length + 1).toString()
   if (typeof(cfg[name]) === 'undefined') {
     cfg[name] = true  // placeholder
-    cfg[name] = rhsList.map (function (rhs, node) {
-      return (typeof(rhs) === 'string' ? [rhs] : rhs).slice(0).reverse().reduce (function (normalRhs, node) {
-	var cfgNode
-	if (normalRhs) {
-	  if (typeof(node) === 'string')
-	    cfgNode = { type: 'term', text: node }
-	  else if (node.type === 'term' || node.type === 'nonterm')
-	    cfgNode = node
-	  else if (node.type === 'alt')
-	    cfgNode = makeChomskyNormalSymbol (bracery, vars, cfg, node.opts)
-	  else if (node.type === 'sym')
-	    cfgNode = makeChomskyNormalRules (bracery, vars, cfg, node.name)
-	  else if (ParseTree.isTraceryExpr (node))
-	    cfgNode = makeChomskyNormalRules (bracery, vars, cfg, node.test[0].varname)
-	  else if (ParseTree.isEvalVar (node))
-	    cfgNode = makeChomskyNormalRules (bracery, vars, cfg, node.args[0].varname)
-	  else
-	    throw new Error ("Can't convert to context-free grammar: " + JSON.stringify(node))
-	}
-	return (cfgNode
-		? (normalRhs.rhs.length < 2
-		   ? { rhs: [cfgNode].concat (normalRhs.rhs),
-		       weight: normalRhs.weight }
-		   : { rhs: [cfgNode, makeChomskyNormalSymbol (bracery, vars, cfg, [normalRhs.rhs])],
-		       weight: normalRhs.weight })
-		: null)
-      }, { rhs: [], weight: 1 / rhsList.length })
-    })
+    cfg[name] = { type: type,
+		  opts: rhsList.map (function (rhs, node) {
+		    return (typeof(rhs) === 'string' ? [rhs] : rhs).slice(0).reverse().reduce (function (normalRhs, node) {
+		      var cfgNode
+		      if (normalRhs) {
+			if (typeof(node) === 'string')
+			  cfgNode = { type: 'term', text: node }
+			else if (node.type === 'term' || node.type === 'nonterm')
+			  cfgNode = node
+			else if (node.type === 'alt')
+			  cfgNode = makeChomskyNormalSymbol (bracery, vars, cfg, node.opts, 'alt')
+			else if (node.type === 'sym')
+			  cfgNode = makeChomskyNormalRules (bracery, vars, cfg, node.name)
+			else if (ParseTree.isTraceryExpr (node))
+			  cfgNode = makeChomskyNormalRules (bracery, vars, cfg, node.test[0].varname)
+			else if (ParseTree.isEvalVar (node))
+			  cfgNode = makeChomskyNormalRules (bracery, vars, cfg, node.args[0].varname)
+			else
+			  throw new Error ("Can't convert to context-free grammar: " + JSON.stringify(node))
+		      }
+		      return (cfgNode
+			      ? (normalRhs.rhs.length < 2
+				 ? { rhs: [cfgNode].concat (normalRhs.rhs),
+				     weight: normalRhs.weight }
+				 : { rhs: [cfgNode, makeChomskyNormalSymbol (bracery, vars, cfg, [normalRhs.rhs], 'elim')],
+				     weight: normalRhs.weight })
+			      : null)
+		    }, { rhs: [], weight: 1 / rhsList.length })
+		  })
+		}
   }
   return cfg[name] ? { type: 'nonterm', name: name } : null
 }
@@ -73,7 +76,7 @@ function getSymbols (cfg) {
 function getSources (cfg) {
   var isSource = {}, symbols = getSymbols (cfg)
   symbols.forEach (function (sym) {
-    cfg[sym].forEach (function (rhs) {
+    cfg[sym].opts.forEach (function (rhs) {
       rhs.rhs.forEach (function (node) {
 	if (node.type === 'nonterm') {
 	  isSource[node.name] = isSource[node.name] || {}
@@ -94,7 +97,7 @@ function nodeIsNonempty (cfg, flaggedAsEmpty, node) {
 }
 
 function symIsEmpty (cfg, flaggedAsEmpty, sym) {
-  return cfg[sym].reduce (function (foundEmptyRhs, rhs) {
+  return cfg[sym].opts.reduce (function (foundEmptyRhs, rhs) {
     return foundEmptyRhs || !rhs.rhs.filter (nodeIsNonempty.bind (null, cfg, flaggedAsEmpty)).length
   }, false)
 }
@@ -122,7 +125,7 @@ function getNullTransitions (cfg) {
     isSink[sym] = {}
   })
   symbols.forEach (function (source) {
-    cfg[source].forEach (function (rhs) {
+    cfg[source].opts.forEach (function (rhs) {
       rhs.rhs.forEach (function (node) {
 	if (node.type === 'nonterm' && !rhs.rhs.filter (function (otherNode) {
 	  return otherNode !== node && nodeIsNonempty (cfg, isEmpty, otherNode)

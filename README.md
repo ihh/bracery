@@ -48,7 +48,7 @@ You can also use variables to represent Bracery code itself:
 
 The above example uses some [syntactic sugar](https://en.wikipedia.org/wiki/Syntactic_sugar)
 in the way variables are assigned and expanded.
-Without that sugar, what's really going on is [dynamic evaluation](https://en.wikipedia.org/wiki/Eval):
+Here's the same code without the sugar, revealing what's really going on ([dynamic evaluation](https://en.wikipedia.org/wiki/Eval)):
 
 ~~~~
 $greetings=&quote{[hello|well met|how goes it|greetings]}

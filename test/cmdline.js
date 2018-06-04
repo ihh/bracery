@@ -10,17 +10,26 @@ var initJson = { abc: 'def',
                  world: ['world', 'planet'],
                  test1: 'testing',
                  test2: '~TEST1',
-                 test3: 'x~test3',
+                 test3: 'x#test3#',
                  test4: '&quote{~TEST1}' }
 
 var initText = [">abc","def","",
                 ">hello","[hello|hi]","",
                 ">test1","testing","",
                 ">test2","~TEST1","",
-                ">test3","x~test3","",
+                ">test3","x#test3#","",
                 ">test4","&quote~TEST1","",
                 ">world","world","planet","",
                 ""].join('\n')
+
+var initBracery = ["[abc=>","def","]\n",
+                   "[hello=>","[hello|hi]","]\n",
+                   "[test1=>","testing","]\n",
+                   "[test2=>","~TEST1","]\n",
+                   "[test3=>","x#test3#","]\n",
+                   "[test4=>","&quote~TEST1","]\n",
+                   "[world=>","world","|","planet","]\n",
+                   ""].join('')
 
 var binPath = 'bin/bracery'
 var initOpt = " -s '" + JSON.stringify(initJson) + "'"
@@ -52,11 +61,19 @@ describe('command-line tests (' + binPath + ')', function() {
 
   // dump to file
   var tmpFilename = tmp.tmpNameSync()
-  it('should dump rules to a file',
+  it('should dump rules to a file in one-line-per-def format',
      function (done) {
        runCommand (initOpt + ' -O ' + tmpFilename)
        var tmpFileContents = fs.readFileSync (tmpFilename).toString()
        assert.equal (tmpFileContents, initText)
+       done()
+     })
+
+  it('should dump rules to a file as Bracery',
+     function (done) {
+       runCommand (initOpt + ' -B ' + tmpFilename)
+       var tmpFileContents = fs.readFileSync (tmpFilename).toString()
+       assert.equal (tmpFileContents, initBracery)
        done()
      })
 })

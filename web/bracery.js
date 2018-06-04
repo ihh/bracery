@@ -3085,6 +3085,35 @@ Bracery.prototype.toText = function() {
   }).join('')
 }
 
+Bracery.prototype.toBracery = function() {
+  var bracery = this
+  return Object.keys(this.rules).sort()
+    .map (function (symbol) {
+      var rhsList = bracery.rules[symbol]
+      if (typeof(rhsList) === 'function')
+        throw new Error ("Can't convert JavaScript function to Bracery")
+      return ParseTree.leftSquareBraceChar
+        + symbol + '=>'
+        + (typeof(rhsList) === 'string'
+           ? rhsList
+           : rhsList.map (function (rhs) { return ParseTree.makeRhsText(rhs) }).join (ParseTree.pipeChar))
+        + ParseTree.rightSquareBraceChar
+        + '\n'
+    }).join('')
+}
+
+Bracery.prototype.varsToBracery = function (vars) {
+  var bracery = this
+  return Object.keys(vars).sort()
+    .map (function (name) {
+      return ParseTree.leftSquareBraceChar
+        + name + ':'
+        + ParseTree.escapeString (vars[name])
+        + ParseTree.rightSquareBraceChar
+        + '\n'
+    }).join('')
+}
+
 Bracery.prototype.addRules = function (name, rules) {
   var bracery = this
   // convert addRules({name1:[rhs1a,rhs1b,...],name2:[rhs2a,rhs2b...],...}) to a series of addRules(name,[rhsText,...]) calls
@@ -3321,7 +3350,7 @@ function parseTextDefs (text) {
 }
 
 // Parse tree constants
-var symChar = '~', varChar = '$', funcChar = '&', leftBraceChar = '{', rightBraceChar = '}', leftSquareBraceChar = '[', rightSquareBraceChar = ']', assignChar = '=', traceryChar = '#'
+var symChar = '~', varChar = '$', funcChar = '&', leftBraceChar = '{', rightBraceChar = '}', leftSquareBraceChar = '[', rightSquareBraceChar = ']', pipeChar = '|', assignChar = '=', traceryChar = '#'
 var nodeArgKeys = ['rhs','args','unit','value','local','cond','t','f','bind']
 var nodeListArgKeys = ['opts']
 
@@ -3534,7 +3563,7 @@ function makeFuncArgTree (pt, args, makeSymbolName, forceBraces) {
 }
 
 function escapeString (text) {
-  return text.replace(/[\$&\~\{\}\|\\]/g,function(m){return'\\'+m})
+  return text.replace(/[\$&\~\{\}\[\]\|\\]/g,function(m){return'\\'+m})
 }
 
 function makeMathExpr (pt, args, op, makeSymbolName) {
@@ -3596,7 +3625,7 @@ function makeRhsTree (rhs, makeSymbolName) {
           var optTree = pt.makeRhsTree(opt,makeSymbolName)
           if (n === 0 && optTree.length && typeof(optTree[0]) === 'string')
             optTree[0] = optTree[0].replace (/(:|=>)/g, function (_m, g) { return '\\' + g })
-          return memo.concat([optTree]).concat (n < tok.opts.length - 1 ? ['|'] : [])
+          return memo.concat([optTree]).concat (n < tok.opts.length - 1 ? [pipeChar] : [])
         }, [leftSquareBraceChar]).concat ([rightSquareBraceChar])
 	break
       case 'rep':
@@ -5015,6 +5044,7 @@ module.exports = {
   rightBraceChar: rightBraceChar,
   leftSquareBraceChar: leftSquareBraceChar,
   rightSquareBraceChar: rightSquareBraceChar,
+  pipeChar: pipeChar,
   assignChar: assignChar,
   traceryChar: traceryChar,
 
@@ -5041,7 +5071,8 @@ module.exports = {
   makeString: makeString,
   makeArray: makeArray,
   makeGenerator: makeGenerator,
-
+  escapeString: escapeString,
+  
   // English grammar
   conjugate: conjugate,
   was: was,
@@ -9091,9 +9122,15 @@ function peg$parse(input, options) {
       if (s2 !== peg$FAILED) {
         s3 = peg$parseFunctionArg();
         if (s3 !== peg$FAILED) {
-          peg$savedPos = s0;
-          s1 = peg$c325(s2, s3);
-          s0 = s1;
+          s4 = peg$parse_();
+          if (s4 !== peg$FAILED) {
+            peg$savedPos = s0;
+            s1 = peg$c325(s2, s3);
+            s0 = s1;
+          } else {
+            peg$currPos = s0;
+            s0 = peg$FAILED;
+          }
         } else {
           peg$currPos = s0;
           s0 = peg$FAILED;
@@ -9137,11 +9174,17 @@ function peg$parse(input, options) {
               if (peg$silentFails === 0) { peg$fail(peg$c34); }
             }
             if (s4 !== peg$FAILED) {
-              s5 = peg$parseFunctionArg();
+              s5 = peg$parse_();
               if (s5 !== peg$FAILED) {
-                peg$savedPos = s0;
-                s1 = peg$c325(s3, s5);
-                s0 = s1;
+                s6 = peg$parseFunctionArg();
+                if (s6 !== peg$FAILED) {
+                  peg$savedPos = s0;
+                  s1 = peg$c325(s3, s6);
+                  s0 = s1;
+                } else {
+                  peg$currPos = s0;
+                  s0 = peg$FAILED;
+                }
               } else {
                 peg$currPos = s0;
                 s0 = peg$FAILED;
@@ -9192,9 +9235,15 @@ function peg$parse(input, options) {
                   if (peg$silentFails === 0) { peg$fail(peg$c305); }
                 }
                 if (s5 !== peg$FAILED) {
-                  peg$savedPos = s0;
-                  s1 = peg$c325(s2, s4);
-                  s0 = s1;
+                  s6 = peg$parse_();
+                  if (s6 !== peg$FAILED) {
+                    peg$savedPos = s0;
+                    s1 = peg$c325(s2, s4);
+                    s0 = s1;
+                  } else {
+                    peg$currPos = s0;
+                    s0 = peg$FAILED;
+                  }
                 } else {
                   peg$currPos = s0;
                   s0 = peg$FAILED;

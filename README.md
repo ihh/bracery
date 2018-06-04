@@ -153,15 +153,20 @@ bracery -e '[hello|hi] [world|planet]!'
 ~~~~
 
 Or specify a definitions file and play with command-line options.
-(The first `curl` line just fetches the above-referenced tutorial example file, [travel.json](examples/travel.json).)
+For example, starting with a Tracery-format file, [travel.json](examples/travel.json),
+which you can grab as follows
 
 ~~~~
 curl -O https://raw.githubusercontent.com/ihh/bracery/master/examples/travel.json
+~~~~
 
+Then do a few things with it
+
+~~~~
 bracery -d travel.json
 bracery -d travel.json -n5
-bracery -d travel.json -n5 --eval '~origin And then they met #name#.'
-bracery -d travel.json -n5 --eval '~origin And they had [fun|trouble|no luck], until they met #name#.'
+bracery -d travel.json -n5 --eval '#origin# And then they met #name#.'
+bracery -d travel.json -n5 --eval '#origin# And they had [fun|trouble|no luck], until they met #name#.'
 bracery -d travel.json --tree
 bracery -d travel.json --repl
 bracery -d travel.json -n5 --async
@@ -177,7 +182,7 @@ bracery -d travel.json -S 8000 &
 bracery -C http://localhost:8000/ -e '#origin#'
 ~~~~
 
-To get a list of available options (there aren't many)
+To get a list of available options
 
 ~~~~
 bracery --help
@@ -358,6 +363,7 @@ You can ignore these and just use the Tracery syntax `#name#` if you want, but f
 - `$name` refers to a variable
 - `&name` refers to a core library function or macro
 - `~name` refers to a user extension (local or remote)
+- `#name#` means "expand variable `$name`, or fall back to calling user extension `~name` if variable `$name` is not defined"
 
 ## Comparison with Tracery
 

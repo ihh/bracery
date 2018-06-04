@@ -77,7 +77,7 @@ function parseTextDefs (text) {
 }
 
 // Parse tree constants
-var symChar = '~', varChar = '$', funcChar = '&', leftBraceChar = '{', rightBraceChar = '}', leftSquareBraceChar = '[', rightSquareBraceChar = ']', assignChar = '=', traceryChar = '#'
+var symChar = '~', varChar = '$', funcChar = '&', leftBraceChar = '{', rightBraceChar = '}', leftSquareBraceChar = '[', rightSquareBraceChar = ']', pipeChar = '|', assignChar = '=', traceryChar = '#'
 var nodeArgKeys = ['rhs','args','unit','value','local','cond','t','f','bind']
 var nodeListArgKeys = ['opts']
 
@@ -290,7 +290,7 @@ function makeFuncArgTree (pt, args, makeSymbolName, forceBraces) {
 }
 
 function escapeString (text) {
-  return text.replace(/[\$&\~\{\}\|\\]/g,function(m){return'\\'+m})
+  return text.replace(/[\$&\~#\{\}\[\]\|\\]/g,function(m){return'\\'+m})
 }
 
 function makeMathExpr (pt, args, op, makeSymbolName) {
@@ -352,7 +352,7 @@ function makeRhsTree (rhs, makeSymbolName) {
           var optTree = pt.makeRhsTree(opt,makeSymbolName)
           if (n === 0 && optTree.length && typeof(optTree[0]) === 'string')
             optTree[0] = optTree[0].replace (/(:|=>)/g, function (_m, g) { return '\\' + g })
-          return memo.concat([optTree]).concat (n < tok.opts.length - 1 ? ['|'] : [])
+          return memo.concat([optTree]).concat (n < tok.opts.length - 1 ? [pipeChar] : [])
         }, [leftSquareBraceChar]).concat ([rightSquareBraceChar])
 	break
       case 'rep':
@@ -1771,6 +1771,7 @@ module.exports = {
   rightBraceChar: rightBraceChar,
   leftSquareBraceChar: leftSquareBraceChar,
   rightSquareBraceChar: rightSquareBraceChar,
+  pipeChar: pipeChar,
   assignChar: assignChar,
   traceryChar: traceryChar,
 
@@ -1797,7 +1798,8 @@ module.exports = {
   makeString: makeString,
   makeArray: makeArray,
   makeGenerator: makeGenerator,
-
+  escapeString: escapeString,
+  
   // English grammar
   conjugate: conjugate,
   was: was,

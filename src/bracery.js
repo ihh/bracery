@@ -53,6 +53,35 @@ Bracery.prototype.toText = function() {
   }).join('')
 }
 
+Bracery.prototype.toBracery = function() {
+  var bracery = this
+  return Object.keys(this.rules).sort()
+    .map (function (symbol) {
+      var rhsList = bracery.rules[symbol]
+      if (typeof(rhsList) === 'function')
+        throw new Error ("Can't convert JavaScript function to Bracery")
+      return ParseTree.leftSquareBraceChar
+        + symbol + '=>'
+        + (typeof(rhsList) === 'string'
+           ? rhsList
+           : rhsList.map (function (rhs) { return ParseTree.makeRhsText(rhs) }).join (ParseTree.pipeChar))
+        + ParseTree.rightSquareBraceChar
+        + '\n'
+    }).join('')
+}
+
+Bracery.prototype.varsToBracery = function (vars) {
+  var bracery = this
+  return Object.keys(vars).sort()
+    .map (function (name) {
+      return ParseTree.leftSquareBraceChar
+        + name + ':'
+        + ParseTree.escapeString (vars[name])
+        + ParseTree.rightSquareBraceChar
+        + '\n'
+    }).join('')
+}
+
 Bracery.prototype.addRules = function (name, rules) {
   var bracery = this
   // convert addRules({name1:[rhs1a,rhs1b,...],name2:[rhs2a,rhs2b...],...}) to a series of addRules(name,[rhsText,...]) calls

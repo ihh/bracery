@@ -4021,9 +4021,15 @@ function peg$parse(input, options) {
       if (s2 !== peg$FAILED) {
         s3 = peg$parseFunctionArg();
         if (s3 !== peg$FAILED) {
-          peg$savedPos = s0;
-          s1 = peg$c325(s2, s3);
-          s0 = s1;
+          s4 = peg$parse_();
+          if (s4 !== peg$FAILED) {
+            peg$savedPos = s0;
+            s1 = peg$c325(s2, s3);
+            s0 = s1;
+          } else {
+            peg$currPos = s0;
+            s0 = peg$FAILED;
+          }
         } else {
           peg$currPos = s0;
           s0 = peg$FAILED;
@@ -4067,11 +4073,17 @@ function peg$parse(input, options) {
               if (peg$silentFails === 0) { peg$fail(peg$c34); }
             }
             if (s4 !== peg$FAILED) {
-              s5 = peg$parseFunctionArg();
+              s5 = peg$parse_();
               if (s5 !== peg$FAILED) {
-                peg$savedPos = s0;
-                s1 = peg$c325(s3, s5);
-                s0 = s1;
+                s6 = peg$parseFunctionArg();
+                if (s6 !== peg$FAILED) {
+                  peg$savedPos = s0;
+                  s1 = peg$c325(s3, s6);
+                  s0 = s1;
+                } else {
+                  peg$currPos = s0;
+                  s0 = peg$FAILED;
+                }
               } else {
                 peg$currPos = s0;
                 s0 = peg$FAILED;
@@ -4122,9 +4134,15 @@ function peg$parse(input, options) {
                   if (peg$silentFails === 0) { peg$fail(peg$c305); }
                 }
                 if (s5 !== peg$FAILED) {
-                  peg$savedPos = s0;
-                  s1 = peg$c325(s2, s4);
-                  s0 = s1;
+                  s6 = peg$parse_();
+                  if (s6 !== peg$FAILED) {
+                    peg$savedPos = s0;
+                    s1 = peg$c325(s2, s4);
+                    s0 = s1;
+                  } else {
+                    peg$currPos = s0;
+                    s0 = peg$FAILED;
+                  }
                 } else {
                   peg$currPos = s0;
                   s0 = peg$FAILED;

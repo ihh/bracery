@@ -3300,29 +3300,52 @@ module.exports = { Bracery: Bracery,
 function makeChomskyNormalCFG (ParseTree, config) {
   var vars = config.vars || {}, root = config.root
   var cfg = {}
-  var start = makeChomskyNormalSymbol (ParseTree, config, vars, cfg, [typeof(root) === 'string' ? ParseTree.parseRhs(root) : root], 'start')
+  var start = makeChomskyNormalSymbol (ParseTree, config, cfg, [typeof(root) === 'string' ? ParseTree.parseRhs(root) : root], 'start')
   if (!start)
     return null
   var toposort = toposortSymbols (cfg)
+  var sortOrder = toposort.sort || Object.keys(cfg.cfg).sort()
+  var symbolRank = {}
+  sortOrder.forEach (function (sym, n) { symbolRank[sym] = n })
+  sortOrder.forEach (function (sym) {
+    if (cfg[sym].opts)
+      cfg[sym].opts.forEach (function (opt) {
+        opt.rhs.forEach (function (node) {
+          if (node.type === 'nonterm')
+            node.rank = symbolRank[node.name]
+        })
+      })
+  })
   return { cfg: cfg,
+           ranked: sortOrder.map (function (sym) { return cfg[sym] }),
 	   empties: toposort.empties,
 	   cyclic: toposort.cyclic,
-	   sort: toposort.sort,
+	   sort: sortOrder,
+           rank: symbolRank,
 	   start: start.name }
 }
 
-function makeChomskyNormalRules (ParseTree, config, vars, cfg, name) {
-  var opts, symDef
-  if (vars[name])
-    opts = [ParseTree.parseRhs (vars[name])]
-  else if (ParseTree, config.get && (symDef = config.get ({ symbolName: name }))) {
-    opts = [ParseTree.parseRhs (symDef.join(''))]
+function makeChomskyNormalRules (ParseTree, config, cfg, name, checkVars, checkSym, expand) {
+  var vars = config.vars || {}
+  var opts, symDef, cfgName
+  if (checkVars && vars[name]) {
+    symDef = vars[name]
+    cfgName = expand ? (ParseTree.funcChar + ParseTree.varChar + name) : (ParseTree.varChar + name)
+  } else if (checkSym && config.get && (symDef = config.get ({ symbolName: name }))) {
+    symDef = symDef.join('')
+    cfgName = expand ? (ParseTree.symChar + name) : (ParseTree.funcChar + 'xget' + ParseTree.name)
+  }
+  if (symDef) {
+    if (checkVars && checkSym)
+      cfgName = ParseTree.traceryChar + name + ParseTree.traceryChar
+    opts = expand ? [ParseTree.parseRhs (symDef)] : [symDef]
   } else
     opts = []
-  return makeChomskyNormalSymbol (ParseTree, config, vars, cfg, opts, 'sym', name)
+  return makeChomskyNormalSymbol (ParseTree, config, cfg, opts, 'sym', cfgName)
 }
 
-function makeChomskyNormalSymbol (ParseTree, config, vars, cfg, rhsList, type, name, weight) {
+function makeChomskyNormalSymbol (ParseTree, config, cfg, rhsList, type, name, weight) {
+  var vars = config.vars || {}
   name = name || (Object.keys(cfg).filter(function(name){return name.match(/^[0-9]+$/)}).length + 1).toString()
   if (typeof(cfg[name]) === 'undefined') {
     cfg[name] = true  // placeholder
@@ -3336,21 +3359,23 @@ function makeChomskyNormalSymbol (ParseTree, config, vars, cfg, rhsList, type, n
 			else if (node.type === 'term' || node.type === 'nonterm')
 			  cfgNode = node
 			else if (node.type === 'alt')
-			  cfgNode = makeChomskyNormalSymbol (ParseTree, config, vars, cfg, node.opts, 'alt')
+			  cfgNode = makeChomskyNormalSymbol (ParseTree, config, cfg, node.opts, 'alt')
 			else if (node.type === 'sym')
-			  cfgNode = makeChomskyNormalRules (ParseTree, config, vars, cfg, node.name)
+			  cfgNode = makeChomskyNormalRules (ParseTree, config, cfg, node.name, false, true, true)
+			else if (node.type === 'lookup')
+			  cfgNode = makeChomskyNormalRules (ParseTree, config, cfg, node.varname, true, false, false)
 			else if (ParseTree, ParseTree.isTraceryExpr (node))
-			  cfgNode = makeChomskyNormalRules (ParseTree, config, vars, cfg, node.test[0].varname)
+			  cfgNode = makeChomskyNormalRules (ParseTree, config, cfg, node.test[0].varname, true, true, true)
 			else if (ParseTree, ParseTree.isEvalVar (node))
-			  cfgNode = makeChomskyNormalRules (ParseTree, config, vars, cfg, node.args[0].varname)
+			  cfgNode = makeChomskyNormalRules (ParseTree, config, cfg, node.args[0].varname, true, false, true)
 			else
-			  throw new Error ("Can't convert to context-free grammar: " + JSON.stringify(node))
+			  throw new Error ("Can't convert to context-free grammar: " + ParseTree.makeRhsText ([node]))
 		      }
 		      return (cfgNode
 			      ? (normalRhs.rhs.length < 2
 				 ? { rhs: [cfgNode].concat (normalRhs.rhs),
 				     weight: normalRhs.weight }
-				 : { rhs: [cfgNode, makeChomskyNormalSymbol (ParseTree, config, vars, cfg, [normalRhs.rhs], 'elim')],
+				 : { rhs: [cfgNode, makeChomskyNormalSymbol (ParseTree, config, cfg, [normalRhs.rhs], 'elim')],
 				     weight: normalRhs.weight })
 			      : null)
 		    }, { rhs: [], weight: 1 / rhsList.length })
@@ -3466,29 +3491,28 @@ function toposortSymbols (cfg) {
   return trans
 }
 
-function getSplit (text, i, j, k) {
-  return { subseq: [text.substr(i,k-i), text.substr(k,j-k)],
-	   start: [i, k],
-	   end: [k, j],
-	   len: [k-i, j-k] }
-}
-
-function ruleWeight (cfg, inside, split, rhs) {
-  return rhs.rhs.reduce (function (w, node, pos) {
-    return w * (node.type === 'term'
-		? (node.text === split.subseq[pos] ? 1 : 0)
-		: (inside[split.start[pos]][split.len[pos]][node.name] || 0))
-  }, rhs.weight)
+function ruleWeight (inside, text, i, j, k, rhs) {
+  var rhsLen = rhs.rhs.length
+  if (rhsLen === 1 && k < j)
+    return 0
+  var w = rhs.weight
+  for (var pos = 0; w && pos < rhsLen; ++pos) {
+    var node = rhs.rhs[pos]
+    var start = pos ? k : i, len = pos ? (j-k) : (k-i)
+    w *= (node.type === 'term'
+	  ? (node.text.length === len && node.text === text.substr(start,len) ? 1 : 0)
+	  : (inside[start][len][node.rank] || 0))
+  }
+  return w
 }
 
 function sampleTrace (cfg, text, inside, i, j, lhs, rng) {
   rng = rng || Math.random
   var applications = [], weights = [], totalWeight = 0
   for (var k = i; k <= j; ++k) {
-    var split = getSplit (text, i, j, k)
-    cfg.cfg[lhs].opts.forEach (function (rhs) {
-      var w = ruleWeight (cfg, inside, split, rhs)
-      applications.push ({ split: split, rhs: rhs})
+    cfg.ranked[lhs].opts.forEach (function (rhs) {
+      var w = ruleWeight (inside, text, i, j, k, rhs)
+      applications.push ({ k: k, rhs: rhs })
       weights.push (w)
       totalWeight += w
     })
@@ -3497,9 +3521,11 @@ function sampleTrace (cfg, text, inside, i, j, lhs, rng) {
   for (n = 0; n < applications.length - 1; ++n)
     if ((r -= weights[n]) <= 0)
       break
-  var app = applications[n], split = app.split, rhs = app.rhs
-  return [lhs].concat (rhs.rhs.map (function (node, pos) {
-    return node.type === 'term' ? node.text : sampleTrace (cfg, text, inside, split.start[pos], split.end[pos], node.name, rng)
+  var app = applications[n], k = app.k, rhs = app.rhs
+  return [cfg.sort[lhs]].concat (rhs.rhs.map (function (node, pos) {
+    return (node.type === 'term'
+            ? node.text
+            : sampleTrace (cfg, text, inside, pos ? k : i, pos ? j : k, node.rank, rng))
   }))
 }
 
@@ -3507,10 +3533,10 @@ function transformTrace (ParseTree, config, cfg, trace) {
   return trace.slice(1).reduce (function (t, node) {
     if (typeof(node) === 'string')
       return t.concat ([node])
-    var name = node[0], type = cfg.cfg[name].type, rest = transformTrace (cfg, node).slice(1)
+    var name = node[0], type = cfg.cfg[name].type, rest = transformTrace (ParseTree, config, cfg, node).slice(1)
     switch (type) {
     case 'sym':
-      return t.concat ([[ParseTree.traceryChar + name + ParseTree.traceryChar].concat (rest)])
+      return t.concat ([[name].concat (rest)])
     case 'alt':
       return t.concat ([['alt'].concat (rest)])
     case 'elim':
@@ -3523,30 +3549,33 @@ function transformTrace (ParseTree, config, cfg, trace) {
 }
 
 function fillInside (cfg, text) {
-  var len = text.length
+  var len = text.length, nSym = cfg.sort.length
   var inside = new Array(len+1).fill(0).map (function (_, n) {
     return new Array(len+1-n).fill(0).map (function() {
-      return {}
+      return new Array(nSym).fill(0)
     })
   })
-  var insideFillOrder = (cfg.sort || Object.keys(cfg.cfg).sort()).slice(0).reverse()
   for (var i = len; i >= 0; --i)
     for (var j = i; j <= len; ++j)
-      for (var k = i; k <= j; ++k) {
-	var split = getSplit (text, i, j, k)
-	insideFillOrder.forEach (function (lhs) {
-	  cfg.cfg[lhs].opts.forEach (function (rhs) {
-	    var weight = ruleWeight (cfg, inside, split, rhs)
-	    inside[i][j-i][lhs] = (inside[i][j-i][lhs] || 0) + weight
-	  })
-	})
+      for (var s = nSym - 1; s >= 0; --s) {
+        var opts = cfg.ranked[s].opts
+        for (var r = 0; r < opts.length; ++r) {
+          var rhs = opts[r]
+          for (var k = rhs.length === 1 ? j : i; k <= j; ++k) {
+	    var weight = ruleWeight (inside, text, i, j, k, rhs)
+            if (weight)
+	      inside[i][j-i][s] = (inside[i][j-i][s] || 0) + weight
+	  }
+        }
       }
   return inside
 }
 
 function parseInside (ParseTree, config, cfg, text, rng) {
   var inside = fillInside (cfg, text)
-  var trace = sampleTrace (cfg, text, inside, 0, text.length, cfg.start, rng)
+  if (!inside[0][text.length][cfg.rank[cfg.start]])
+    return ''
+  var trace = sampleTrace (cfg, text, inside, 0, text.length, cfg.rank[cfg.start], rng)
   return ['root'].concat (transformTrace (ParseTree, ParseTree, cfg, trace).slice(1))
 }
 
@@ -4474,6 +4503,16 @@ var binaryFunction = {
   },
   join: function (l, r, lv, rv) {
     return makeArray(lv).join (r)
+  },
+  parse: function (l, r, lv, rv, config) {
+    var result = ''
+    if (!(r.length > (config.maxParseLength || this.maxParseLength))) {
+      var parse = Chomsky.parse (this, extend ({}, config, { root: l,
+                                                             text: r }))
+      if (parse)
+        result = makeArray (parse)
+    }
+    return result
   }
 }
 
@@ -4855,18 +4894,6 @@ function makeExpansionPromise (config) {
                   case 'syntax':
                     node.evaltree = parseRhs (arg)
                     expansion.value = pt.makeRhsTree (node.evaltree, makeSymbolName)
-                    expansion.text = makeString (expansion.value)
-                    break
-
-                  case 'syntax':
-                    node.evaltree = parseRhs (arg)
-                    expansion.value = pt.makeRhsTree (node.evaltree, makeSymbolName)
-                    expansion.text = makeString (expansion.value)
-                    break
-
-                  case 'parse':
-                    expansion.value = Chomsky.parse (pt, extend ({}, config, { root: arg,
-                                                                               ParseTree: pt }))
                     expansion.text = makeString (expansion.value)
                     break
 
@@ -5348,6 +5375,7 @@ module.exports = {
   maxReps: 10,
   maxLength: 1000,
   maxNodes: 1000,
+  maxParseLength: 100,
 
   // parsing
   RhsParser: RhsParser,

@@ -332,9 +332,23 @@ function doTests (testRunner) {
   expectExpand ('$a={1}$b={2}$c={3}&let$a={~}$b={test}$c={1}{&eval{$a&cap{$b}$c}}$a&cap{$b}$c', 'Testing123')
   expectExpand ('$a={1}$b={2}$c={3}&let$a={~}$b={test}$c={1}{&eval{$a&cap{$b}$c}$a&cap{$b}$c}', 'Testing~Test1')
 
-  // parse
+  // syntax, parse
   expectExpand ('&json&syntax&quote{$x=[a|b]}', '[[["$","x","=",["{",[["[",[[["a"],"|"],[["b"]]],"]"]],"}"]]]]')
 
+  expectExpand ('[a=>cat|#a# #a#]&json&parse{#a#}{cat cat cat}', '[["root",["#a#",["alt",["#a#",["alt",["#a#",["alt","cat"]]," ",["#a#",["alt","cat"]]]]," ",["#a#",["alt","cat"]]]]]]', {maxTries:maxTries})
+  expectExpand ('[a=>cat|#a# #a#]&json&parse{#a#}{cat cat cat}', '[["root",["#a#",["alt",["#a#",["alt","cat"]]," ",["#a#",["alt",["#a#",["alt","cat"]]," ",["#a#",["alt","cat"]]]]]]]]', {maxTries:maxTries})
+  expectExpand ('[a=>cat|#a# #a#]&json&parse{#a#}{cat cat dog}', '[""]')
+  expectExpand ('[a=>cat|#a# #a#]&json&parse{#a#}{cat cat cat}', '[""]', {maxParseLength:5})
+
+  expectExpand ('[a=>$animal|#a# #a#][animal:cat]&json&parse{#a#}{cat cat cat}', '[["root",["#a#",["alt",["#a#",["alt",["$animal","cat"]]]," ",["#a#",["alt",["#a#",["alt",["$animal","cat"]]]," ",["#a#",["alt",["$animal","cat"]]]]]]]]]', {maxTries:maxTries})
+  expectExpand ('[a=>~abc|#a# #a#]&json&parse{#a#}{def def def}', '[["root",["#a#",["alt",["#a#",["alt",["#a#",["alt",["~abc","def"]]]," ",["#a#",["alt",["~abc","def"]]]]]," ",["#a#",["alt",["~abc","def"]]]]]]]', {maxTries:maxTries})
+
+  expectExpand ('[a=>cat|dog]&json&parse{#a# $a}&quote{cat [cat|dog]}', '[["root",["#a#",["alt","cat"]]," ",["$a","[cat|dog]"]]]')
+
+  expectExpand ('[sentence=>#plural_noun# #plural_verb# #adj_or_noun#|#singular_noun# #singular_verb# #adj_or_noun#][adj_or_noun=>#noun#|like #noun#][noun=>#plural_noun#|#singular_noun#][plural_noun=>fruit flies][singular_noun=>fruit|a banana][plural_verb=>fly|like][singular_verb=>flies|likes]&json&parse#sentence#{fruit flies like a banana}', '[["root",["#sentence#",["alt",["#plural_noun#","fruit flies"]," ",["#plural_verb#",["alt","like"]]," ",["#adj_or_noun#",["alt",["#noun#",["alt",["#singular_noun#",["alt","a banana"]]]]]]]]]]', {maxTries:maxTries})
+  expectExpand ('[sentence=>#plural_noun# #plural_verb# #adj_or_noun#|#singular_noun# #singular_verb# #adj_or_noun#][adj_or_noun=>#noun#|like #noun#][noun=>#plural_noun#|#singular_noun#][plural_noun=>fruit flies][singular_noun=>fruit|a banana][plural_verb=>fly|like][singular_verb=>flies|likes]&json&parse#sentence#{fruit flies like a banana}', '[["root",["#sentence#",["alt",["#singular_noun#",["alt","fruit"]]," ",["#singular_verb#",["alt","flies"]]," ",["#adj_or_noun#",["alt","like ",["#noun#",["alt",["#singular_noun#",["alt","a banana"]]]]]]]]]]', {maxTries:maxTries})
+
+  
   // down with fixed nonterminals
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'yo earthling', {maxTries:maxTries})
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'oy earthling', {maxTries:maxTries})

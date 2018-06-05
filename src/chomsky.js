@@ -6,10 +6,24 @@ function makeChomskyNormalCFG (ParseTree, config) {
   if (!start)
     return null
   var toposort = toposortSymbols (cfg)
+  var sortOrder = toposort.sort || Object.keys(cfg.cfg).sort()
+  var symbolRank = {}
+  sortOrder.forEach (function (sym, n) { symbolRank[sym] = n })
+  sortOrder.forEach (function (sym) {
+    if (cfg[sym].opts)
+      cfg[sym].opts.forEach (function (opt) {
+        opt.rhs.forEach (function (node) {
+          if (node.type === 'nonterm')
+            node.rank = symbolRank[node.name]
+        })
+      })
+  })
   return { cfg: cfg,
+           ranked: sortOrder.map (function (sym) { return cfg[sym] }),
 	   empties: toposort.empties,
 	   cyclic: toposort.cyclic,
-	   sort: toposort.sort,
+	   sort: sortOrder,
+           rank: symbolRank,
 	   start: start.name }
 }
 
@@ -179,29 +193,28 @@ function toposortSymbols (cfg) {
   return trans
 }
 
-function getSplit (text, i, j, k) {
-  return { subseq: [text.substr(i,k-i), text.substr(k,j-k)],
-	   start: [i, k],
-	   end: [k, j],
-	   len: [k-i, j-k] }
-}
-
-function ruleWeight (cfg, inside, split, rhs) {
-  return rhs.rhs.reduce (function (w, node, pos) {
-    return w * (node.type === 'term'
-		? (node.text === split.subseq[pos] ? 1 : 0)
-		: (inside[split.start[pos]][split.len[pos]][node.name] || 0))
-  }, rhs.weight)
+function ruleWeight (inside, text, i, j, k, rhs) {
+  var rhsLen = rhs.rhs.length
+  if (rhsLen === 1 && k < j)
+    return 0
+  var w = rhs.weight
+  for (var pos = 0; w && pos < rhsLen; ++pos) {
+    var node = rhs.rhs[pos]
+    var start = pos ? k : i, len = pos ? (j-k) : (k-i)
+    w *= (node.type === 'term'
+	  ? (node.text.length === len && node.text === text.substr(start,len) ? 1 : 0)
+	  : (inside[start][len][node.rank] || 0))
+  }
+  return w
 }
 
 function sampleTrace (cfg, text, inside, i, j, lhs, rng) {
   rng = rng || Math.random
   var applications = [], weights = [], totalWeight = 0
   for (var k = i; k <= j; ++k) {
-    var split = getSplit (text, i, j, k)
-    cfg.cfg[lhs].opts.forEach (function (rhs) {
-      var w = ruleWeight (cfg, inside, split, rhs)
-      applications.push ({ split: split, rhs: rhs})
+    cfg.ranked[lhs].opts.forEach (function (rhs) {
+      var w = ruleWeight (inside, text, i, j, k, rhs)
+      applications.push ({ k: k, rhs: rhs })
       weights.push (w)
       totalWeight += w
     })
@@ -210,11 +223,11 @@ function sampleTrace (cfg, text, inside, i, j, lhs, rng) {
   for (n = 0; n < applications.length - 1; ++n)
     if ((r -= weights[n]) <= 0)
       break
-  var app = applications[n], split = app.split, rhs = app.rhs
-  return [lhs].concat (rhs.rhs.map (function (node, pos) {
+  var app = applications[n], k = app.k, rhs = app.rhs
+  return [cfg.sort[lhs]].concat (rhs.rhs.map (function (node, pos) {
     return (node.type === 'term'
             ? node.text
-            : sampleTrace (cfg, text, inside, split.start[pos], split.end[pos], node.name, rng))
+            : sampleTrace (cfg, text, inside, pos ? k : i, pos ? j : k, node.rank, rng))
   }))
 }
 
@@ -238,32 +251,33 @@ function transformTrace (ParseTree, config, cfg, trace) {
 }
 
 function fillInside (cfg, text) {
-  var len = text.length
+  var len = text.length, nSym = cfg.sort.length
   var inside = new Array(len+1).fill(0).map (function (_, n) {
     return new Array(len+1-n).fill(0).map (function() {
-      return {}
+      return new Array(nSym).fill(0)
     })
   })
-  var insideFillOrder = (cfg.sort || Object.keys(cfg.cfg).sort()).slice(0).reverse()
   for (var i = len; i >= 0; --i)
     for (var j = i; j <= len; ++j)
-      for (var k = i; k <= j; ++k) {
-	var split = getSplit (text, i, j, k)
-	insideFillOrder.forEach (function (lhs) {
-	  cfg.cfg[lhs].opts.forEach (function (rhs) {
-	    var weight = ruleWeight (cfg, inside, split, rhs)
-	    inside[i][j-i][lhs] = (inside[i][j-i][lhs] || 0) + weight
-	  })
-	})
+      for (var s = nSym - 1; s >= 0; --s) {
+        var opts = cfg.ranked[s].opts
+        for (var r = 0; r < opts.length; ++r) {
+          var rhs = opts[r]
+          for (var k = rhs.length === 1 ? j : i; k <= j; ++k) {
+	    var weight = ruleWeight (inside, text, i, j, k, rhs)
+            if (weight)
+	      inside[i][j-i][s] = (inside[i][j-i][s] || 0) + weight
+	  }
+        }
       }
   return inside
 }
 
 function parseInside (ParseTree, config, cfg, text, rng) {
   var inside = fillInside (cfg, text)
-  if (!inside[0][text.length][cfg.start])
+  if (!inside[0][text.length][cfg.rank[cfg.start]])
     return ''
-  var trace = sampleTrace (cfg, text, inside, 0, text.length, cfg.start, rng)
+  var trace = sampleTrace (cfg, text, inside, 0, text.length, cfg.rank[cfg.start], rng)
   return ['root'].concat (transformTrace (ParseTree, ParseTree, cfg, trace).slice(1))
 }
 

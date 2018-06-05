@@ -97,6 +97,33 @@ witch the hello, of world
 ~~~~
 
 You may also recognize that Bracery's alternations form a [context-free grammar](https://en.wikipedia.org/wiki/Context-free_grammar).
+Bracery includes a stochastic parser for this grammar:
+
+~~~~
+[sentence=>#plural_noun# #plural_verb# #adj_or_noun#|#singular_noun# #singular_verb# #adj_or_noun#]
+[adj_or_noun=>#noun#|like #noun#]
+[noun=>#plural_noun#|#singular_noun#]
+[plural_noun=>fruit flies|bananas]
+[singular_noun=>fruit|a banana]
+[plural_verb=>fly|like][singular_verb=>flies|likes]
+&json&parse#sentence#{fruit flies like a banana}
+~~~~
+
+<!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bsentence%3D%3E%23plural_noun%23%20%23plural_verb%23%20%23adj_or_noun%23%7C%23singular_noun%23%20%23singular_verb%23%20%23adj_or_noun%23%5D%0A%5Badj_or_noun%3D%3E%23noun%23%7Clike%20%23noun%23%5D%0A%5Bnoun%3D%3E%23plural_noun%23%7C%23singular_noun%23%5D%0A%5Bplural_noun%3D%3Efruit%20flies%7Cbananas%5D%0A%5Bsingular_noun%3D%3Efruit%7Ca%20banana%5D%0A%5Bplural_verb%3D%3Efly%7Clike%5D%5Bsingular_verb%3D%3Eflies%7Clikes%5D%0A%26json%26parse%23sentence%23%7Bfruit%20flies%20like%20a%20banana%7D">Try this</a> </em>
+
+This should give one of two different parses of "fruit flies like a banana".
+One parse has "fruit flies" as the noun, and "like" as the verb
+
+~~~~
+[["root",["#sentence#",["alt",["#plural_noun#","fruit flies"]," ",["#plural_verb#",["alt","like"]]," ",["#adj_or_noun#",["alt",["#noun#",["alt",["#singular_noun#",["alt","a banana"]]]]]]]]]]
+~~~~
+
+The other parse has "fruit" as the noun, and "like" as the verb
+
+~~~~
+[["root",["#sentence#",["alt",["#singular_noun#",["alt","fruit"]]," ",["#singular_verb#",["alt","flies"]]," ",["#adj_or_noun#",["alt","like ",["#noun#",["alt",["#singular_noun#",["alt","a banana"]]]]]]]]]]
+~~~~
+
 However, you don't need to use any of these programmer-oriented features, if you just want to write generative text.
 Just [start typing](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24greetings%3D%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%24wizard%3D%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%24earthsea%3D%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%24greetings%2C%20%24wizard%20of%20%24earthsea) and go!
 
@@ -433,7 +460,7 @@ The former (client expansions) are called _variables_ and the latter (server exp
 
 # Syntax
 
-The formal grammar for Bracery is in [src/rhs.peg.js](src/rhs.peg.js) (specified using [PegJS](https://pegjs.org/))
+The formal grammar for Bracery is in [src/rhs.peg.js](src/rhs.peg.js) (specified using [PEG.js](https://pegjs.org/))
 
 Language features include
 
@@ -519,6 +546,14 @@ Language features include
 - functions, alternations, repetitions, variable assignments, and conditionals can be arbitrarily nested
 - everything can occur asynchronously, so symbols can be resolved and expanded from a remote store
    - but if you have a synchronously resolvable store (i.e. a local Tracery object), everything can work synchronously too
+- access to the parser
+   - `&syntax{...}` returns the parse tree for the given Bracery expression
+   - `&parse{source}{expr}` returns a parse tree by which Bracery expression `source` might have generated `expr`, or the empty string if no parse exists
+      - The source expression `source` (and any other Bracery code that it indirectly invokes) may not contain any function calls or variable assignments, only symbol references and variable lookups/expansions. This makes it a strict [context-free grammar](https://en.wikipedia.org/wiki/Context-free_grammar)
+      - The parser uses the [Inside algorithm](https://en.wikipedia.org/wiki/Inside%E2%80%93outside_algorithm) to sample from the posterior distribution of valid parses
+      - The Inside algorithm is _O(L^3)_ in string length _L_, which is rather slow, so the maximum string length that `&parse` can handle is restricted by the `maxParseLength` config parameter
+      - A [stochastic Earley parser](https://www.npmjs.com/package/probabilistic-earley-parser) might work faster than Inside
+      - NB `&syntax` uses [Parsing Expression Grammars](https://en.wikipedia.org/wiki/Parsing_expression_grammar) (via [PEG.js](https://pegjs.org/)) which are faster, but unsuited to stochastic grammars such as those specified by a Bracery program
 - syntactic sugar/hacks/apologies
    - the Tracery-style expression `#name#` is parsed and implemented as `&if{$name}then{&eval{$name}}else{~name}`. Tracery overloads the same namespace for symbol and variable names, and uses the variable if it's defined; this quasi-macro reproduces that behavior (almost)
    - braces around single-argument functions or symbols can be omitted, e.g. `$currency=&cap&plural~name` means the same as `$currency={&cap{&plural{~name}}}`
@@ -673,6 +708,7 @@ You can also use the `templates2dot.js` script to get a visualization of the Mar
 bin/templates2dot.js -o examples/markov/good_news_bad_news.txt
 ~~~~
  
+
 
 
 

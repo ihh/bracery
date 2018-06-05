@@ -915,10 +915,14 @@ var binaryFunction = {
     return makeArray(lv).join (r)
   },
   parse: function (l, r, lv, rv, config) {
-    if (r.length > (config.maxParseLength || this.maxParseLength))
-      return ''
-    return makeArray (Chomsky.parse (this, extend ({}, config, { root: l,
-                                                                 text: r })))
+    var result = ''
+    if (!(r.length > (config.maxParseLength || this.maxParseLength))) {
+      var parse = Chomsky.parse (this, extend ({}, config, { root: l,
+                                                             text: r }))
+      if (parse)
+        result = makeArray (parse)
+    }
+    return result
   }
 }
 

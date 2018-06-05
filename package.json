@@ -24,6 +24,7 @@
   "homepage": "https://github.com/ihh/bracery#readme",
   "dependencies": {
     "bluebird": "^3.5.1",
+    "canonicaljson": "^1.0.1",
     "colors": "^1.2.5",
     "compromise": "^11.7.0",
     "jsonschema": "~1.2.4",

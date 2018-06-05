@@ -1,36 +1,37 @@
 var assert = require('assert')
+var canonicaljson = require('canonicaljson')
 var bracery = require('../index')
 
 var initJson = { hello: "[yo|hi]",
 		 world: ["world", "planet", "kids", "#hello#xxx#hello##hello#zzz"] }
 
-var chomskyJson = {cfg:{"1":{type:"start",opts:[{rhs:[{type:"nonterm",name:"hello"},{type:"nonterm",name:"6"}],weight:1}]},"2":{type:"alt",opts:[{rhs:[{type:"term",text:"yo"}],weight:0.5},{rhs:[{type:"term",text:"hi"}],weight:0.5}]},"3":{type:"elim",opts:[{rhs:[{type:"nonterm",name:"hello"},{type:"term",text:"zzz"}],weight:1}]},"4":{type:"elim",opts:[{rhs:[{type:"nonterm",name:"hello"},{type:"nonterm",name:"3"}],weight:1}]},"5":{type:"elim",opts:[{rhs:[{type:"term",text:"xxx"},{type:"nonterm",name:"4"}],weight:1}]},"6":{type:"elim",opts:[{rhs:[{type:"term",text:" "},{type:"nonterm",name:"world"}],weight:1}]},world:{type:"sym",opts:[{rhs:[{type:"term",text:"world"}],weight:0.25},{rhs:[{type:"term",text:"planet"}],weight:0.25},{rhs:[{type:"term",text:"kids"}],weight:0.25},{rhs:[{type:"nonterm",name:"hello"},{type:"nonterm",name:"5"}],weight:0.25}]},hello:{type:"sym",opts:[{rhs:[{type:"nonterm",name:"2"}],weight:1}]}},empties:[],sort:["1","3","4","5","6","world","hello","2"],start:"1"}
+var chomskyJson = {cfg:{"1":{opts:[{rhs:[{name:"hello",type:"nonterm"},{name:"7",type:"nonterm"}],weight:1}],type:"start"},"2":{opts:[{rhs:[{text:"world",type:"term"}],weight:2.5E-1},{rhs:[{text:"planet",type:"term"}],weight:2.5E-1},{rhs:[{text:"kids",type:"term"}],weight:2.5E-1},{rhs:[{name:"hello",type:"nonterm"},{name:"6",type:"nonterm"}],weight:2.5E-1}],type:"alt"},"3":{opts:[{rhs:[{text:"yo",type:"term"}],weight:5.0E-1},{rhs:[{text:"hi",type:"term"}],weight:5.0E-1}],type:"alt"},"4":{opts:[{rhs:[{name:"hello",type:"nonterm"},{text:"zzz",type:"term"}],weight:1}],type:"elim"},"5":{opts:[{rhs:[{name:"hello",type:"nonterm"},{name:"4",type:"nonterm"}],weight:1}],type:"elim"},"6":{opts:[{rhs:[{text:"xxx",type:"term"},{name:"5",type:"nonterm"}],weight:1}],type:"elim"},"7":{opts:[{rhs:[{text:" ",type:"term"},{name:"world",type:"nonterm"}],weight:1}],type:"elim"},hello:{opts:[{rhs:[{name:"3",type:"nonterm"}],weight:1}],type:"sym"},world:{opts:[{rhs:[{name:"2",type:"nonterm"}],weight:1}],type:"sym"}},cyclic:null,empties:[],sort:["1","4","5","6","7","world","hello","2","3"],start:"1"}
 
 var cyclicJson = {a:["~b ~c","~b~d"],b:["~e~f"],c:["~f ~g"],d:"",e:["","~a"],f:["[|x]"],g:"x"}
-var chomskyCyclicJson = {cfg:{"1":{type:"start",opts:[{rhs:[{type:"nonterm",name:"a"}],weight:1}]},"2":{type:"alt",opts:[{rhs:[],weight:0.5},{rhs:[{type:"term",text:"x"}],weight:0.5}]},"3":{type:"elim",opts:[{rhs:[{type:"term",text:" "},{type:"nonterm",name:"g"}],weight:1}]},"4":{type:"elim",opts:[{rhs:[{type:"term",text:" "},{type:"nonterm",name:"c"}],weight:1}]},a:{type:"sym",opts:[{rhs:[{type:"nonterm",name:"b"},{type:"nonterm",name:"4"}],weight:0.5},{rhs:[{type:"nonterm",name:"b"},{type:"nonterm",name:"d"}],weight:0.5}]},c:{type:"sym",opts:[{rhs:[{type:"nonterm",name:"f"},{type:"nonterm",name:"3"}],weight:1}]},g:{type:"sym",opts:[{rhs:[{type:"term",text:"x"}],weight:1}]},f:{type:"sym",opts:[{rhs:[{type:"nonterm",name:"2"}],weight:1}]},b:{type:"sym",opts:[{rhs:[{type:"nonterm",name:"e"},{type:"nonterm",name:"f"}],weight:1}]},e:{type:"sym",opts:[{rhs:[],weight:0.5},{rhs:[{type:"nonterm",name:"a"}],weight:0.5}]},d:{type:"sym",opts:[{rhs:[],weight:1}]}},empties:["1","2","a","b","d","e","f"],cyclic:true,start:"1"}
+var chomskyCyclicJson = {cfg:{"1":{opts:[{rhs:[{name:"a",type:"nonterm"}],weight:1}],type:"start"},"2":{opts:[{rhs:[{name:"b",type:"nonterm"},{name:"6",type:"nonterm"}],weight:5.0E-1},{rhs:[{name:"b",type:"nonterm"},{name:"d",type:"nonterm"}],weight:5.0E-1}],type:"alt"},"3":{opts:[{rhs:[],weight:5.0E-1},{rhs:[{text:"x",type:"term"}],weight:5.0E-1}],type:"alt"},"4":{opts:[{rhs:[{text:" ",type:"term"},{name:"g",type:"nonterm"}],weight:1}],type:"elim"},"5":{opts:[{rhs:[],weight:5.0E-1},{rhs:[{name:"a",type:"nonterm"}],weight:5.0E-1}],type:"alt"},"6":{opts:[{rhs:[{text:" ",type:"term"},{name:"c",type:"nonterm"}],weight:1}],type:"elim"},a:{opts:[{rhs:[{name:"2",type:"nonterm"}],weight:1}],type:"sym"},b:{opts:[{rhs:[{name:"e",type:"nonterm"},{name:"f",type:"nonterm"}],weight:1}],type:"sym"},c:{opts:[{rhs:[{name:"f",type:"nonterm"},{name:"4",type:"nonterm"}],weight:1}],type:"sym"},d:{opts:[{rhs:[],weight:1}],type:"sym"},e:{opts:[{rhs:[{name:"5",type:"nonterm"}],weight:1}],type:"sym"},f:{opts:[{rhs:[{name:"3",type:"nonterm"}],weight:1}],type:"sym"},g:{opts:[{rhs:[{text:"x",type:"term"}],weight:1}],type:"sym"}},cyclic:true,empties:["1","2","3","5","a","b","d","e","f"],sort:null,start:"1"}
 
 var topoJson = {a:["~b ~c","~b ~d"],b:["~e ~f"],c:["~f ~g"],d:"",e:["","~a"],f:["[|x]"],g:"x"}
-var chomskyTopoJson = {cfg:{"1":{type:"start",opts:[{rhs:[{type:"nonterm",name:"a"}],weight:1}]},"2":{type:"alt",opts:[{rhs:[],weight:0.5},{rhs:[{type:"term",text:"x"}],weight:0.5}]},"3":{type:"elim",opts:[{rhs:[{type:"term",text:" "},{type:"nonterm",name:"g"}],weight:1}]},"4":{type:"elim",opts:[{rhs:[{type:"term",text:" "},{type:"nonterm",name:"f"}],weight:1}]},"5":{type:"elim",opts:[{rhs:[{type:"term",text:" "},{type:"nonterm",name:"c"}],weight:1}]},"6":{type:"elim",opts:[{rhs:[{type:"term",text:" "},{type:"nonterm",name:"d"}],weight:1}]},a:{type:"sym",opts:[{rhs:[{type:"nonterm",name:"b"},{type:"nonterm",name:"5"}],weight:0.5},{rhs:[{type:"nonterm",name:"b"},{type:"nonterm",name:"6"}],weight:0.5}]},c:{type:"sym",opts:[{rhs:[{type:"nonterm",name:"f"},{type:"nonterm",name:"3"}],weight:1}]},g:{type:"sym",opts:[{rhs:[{type:"term",text:"x"}],weight:1}]},f:{type:"sym",opts:[{rhs:[{type:"nonterm",name:"2"}],weight:1}]},b:{type:"sym",opts:[{rhs:[{type:"nonterm",name:"e"},{type:"nonterm",name:"4"}],weight:1}]},e:{type:"sym",opts:[{rhs:[],weight:0.5},{rhs:[{type:"nonterm",name:"a"}],weight:0.5}]},d:{type:"sym",opts:[{rhs:[],weight:1}]}},empties:["2","d","e","f"],sort:["1","5","6","c","g","f","b","e","d","3","2","4","a"],start:"1"}
+var chomskyTopoJson = {cfg:{"1":{opts:[{rhs:[{name:"a",type:"nonterm"}],weight:1}],type:"start"},"2":{opts:[{rhs:[{name:"b",type:"nonterm"},{name:"7",type:"nonterm"}],weight:5.0E-1},{rhs:[{name:"b",type:"nonterm"},{name:"8",type:"nonterm"}],weight:5.0E-1}],type:"alt"},"3":{opts:[{rhs:[],weight:5.0E-1},{rhs:[{text:"x",type:"term"}],weight:5.0E-1}],type:"alt"},"4":{opts:[{rhs:[{text:" ",type:"term"},{name:"g",type:"nonterm"}],weight:1}],type:"elim"},"5":{opts:[{rhs:[],weight:5.0E-1},{rhs:[{name:"a",type:"nonterm"}],weight:5.0E-1}],type:"alt"},"6":{opts:[{rhs:[{text:" ",type:"term"},{name:"f",type:"nonterm"}],weight:1}],type:"elim"},"7":{opts:[{rhs:[{text:" ",type:"term"},{name:"c",type:"nonterm"}],weight:1}],type:"elim"},"8":{opts:[{rhs:[{text:" ",type:"term"},{name:"d",type:"nonterm"}],weight:1}],type:"elim"},a:{opts:[{rhs:[{name:"2",type:"nonterm"}],weight:1}],type:"sym"},b:{opts:[{rhs:[{name:"e",type:"nonterm"},{name:"6",type:"nonterm"}],weight:1}],type:"sym"},c:{opts:[{rhs:[{name:"f",type:"nonterm"},{name:"4",type:"nonterm"}],weight:1}],type:"sym"},d:{opts:[{rhs:[],weight:1}],type:"sym"},e:{opts:[{rhs:[{name:"5",type:"nonterm"}],weight:1}],type:"sym"},f:{opts:[{rhs:[{name:"3",type:"nonterm"}],weight:1}],type:"sym"},g:{opts:[{rhs:[{text:"x",type:"term"}],weight:1}],type:"sym"}},cyclic:null,empties:["3","5","d","e","f"],sort:["1","7","8","c","g","f","b","e","d","4","3","6","5","a","2"],start:"1"}
 
 var b = new bracery.Bracery (initJson)
 describe('Chomsky normal form', function() {
   it('should convert a test grammar into Chomsky normal form', function (done) {
     var json = bracery.Chomsky.makeChomskyNormalCFG (b, '~hello ~world')
-    assert.equal (JSON.stringify(json), JSON.stringify(chomskyJson))
+    assert.equal (canonicaljson.stringify(json), canonicaljson.stringify(chomskyJson))
     done()
   })
 
   it('should find a null cycle', function (done) {
     var b2 = new bracery.Bracery (cyclicJson)
     var json2 = bracery.Chomsky.makeChomskyNormalCFG (b2, '~a')
-    assert.equal (JSON.stringify(json2), JSON.stringify(chomskyCyclicJson))
+    assert.equal (canonicaljson.stringify(json2), canonicaljson.stringify(chomskyCyclicJson))
     done()
   })
 
   it('should toposort', function (done) {
     var b3 = new bracery.Bracery (topoJson)
     var json3 = bracery.Chomsky.makeChomskyNormalCFG (b3, '~a')
-    assert.equal (JSON.stringify(json3), JSON.stringify(chomskyTopoJson))
+    assert.equal (canonicaljson.stringify(json3), canonicaljson.stringify(chomskyTopoJson))
     done()
   })
 

@@ -164,7 +164,7 @@ function sampleParseTree (rhs, config) {
       default:
       case 'sym':
 	result = { type: 'sym' };
-        ['name','id'].forEach (function (key) {
+        ['name','id','method'].forEach (function (key) {
           if (typeof(node[key]) !== 'undefined')
             result[key] = node[key]
         })
@@ -376,6 +376,8 @@ function makeRhsTree (rhs, makeSymbolName) {
       case 'func':
         if (tok.funcname === 'link') {
           result = [funcChar, tok.funcname].concat ([tok.args[0], tok.args[1], tok.args[2].args[0]].map (function (arg) { return makeFuncArgTree (pt, [arg], makeSymbolName) }))
+        } else if (tok.funcname === 'parse') {
+          result = [funcChar, tok.funcname].concat ([tok.args[0].args, [tok.args[1]]].map (function (args) { return makeFuncArgTree (pt, args, makeSymbolName) }))
         } else if (binaryFunction[tok.funcname] || tok.funcname === 'apply') {
           result = [funcChar, tok.funcname].concat (tok.args.map (function (arg) { return makeFuncArgTree (pt, [arg], makeSymbolName) }))
         } else if (varFunction[tok.funcname]) {
@@ -473,8 +475,8 @@ function defaultMakeSymbolName (node) {
   return node.name
 }
 
-function throwExpandError (node) {
-  throw new Error ('unexpanded symbol node')
+function throwSymbolError (config) {
+  throw new Error ('unhandled method (' + config.node.method + ') for symbol ' + symChar + config.node.name)
 }
 
 function syncPromiseResolve() {
@@ -519,7 +521,13 @@ function makeSyncConfig (config) {
                            : config.after),
                    expand: (config.expandSync
                             ? makeSyncResolver (config, config.expandSync)
-                            : (config.expand || throwExpandError)) })
+                            : (config.expand || throwSymbolError)),
+                   get: (config.getSync
+                         ? makeSyncResolver (config, config.getSync)
+                         : (config.get || throwSymbolError)),
+                   set: (config.setSync
+                         ? makeSyncResolver (config, config.setSync)
+                         : (config.set || throwSymbolError)) })
 }
 
 function makeRhsExpansionSync (config) {
@@ -1288,6 +1296,18 @@ function makeExpansionPromise (config) {
                     expansion.text = makeString (expansion.value)
                     break
 
+                  case 'syntax':
+                    node.evaltree = parseRhs (arg)
+                    expansion.value = pt.makeRhsTree (node.evaltree, makeSymbolName)
+                    expansion.text = makeString (expansion.value)
+                    break
+
+                  case 'parse':
+                    node.evaltree = parseRhs (arg)
+                    expansion.value = pt.makeRhsTree (node.evaltree, makeSymbolName)
+                    expansion.text = makeString (expansion.value)
+                    break
+
                     // call, apply
                   case 'call':
                   case 'apply':
@@ -1496,8 +1516,9 @@ function makeExpansionPromise (config) {
           case 'sym':
             var symbolExpansionPromise
             var expr = symChar + (node.name || node.id)
-            if (!node.rhs && config.expand)
-              symbolExpansionPromise = handlerPromise ([node, varVal, depth], resolve(), config.before, 'expand')
+            var method = node.method
+            if (!node.rhs && config[method])
+              symbolExpansionPromise = handlerPromise ([node, varVal, depth], resolve(), config.before, method)
               .then (function() {
                 return (node.bind
                         ? (makeRhsExpansionPromiseFor (node.bind)
@@ -1515,15 +1536,18 @@ function makeExpansionPromise (config) {
                                                                      funcname: 'list',
                                                                      args: args.map (function (_arg, n) { return { type: 'lookup', varname: makeGroupVarName (n + 1) } }) }]]]),
                                                        function (localConfig) {
-                                                         // the expand callback should call sampleParseTree() and return the sampled tree
-                                                         return config.expand (extend ({},
-                                                                                       localConfig,
-                                                                                       { node: node }))
+                                                         // these callbacks should return rhs's, i.e. arrays
+                                                         // config.expand should return the sampled tree, calling sampleParseTree() if necessary
+                                                         // config.get should return a single-element list
+                                                         // config.set should return an empty list
+                                                         return config[method] (extend ({},
+                                                                                        localConfig,
+                                                                                        { node: node }))
                                                        })
                   })
               }).then (function (rhs) {
                 node.rhs = rhs
-                return handlerPromise ([node, varVal, depth, rhs], resolve(), config.after, 'expand')
+                return handlerPromise ([node, varVal, depth, rhs], resolve(), config.after, method)
               })
             else
               symbolExpansionPromise = resolve()

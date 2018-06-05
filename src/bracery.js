@@ -169,6 +169,22 @@ Bracery.prototype._expandSymbol = function (config) {
   return rhs
 }
 
+Bracery.prototype._getSymbol = function (config) {
+  var symbolName = config.symbolName || config.node.name
+  var result
+  symbolName = validateSymbolName (symbolName)
+  var rules = this.getRules (symbolName)
+  if (typeof(rules) !== 'function') {
+    var rulesRhs = rules.map (function (rule) { return ParseTree.makeRhsText (rule) })
+    result = (rulesRhs.length
+              ? (rulesRhs.length === 1
+                 ? rulesRhs
+                 : [ParseTree.leftSquareBraceChar + rulesRhs.join (ParseTree.pipeChar) + ParseTree.rightSquareBraceChar])
+              : '')
+  }
+  return result
+}
+
 function stringifyText (expansion) {
   if (expansion)
     expansion.text = ParseTree.makeString (expansion.text)
@@ -176,7 +192,9 @@ function stringifyText (expansion) {
 }
 
 Bracery.prototype._expandRhs = function (config) {
-  var newConfig = extend ({ expand: this._expandSymbol.bind (this) }, config)
+  var newConfig = extend ({ expand: this._expandSymbol.bind (this),
+                            get: this._getSymbol.bind (this),
+                            set: function() { return [] } }, config)
   if (newConfig.callback) {
     var promise = ParseTree.makeRhsExpansionPromise (newConfig)
     if (typeof(newConfig.callback) === 'function')
@@ -219,6 +237,10 @@ Bracery.prototype.expandSymbol = function (symbolName, config) {
   return this._expandRhs (extend ({ vars: {} }, config, { rhs: [{ name: symbolName }] }))
 }
 
+Bracery.prototype.getSymbol = function (symbolName, config) {
+  return this._getSymbol (extend ({}, config, { symbolName: symbolName }))
+}
+
 Bracery.prototype.parse = function (text) {
   return ParseTree.makeRoot (ParseTree.parseRhs (text))
 }
@@ -235,7 +257,8 @@ module.exports = { Bracery: Bracery,
                    ParseTree: ParseTree,
                    RhsParser: RhsParser,
                    Validator: Validator,
-		   Chomsky: Chomsky,
+		   Chomsky: { makeChomskyNormalCFG: Chomsky.makeChomskyNormalCFG.bind(Chomsky,ParseTree),
+		              parse: Chomsky.parse.bind(Chomsky,ParseTree) },
                    Template: Template,
                    Promise: Promise,
                    nlp: nlp }

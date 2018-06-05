@@ -1,13 +1,11 @@
-var ParseTree = require('./ParseTree')
-
 // despite the name, this doesn't quite return Chomsky normal form, as we do not eliminate empty rules or transitions
-function makeChomskyNormalCFG (bracery, vars, rhs) {
+function makeChomskyNormalCFG (ParseTree, bracery, vars, rhs) {
   if (!rhs) {
     rhs = vars
     vars = {}
   }
   var cfg = {}
-  var start = makeChomskyNormalSymbol (bracery, vars, cfg, [typeof(rhs) === 'string' ? ParseTree.parseRhs(rhs) : rhs], 'start')
+  var start = makeChomskyNormalSymbol (ParseTree, bracery, vars, cfg, [typeof(rhs) === 'string' ? ParseTree.parseRhs(rhs) : rhs], 'start')
   if (!start)
     return null
   var toposort = toposortSymbols (cfg)
@@ -18,20 +16,18 @@ function makeChomskyNormalCFG (bracery, vars, rhs) {
 	   start: start.name }
 }
 
-function makeChomskyNormalRules (bracery, vars, cfg, name) {
+function makeChomskyNormalRules (ParseTree, bracery, vars, cfg, name) {
   var opts, rules
   if (vars[name])
     opts = [ParseTree.parseRhs (vars[name])]
-  else if (rules = bracery.rules[name])
-    opts = (typeof(rules) === 'string' ? [rules] : rules).map (function (rule) {
-      return typeof(rule) === 'string' ? ParseTree.parseRhs (rule) : rule
-    })
-  else
+  else if (symDef = bracery.getSymbol (name)) {
+    opts = [ParseTree.parseRhs (symDef.join(''))]
+  } else
     opts = []
-  return makeChomskyNormalSymbol (bracery, vars, cfg, opts, 'sym', name)
+  return makeChomskyNormalSymbol (ParseTree, bracery, vars, cfg, opts, 'sym', name)
 }
 
-function makeChomskyNormalSymbol (bracery, vars, cfg, rhsList, type, name, weight) {
+function makeChomskyNormalSymbol (ParseTree, bracery, vars, cfg, rhsList, type, name, weight) {
   name = name || (Object.keys(cfg).filter(function(name){return name.match(/^[0-9]+$/)}).length + 1).toString()
   if (typeof(cfg[name]) === 'undefined') {
     cfg[name] = true  // placeholder
@@ -45,13 +41,13 @@ function makeChomskyNormalSymbol (bracery, vars, cfg, rhsList, type, name, weigh
 			else if (node.type === 'term' || node.type === 'nonterm')
 			  cfgNode = node
 			else if (node.type === 'alt')
-			  cfgNode = makeChomskyNormalSymbol (bracery, vars, cfg, node.opts, 'alt')
+			  cfgNode = makeChomskyNormalSymbol (ParseTree, bracery, vars, cfg, node.opts, 'alt')
 			else if (node.type === 'sym')
-			  cfgNode = makeChomskyNormalRules (bracery, vars, cfg, node.name)
+			  cfgNode = makeChomskyNormalRules (ParseTree, bracery, vars, cfg, node.name)
 			else if (ParseTree.isTraceryExpr (node))
-			  cfgNode = makeChomskyNormalRules (bracery, vars, cfg, node.test[0].varname)
+			  cfgNode = makeChomskyNormalRules (ParseTree, bracery, vars, cfg, node.test[0].varname)
 			else if (ParseTree.isEvalVar (node))
-			  cfgNode = makeChomskyNormalRules (bracery, vars, cfg, node.args[0].varname)
+			  cfgNode = makeChomskyNormalRules (ParseTree, bracery, vars, cfg, node.args[0].varname)
 			else
 			  throw new Error ("Can't convert to context-free grammar: " + JSON.stringify(node))
 		      }
@@ -59,7 +55,7 @@ function makeChomskyNormalSymbol (bracery, vars, cfg, rhsList, type, name, weigh
 			      ? (normalRhs.rhs.length < 2
 				 ? { rhs: [cfgNode].concat (normalRhs.rhs),
 				     weight: normalRhs.weight }
-				 : { rhs: [cfgNode, makeChomskyNormalSymbol (bracery, vars, cfg, [normalRhs.rhs], 'elim')],
+				 : { rhs: [cfgNode, makeChomskyNormalSymbol (ParseTree, bracery, vars, cfg, [normalRhs.rhs], 'elim')],
 				     weight: normalRhs.weight })
 			      : null)
 		    }, { rhs: [], weight: 1 / rhsList.length })
@@ -212,7 +208,7 @@ function sampleTrace (cfg, text, inside, i, j, lhs, rng) {
   }))
 }
 
-function transformTrace (cfg, trace) {
+function transformTrace (ParseTree, cfg, trace) {
   return trace.slice(1).reduce (function (t, node) {
     if (typeof(node) === 'string')
       return t.concat ([node])
@@ -253,16 +249,16 @@ function fillInside (cfg, text) {
   return inside
 }
 
-function parseInside (cfg, text, rng) {
+function parseInside (ParseTree, cfg, text, rng) {
   var inside = fillInside (cfg, text)
   var trace = sampleTrace (cfg, text, inside, 0, text.length, cfg.start, rng)
-  return ['root'].concat (transformTrace (cfg, trace).slice(1))
+  return ['root'].concat (transformTrace (ParseTree, cfg, trace).slice(1))
 }
 
-function parse (config) {
+function parse (ParseTree, config) {
   var bracery = config.bracery
   var root = config.root || (ParseTree.traceryChar + bracery.getDefaultSymbol() + ParseTree.traceryChar)
-  var cfg = makeChomskyNormalCFG (bracery, config.vars || {}, root)
+  var cfg = makeChomskyNormalCFG (ParseTree, bracery, config.vars || {}, root)
   return parseInside (cfg, config.text, config.rng || bracery.rng)
 }
 

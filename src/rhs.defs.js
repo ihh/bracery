@@ -1,5 +1,5 @@
 function makeRep (unit, min, max) { return { type: 'rep', unit: unit, min: min, max: max } }
-function makeSymbol (name, args) { return { type: 'sym', name: name.toLowerCase(), bind: args } }
+function makeSymbolMethod (name, method, args) { return { type: 'sym', name: name.toLowerCase(), method: method, bind: args } }
 function makeLookup (name) { return { type: 'lookup', varname: name } }
 function makeAssign (name, value, visible) { return { type: 'assign', varname: name, value: value, visible: visible } }
 function makeLocalAssign (name, value, scope) { return { type: 'assign', varname: name, value: value, local: scope } }
@@ -24,6 +24,10 @@ function makeDefineFunction (args, inner) {
 function makeArgList (args) {
   return args && args.length ? [makeFunction ('list', args.map (wrapNodes))] : undefined
 }
+
+function makeSymbol (name, args) { return makeSymbolMethod (name, 'expand', args) }
+function makeGetSymbol (name) { return makeSymbolMethod (name, 'get') }
+function makeSetSymbol (name, args) { return makeSymbolMethod (name, 'set', args) }
 
 var defaultListVarName = '_'
 var defaultJoinText = ' '

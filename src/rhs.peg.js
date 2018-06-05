@@ -7,7 +7,6 @@ Node
   / "\\" escaped:. { return escaped }
   / "&." text:Text { return makeFunction ('value', [text]) }
   / Text
-  / Symbol
   / LocalAssignment
   / Repetition
   / Conditional
@@ -15,7 +14,6 @@ Node
   / VarAssignment
   / VarLookup
   / Alternation
-  / List
   / args:DummyBrackets { return wrapNodes (args) }
   / char:[\~\#&\$] { return char }
 
@@ -33,12 +31,33 @@ OuterNodeList
   / head:OuterNode { return [head] }
   / "" { return [] }
 
-Symbol
-  = sym:SymIdentifier args:ArgList { return makeSugaredSymbol (sym, makeArgList (args)) }
-  / "&" sym:SymIdentifier args:FunctionArg { return makeSugaredSymbol (sym, args) }
+SymbolFunction
+  = sym:CallSymbol args:ArgList { return makeSugaredSymbol (sym, makeArgList (args)) }
+  / sym:ApplySymbol args:FunctionArg { return makeSugaredSymbol (sym, args) }
   / "#" sym:Identifier mods:TraceryModifiers "#" { return makeTraceryExpr (sym, mods) }
+  / sym:GetSymbol { return makeGetSymbol (sym) }
+  / sym:SetSymbol args:FunctionArg { return makeSetSymbol (sym, args) }
+
+CallSymbol
+  = PrefixedSymIdentifier
+  / "&xcall" sym:SymIdentifier { return sym }
+
+ApplySymbol
+  = "&" sym:PrefixedSymIdentifier { return sym }
+  / "&xapply" sym:SymIdentifier { return sym }
+
+GetSymbol
+  = "&xget" sym:SymIdentifier { return sym }
+
+SetSymbol
+  = "&xset" sym:SymIdentifier { return sym }
 
 SymIdentifier
+  = PrefixedSymIdentifier
+  / "{" sym:PrefixedSymIdentifier "}" { return sym }
+  / "{" sym:Identifier "}" { return sym }
+
+PrefixedSymIdentifier
   = "~" sym:Identifier { return sym }
   / "~{" _ sym:Identifier _ "}" { return sym }
 
@@ -61,7 +80,8 @@ LocalAssignment
   / "#" _ assigns:VarAssignmentList _ sym:Identifier mods:TraceryModifiers "#" { return makeLocalAssignChain (assigns, [makeTraceryExpr (sym, mods)]) }
 
 Function
-  = MapFunction
+  = SymbolFunction
+  / MapFunction
   / RegexFunction
   / CallFunction
   / DefineFunction
@@ -72,7 +92,8 @@ Function
   / UnaryVarFunction
   / MathFunction
   / LinkFunction
-  / List
+  / ParseFunction
+  / ListConstructor
 
 MapFunction
   = "&" name:MapFunctionName varname:MapVarIdentifier list:FunctionArg func:QuotedFunctionArg { return makeListFunction (name, varname, list, func) }
@@ -141,7 +162,10 @@ MathFunction
 LinkFunction
   = "&link" type:FunctionArg text:FunctionArg link:FunctionArg { return makeFunction ('link', [wrapNodes(type), wrapNodes(text), makeQuote(link)]) }
 
-List
+ParseFunction
+  = "&parse" grammar:QuotedFunctionArg text:FunctionArg { return makeFunction ('parse', [wrapNodes(grammar), wrapNodes(text)]) }
+
+ListConstructor
   = "&{" args:NodeList "}" { return makeFunction ('list', args) }
 
 BinaryFunctionName
@@ -152,8 +176,7 @@ BinaryFunctionName
   / "same"
   / "and"
   / "cat" / "prepend" / "append" / "join"
-  / "apply"
-  / "parse"
+  / "apply" / "xapply"
 
 UnaryFunctionName
   = "eval" / "syntax" / "escape" / StrictQuote / Quote / Unquote
@@ -184,8 +207,7 @@ VarFunctionArg
   / "{" lookup:PlainVarLookup "}" { return [makeStrictQuote ([lookup])] }
 
 FunctionArg
-  = sym:Symbol { return [sym] }
-  / loc:LocalAssignment { return [loc] }
+  = loc:LocalAssignment { return [loc] }
   / rep:Repetition { return [rep] }
   / cond:Conditional { return [cond] }
   / func:Function { return [func] }

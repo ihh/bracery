@@ -917,8 +917,14 @@ var binaryFunction = {
   parse: function (l, r, lv, rv, config) {
     var result = ''
     if (!(r.length > (config.maxParseLength || this.maxParseLength))) {
-      var parse = Chomsky.parseInside (this, extend ({}, config, { root: l,
-                                                                   text: r }))
+      var parse
+      try {
+        parse = Chomsky.parseInside (this, extend ({}, config, { root: l,
+                                                                 text: r }))
+      } catch (e) {
+// uncomment for parse errors
+//        console.warn (e)
+      }
       if (parse)
         result = makeArray (parse)
     }

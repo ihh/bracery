@@ -1,6 +1,7 @@
 var assert = require('assert')
 var canonicaljson = require('canonicaljson')
 var bracery = require('../index')
+var ParseTree = bracery.ParseTree
 
 var initJson = { hello: "[yo|hi]",
 		 world: ["world", "planet", "kids", "#hello#xxx#hello##hello#zzz"] }
@@ -16,21 +17,24 @@ var chomskyTopoJson = {cfg:{"1":{opts:[{rhs:[{name:"a",type:"nonterm"}],weight:1
 var b = new bracery.Bracery (initJson)
 describe('Chomsky normal form', function() {
   it('should convert a test grammar into Chomsky normal form', function (done) {
-    var json = bracery.Chomsky.makeChomskyNormalCFG (b, '~hello ~world')
+    var json = bracery.Chomsky.makeChomskyNormalCFG ({ get: b._getSymbol.bind(b),
+                                                       root: '~hello ~world' })
     assert.equal (canonicaljson.stringify(json), canonicaljson.stringify(chomskyJson))
     done()
   })
 
   it('should find a null cycle', function (done) {
     var b2 = new bracery.Bracery (cyclicJson)
-    var json2 = bracery.Chomsky.makeChomskyNormalCFG (b2, '~a')
+    var json2 = bracery.Chomsky.makeChomskyNormalCFG ({ get: b2._getSymbol.bind(b2),
+                                                        root: '~a' })
     assert.equal (canonicaljson.stringify(json2), canonicaljson.stringify(chomskyCyclicJson))
     done()
   })
 
   it('should toposort', function (done) {
     var b3 = new bracery.Bracery (topoJson)
-    var json3 = bracery.Chomsky.makeChomskyNormalCFG (b3, '~a')
+    var json3 = bracery.Chomsky.makeChomskyNormalCFG ({ get: b3._getSymbol.bind(b3),
+                                                        root: '~a' })
     assert.equal (canonicaljson.stringify(json3), canonicaljson.stringify(chomskyTopoJson))
     done()
   })

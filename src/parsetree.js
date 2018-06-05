@@ -1,4 +1,5 @@
 var RhsParser = require('./rhs')
+var Chomsky = require('./chomsky')
 
 function isTruthy (x) { return makeString(x).match(/\S/) }
 var trueVal = '1'  // truthy value used when a result should be truthy but the default result in this context would otherwise be an empty string e.g. &same{}{} or &not{}
@@ -912,6 +913,12 @@ var binaryFunction = {
   },
   join: function (l, r, lv, rv) {
     return makeArray(lv).join (r)
+  },
+  parse: function (l, r, lv, rv, config) {
+    if (r.length > (config.maxParseLength || this.maxParseLength))
+      return ''
+    return makeArray (Chomsky.parse (this, extend ({}, config, { root: l,
+                                                                 text: r })))
   }
 }
 
@@ -1291,18 +1298,6 @@ function makeExpansionPromise (config) {
 
                     // syntax
                   case 'syntax':
-                    node.evaltree = parseRhs (arg)
-                    expansion.value = pt.makeRhsTree (node.evaltree, makeSymbolName)
-                    expansion.text = makeString (expansion.value)
-                    break
-
-                  case 'syntax':
-                    node.evaltree = parseRhs (arg)
-                    expansion.value = pt.makeRhsTree (node.evaltree, makeSymbolName)
-                    expansion.text = makeString (expansion.value)
-                    break
-
-                  case 'parse':
                     node.evaltree = parseRhs (arg)
                     expansion.value = pt.makeRhsTree (node.evaltree, makeSymbolName)
                     expansion.text = makeString (expansion.value)
@@ -1786,6 +1781,7 @@ module.exports = {
   maxReps: 10,
   maxLength: 1000,
   maxNodes: 1000,
+  maxParseLength: 100,
 
   // parsing
   RhsParser: RhsParser,

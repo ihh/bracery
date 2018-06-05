@@ -3289,18 +3289,18 @@ module.exports = { Bracery: Bracery,
                    ParseTree: ParseTree,
                    RhsParser: RhsParser,
                    Validator: Validator,
-		   Chomsky: { makeChomskyNormalCFG: Chomsky.makeChomskyNormalCFG.bind(Chomsky,ParseTree),
-		              parse: Chomsky.parse.bind(Chomsky,ParseTree) },
+		   Chomsky: { makeGrammar: Chomsky.makeGrammar.bind (Chomsky, ParseTree),
+		              parseInside: Chomsky.parseInside.bind (Chomsky, ParseTree) },
                    Template: Template,
                    Promise: Promise,
                    nlp: nlp }
 
 },{"./chomsky":13,"./parsetree":14,"./template":17,"./validator":18}],13:[function(require,module,exports){
-// despite the name, this doesn't quite return Chomsky normal form, as we do not eliminate empty rules or transitions
-function makeChomskyNormalCFG (ParseTree, config) {
+// set config.normal to force max two symbols on RHS of any rule (despite the name, this isn't quite Chomsky normal form, as it includes empty rules, transitions, multi-character terminal strings...)
+function makeGrammar (ParseTree, config) {
   var vars = config.vars || {}, root = config.root
   var cfg = {}
-  var start = makeChomskyNormalSymbol (ParseTree, config, cfg, [typeof(root) === 'string' ? ParseTree.parseRhs(root) : root], 'start')
+  var start = makeGrammarSymbol (ParseTree, config, cfg, [typeof(root) === 'string' ? ParseTree.parseRhs(root) : root], 'start')
   if (!start)
     return null
   var toposort = toposortSymbols (cfg)
@@ -3325,7 +3325,7 @@ function makeChomskyNormalCFG (ParseTree, config) {
 	   start: start.name }
 }
 
-function makeChomskyNormalRules (ParseTree, config, cfg, name, checkVars, checkSym, expand) {
+function makeGrammarRules (ParseTree, config, cfg, name, checkVars, checkSym, expand) {
   var vars = config.vars || {}
   var opts, symDef, cfgName
   if (checkVars && vars[name]) {
@@ -3341,10 +3341,10 @@ function makeChomskyNormalRules (ParseTree, config, cfg, name, checkVars, checkS
     opts = expand ? [ParseTree.parseRhs (symDef)] : [symDef]
   } else
     opts = []
-  return makeChomskyNormalSymbol (ParseTree, config, cfg, opts, 'sym', cfgName)
+  return makeGrammarSymbol (ParseTree, config, cfg, opts, 'sym', cfgName)
 }
 
-function makeChomskyNormalSymbol (ParseTree, config, cfg, rhsList, type, name, weight) {
+function makeGrammarSymbol (ParseTree, config, cfg, rhsList, type, name, weight) {
   var vars = config.vars || {}
   name = name || (Object.keys(cfg).filter(function(name){return name.match(/^[0-9]+$/)}).length + 1).toString()
   if (typeof(cfg[name]) === 'undefined') {
@@ -3359,23 +3359,23 @@ function makeChomskyNormalSymbol (ParseTree, config, cfg, rhsList, type, name, w
 			else if (node.type === 'term' || node.type === 'nonterm')
 			  cfgNode = node
 			else if (node.type === 'alt')
-			  cfgNode = makeChomskyNormalSymbol (ParseTree, config, cfg, node.opts, 'alt')
+			  cfgNode = makeGrammarSymbol (ParseTree, config, cfg, node.opts, 'alt')
 			else if (node.type === 'sym')
-			  cfgNode = makeChomskyNormalRules (ParseTree, config, cfg, node.name, false, true, true)
+			  cfgNode = makeGrammarRules (ParseTree, config, cfg, node.name, false, true, true)
 			else if (node.type === 'lookup')
-			  cfgNode = makeChomskyNormalRules (ParseTree, config, cfg, node.varname, true, false, false)
+			  cfgNode = makeGrammarRules (ParseTree, config, cfg, node.varname, true, false, false)
 			else if (ParseTree, ParseTree.isTraceryExpr (node))
-			  cfgNode = makeChomskyNormalRules (ParseTree, config, cfg, node.test[0].varname, true, true, true)
+			  cfgNode = makeGrammarRules (ParseTree, config, cfg, node.test[0].varname, true, true, true)
 			else if (ParseTree, ParseTree.isEvalVar (node))
-			  cfgNode = makeChomskyNormalRules (ParseTree, config, cfg, node.args[0].varname, true, false, true)
+			  cfgNode = makeGrammarRules (ParseTree, config, cfg, node.args[0].varname, true, false, true)
 			else
 			  throw new Error ("Can't convert to context-free grammar: " + ParseTree.makeRhsText ([node]))
 		      }
 		      return (cfgNode
-			      ? (normalRhs.rhs.length < 2
+			      ? (!config.normal || normalRhs.rhs.length < 2
 				 ? { rhs: [cfgNode].concat (normalRhs.rhs),
 				     weight: normalRhs.weight }
-				 : { rhs: [cfgNode, makeChomskyNormalSymbol (ParseTree, config, cfg, [normalRhs.rhs], 'elim')],
+				 : { rhs: [cfgNode, makeGrammarSymbol (ParseTree, config, cfg, [normalRhs.rhs], 'elim')],
 				     weight: normalRhs.weight })
 			      : null)
 		    }, { rhs: [], weight: 1 / rhsList.length })
@@ -3491,6 +3491,8 @@ function toposortSymbols (cfg) {
   return trans
 }
 
+// Inside algorithm c.f. Durbin, Eddy, Krogh & Mitchison (1998) "Biological Sequence Analysis"
+// or other sources e.g. https://en.wikipedia.org/wiki/Inside%E2%80%93outside_algorithm
 function ruleWeight (inside, text, i, j, k, rhs) {
   var rhsLen = rhs.rhs.length
   if (rhsLen === 1 && k < j)
@@ -3571,7 +3573,9 @@ function fillInside (cfg, text) {
   return inside
 }
 
-function parseInside (ParseTree, config, cfg, text, rng) {
+function parseInside (ParseTree, config) {
+  var cfg = makeGrammar (ParseTree, ParseTree.extend ({}, config, { normal: true }))
+  var text = config.text, rng = config.rng
   var inside = fillInside (cfg, text)
   if (!inside[0][text.length][cfg.rank[cfg.start]])
     return ''
@@ -3579,13 +3583,8 @@ function parseInside (ParseTree, config, cfg, text, rng) {
   return ['root'].concat (transformTrace (ParseTree, ParseTree, cfg, trace).slice(1))
 }
 
-function parse (ParseTree, config) {
-  var cfg = makeChomskyNormalCFG (ParseTree, config)
-  return parseInside (ParseTree, config, cfg, config.text, config.rng)
-}
-
-module.exports = { makeChomskyNormalCFG: makeChomskyNormalCFG,
-		   parse: parse }
+module.exports = { makeGrammar: makeGrammar,
+		   parseInside: parseInside }
 
 },{}],14:[function(require,module,exports){
 var RhsParser = require('./rhs')
@@ -4507,8 +4506,8 @@ var binaryFunction = {
   parse: function (l, r, lv, rv, config) {
     var result = ''
     if (!(r.length > (config.maxParseLength || this.maxParseLength))) {
-      var parse = Chomsky.parse (this, extend ({}, config, { root: l,
-                                                             text: r }))
+      var parse = Chomsky.parseInside (this, extend ({}, config, { root: l,
+                                                                   text: r }))
       if (parse)
         result = makeArray (parse)
     }

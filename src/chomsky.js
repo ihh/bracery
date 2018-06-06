@@ -5,7 +5,7 @@ function makeGrammar (ParseTree, config) {
   var start = makeGrammarSymbol (ParseTree, config, cfg, [typeof(root) === 'string' ? ParseTree.parseRhs(root) : root], 'start')
   if (!start)
     return null
-  var toposort = toposortSymbols (cfg)
+  var toposort = toposortSymbols (cfg, start.name)
   var sortOrder = toposort.sort || Object.keys(cfg).sort()
   var symbolRank = {}
   sortOrder.forEach (function (sym, n) { symbolRank[sym] = n })
@@ -163,7 +163,7 @@ function getNullTransitions (cfg) {
   return { empties: Object.keys(isEmpty).sort(), sinks: sinks, sources: sources }
 }
 
-function toposortSymbols (cfg) {
+function toposortSymbols (cfg, start) {
   var symbols = getSymbols (cfg), trans = getNullTransitions (cfg)
   // Kahn, Arthur B. (1962), "Topological sorting of large networks", Communications of the ACM 5 (11): 558–562, doi:10.1145/368996.369025
   // https://en.wikipedia.org/wiki/Topological_sorting
@@ -187,13 +187,24 @@ function toposortSymbols (cfg) {
 
   if (edges > 0) {
     trans.cyclic = true
-    // make a good-faith effort to sort by placing sinks last
-    var sinks = symbols.filter (function (sym) { return trans.sources[sym].length })
-    var notSinks = symbols.filter (function (sym) { return !trans.sources[sym].length })
-    trans.sort = notSinks.sort().concat (sinks.sort())
-  } else
-    trans.sort = L
+    // make a good-faith effort at an "approximate" topological sort by doing a breadth-first search from the start state and whatever we've covered already
+    var queue = [start].concat (L), visited = {}
+    L = []
+    while (queue.length) {
+      var current = queue.shift()
+      if (!visited[current]) {
+        L.push (current)
+        trans.sinks[current].forEach (function (next) {
+          queue.push (next)
+        })
+        visited[current] = true
+      }
+    }
+    L = L.concat (symbols.filter (function (sym) { return !visited[sym] }).sort())
+    console.warn(L)
+  }
 
+  trans.sort = L
   return trans
 }
 

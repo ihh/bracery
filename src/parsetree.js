@@ -923,7 +923,7 @@ var binaryFunction = {
                                                                  text: r }))
       } catch (e) {
 // uncomment for parse errors
-//        console.warn (e)
+        console.warn (e)
       }
       if (parse)
         result = makeArray (parse)

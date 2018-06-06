@@ -96,8 +96,8 @@ which gives jumbled-up output like
 witch the hello, of world
 ~~~~
 
-You may also recognize that Bracery's alternations form a [context-free grammar](https://en.wikipedia.org/wiki/Context-free_grammar).
-Bracery includes a stochastic parser. For example:
+Bracery's alternations and variable expansions form a [context-free grammar](https://en.wikipedia.org/wiki/Context-free_grammar),
+and Bracery includes a limited parser. For example:
 
 ~~~~
 [sentence=>[#singular_noun# #singular_verb#|#plural_noun# #plural_verb#] #noun_phrase#]

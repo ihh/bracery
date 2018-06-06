@@ -332,7 +332,7 @@ function doTests (testRunner) {
   expectExpand ('$a={1}$b={2}$c={3}&let$a={~}$b={test}$c={1}{&eval{$a&cap{$b}$c}}$a&cap{$b}$c', 'Testing123')
   expectExpand ('$a={1}$b={2}$c={3}&let$a={~}$b={test}$c={1}{&eval{$a&cap{$b}$c}$a&cap{$b}$c}', 'Testing~Test1')
 
-  // syntax, parse
+  // syntax, parse, tree
   expectExpand ('&json&syntax&quote{$x=[a|b]}', '[[["$","x","=",["{",[["[",[[["a"],"|"],[["b"]]],"]"]],"}"]]]]')
 
   expectExpand ('[a=>cat|#a# #a#]&json&parse{#a#}{cat cat cat}', '[["root",["#a#",["alt",["#a#",["alt",["#a#",["alt","cat"]]," ",["#a#",["alt","cat"]]]]," ",["#a#",["alt","cat"]]]]]]', {maxTries:maxTries})
@@ -356,6 +356,31 @@ function doTests (testRunner) {
   expectExpand ('[a=>#a#ox|x]&json&parse#a#{xoxoxox}', '[""]', {maxSubsequenceLength:1})
   expectExpand ('[a=>#a#ox|x]&json&parse#a#{xoxoxox}', '[["root",["#a#",["alt",["#a#",["alt",["#a#",["alt",["#a#",["alt","x"]],"ox"]],"ox"]],"ox"]]]]', {maxSubsequenceLength:3})
 
+  // test equivalency of &parse and &tree for a parse involving the elements our syntactic analyzer recognizes
+  // these elements include:
+  //  variable lookup ($c)
+  //  variable expansion without bindings (&eval{$z})
+  //  symbol get &xget{~c}
+  //  symbol expansion &eval{&xget{~b}} which should be the same as remote call ~b
+  //  Tracery-style #x# which is equivalent to &if{$x}{&eval{$x}}{~x}. Both variable and symbol expansion are tested with #x# and #a#, respectively.
+  var defcatText = 'defcat'
+  var defcatRules = {a:"d#x#",b:"e&eval$z",c:"c$c"}
+  var defcatBracery = '[z:f&xget{~c}] [x=>~{b}t] $c=a'
+  var defcatParse = JSON.stringify ([["root",["#a#","d",["#x#",["~b","e",["&eval$z","fc",["$c","a"]]],"t"]]]])
+
+  expectExpand (defcatBracery + '#a#', defcatText, {rules:defcatRules})
+  expectExpand (defcatBracery + '&json&tree{#a#}', defcatParse, {rules:defcatRules})
+  expectExpand (defcatBracery + '&json&parse#a#{#a#}', defcatParse, {rules:defcatRules})
+
+  // a more parse-tree varied example of the same test, exposes a different test case
+  var defcatRules2 = {a:"d#x#t",b:"&eval{$z}c",c:"e$c"}
+  var defcatBracery2 = '[z:&xget{~c}] [x=>~{b}a] $c=f'
+  var defcatParse2 = JSON.stringify ([["root",["#a#","d",["#x#",["~b",["&eval$z","e",["$c","f"]],"c"],"a"],"t"]]])
+
+  expectExpand (defcatBracery2 + '#a#', defcatText, {rules:defcatRules2})
+  expectExpand (defcatBracery2 + '&json&tree{#a#}', defcatParse2, {rules:defcatRules2})
+  expectExpand (defcatBracery2 + '&json&parse#a#{#a#}', defcatParse2, {rules:defcatRules2,fail:true})  // FIX ME!!!
+  
   // down with fixed nonterminals
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'yo earthling', {maxTries:maxTries})
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'oy earthling', {maxTries:maxTries})

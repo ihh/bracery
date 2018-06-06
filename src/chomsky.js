@@ -32,10 +32,10 @@ function makeGrammarRules (ParseTree, config, cfg, name, checkVars, checkSym, ex
   var opts, symDef, cfgName
   if (checkVars && vars[name]) {
     symDef = vars[name]
-    cfgName = expand ? (ParseTree.funcChar + ParseTree.varChar + name) : (ParseTree.varChar + name)
+    cfgName = expand ? (ParseTree.funcChar + 'eval' + ParseTree.varChar + name) : (ParseTree.varChar + name)
   } else if (checkSym && config.get && (symDef = config.get ({ symbolName: name }))) {
     symDef = symDef.join('')
-    cfgName = expand ? (ParseTree.symChar + name) : (ParseTree.funcChar + 'xget' + ParseTree.name)
+    cfgName = expand ? (ParseTree.symChar + name) : (ParseTree.funcChar + 'xget' + ParseTree.symChar + ParseTree.name)
   }
   if (symDef) {
     if (checkVars && checkSym)
@@ -70,8 +70,11 @@ function makeGrammarSymbol (ParseTree, config, cfg, rhsList, type, name, weight)
 			  cfgNode = makeGrammarRules (ParseTree, config, cfg, node.test[0].varname, true, true, true)
 			else if (ParseTree, ParseTree.isEvalVar (node))
 			  cfgNode = makeGrammarRules (ParseTree, config, cfg, node.args[0].varname, true, false, true)
-			else
-			  throw new Error ("Can't convert to context-free grammar: " + ParseTree.makeRhsText ([node]))
+			else {
+                          var warning = "Can't convert to context-free grammar: " + ParseTree.makeRhsText ([node])
+                          console.warn (warning)
+			  throw new Error (warning)
+                        }
 		      }
 		      return (cfgNode
 			      ? (!config.normal || normalRhs.rhs.length < 2
@@ -274,7 +277,8 @@ function transformTrace (ParseTree, config, cfg, trace) {
 }
 
 function fillInside (config, cfg, text) {
-//  console.warn('cfg',JSON.stringify(cfg,null,2))
+  if (config.verbose)
+    console.warn('cfg',JSON.stringify(cfg,null,2))
   var len = text.length, nSym = cfg.sort.length
   var maxSubseqLen = config.maxSubsequenceLength || len
   var inside = new Array(len+1).fill(0).map (function (_, i) {
@@ -308,7 +312,8 @@ function fillInside (config, cfg, text) {
           var rhs = opts[r]
           for (var k = rhs.length === 1 ? j : i; k <= j; ++k) {
 	    var weight = ruleWeight (inside, text, maxSubseqLen, i, j, k, rhs)
-//            console.warn ('fillInside', 'weight='+weight, 'i='+i, 'j='+j, 'k='+k, 'lhs='+cfg.sort[s], 'rhs='+JSON.stringify(rhs))
+  if (config.verbose)
+    console.warn ('fillInside', 'weight='+weight, 'i='+i, 'j='+j, 'k='+k, 'lhs='+cfg.sort[s], 'rhs='+JSON.stringify(rhs))
             if (weight)
 	      inside[i][ijIndex][s] = (inside[i][ijIndex][s] || 0) + weight
             if (k === kStop)

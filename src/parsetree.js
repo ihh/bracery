@@ -289,6 +289,10 @@ function isTraceryExpr (node, makeSymbolName) {
     && node.test[0].varname.toLowerCase() === makeSymbolName (node.f[0]).toLowerCase()
 }
 
+function traceryVarName (traceryNode) {
+  return traceryNode.test[0].varname.toLowerCase()
+}
+
 function makeFuncArgTree (pt, args, makeSymbolName, forceBraces) {
   var noBraces = !forceBraces && args.length === 1 && (args[0].type === 'func' || args[0].type === 'lookup' || args[0].type === 'alt')
   return [noBraces ? '' : leftBraceChar, pt.makeRhsTree (args, makeSymbolName), noBraces ? '' : rightBraceChar]
@@ -926,8 +930,8 @@ var binaryFunction = {
                                                text: r,
                                                maxSubsequenceLength: config.maxSubsequenceLength || this.maxSubsequenceLength }))
       } catch (e) {
-// uncomment for parse errors
-        console.warn (e)
+// uncomment for verbose parse errors
+//        console.warn (e)
       }
       if (parse)
         result = makeArray (parse)
@@ -1119,6 +1123,7 @@ function makeExpansionPromise (config) {
             var name = node.varname.toLowerCase()
             expansion.value = varVal[name] || ''
             expansion.text = makeString (expansion.value)
+            node.value = expansion.value  // used by makeParseTree
             break
 
           case 'cond':
@@ -1126,7 +1131,8 @@ function makeExpansionPromise (config) {
               .then (function (testExpansion) {
                 var testValue = isTruthy (testExpansion.text) ? true : false
                 var testResult = testValue ? node.t : node.f
-                node.value = testValue  // for debugging
+                node.value = testValue  // used by makeParseTree
+                node.result = testResult  // used by makeParseTree
                 expansion.nodes += testExpansion.nodes
                 return makeRhsExpansionPromiseFor (testResult).then (addExpansionNodes)
               })
@@ -1308,6 +1314,12 @@ function makeExpansionPromise (config) {
                   case 'eval':
                     return makeEvalPromise.call (pt, config, makeSymbolName, node, node.args, null)
                       .then (addExpansionNodes)
+                    break
+
+                    // tree
+                  case 'tree':
+                    expansion.value = ['root'].concat (makeParseTree (argExpansion.tree))
+                    expansion.text = makeString (expansion.value)
                     break
 
                     // syntax
@@ -1603,6 +1615,26 @@ function finalVarVal (config) {
                             vars: varVal,
 			    makeSymbolName: config.makeSymbolName })
   return varVal
+}
+
+function makeParseTree (rhs) {
+  return rhs.reduce (function (tree, node) {
+    if (typeof(node) === 'string')
+      tree.push (node)
+    else if (isTraceryExpr (node))
+      tree.push ([traceryChar + traceryVarName(node) + traceryChar].concat (makeParseTree (node.value ? node.result[0].value : node.result[0].rhs)))
+    else if (node.type === 'func' && node.funcname === 'eval' && node.args.length === 1 && node.args[0].type === 'lookup')
+      tree.push ([funcChar + 'eval' + varChar + node.args[0].varname].concat (makeParseTree (node.value)))
+    else if (node.type === 'sym')
+      tree.push ([(node.method === 'get' ? (funcChar + 'xget') : '') + symChar + node.name].concat (makeParseTree (node.rhs)))
+    else if (node.type === 'lookup')
+      tree.push ([varChar + node.varname, makeString (node.value)])
+    else if (node.type === 'alt_sampled')
+      tree.push ([pipeChar].concat (makeParseTree (node.rhs)))
+    else
+      tree.push (typeof(node) === 'string' ? node : node.expansion.text)
+    return tree
+  }, [])
 }
 
 // English grammar helper functions

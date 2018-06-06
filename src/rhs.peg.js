@@ -179,7 +179,7 @@ BinaryFunctionName
   / "apply" / "xapply"
 
 UnaryFunctionName
-  = "eval" / "syntax" / "escape" / StrictQuote / Quote / Unquote
+  = "eval" / "syntax" / "tree" / "escape" / StrictQuote / Quote / Unquote
   / "random" / "floor" / "ceil" / "round" / "abs"
   / "wordnum" / "dignum" / "ordinal" / "cardinal"
   / "plural" / "singular" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive"

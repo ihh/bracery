@@ -551,11 +551,12 @@ Language features include
 - access to the parser
    - `&syntax{...}` returns the parse tree for the given Bracery expression
    - `&parse{source}{expr}` returns a parse tree by which Bracery expression `source` might have generated `expr`, or the empty string if no parse exists
+      - The parse is probabilistic, not deterministic: if multiple valid parses exist, then the parse tree is sampled from the posterior probability distribution of valid parse trees
       - The source expression `source` (and any other Bracery code that it indirectly invokes) may not contain any function calls or variable assignments, only symbol references and variable lookups/expansions. This makes it a strict [context-free grammar](https://en.wikipedia.org/wiki/Context-free_grammar)
-      - The parser uses the [Inside algorithm](https://en.wikipedia.org/wiki/Inside%E2%80%93outside_algorithm) to sample from the posterior distribution of valid parses
-      - The Inside algorithm is _O(L^3)_ in string length _L_, which is rather slow, so the maximum string length that `&parse` can handle is restricted by the `maxParseLength` config parameter
-      - A [stochastic Earley parser](https://www.npmjs.com/package/probabilistic-earley-parser) might work faster than Inside
-      - NB `&syntax` uses [Parsing Expression Grammars](https://en.wikipedia.org/wiki/Parsing_expression_grammar) (via [PEG.js](https://pegjs.org/)) which are faster, but unsuited to stochastic grammars such as those specified by a Bracery program
+      - The parser is not guaranteed to work correctly if the grammar contains _null cycles_ (i.e. a series of transformations that leads back to the original symbol, with no other sequence generated). An example of such a null cycle is `[a=>#b#|x] [b=>#a#]`
+      - The parser uses a variant of the [Inside algorithm](https://en.wikipedia.org/wiki/Inside%E2%80%93outside_algorithm) to sample from the posterior distribution of valid parses
+      - The full Inside algorithm takes time _O(L^3)_ and memory _O(L^2)_ where _L_ is the string length. This is rather expensive for long strings, so Bracery's implementation restricts the maximum subclause length to be _K_ (via the `maxSubsequenceLength` config parameter), leading to memory _O(KL)_ and time _O(LK^2)_
+      - NB the `&syntax` function uses [Parsing Expression Grammars](https://en.wikipedia.org/wiki/Parsing_expression_grammar) (via [PEG.js](https://pegjs.org/)) which is much faster than the Inside algorithm, but is unsuited to stochastic grammars such as those specified by a Bracery program
 - syntactic sugar/hacks/apologies
    - the Tracery-style expression `#name#` is parsed and implemented as `&if{$name}then{&eval{$name}}else{~name}`. Tracery overloads the same namespace for symbol and variable names, and uses the variable if it's defined; this quasi-macro reproduces that behavior (almost)
    - braces around single-argument functions or symbols can be omitted, e.g. `$currency=&cap&plural~name` means the same as `$currency={&cap{&plural{~name}}}`

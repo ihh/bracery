@@ -6,7 +6,7 @@ function makeGrammar (ParseTree, config) {
   if (!start)
     return null
   var toposort = toposortSymbols (cfg)
-  var sortOrder = toposort.sort || Object.keys(cfg.cfg).sort()
+  var sortOrder = toposort.sort || Object.keys(cfg).sort()
   var symbolRank = {}
   sortOrder.forEach (function (sym, n) { symbolRank[sym] = n })
   sortOrder.forEach (function (sym) {
@@ -185,9 +185,13 @@ function toposortSymbols (cfg) {
     })
   }
 
-  if (edges > 0)
+  if (edges > 0) {
     trans.cyclic = true
-  else
+    // make a good-faith effort to sort by placing sinks last
+    var sinks = symbols.filter (function (sym) { return trans.sources[sym].length })
+    var notSinks = symbols.filter (function (sym) { return !trans.sources[sym].length })
+    trans.sort = notSinks.sort().concat (sinks.sort())
+  } else
     trans.sort = L
 
   return trans
@@ -195,27 +199,33 @@ function toposortSymbols (cfg) {
 
 // Inside algorithm c.f. Durbin, Eddy, Krogh & Mitchison (1998) "Biological Sequence Analysis"
 // or other sources e.g. https://en.wikipedia.org/wiki/Inside%E2%80%93outside_algorithm
-function ruleWeight (inside, text, i, j, k, rhs) {
+function ruleWeight (inside, text, maxSubseqLen, i, j, k, rhs) {
   var rhsLen = rhs.rhs.length
-  if (rhsLen === 1 && k < j)
+  if ((rhsLen === 0 && i !== j) || (rhsLen === 1 && k < j))
     return 0
   var w = rhs.weight
   for (var pos = 0; w && pos < rhsLen; ++pos) {
     var node = rhs.rhs[pos]
-    var start = pos ? k : i, len = pos ? (j-k) : (k-i)
+    var start = pos ? k : i, len = pos ? (j-k) : (k-i), idx = len
+    if (start && len > maxSubseqLen) {
+      if (start + len === text.length)
+        idx = maxSubseqLen + 1
+      else
+        return 0
+    }
     w *= (node.type === 'term'
 	  ? (node.text.length === len && node.text === text.substr(start,len) ? 1 : 0)
-	  : (inside[start][len][node.rank] || 0))
+	  : (inside[start][idx][node.rank] || 0))
   }
   return w
 }
 
-function sampleTrace (cfg, text, inside, i, j, lhs, rng) {
+function sampleTrace (config, cfg, text, inside, i, j, lhs, rng) {
   rng = rng || Math.random
   var applications = [], weights = [], totalWeight = 0
   for (var k = i; k <= j; ++k) {
     cfg.ranked[lhs].opts.forEach (function (rhs) {
-      var w = ruleWeight (inside, text, i, j, k, rhs)
+      var w = ruleWeight (inside, text, config.maxSubsequenceLength || text.length, i, j, k, rhs)
       applications.push ({ k: k, rhs: rhs })
       weights.push (w)
       totalWeight += w
@@ -229,7 +239,7 @@ function sampleTrace (cfg, text, inside, i, j, lhs, rng) {
   return [cfg.sort[lhs]].concat (rhs.rhs.map (function (node, pos) {
     return (node.type === 'term'
             ? node.text
-            : sampleTrace (cfg, text, inside, pos ? k : i, pos ? j : k, node.rank, rng))
+            : sampleTrace (config, cfg, text, inside, pos ? k : i, pos ? j : k, node.rank, rng))
   }))
 }
 
@@ -252,36 +262,63 @@ function transformTrace (ParseTree, config, cfg, trace) {
   }, [trace[0]])
 }
 
-function fillInside (cfg, text) {
+function fillInside (config, cfg, text) {
+//  console.warn('cfg',JSON.stringify(cfg,null,2))
   var len = text.length, nSym = cfg.sort.length
-  var inside = new Array(len+1).fill(0).map (function (_, n) {
-    return new Array(len+1-n).fill(0).map (function() {
+  var maxSubseqLen = config.maxSubsequenceLength || len
+  var inside = new Array(len+1).fill(0).map (function (_, i) {
+    return new Array(i === 0 ? (len+1) : Math.min(maxSubseqLen+2,len+1-i)).fill(0).map (function() {
       return new Array(nSym).fill(0)
     })
   })
-  for (var i = len; i >= 0; --i)
-    for (var j = i; j <= len; ++j)
+  for (var i = len; i >= 0; --i) {
+    var jStop = undefined, jStart = undefined
+    if (i > 0 && i < len - maxSubseqLen) {
+      jStop = i + maxSubseqLen
+      jStart = len
+    }
+    for (var j = i; j <= len; ++j) {
+      var kStop = undefined, kStart = undefined
+      if (i === 0) {
+        if (j < len && j > maxSubseqLen + 1) {
+          kStop = 0
+          kStart = j - maxSubseqLen
+        }
+      } else if (j === len) {
+        if (i < len - maxSubseqLen - 1) {
+          kStop = i + maxSubseqLen
+          kStart = j
+        }
+      }
+      var ijIndex = i === 0 ? j : Math.min (j - i, maxSubseqLen + 1)
       for (var s = nSym - 1; s >= 0; --s) {
         var opts = cfg.ranked[s].opts
         for (var r = 0; r < opts.length; ++r) {
           var rhs = opts[r]
           for (var k = rhs.length === 1 ? j : i; k <= j; ++k) {
-	    var weight = ruleWeight (inside, text, i, j, k, rhs)
+	    var weight = ruleWeight (inside, text, maxSubseqLen, i, j, k, rhs)
+//            console.warn ('fillInside', 'weight='+weight, 'i='+i, 'j='+j, 'k='+k, 'lhs='+cfg.sort[s], 'rhs='+JSON.stringify(rhs))
             if (weight)
-	      inside[i][j-i][s] = (inside[i][j-i][s] || 0) + weight
+	      inside[i][ijIndex][s] = (inside[i][ijIndex][s] || 0) + weight
+            if (k === kStop)
+              k = kStart - 1
 	  }
         }
       }
+      if (j === jStop)
+        j = jStart - 1
+    }
+  }
   return inside
 }
 
 function parseInside (ParseTree, config) {
   var cfg = makeGrammar (ParseTree, ParseTree.extend ({}, config, { normal: true }))
   var text = config.text, rng = config.rng
-  var inside = fillInside (cfg, text)
+  var inside = fillInside (config, cfg, text)
   if (!inside[0][text.length][cfg.rank[cfg.start]])
     return ''
-  var trace = sampleTrace (cfg, text, inside, 0, text.length, cfg.rank[cfg.start], rng)
+  var trace = sampleTrace (config, cfg, text, inside, 0, text.length, cfg.rank[cfg.start], rng)
   return ['root'].concat (transformTrace (ParseTree, ParseTree, cfg, trace).slice(1))
 }
 

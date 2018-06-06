@@ -348,7 +348,14 @@ function doTests (testRunner) {
   expectExpand ('[sentence=>#plural_noun# #plural_verb# #prep_or_noun#|#singular_noun# #singular_verb# #prep_or_noun#][prep_or_noun=>#noun#|like #noun#][noun=>#plural_noun#|#singular_noun#][plural_noun=>fruit flies][singular_noun=>fruit|a banana][plural_verb=>fly|like][singular_verb=>flies|likes]&json&parse#sentence#{fruit flies like a banana}', '[["root",["#sentence#",["alt",["#plural_noun#","fruit flies"]," ",["#plural_verb#",["alt","like"]]," ",["#prep_or_noun#",["alt",["#noun#",["alt",["#singular_noun#",["alt","a banana"]]]]]]]]]]', {maxTries:maxTries})
   expectExpand ('[sentence=>#plural_noun# #plural_verb# #prep_or_noun#|#singular_noun# #singular_verb# #prep_or_noun#][prep_or_noun=>#noun#|like #noun#][noun=>#plural_noun#|#singular_noun#][plural_noun=>fruit flies][singular_noun=>fruit|a banana][plural_verb=>fly|like][singular_verb=>flies|likes]&json&parse#sentence#{fruit flies like a banana}', '[["root",["#sentence#",["alt",["#singular_noun#",["alt","fruit"]]," ",["#singular_verb#",["alt","flies"]]," ",["#prep_or_noun#",["alt","like ",["#noun#",["alt",["#singular_noun#",["alt","a banana"]]]]]]]]]]', {maxTries:maxTries})
 
+  expectExpand ('[a=>#a#x|x]&json&parse#a#{xxxx}', '[["root",["#a#",["alt",["#a#",["alt",["#a#",["alt",["#a#",["alt","x"]],"x"]],"x"]],"x"]]]]')
+
+  expectExpand ('[a=>xo#a#|x]&json&parse#a#{xoxoxox}', '[""]', {maxSubsequenceLength:1})
+  expectExpand ('[a=>xo#a#|x]&json&parse#a#{xoxoxox}', '[["root",["#a#",["alt","xo",["#a#",["alt","xo",["#a#",["alt","xo",["#a#",["alt","x"]]]]]]]]]]', {maxSubsequenceLength:3})
   
+  expectExpand ('[a=>#a#ox|x]&json&parse#a#{xoxoxox}', '[""]', {maxSubsequenceLength:1})
+  expectExpand ('[a=>#a#ox|x]&json&parse#a#{xoxoxox}', '[["root",["#a#",["alt",["#a#",["alt",["#a#",["alt",["#a#",["alt","x"]],"ox"]],"ox"]],"ox"]]]]', {maxSubsequenceLength:3})
+
   // down with fixed nonterminals
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'yo earthling', {maxTries:maxTries})
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'oy earthling', {maxTries:maxTries})

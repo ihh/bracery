@@ -919,8 +919,12 @@ var binaryFunction = {
     if (!(r.length > (config.maxParseLength || this.maxParseLength))) {
       var parse
       try {
-        parse = Chomsky.parseInside (this, extend ({}, config, { root: l,
-                                                                 text: r }))
+        parse = Chomsky.parseInside (this,
+                                     extend ({},
+                                             config,
+                                             { root: l,
+                                               text: r,
+                                               maxSubsequenceLength: config.maxSubsequenceLength || this.maxSubsequenceLength }))
       } catch (e) {
 // uncomment for parse errors
         console.warn (e)
@@ -1789,9 +1793,10 @@ module.exports = {
   maxDepth: 100,
   maxRecursion: 3,
   maxReps: 10,
-  maxLength: 1000,
   maxNodes: 1000,
-  maxParseLength: 100,
+  maxLength: 1000,
+  maxParseLength: undefined,
+  maxSubsequenceLength: 100,
 
   // parsing
   RhsParser: RhsParser,

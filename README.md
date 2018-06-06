@@ -111,7 +111,7 @@ Bracery includes a stochastic parser for this grammar:
 &json&parse#sentence#{fruit flies like a banana}
 ~~~~
 
-<!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bsentence%3D%3E%23plural_noun%23%20%23plural_verb%23%20%23prep_or_noun%23%7C%23singular_noun%23%20%23singular_verb%23%20%23prep_or_noun%23%5D%0A%5Bprep_or_noun%3D%3E%23noun%23%7Clike%20%23noun%23%5D%0A%5Bnoun%3D%3E%23plural_noun%23%7C%23singular_noun%23%5D%0A%5Bplural_noun%3D%3Efruit%20flies%7Cbananas%5D%0A%5Bsingular_noun%3D%3Efruit%7Ca%20banana%5D%0A%5Bplural_verb%3D%3Efly%7Clike%5D%5Bsingular_verb%3D%3Eflies%7Clikes%5D%0A%26json%26parse%23sentence%23%7Bfruit%20flies%20like%20a%20banana%7D">Try this</a> </em>
+<!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bsentence%3D%3E%5B%23singular_noun%23%20%23singular_verb%23%7C%23plural_noun%23%20%23plural_verb%23%5D%20%23noun_phrase%23%5D%0A%5Bnoun_phrase%3D%3E%23noun%23%7C%23preposition%23%20%23noun%23%5D%0A%5Bnoun%3D%3E%23plural_noun%23%7C%23singular_noun%23%5D%0A%5Bsingular_noun%3D%3Efruit%7Ca%20banana%5D%0A%5Bsingular_verb%3D%3Eflies%7Clikes%7Cnears%5D%0A%5Bplural_noun%3D%3Efruit%20flies%7Cbananas%5D%0A%5Bplural_verb%3D%3Efly%7Clike%7Cnear%5D%0A%5Bpreposition%3D%3Elike%7Cnear%5D%0A%26json%26parse%23sentence%23%7Bfruit%20flies%20like%20a%20banana%7D">Try this</a> </em>
 
 This should give one of two different parses of "fruit flies like a banana".
 One parse has "fruit flies" as the noun, and "like" as the verb:
@@ -711,6 +711,7 @@ You can also use the `templates2dot.js` script to get a visualization of the Mar
 bin/templates2dot.js -o examples/markov/good_news_bad_news.txt
 ~~~~
  
+
 
 
 

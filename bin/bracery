@@ -34,7 +34,7 @@ var opt = getopt.create([
   ['C' , 'client=URL'       , 'run as client of web service'],
   ['m' , 'markov=FILE'      , 'run as Markov chain from template file'],
   ['q' , 'quiz=FILE'        , 'like --markov, but interactive'],
-  ['v' , 'verbose'          , 'print logging info'],
+  ['v' , 'verbose=NUM'      , 'print logging info'],
   ['h' , 'help'             , 'display this help message']
 ])              // create Getopt instance
     .bindHelp()     // bind option 'help' to default action
@@ -46,12 +46,14 @@ function makeConfig() {
   var config = { vars: extend ({}, varVal) }
   if (opt.options.config)
     extend (config, JSON.parse (opt.options.config))
+  if (opt.options.verbose)
+    config.verbose = opt.options.verbose
   return config
 }
 
 // logging
 var before = {}, after = {}
-if (opt.options.verbose) {
+if (opt.options.verbose > 1) {
   before.all = console.warn.bind (console, 'before node,varval,depth:')
   after.all = console.warn.bind (console, 'after node,varval,depth,expansion:')
   if (opt.options.async || opt.options.client) {

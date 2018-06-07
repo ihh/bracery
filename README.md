@@ -351,7 +351,9 @@ I feel bored. And when I'm bored, then bored is all I feel.
 Note that there is no space around the equals sign in `$mood=[happy|sad|angry|bored]`.
 In general Bracery is quite sensitive to spaces, a side-effect of minimizing the use of punctuation marks for syntax.
 Spaces are mostly left untouched, on the assumption that the writer meant them to be part of the output.
-Similarly, most punctuation is ignored, with some exceptions (square braces `[]`, curly braces `{}`, pipe `|`).
+Similarly, the most common punctuation characters (spaces, brackets, commas, semicolons) are generally ignored.
+Some less frequently-used punctuation marks are interpreted as syntax (square braces `[]`, curly braces `{}`, pipe `|`)
+and may be preceded with a backslash (`\`) if they're meant to be output.
 The equals sign may be interpreted as syntax, but _only_ if it immediately follows a variable (here `$mood`), with no intervening whitespace.
 Some other combinations of punctuation marks (e.g. `$`, `&`, `=>`, `:=`) are syntactically meaningful but only in very specific contexts.
 
@@ -495,20 +497,26 @@ The formal grammar for Bracery is in [src/rhs.peg.js](src/rhs.peg.js) (specified
 Language features include
 
 - named nonterminals:
-   - Tracery-style `#symbol_name#`
-   - Bracery-style `~symbol_name` or `~{symbol_name}`
-   - subtle difference: the Tracery style allows the symbol definition to be overridden by a local variable
+   - Tracery-style
+      - `#symbol_name#` to expand a variable, falling back to an external definition (i.e. user extension)
+   - Bracery-style
+      - `&$symbol_name` or `&${symbol_name}` to expand a variable
+      - `~symbol_name` or `~{symbol_name}` to expand an externally-defined symbol (user extension)
 - alternations (anonymous nonterminals):
    - `[option1|option 2|Option number three|Some other option...]`
    - can be nested: `[option1|option 2|3rd opt|4th|more [options|nested options]...]`
 - variables:
    - Tracery-style
       - `[variable_name:value]` to assign
-      - `#variable_name#` to retrieve and expand (names are case-insensitive)
+         - `[variable_name=>value]` to quote-assign (this is a Bracery-specific extension)
+      - `#variable_name#` to retrieve and expand, defaulting to externally-defined symbol `~name`
+         - all names are case-insensitive
    - Bracery-style
       - `$variable_name={value}` to assign
+         - braces can be omitted if `value` has no whitespace or punctuation
       - `$variable_name` or `${variable_name}` to retrieve (without expanding)
-   - the Tracery-style syntax `#variable_name#` evaluates the variable dynamically, if defined
+      - `&eval{$variable_name}` or `&$variable_name` to retrieve and expand
+   - the Tracery-style syntax `#name#` is equivalent to `&$name` if variable `$name` is defined, otherwise falls back to calling user extension `~name`
 - built-in text-processing functions:
    - `&plural{...}` (plural), `&a{...}` ("a" or "an")
    - `&cap{...}` (Capitalize), `&lc{...}` and `&uc{...}` (lower- & UPPER-case)

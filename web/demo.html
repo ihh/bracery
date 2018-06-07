@@ -8,8 +8,8 @@
       <p>
 	Text to be expanded (<a href="#" id="erase">erase</a> / <a href="#" id="reset">example</a>):
 	<div>
-	  <textarea id="eval" style="width: 100%; min-height: 10em; resize: vertical;">
-	  </textarea>
+	  <div contenteditable="true" id="eval" style="width: 100%; min-height: 10em; resize: vertical; background: white; border-width: 1px; border-style: solid;">
+	  </div>
 	</div>
 	<br><p>
 	Expansion (<a id="reroll" href="#">re-roll</a>):
@@ -23,7 +23,9 @@
 	    <br><p>
 	    Configuration:
 	    <div>
-	      <textarea id="config" style="width: 100%;">{"maxDepth":100,"maxRecursion":3}</textarea>
+	      <div contenteditable="true" id="config" style="width: 100%; background: white; border-width: 1px; border-style: solid;">
+		
+</div>
 	    </div>
 	    <br><p>
 	    Parse tree:
@@ -53,7 +55,7 @@
 	  }
 	  function reset() {
             // hack: pass in text via hash, to work around hosts (e.g. github HTML preview) that won't allow URI parameters
-	    evalElement.value = (window.location.hash
+	    evalElement.innerText = (window.location.hash
                                  ? window.decodeURIComponent (window.location.hash.substr(1))
                                  : (['[greetings=>[hello|well met] [now|there]|how [goes|fares] it with [you|thee]]',
 	                             '[wizard=>wizard|witch|mage|magus|magician|sorcerer|enchanter]',
@@ -63,8 +65,8 @@
 	  }
 	  function update (evt) {
 	    try {
-	      var text = evalElement.value.match(/\S/) ? evalElement.value : ''
-	      var config = configElement.value.match(/\S/) ? JSON.parse(configElement.value) : {}
+	      var text = evalElement.innerText.match(/\S/) ? evalElement.innerText : ''
+	      var config = configElement.innerText.match(/\S/) ? JSON.parse(configElement.innerText) : {}
 	      var b = new bracery.Bracery()
               evalElement.placeholder = 'Enter text, e.g. [something|other]'
 	      show (b.expand (text, config))
@@ -75,10 +77,11 @@
 	  evalElement.addEventListener ('keyup', update)
 	  configElement.addEventListener ('keyup', update)
 	  expElement.addEventListener ('click', update)
-	  eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.value = ''; update() })
+	  eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.innerText = ''; update() })
 	  resetElement.addEventListener ('click', function (evt) { evt.preventDefault(); reset() })
 	  rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); update() })
 	  showElement.addEventListener ('click', function (evt) { evt.preventDefault(); showContainer.remove(); advElement.style = '' })
+	  configElement.innerText = '{"maxDepth":100,"maxRecursion":3}'
 	  reset()
 	</script>
     </div>

@@ -31,6 +31,33 @@ OuterNodeList
   / head:OuterNode { return [head] }
   / "" { return [] }
 
+LocalAssignment
+  = "&let" _ assigns:VarAssignmentList _ scope:FunctionArg { return makeLocalAssignChain (assigns, scope) }
+  / "#" _ assigns:VarAssignmentList _ sym:Identifier mods:TraceryModifiers "#" { return makeLocalAssignChain (assigns, [makeTraceryExpr (sym, mods)]) }
+
+Repetition
+  = "&rep" unit:FunctionArg "{" min:Number "," max:Number "}" { return validRange (min, max) ? makeRep (unit, min, max) : text() }
+  / "&rep" unit:FunctionArg "{" min:Number "}" { return makeRep (unit, min, min) }
+
+Conditional
+  = "&if" testArg:FunctionArg ("then" / "") trueArg:FunctionArg ("else" / "")  falseArg:FunctionArg { return makeConditional (testArg, trueArg, falseArg) }
+
+Function
+  = SymbolFunction
+  / MapFunction
+  / RegexFunction
+  / CallFunction
+  / DefineFunction
+  / BinaryFunction
+  / UnaryFunction
+  / NullaryFunction
+  / BinaryVarFunction
+  / UnaryVarFunction
+  / MathFunction
+  / LinkFunction
+  / ParseFunction
+  / ListConstructor
+
 SymbolFunction
   = sym:CallSymbol args:ArgList { return makeSugaredSymbol (sym, makeArgList (args)) }
   / sym:ApplySymbol args:FunctionArg { return makeSugaredSymbol (sym, args) }
@@ -71,29 +98,6 @@ TraceryModifier
   / ".a" { return "a" }
   / ".ed" { return "past" }
   / ".s" { return "plural" }
-
-Conditional
-  = "&if" testArg:FunctionArg ("then" / "") trueArg:FunctionArg ("else" / "")  falseArg:FunctionArg { return makeConditional (testArg, trueArg, falseArg) }
-
-LocalAssignment
-  = "&let" _ assigns:VarAssignmentList _ scope:FunctionArg { return makeLocalAssignChain (assigns, scope) }
-  / "#" _ assigns:VarAssignmentList _ sym:Identifier mods:TraceryModifiers "#" { return makeLocalAssignChain (assigns, [makeTraceryExpr (sym, mods)]) }
-
-Function
-  = SymbolFunction
-  / MapFunction
-  / RegexFunction
-  / CallFunction
-  / DefineFunction
-  / BinaryFunction
-  / UnaryFunction
-  / NullaryFunction
-  / BinaryVarFunction
-  / UnaryVarFunction
-  / MathFunction
-  / LinkFunction
-  / ParseFunction
-  / ListConstructor
 
 MapFunction
   = "&" name:MapFunctionName varname:MapVarIdentifier list:FunctionArg func:QuotedFunctionArg { return makeListFunction (name, varname, list, func) }
@@ -227,21 +231,6 @@ ArgList
   = head:DelimitedNodeList tail:ArgList { return [head].concat (tail) }
   / "" { return [] }
 
-Repetition
-  = "&rep" unit:FunctionArg "{" min:Number "," max:Number "}" { return validRange (min, max) ? makeRep (unit, min, max) : text() }
-  / "&rep" unit:FunctionArg "{" min:Number "}" { return makeRep (unit, min, min) }
-
-VarLookup
-  = "$$" num:Number { return makeLookup (makeGroupVarName (num)) }
-  / varname:VarIdentifier { return makeSugaredLookup (varname) }
-
-PlainVarLookup
-  = varname:VarIdentifier { return makeLookup (varname) }
-
-VarIdentifier
-  = "$" varname:Identifier { return varname }
-  / "${" _ varname:Identifier _ "}" { return varname }
-
 VarAssignmentList
   = head:VarAssignment _ tail:VarAssignmentList { return [head].concat(tail) }
   / head:VarAssignment { return [head] }
@@ -257,6 +246,17 @@ VarAssignment
 VarAssignmentTarget
   = FunctionArg
   / chars:[^ \t\n\r\=\~\#&\$\{\}\[\]\|\\]+ _ { return [chars.join("")] }
+
+VarLookup
+  = "$$" num:Number { return makeLookup (makeGroupVarName (num)) }
+  / varname:VarIdentifier { return makeSugaredLookup (varname) }
+
+PlainVarLookup
+  = varname:VarIdentifier { return makeLookup (varname) }
+
+VarIdentifier
+  = "$" varname:Identifier { return varname }
+  / "${" _ varname:Identifier _ "}" { return varname }
 
 Alternation
   = "{" head:NodeList "|" tail:AltList "}" { return makeAlternation ([head].concat(tail)) }

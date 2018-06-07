@@ -922,24 +922,19 @@ var binaryFunction = {
     return makeArray(lv).join (r)
   },
   parse: function (l, r, lv, rv, config) {
-    var result = ''
     if (!(r.length > (config.maxParseLength || this.maxParseLength))) {
-      var parse
       try {
-        parse = Chomsky.parseInside (this,
-                                     extend ({},
-                                             config,
-                                             { root: l,
-                                               text: r,
-                                               maxSubsequenceLength: config.maxSubsequenceLength || this.maxSubsequenceLength }))
+        return Chomsky.parseInside (this, extend ({}, config, { root: l, text: r, maxSubsequenceLength: config.maxSubsequenceLength || this.maxSubsequenceLength }))
+          .then (function (parse) {
+            return parse ? makeArray(parse) : ''
+          })
       } catch (e) {
         if (config.verbose > 1)
           console.warn (e)
       }
-      if (parse)
-        result = makeArray (parse)
     }
-    return result
+    var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
+    return resolve('')
   }
 }
 

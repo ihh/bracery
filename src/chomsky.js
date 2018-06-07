@@ -2,93 +2,125 @@
 function makeGrammar (ParseTree, config) {
   var vars = config.vars || {}, root = config.root
   var cfg = {}
-  var start = makeGrammarSymbol (ParseTree, config, cfg, [typeof(root) === 'string' ? ParseTree.parseRhs(root) : root], 'start')
-  if (!start)
-    return null
-  var toposort = toposortSymbols (cfg, start.name)
-  var sortOrder = toposort.sort || Object.keys(cfg).sort()
-  var symbolRank = {}
-  sortOrder.forEach (function (sym, n) { symbolRank[sym] = n })
-  sortOrder.forEach (function (sym) {
-    if (cfg[sym].opts)
-      cfg[sym].opts.forEach (function (opt) {
-        opt.rhs.forEach (function (node) {
-          if (node.type === 'nonterm')
-            node.rank = symbolRank[node.name]
-        })
+  return makeGrammarSymbol (ParseTree, config, cfg, [typeof(root) === 'string' ? ParseTree.parseRhs(root) : root], 'start')
+    .then (function (start) {
+      if (!start)
+        return null
+      var toposort = toposortSymbols (cfg, start.name)
+      var sortOrder = toposort.sort || Object.keys(cfg).sort()
+      var symbolRank = {}
+      sortOrder.forEach (function (sym, n) { symbolRank[sym] = n })
+      sortOrder.forEach (function (sym) {
+        if (cfg[sym].opts)
+          cfg[sym].opts.forEach (function (opt) {
+            opt.rhs.forEach (function (node) {
+              if (node.type === 'nonterm')
+                node.rank = symbolRank[node.name]
+            })
+          })
       })
-  })
-  return { cfg: cfg,
-           ranked: sortOrder.map (function (sym) { return cfg[sym] }),
-	   empties: toposort.empties,
-	   cyclic: toposort.cyclic,
-	   sort: sortOrder,
-           rank: symbolRank,
-	   start: start.name }
+      return { cfg: cfg,
+               ranked: sortOrder.map (function (sym) { return cfg[sym] }),
+	       empties: toposort.empties,
+	       cyclic: toposort.cyclic,
+	       sort: sortOrder,
+               rank: symbolRank,
+	       start: start.name }
+    })
 }
 
 function makeGrammarRules (ParseTree, config, cfg, name, checkVars, checkSym, expand) {
   var vars = config.vars || {}
+  var resolve = config.sync ? ParseTree.syncPromiseResolve : Promise.resolve.bind(Promise)
+  var symCheckedPromise
   var opts, symDef, cfgName
   if (checkVars && vars[name]) {
     symDef = vars[name]
     cfgName = expand ? (ParseTree.funcChar + 'eval' + ParseTree.varChar + name) : (ParseTree.varChar + name)
-  } else if (checkSym && config.get && (symDef = config.get ({ symbolName: name }))) {
-//    console.warn('symDef',name,JSON.stringify(symDef))
-    symDef = symDef.join('')
-    cfgName = expand ? (ParseTree.symChar + name) : (ParseTree.funcChar + 'xget' + ParseTree.symChar + ParseTree.name)
+    symCheckedPromise = resolve()
+  } else if (checkSym && config.get) {
+    symCheckedPromise = resolve (config.get ({ symbolName: name }))
+      .then (function (getResult) {
+        if (getResult)
+          symDef = getResult.join('')
+        cfgName = expand ? (ParseTree.symChar + name) : (ParseTree.funcChar + 'xget' + ParseTree.symChar + ParseTree.name)
+      })
   }
-  if (symDef) {
-    if (checkVars && checkSym)
-      cfgName = ParseTree.traceryChar + name + ParseTree.traceryChar
-    opts = expand ? [ParseTree.parseRhs (symDef)] : [symDef]
-  } else
-    opts = []
-  return makeGrammarSymbol (ParseTree, config, cfg, opts, 'sym', cfgName)
+  return symCheckedPromise.then (function() {
+    if (symDef) {
+      if (checkVars && checkSym)
+        cfgName = ParseTree.traceryChar + name + ParseTree.traceryChar
+      opts = expand ? [ParseTree.parseRhs (symDef)] : [symDef]
+    } else
+      opts = []
+    return makeGrammarSymbol (ParseTree, config, cfg, opts, 'sym', cfgName)
+  })
 }
 
 function makeGrammarSymbol (ParseTree, config, cfg, rhsList, type, name, weight) {
   var vars = config.vars || {}
+  var resolve = config.sync ? ParseTree.syncPromiseResolve : Promise.resolve.bind(Promise)
+  var gotSymbolPromise
   name = name || (Object.keys(cfg).filter(function(name){return name.match(/^[0-9]+$/)}).length + 1).toString()
   if (typeof(cfg[name]) === 'undefined') {
     cfg[name] = true  // placeholder
-    cfg[name] = { type: type,
-		  opts: rhsList.map (function (rhs, node) {
-		    return (typeof(rhs) === 'string' ? [rhs] : rhs).slice(0).reverse().reduce (function (normalRhs, node) {
-		      var cfgNode
-		      if (normalRhs) {
-			if (typeof(node) === 'string')
-			  cfgNode = { type: 'term', text: node }
-			else if (node.type === 'term' || node.type === 'nonterm')
-			  cfgNode = node
-			else if (node.type === 'alt')
-			  cfgNode = makeGrammarSymbol (ParseTree, config, cfg, node.opts, 'alt')
-			else if (node.type === 'sym')
-			  cfgNode = makeGrammarRules (ParseTree, config, cfg, node.name, false, true, true)
-			else if (node.type === 'lookup')
-			  cfgNode = makeGrammarRules (ParseTree, config, cfg, node.varname, true, false, false)
-			else if (ParseTree, ParseTree.isTraceryExpr (node))
-			  cfgNode = makeGrammarRules (ParseTree, config, cfg, node.test[0].varname, true, true, true)
-			else if (ParseTree, ParseTree.isEvalVar (node))
-			  cfgNode = makeGrammarRules (ParseTree, config, cfg, node.args[0].varname, true, false, true)
-			else {
-                          var warning = "Can't convert to context-free grammar: " + ParseTree.makeRhsText ([node])
-                          console.warn (warning)
-			  throw new Error (warning)
-                        }
-		      }
-		      return (cfgNode
-			      ? (!config.normal || normalRhs.rhs.length < 2
-				 ? { rhs: [cfgNode].concat (normalRhs.rhs),
-				     weight: normalRhs.weight }
-				 : { rhs: [cfgNode, makeGrammarSymbol (ParseTree, config, cfg, [normalRhs.rhs], 'elim')],
-				     weight: normalRhs.weight })
-			      : null)
-		    }, { rhs: [], weight: 1 / rhsList.length })
-		  })
-		}
-  }
-  return cfg[name] ? { type: 'nonterm', name: name } : null
+    gotSymbolPromise = rhsList.reduce (function (optsPromise, rhs, node) {
+      return optsPromise.then (function (opts) {
+        var revRhs = (typeof(rhs) === 'string' ? [rhs] : rhs).slice(0).reverse()
+        return revRhs.reduce (function (gramRhsPromise, node) {
+          return gramRhsPromise.then (function (gramRhs) {
+	    var cfgNodePromise
+	    if (gramRhs) {
+	      if (typeof(node) === 'string')
+		cfgNodePromise = resolve ({ type: 'term', text: node })
+	      else if (node.type === 'term' || node.type === 'nonterm')
+		cfgNodePromise = resolve (node)
+	      else if (node.type === 'alt')
+		cfgNodePromise = makeGrammarSymbol (ParseTree, config, cfg, node.opts, 'alt')
+	      else if (node.type === 'sym')
+		cfgNodePromise = makeGrammarRules (ParseTree, config, cfg, node.name, false, true, true)
+	      else if (node.type === 'lookup')
+		cfgNodePromise = makeGrammarRules (ParseTree, config, cfg, node.varname, true, false, false)
+	      else if (ParseTree, ParseTree.isTraceryExpr (node))
+		cfgNodePromise = makeGrammarRules (ParseTree, config, cfg, node.test[0].varname, true, true, true)
+	      else if (ParseTree, ParseTree.isEvalVar (node))
+		cfgNodePromise = makeGrammarRules (ParseTree, config, cfg, node.args[0].varname, true, false, true)
+	      else {
+                var warning = "Can't convert to context-free grammar: " + ParseTree.makeRhsText ([node])
+                console.warn (warning)
+		throw new Error (warning)
+              }
+	    }
+            return cfgNodePromise.then (function (cfgNode) {
+              if (cfgNode) {
+                if (config.normal && gramRhs.rhs.length === 2) {
+                  return makeGrammarSymbol (ParseTree, config, cfg, [gramRhs.rhs], 'elim')
+                    .then (function (elimNode) {
+                      return { rhs: [cfgNode, elimNode],
+			       weight: gramRhs.weight }
+                    })
+                } else
+                  return { rhs: [cfgNode].concat (gramRhs.rhs),
+			   weight: gramRhs.weight }
+              }
+              return null
+            })
+          })
+	}, resolve ({ rhs: [], weight: 1 / rhsList.length }))
+          .then (function (gramRhs) {
+            return opts.concat (gramRhs)
+          })
+      })
+    }, resolve([]))
+      .then (function (opts) {
+        cfg[name] = { type: type, opts: opts }
+        return resolve()
+      })
+  } else
+    gotSymbolPromise = resolve()
+  return gotSymbolPromise.then (function() {
+    return resolve (cfg[name] ? { type: 'nonterm', name: name } : null)
+  })
 }
 
 function getSymbols (cfg) {
@@ -205,7 +237,6 @@ function toposortSymbols (cfg, start) {
       }
     }
     L = L.concat (symbols.filter (function (sym) { return !visited[sym] }).sort())
-    console.warn(L)
   }
 
   trans.sort = L
@@ -313,8 +344,8 @@ function fillInside (config, cfg, text) {
           var rhs = opts[r]
           for (var k = rhs.length === 1 ? j : i; k <= j; ++k) {
 	    var weight = ruleWeight (inside, text, maxSubseqLen, i, j, k, rhs)
-  if (config.verbose)
-    console.warn ('fillInside', 'weight='+weight, 'i='+i, 'j='+j, 'k='+k, 'lhs='+cfg.sort[s], 'rhs='+JSON.stringify(rhs))
+            if (config.verbose)
+              console.warn ('fillInside', 'weight='+weight, 'i='+i, 'j='+j, 'k='+k, 'lhs='+cfg.sort[s], 'rhs='+JSON.stringify(rhs))
             if (weight)
 	      inside[i][ijIndex][s] = (inside[i][ijIndex][s] || 0) + weight
             if (k === kStop)
@@ -330,13 +361,15 @@ function fillInside (config, cfg, text) {
 }
 
 function parseInside (ParseTree, config) {
-  var cfg = makeGrammar (ParseTree, ParseTree.extend ({}, config, { normal: true }))
-  var text = config.text, rng = config.rng
-  var inside = fillInside (config, cfg, text)
-  if (!inside[0][text.length][cfg.rank[cfg.start]])
-    return ''
-  var trace = sampleTrace (config, cfg, text, inside, 0, text.length, cfg.rank[cfg.start], rng)
-  return ['root'].concat (transformTrace (ParseTree, ParseTree, cfg, trace).slice(1))
+  return makeGrammar (ParseTree, ParseTree.extend ({}, config, { normal: true }))
+    .then (function (cfg) {
+      var text = config.text, rng = config.rng
+      var inside = fillInside (config, cfg, text)
+      if (!inside[0][text.length][cfg.rank[cfg.start]])
+        return ''
+      var trace = sampleTrace (config, cfg, text, inside, 0, text.length, cfg.rank[cfg.start], rng)
+      return ['root'].concat (transformTrace (ParseTree, ParseTree, cfg, trace).slice(1))
+    })
 }
 
 module.exports = { makeGrammar: makeGrammar,

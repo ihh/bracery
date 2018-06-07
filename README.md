@@ -10,9 +10,11 @@ allowing for user extensions that may include calls to a server (e.g. for synony
 
 Bracery aims...
 
+- to be easy to work with,
 - to keep out of the writer's way,
 - to avoid plundering the character space for syntax (especially punctuation marks, like quotes and commas, that are common in prose writing),
 - to allow real programming (variables, functions, lists) without forcing the writer to use/learn/care about any of those things,
+- to be fully functional in offline/synchronous mode, but also readily connectable to online generative text servers,
 - to be as compatible as possible with previous work in this space, especially [@galaxykate](https://github.com/galaxykate)'s [Tracery](http://tracery.io/).
 
 Bracery combines elements of other languages and libraries, including

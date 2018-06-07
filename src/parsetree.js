@@ -275,8 +275,11 @@ function parseTreeEmpty (rhs) {
 }
 
 function isEvalVar (node) {
-  return typeof(node) === 'object' && node.type === 'func'
-    && node.funcname === 'eval' && node.args.length === 1 && node.args[0].type === 'lookup'
+  return (typeof(node) === 'object' && node.type === 'func'
+          && ((node.funcname === 'eval' && node.args.length === 1)
+              || (node.funcname === 'call' && node.args[1].type === 'func' && node.args[1].funcname === 'list' && node.args[1].args.length === 0)
+              || (node.funcname === 'apply' && node.args[1].type === 'root' && node.args[1].rhs.length === 0))
+          && node.args[0].type === 'lookup')
 }
 
 function isTraceryExpr (node, makeSymbolName) {
@@ -424,10 +427,10 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
         var hasNonemptyArgList = hasArgList && tok.bind[0].args.length
         var isApply = tok.bind && !hasArgList
         result = (isApply
-                  ? [funcChar + symChar, makeSymbolName(tok), makeFuncArgTree (pt, tok.bind)]
+                  ? [funcChar + 'xapply' + symChar, makeSymbolName(tok), makeFuncArgTree (pt, tok.bind)]
                   : (nextIsAlpha && !hasNonemptyArgList
                      ? [symChar, [leftBraceChar, makeSymbolName(tok), rightBraceChar]]
-                     : [symChar, makeSymbolName(tok)].concat ([makeArgList.call (pt, tok.bind, makeSymbolName)])))
+                     : (hasNonemptyArgList ? [funcChar] : []).concat ([symChar, makeSymbolName(tok)], [makeArgList.call (pt, tok.bind, makeSymbolName)])))
 	break
       }
     }
@@ -931,6 +934,8 @@ var binaryFunction = {
       } catch (e) {
         if (config.verbose > 1)
           console.warn (e)
+        else
+          console.warn ('(error during parse)')
       }
     }
     var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
@@ -1033,6 +1038,7 @@ function makeEvalPromise (config, makeSymbolName, evalNode, evalNodeRhs, argsNod
                  }))
               : resolve ([]))
         .then (function (args) {
+          args = args || []
           return makeAssignmentPromise.call (pt,
                                              config,
                                              [[makeGroupVarName(0), null, args]]
@@ -1314,6 +1320,13 @@ function makeExpansionPromise (config) {
                       .then (addExpansionNodes)
                     break
 
+                    // call, apply
+                  case 'call':
+                  case 'apply':
+                    return makeEvalPromise.call (pt, config, makeSymbolName, node, [node.args[0]], [node.args[1]])
+                      .then (addExpansionNodes)
+                    break
+
                     // tree
                   case 'tree':
                     expansion.value = ['root'].concat (makeParseTree (argExpansion.tree))
@@ -1325,13 +1338,6 @@ function makeExpansionPromise (config) {
                     node.evaltree = parseRhs (arg)
                     expansion.value = pt.makeRhsTree (node.evaltree, makeSymbolName)
                     expansion.text = makeString (expansion.value)
-                    break
-
-                    // call, apply
-                  case 'call':
-                  case 'apply':
-                    return makeEvalPromise.call (pt, config, makeSymbolName, node, [node.args[0]], [node.args[1]])
-                      .then (addExpansionNodes)
                     break
 
                     // escape
@@ -1622,7 +1628,7 @@ function makeParseTree (rhs) {
     else if (isTraceryExpr (node))
       tree.push ([traceryChar + traceryVarName(node) + traceryChar].concat (makeParseTree (node.value ? node.result[0].value : node.result[0].rhs)))
     else if (node.type === 'func' && node.funcname === 'eval' && node.args.length === 1 && node.args[0].type === 'lookup')
-      tree.push ([funcChar + 'eval' + varChar + node.args[0].varname].concat (makeParseTree (node.value)))
+      tree.push ([funcChar + varChar + node.args[0].varname].concat (makeParseTree (node.value)))
     else if (node.type === 'sym')
       tree.push ([(node.method === 'get' ? (funcChar + 'xget') : '') + symChar + node.name].concat (makeParseTree (node.rhs)))
     else if (node.type === 'lookup')

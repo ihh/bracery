@@ -59,19 +59,19 @@ Function
   / ListConstructor
 
 SymbolFunction
-  = sym:CallSymbol args:ArgList { return makeSugaredSymbol (sym, makeArgList (args)) }
+  = sym:PrefixedSymIdentifier { return makeSugaredSymbol (sym, makeArgList ([])) }
+  / sym:CallSymbol args:ArgList { return makeSugaredSymbol (sym, makeArgList (args)) }
   / sym:ApplySymbol args:FunctionArg { return makeSugaredSymbol (sym, args) }
   / "#" sym:Identifier mods:TraceryModifiers "#" { return makeTraceryExpr (sym, mods) }
   / sym:GetSymbol { return makeGetSymbol (sym) }
   / sym:SetSymbol args:FunctionArg { return makeSetSymbol (sym, args) }
 
 CallSymbol
-  = PrefixedSymIdentifier
-  / "&xcall" sym:SymIdentifier { return sym }
+  = "&xcall" sym:SymIdentifier { return sym }
+  / "&" sym:PrefixedSymIdentifier { return sym }
 
 ApplySymbol
-  = "&" sym:PrefixedSymIdentifier { return sym }
-  / "&xapply" sym:SymIdentifier { return sym }
+  = "&xapply" sym:SymIdentifier { return sym }
 
 GetSymbol
   = "&xget" sym:SymIdentifier { return sym }

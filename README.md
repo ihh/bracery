@@ -524,11 +524,12 @@ Language features include
    - first-class functions (or, at the very least, frequent-flyer functions that got an upgrade)
       - `&call{expr}{arg1}{arg2}{arg3...}` binds `$$1` to `arg1`, `$$2` to `arg2`, `$$3` to `arg3`... before expanding `expr`
          - in other words, `&let$$1={arg1}{&let$$2={arg2}{&let$$3={arg3}{...}}}	   `
+         - `&$x` is short for `&call{$x}`
       - `&apply{expr}{args}` is the same but the arguments are in list form
       - `&function$arg1$arg2$arg3{...}` is exactly the same as `&quote{&let$arg1={$$1}{&let$arg2={$$2}{&let$arg3={$$3}{...}}}}`
-      - you can also pass args to user extensions e.g. `~extension{arg1}{arg2}{arg3}`
-         - the 'apply' form of this is `&~extension{arglist}`
-      - `&$x` is short for `&call{$x}`
+      - you can also pass args to user extensions e.g. `&~extension{arg1}{arg2}{arg3}`
+         - `&~extension` is short for `&xcall{~extension}'
+         - the 'apply' form of this is `&xapply{~extension}{arglist}`
 - lists:
    - `&list{...}` or just `&{...}` creates an explicit nested list context, vs the default concatenation context
       - `&{}` is the empty list, equivalent to `&list{}`

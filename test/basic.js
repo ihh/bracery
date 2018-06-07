@@ -88,10 +88,10 @@ function doTests (testRunner) {
   expectExpand ('&quote&unquote{a|b}', 'b', {maxTries:maxTries})
   expectExpand ('&quote&quote&unquote{a|b}', '&quote&unquote{[a|b]}')
 
-  expectExpandQuote ('&quote{~hello{abc}{def}}', '~hello{abc}{def}')
-  expectExpand ('&quote&quote{~hello{abc}{def}}', '&quote{~hello{abc}{def}}')
+  expectExpandQuote ('&quote{&~hello{abc}{def}}', '&~hello{abc}{def}')
+  expectExpand ('&quote&quote{&~hello{abc}{def}}', '&quote{&~hello{abc}{def}}')
 
-  expectExpandQuote ('&quote{&~{ lambda }{$y}}', '&~lambda$y')
+  expectExpandQuote ('&quote{&xapply~{ lambda }{$y}}', '&xapply~lambda$y')
   
   // case manipulation
   expectExpand ('&quote{~TEST1}', '~TEST1')
@@ -366,7 +366,7 @@ function doTests (testRunner) {
   var defcatText = 'defcat'
   var defcatRules = {a:"d#x#",b:"e&eval$z",c:"c$c"}
   var defcatBracery = '[z:f&xget{~c}] [x=>~{b}t] $c=a'
-  var defcatParse = JSON.stringify ([["root",["#a#","d",["#x#",["~b","e",["&eval$z","fc",["$c","a"]]],"t"]]]])
+  var defcatParse = JSON.stringify ([["root",["#a#","d",["#x#",["~b","e",["&$z","fc",["$c","a"]]],"t"]]]])
 
   expectExpand (defcatBracery + '#a#', defcatText, {rules:defcatRules})
   expectExpand (defcatBracery + '&json&tree{#a#}', defcatParse, {rules:defcatRules})
@@ -375,16 +375,19 @@ function doTests (testRunner) {
   // a more parse-tree varied example of the same test, exposes a different test case
   var defcatRules2 = {a:"d#x#t",b:"&eval{$z}c",c:"e$c"}
   var defcatBracery2 = '[z:&xget{~c}] [x=>~{b}a] $c=f'
-  var defcatParse2 = JSON.stringify ([["root",["#a#","d",["#x#",["~b",["&eval$z","e",["$c","f"]],"c"],"a"],"t"]]])
+  var defcatParse2 = JSON.stringify ([["root",["#a#","d",["#x#",["~b",["&$z","e",["$c","f"]],"c"],"a"],"t"]]])
 
   expectExpand (defcatBracery2 + '#a#', defcatText, {rules:defcatRules2})
   expectExpand (defcatBracery2 + '&json&tree{#a#}', defcatParse2, {rules:defcatRules2})
   expectExpand (defcatBracery2 + '&json&parse#a#{#a#}', defcatParse2, {rules:defcatRules2})
 
   // narrowed down to this case
-  expectExpand ('[z:z] &json&parse#za##za#', '[["root",["#za#",["&eval$z","z"],"a"]]]', {rules:{za:"&eval{$z}a"}})
+  expectExpand ('[z:z] &json&parse#za##za#', '[["root",["#za#",["&$z","z"],"a"]]]', {rules:{za:"&eval{$z}a"}})
   expectExpand ('&quote{&eval{$z}a}', '&eval$za', {fail:true})  // bug
   expectExpand ('&quote{&eval{$z}a}', '&eval{$z}a')  // bug fixed
+
+  // in &parse expressions, &call$x and &apply$x{} should be handled the same as &eval
+  expectExpand ('[a=>cat|dog][b=>walk|whistle]&json&parse{&$a &apply{$b}{}}{cat walk}', '[["root",["&$a",["alt","cat"]]," ",["&$b",["alt","walk"]]]]')
   
   // down with fixed nonterminals
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'yo earthling', {maxTries:maxTries})
@@ -397,20 +400,20 @@ function doTests (testRunner) {
   expectExpand ('~dynamo', 'dynamik', {maxTries:maxTries})
   expectExpand ('~dynamo', 'DYNAMIC', {maxTries:maxTries})
 
-  expectExpand ('~lambda{hi, }{!!!}', 'hi, world!!!')
-  expectExpand ('$y=&cat{hi, }{!!!}&~lambda$y', 'hi, world!!!')
+  expectExpand ('&~lambda{hi, }{!!!}', 'hi, world!!!')
+  expectExpand ('$y=&cat{hi, }{!!!}&xapply~lambda$y', 'hi, world!!!')
 
   expectExpand ('~lambda', 'undefinedworldundefined')
-  expectExpand ('&~lambda{}', 'undefinedworldundefined')
-  expectExpand ('~lambda{}', 'worldundefined')
-  expectExpand ('~lambda{$undef}', 'worldundefined')
+  expectExpand ('&xapply~lambda{}', 'undefinedworldundefined')
+  expectExpand ('&~lambda{}', 'worldundefined')
+  expectExpand ('&~lambda{$undef}', 'worldundefined')
 
   // shorthands for &value and &list (precise generators)
-  expectExpand ('&~json{&{1}&{2}&{3}}', 'x="1" y="2" z="3"')
-  expectExpand ('&~json{1&{2}&{3}}', 'x="123" y=undefined z=undefined')
-  expectExpand ('&~json{&{1&{2}&{&{3}}}}', 'x="1" y=["2"] z=[["3"]]')
-  expectExpand ('&~json{&{1}&{&{2}}&{&{&{3}}}}', 'x="1" y=["2"] z=[["3"]]')
-  expectExpand ('&~json&list{1&{2}&{3}}', 'x="1" y=["2"] z=["3"]')
+  expectExpand ('&xapply~json{&{1}&{2}&{3}}', 'x="1" y="2" z="3"')
+  expectExpand ('&xapply~json{1&{2}&{3}}', 'x="123" y=undefined z=undefined')
+  expectExpand ('&xapply~json{&{1&{2}&{&{3}}}}', 'x="1" y=["2"] z=[["3"]]')
+  expectExpand ('&xapply~json{&{1}&{&{2}}&{&{&{3}}}}', 'x="1" y=["2"] z=[["3"]]')
+  expectExpand ('&xapply~json&list{1&{2}&{3}}', 'x="1" y=["2"] z=["3"]')
 
   expectExpand ('&quotify{&{&.a&.b&{&.c&.d}e&.f}}', '&list{&value{a}&value{b}&list{&value{c}&value{d}}&value{e}&value{f}}')
 
@@ -427,6 +430,8 @@ function doTests (testRunner) {
   expectExpand ('$x=99 &function$first$second{1=$first 2=$second x=$x}', '&let$first={$$1}{&let$second={$$2}{1=$first 2=$second x=$x}}')
   expectExpand ('$x=99 &function$first$second{1=$first 2=$second x=&unquote$x}', '&let$first={$$1}{&let$second={$$2}{1=$first 2=$second x=99}}')
 
+  expectExpand ('[a=>cat|cat]&apply$a{}', 'cat')
+  
   // regexes
   expectExpand ('&match/a/{cat}{$$0$$0}', 'aa')
   expectExpand ('&quotify&match/[aeiou]/g{generic}{&uc$$0}', '&list{&value{E}&value{E}&value{I}}')

@@ -36,7 +36,7 @@ function makeGrammarRules (ParseTree, config, cfg, name, checkVars, checkSym, ex
   var opts, symDef, cfgName
   if (checkVars && vars[name]) {
     symDef = vars[name]
-    cfgName = expand ? (ParseTree.funcChar + 'eval' + ParseTree.varChar + name) : (ParseTree.varChar + name)
+    cfgName = expand ? (ParseTree.funcChar + ParseTree.varChar + name) : (ParseTree.varChar + name)
     symCheckedPromise = resolve()
   } else if (checkSym && config.get) {
     symCheckedPromise = resolve (config.get ({ symbolName: name }))
@@ -310,7 +310,7 @@ function transformTrace (ParseTree, config, cfg, trace) {
 
 function fillInside (config, cfg, text) {
   if (config.verbose)
-    console.warn('cfg',JSON.stringify(cfg,null,2))
+    console.warn('fillInside.grammar',JSON.stringify(cfg,null,2))
   var len = text.length, nSym = cfg.sort.length
   var maxSubseqLen = config.maxSubsequenceLength || len
   var inside = new Array(len+1).fill(0).map (function (_, i) {
@@ -345,7 +345,7 @@ function fillInside (config, cfg, text) {
           for (var k = rhs.length === 1 ? j : i; k <= j; ++k) {
 	    var weight = ruleWeight (inside, text, maxSubseqLen, i, j, k, rhs)
             if (config.verbose)
-              console.warn ('fillInside', 'weight='+weight, 'i='+i, 'j='+j, 'k='+k, 'lhs='+cfg.sort[s], 'rhs='+JSON.stringify(rhs))
+              console.warn ('fillInside.rule', 'weight='+weight, 'i='+i, 'j='+j, 'k='+k, 'lhs='+cfg.sort[s], 'rhs='+JSON.stringify(rhs))
             if (weight)
 	      inside[i][ijIndex][s] = (inside[i][ijIndex][s] || 0) + weight
             if (k === kStop)

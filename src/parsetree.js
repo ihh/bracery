@@ -336,6 +336,7 @@ function makeRhsTree (rhs, makeSymbolName) {
       result = escapeString (tok)
     else {
       var nextTok = (n < rhs.length - 1) ? rhs[n+1] : undefined
+//      console.warn('nextTok',tok,nextTok)
       var nextIsAlpha = typeof(nextTok) === 'string' && nextTok.match(/^[A-Za-z0-9_]/)
       switch (tok.type) {
       case 'unquote':
@@ -930,8 +931,8 @@ var binaryFunction = {
                                                text: r,
                                                maxSubsequenceLength: config.maxSubsequenceLength || this.maxSubsequenceLength }))
       } catch (e) {
-// uncomment for verbose parse errors
-//        console.warn (e)
+        if (config.verbose > 1)
+          console.warn (e)
       }
       if (parse)
         result = makeArray (parse)

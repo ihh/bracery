@@ -380,6 +380,10 @@ function doTests (testRunner) {
   expectExpand (defcatBracery2 + '#a#', defcatText, {rules:defcatRules2})
   expectExpand (defcatBracery2 + '&json&tree{#a#}', defcatParse2, {rules:defcatRules2})
   expectExpand (defcatBracery2 + '&json&parse#a#{#a#}', defcatParse2, {rules:defcatRules2,fail:true})  // FIX ME!!!
+
+  // narrowed down to this case
+  expectExpand ('[z:z] &json&parse#za##za#', '[["root",["#za#",["&eval$z","z"],"a"]]]', {rules:{za:"&eval{$z}a"}, fail:true}) // FIX ME!!!!
+  expectExpand ('&quote{&eval{$z}a}', '&eval$za', {bug:true})
   
   // down with fixed nonterminals
   expectExpand ('[hello:&quote[yo|oy]][world:&quote[earthling|human]]#hello# #world#', 'yo earthling', {maxTries:maxTries})

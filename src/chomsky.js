@@ -34,6 +34,7 @@ function makeGrammarRules (ParseTree, config, cfg, name, checkVars, checkSym, ex
     symDef = vars[name]
     cfgName = expand ? (ParseTree.funcChar + 'eval' + ParseTree.varChar + name) : (ParseTree.varChar + name)
   } else if (checkSym && config.get && (symDef = config.get ({ symbolName: name }))) {
+//    console.warn('symDef',name,JSON.stringify(symDef))
     symDef = symDef.join('')
     cfgName = expand ? (ParseTree.symChar + name) : (ParseTree.funcChar + 'xget' + ParseTree.symChar + ParseTree.name)
   }

@@ -1,6 +1,6 @@
 var Template = require('./template')
 var ParseTree = require('./parsetree')
-var Validator = require('./validator')
+// var Validator = require('./validator')
 var Chomsky = require('./chomsky')
 var RhsParser = ParseTree.RhsParser
 var extend = ParseTree.extend
@@ -258,7 +258,7 @@ Bracery.prototype.normalize = function (text) {
 module.exports = { Bracery: Bracery,
                    ParseTree: ParseTree,
                    RhsParser: RhsParser,
-                   Validator: Validator,
+//                   Validator: Validator,
 		   Chomsky: { makeGrammar: Chomsky.makeGrammar.bind (Chomsky, ParseTree),
 		              parseInside: Chomsky.parseInside.bind (Chomsky, ParseTree) },
                    Template: Template,

@@ -4,13 +4,22 @@
 
 # Bracery
 
-Bracery is a small language for procedural text generation,
-combining elements of other languages and libraries:
+Bracery is a small language for procedural text generation.
+Its purpose is to enable quick and fluid writing of text with random elements,
+allowing for user extensions that may include calls to a server (e.g. for synonyms, rhymes, or other functions).
 
-- variable expansions from [@galaxykate](https://github.com/galaxykate)'s [Tracery](http://tracery.io/)
-- alternations, borrowed from [regular expressions](https://en.wikipedia.org/wiki/Regular_expression)
-- natural language processing functions from the [compromise](https://github.com/spencermountain/compromise) library
-- lists and a few other things from [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language))
+Bracery aims...
+
+- to keep out of the writer's way,
+- to avoid plundering the character space for syntax (especially punctuation marks, like quotes and commas, that are common in prose writing),
+- to allow real programming (variables, functions, lists) without forcing the writer to use/learn/care about any of those things,
+- to be as compatible as possible with previous work in this space, especially [@galaxykate](https://github.com/galaxykate)'s [Tracery](http://tracery.io/).
+
+Bracery combines elements of other languages and libraries, including
+variable manipulation syntax from [Tracery](http://tracery.io/),
+alternations from [regular expressions](https://en.wikipedia.org/wiki/Regular_expression),
+natural language processing from the [compromise](https://github.com/spencermountain/compromise) library,
+and lists from [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)).
 
 # Usage
 
@@ -201,10 +210,10 @@ bracery -d travel.json --repl
 bracery -d travel.json -n5 --async
 ~~~~
 
-(The square-bracket and pipe characters `[hello|hi]` are part of the syntax extensions to Tracery, described [below](#syntax-extensions).
-This syntax allows the compact specification of alternate possibilities, in this case `hello` or `hi`.)
+These examples all load the Tracery `travel.json` rules as user extensions, using the `-d` option.
+If you specify the `-b` option, the command-line tool will convert and output the Tracery JSON to Bracery code.
 
-You can run it in client/server mode (NB this is a very light implementation, mostly just a toy example to demonstrate networked symbol expansion):
+You can run the tool in client/server mode (NB this is a very light implementation, mostly just a toy example to demonstrate networked symbol expansion):
 
 ~~~~
 bracery -d travel.json -S 8000 &
@@ -380,7 +389,7 @@ Maybe tomorrow, I'll be #new_mood#?
 
 <!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bnew_mood%3D%3Ehappy%7Csad%7Cangry%7C%5Bvery%7Cslightly%5D%20bored%5D%0A%5Bmood%3A%23new_mood%23%5D%0AI%20feel%20%23mood%23.%20And%20when%20I'm%20%23mood%23%2C%20then%20%23mood%23%20is%20all%20I%20feel.%0AMaybe%20tomorrow%2C%20I'll%20be%20%23new_mood%23%3F">Try this</a> </em>
 
-Many more details of the language are available in the following sections.
+More details of the language are available in the following sections.
 
 # Technical details
 
@@ -530,6 +539,10 @@ Language features include
       - you can also pass args to user extensions e.g. `&~extension{arg1}{arg2}{arg3}`
          - `&~extension` is short for `&xcall{~extension}'
          - the 'apply' form of this is `&xapply{~extension}{arglist}`
+      - the implementation may optionally allow retrieval of the Bracery code behind an extension symbol, using the syntax `&xget{~extension}`, but this is not guaranteed
+         - specifically, extensions don't have to be implemented in Bracery themselves
+	 - for those that are, however, it's useful to be able to retrieve the code in order to do syntactic analysis of the underlying context-free grammar
+	 - the `&parse` function uses this feature
 - lists:
    - `&list{...}` or just `&{...}` creates an explicit nested list context, vs the default concatenation context
       - `&{}` is the empty list, equivalent to `&list{}`
@@ -635,11 +648,13 @@ Tags are arbitrary strings, excluding spaces.
 Matches between tags determine the connectivity of the Markov chain.
 
 The past and future-tags are interpreted as follows:
+
 - For template B to be considered as a possible successor (i.e. reply) to a message generated from template A, at least one of A's future-tags must also be one of B's past-tags
 - If any of A's future-tags appear in B's past-tags with an exclamation point in front (e.g. A has future-tag `tag` and B has past-tag `!tag`), then B is disallowed as a successor to A (these tags are referred to as B's _excluded-past-tags_)
 - The special past-tag `root` is used to denote _root templates_ that can be used at the top of a thread (or the past-tags can be left empty for the same effect)
 
 Each Bracery message template has the following fields:
+
 - the _past-tags_
 - the _future-tags_
 - the _title_
@@ -652,6 +667,7 @@ The first message in the thread must be generated from a root template, as descr
 Successive messages are generated by matching tags between consecutive templates.
 
 Each message has the following fields:
+
 - an associated template
 - an _expansion tree_ that is a parse tree generated from the Bracery grammar defined by the template's source text
 - a set of _future-tags_ which by default are the same as the template's future-tags, but can be overridden by the `$tags` variable, if that variable is assigned a value in the expansion tree
@@ -659,8 +675,10 @@ Each message has the following fields:
 
 The root node of the expansion tree "inherits" any variable assignments from the predecessor,
 with two special variables overridden as follows:
+
 - the `tags` variable, at the beginning of the expansion, is set to the template's future-tags (joined by whitespace into a single string)
 - the `prevtags` variable, at the beginning of the expansion, is set to the predecessor message's future-tags (joined by whitespace into a single string)
+
 The value of the `tags` variable by the end of the expansion is used to find the message's future-tags (it is considered to be a whitespace-separated list).
 Thus, the template's default future-tags can be "overridden" by variable assignments from the Bracery source text.
 
@@ -712,6 +730,7 @@ You can also use the `templates2dot.js` script to get a visualization of the Mar
 bin/templates2dot.js -o examples/markov/good_news_bad_news.txt
 ~~~~
  
+
 
 
 

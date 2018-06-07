@@ -292,6 +292,20 @@ function isTraceryExpr (node, makeSymbolName) {
     && node.test[0].varname.toLowerCase() === makeSymbolName (node.f[0]).toLowerCase()
 }
 
+function makeEvalVar (name) {
+  return { type: 'func',
+           funcname: 'eval',
+           args: [{ type: 'lookup',
+                    varname: name }] }
+}
+
+function makeTraceryExpr (name) {
+  return { type: 'cond',
+           test: [{ type: 'lookup', varname: name }],
+           t: [makeEvalVar (name)],
+           f: [{ type: 'sym', name: name }] }
+}
+
 function traceryVarName (traceryNode) {
   return traceryNode.test[0].varname.toLowerCase()
 }
@@ -364,12 +378,7 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
 	break
       case 'alt':
         result = [leftSquareBraceChar,
-                  tok.opts.map (function (opt, n) {
-                    var optTree = pt.makeRhsTree(opt,makeSymbolName)
-                    if (n === 0 && optTree.length && typeof(optTree[0]) === 'string')
-                      optTree[0] = optTree[0].replace (/(:|=>)/g, function (_m, g) { return '\\' + g })
-                    return [optTree].concat (n < tok.opts.length - 1 ? [pipeChar] : [])
-                  }),
+                  tok.opts.map (makeOptTree.bind(pt,makeSymbolName,tok.opts.length)),
                   rightSquareBraceChar]
 	break
       case 'rep':
@@ -436,6 +445,13 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
     }
     return result
   })
+}
+
+function makeOptTree (makeSymbolName, nOpts, opt, n) {
+  var optTree = this.makeRhsTree (opt, makeSymbolName)
+  if (n === 0 && optTree.length && typeof(optTree[0]) === 'string')
+    optTree[0] = optTree[0].replace (/(:|=>)/g, function (_m, g) { return '\\' + g })
+  return [optTree].concat (n < nOpts - 1 ? [pipeChar] : [])
 }
 
 function makeArgList (args, makeSymbolName) {
@@ -925,7 +941,7 @@ var binaryFunction = {
     return makeArray(lv).join (r)
   },
   parse: function (l, r, lv, rv, config) {
-    if (!(r.length > (config.maxParseLength || this.maxParseLength))) {
+    if (!tooLongToParse (this, config, r)) {
       try {
         return Chomsky.parseInside (this, extend ({}, config, { root: l, text: r, maxSubsequenceLength: config.maxSubsequenceLength || this.maxSubsequenceLength }))
           .then (function (parse) {
@@ -941,6 +957,10 @@ var binaryFunction = {
     var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
     return resolve('')
   }
+}
+
+function tooLongToParse (pt, config, text) {
+  return text.length > (config.maxParseLength || this.maxParseLength)
 }
 
 function makeRhsExpansionReducer (pt, config, reduce, init) {
@@ -1331,6 +1351,34 @@ function makeExpansionPromise (config) {
                   case 'tree':
                     expansion.value = ['root'].concat (makeParseTree (argExpansion.tree))
                     expansion.text = makeString (expansion.value)
+                    break
+
+                    // grammar
+                  case 'grammar':
+                    return Chomsky.makeGrammar (pt, extend ({}, config, { root: arg }))
+                      .then (function (cfg) {
+                        function stateName (state, rank) { return '_' + (state.type === 'start' ? 'start' : rank) }
+                        expansion.value = cfg.stateByRank.map (function (state, rank) {
+                          return [leftSquareBraceChar,
+                                  stateName (state, rank),
+                                  '=>',
+                                  state.opts.map (function (opt, n) {
+                                    return makeOptTree.call (pt, makeSymbolName, state.opts.length, opt.rhs.map (function (node) {
+                                      return (node.type === 'term'
+                                              ? node.text
+                                              : makeTraceryExpr (stateName (cfg.stateByName[node.name], node.rank)))
+                                    }), n)
+                                  }),
+                                  rightSquareBraceChar]
+                        })
+                          expansion.text = makeString (expansion.value)
+                        return expansion
+                      }).catch (function (e) {
+                        if (config.verbose > 1)
+                          console.warn (e)
+                        else
+                          console.warn ('(error during syntactic analysis)')
+                      })
                     break
 
                     // syntax

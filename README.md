@@ -10,9 +10,9 @@ allowing for user extensions that may include calls to a server (e.g. for synony
 
 Bracery aims...
 
-- to keep out of the writer's way, being primarily a markup language and close to plain text,
+- to keep out of the writer's way, looking mostly like a markup language and close to plain text,
 - to be easy to work with, presenting simply whether you're a casual user or an experienced programmer,
-- to avoid plundering the character space for syntax (especially punctuation marks, like quotes and commas, that are common in prose writing),
+- to avoid plundering the character space for syntax (especially punctuation marks, like quotes and commas, that are common in natural writing),
 - to allow real programming (variables, functions, lists) without forcing the writer to use/learn/care about any of those things,
 - to be usable offline by default, but also readily connectable to online generative text servers,
 - to be secure running random code from the internet, including limits on recursion and network/CPU usage,

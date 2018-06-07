@@ -168,6 +168,7 @@ LinkFunction
 
 ParseFunction
   = "&parse" grammar:QuotedFunctionArg text:FunctionArg { return makeFunction ('parse', [wrapNodes(grammar), wrapNodes(text)]) }
+  / "&grammar" grammar:QuotedFunctionArg { return makeFunction ('grammar', grammar) }
 
 ListConstructor
   = "&{" args:NodeList "}" { return makeFunction ('list', args) }
@@ -183,7 +184,8 @@ BinaryFunctionName
   / "apply" / "xapply"
 
 UnaryFunctionName
-  = "eval" / "syntax" / "tree" / "escape" / StrictQuote / Quote / Unquote
+  = "eval" / "syntax" / "tree"
+  / "escape" / StrictQuote / Quote / Unquote
   / "random" / "floor" / "ceil" / "round" / "abs"
   / "wordnum" / "dignum" / "ordinal" / "cardinal"
   / "plural" / "singular" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive"

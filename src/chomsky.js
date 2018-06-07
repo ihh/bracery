@@ -209,7 +209,7 @@ function toposortSymbols (cfg, start) {
     nParents[c] = trans.sources[c].length
     edges += nParents[c]
     if (nParents[c] == 0)
-      S.push (c)
+      (c === start ? S.unshift : S.push).call (S, c)  // ensure start goes at the beginning
   })
   while (S.length > 0) {
     var n = S.shift()

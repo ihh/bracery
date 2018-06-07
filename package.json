@@ -1,6 +1,6 @@
 {
   "name": "bracery",
-  "version": "1.0.57",
+  "version": "1.0.58",
   "description": "Procedural text generator, somewhat compatible with Tracery",
   "main": "index.js",
   "bin": {

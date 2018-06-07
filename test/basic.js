@@ -358,7 +358,7 @@ function doTests (testRunner) {
 
   expectExpand ('[a=>#b#|#c#][b=>cat|dog#a#][c=>horse|cow][d=>whatever|why]&grammar#a#', '[_start=>#_1#][_1=>#_2#][_2=>#_3#|#_4#][_3=>#_5#][_4=>#_6#][_5=>cat|dog#_1#][_6=>horse|cow]')
   expectExpand ('[a=>#b#|#c#][b=>cat|dog#a#][c=>horse|cow][d=>whatever|why]&grammar#d#', '[_start=>#_1#][_1=>#_2#][_2=>whatever|why]')
-  expectExpand ('[a=>#b#|#c#][b=>cat|dog#a#][c=>horse|cow][d=>whatever|why]&grammar{#a# #a#}', '[_start=>#_1# #_1#][_1=>#_2#][_2=>#_3#|#_4#][_3=>#_5#][_4=>#_6#][_5=>cat|dog#_1#][_6=>horse|cow]')
+  expectExpand ('[a=>#b#|#c#][b=>cat|dog#a#][c=>horse|cow][d=>whatever|why]&grammar{#a# #a#}', '[_start=>#_1##_2#][_1=>#_3#][_2=> #_1#][_3=>#_4#|#_5#][_4=>#_6#][_5=>#_7#][_6=>cat|dog#_1#][_7=>horse|cow]')
 
   // test equivalency of &parse and &tree for a parse involving the elements our syntactic analyzer recognizes
   // these elements include:

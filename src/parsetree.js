@@ -1355,7 +1355,7 @@ function makeExpansionPromise (config) {
 
                     // grammar
                   case 'grammar':
-                    return Chomsky.makeGrammar (pt, extend ({}, config, { root: arg }))
+                    return Chomsky.makeGrammar (pt, extend ({}, config, { root: arg, normal: true }))
                       .then (function (cfg) {
                         function stateName (state, rank) { return '_' + (state.type === 'start' ? 'start' : rank) }
                         expansion.value = cfg.stateByRank.map (function (state, rank) {

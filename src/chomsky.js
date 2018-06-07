@@ -19,12 +19,12 @@ function makeGrammar (ParseTree, config) {
             })
           })
       })
-      return { cfg: cfg,
-               ranked: sortOrder.map (function (sym) { return cfg[sym] }),
-	       empties: toposort.empties,
+      return { stateByName: cfg,
+               stateByRank: sortOrder.map (function (sym) { return cfg[sym] }),
+               rankByName: symbolRank,
+	       nameByRank: sortOrder,
 	       cyclic: toposort.cyclic,
-	       sort: sortOrder,
-               rank: symbolRank,
+	       empties: toposort.empties,
 	       start: start.name }
     })
 }
@@ -270,7 +270,7 @@ function sampleTrace (config, cfg, text, inside, i, j, lhs, rng) {
   rng = rng || Math.random
   var applications = [], weights = [], totalWeight = 0
   for (var k = i; k <= j; ++k) {
-    cfg.ranked[lhs].opts.forEach (function (rhs) {
+    cfg.stateByRank[lhs].opts.forEach (function (rhs) {
       var w = ruleWeight (inside, text, config.maxSubsequenceLength || text.length, i, j, k, rhs)
       applications.push ({ k: k, rhs: rhs })
       weights.push (w)
@@ -282,7 +282,7 @@ function sampleTrace (config, cfg, text, inside, i, j, lhs, rng) {
     if ((r -= weights[n]) <= 0)
       break
   var app = applications[n], k = app.k, rhs = app.rhs
-  return [cfg.sort[lhs]].concat (rhs.rhs.map (function (node, pos) {
+  return [cfg.nameByRank[lhs]].concat (rhs.rhs.map (function (node, pos) {
     return (node.type === 'term'
             ? node.text
             : sampleTrace (config, cfg, text, inside, pos ? k : i, pos ? j : k, node.rank, rng))
@@ -293,7 +293,7 @@ function transformTrace (ParseTree, config, cfg, trace) {
   return trace.slice(1).reduce (function (t, node) {
     if (typeof(node) === 'string')
       return t.concat ([node])
-    var name = node[0], type = cfg.cfg[name].type, rest = transformTrace (ParseTree, config, cfg, node).slice(1)
+    var name = node[0], type = cfg.stateByName[name].type, rest = transformTrace (ParseTree, config, cfg, node).slice(1)
     switch (type) {
     case 'sym':
       return t.concat ([[name].concat (rest)])
@@ -311,7 +311,7 @@ function transformTrace (ParseTree, config, cfg, trace) {
 function fillInside (config, cfg, text) {
   if (config.verbose)
     console.warn('fillInside.grammar',JSON.stringify(cfg,null,2))
-  var len = text.length, nSym = cfg.sort.length
+  var len = text.length, nSym = cfg.nameByRank.length
   var maxSubseqLen = config.maxSubsequenceLength || len
   var inside = new Array(len+1).fill(0).map (function (_, i) {
     return new Array(i === 0 ? (len+1) : Math.min(maxSubseqLen+2,len+1-i)).fill(0).map (function() {
@@ -339,13 +339,13 @@ function fillInside (config, cfg, text) {
       }
       var ijIndex = i === 0 ? j : Math.min (j - i, maxSubseqLen + 1)
       for (var s = nSym - 1; s >= 0; --s) {
-        var opts = cfg.ranked[s].opts
+        var opts = cfg.stateByRank[s].opts
         for (var r = 0; r < opts.length; ++r) {
           var rhs = opts[r]
           for (var k = rhs.length === 1 ? j : i; k <= j; ++k) {
 	    var weight = ruleWeight (inside, text, maxSubseqLen, i, j, k, rhs)
             if (config.verbose)
-              console.warn ('fillInside.rule', 'weight='+weight, 'i='+i, 'j='+j, 'k='+k, 'lhs='+cfg.sort[s], 'rhs='+JSON.stringify(rhs))
+              console.warn ('fillInside.rule', 'weight='+weight, 'i='+i, 'j='+j, 'k='+k, 'lhs='+cfg.nameByRank[s], 'rhs='+JSON.stringify(rhs))
             if (weight)
 	      inside[i][ijIndex][s] = (inside[i][ijIndex][s] || 0) + weight
             if (k === kStop)
@@ -365,9 +365,9 @@ function parseInside (ParseTree, config) {
     .then (function (cfg) {
       var text = config.text, rng = config.rng
       var inside = fillInside (config, cfg, text)
-      if (!inside[0][text.length][cfg.rank[cfg.start]])
+      if (!inside[0][text.length][cfg.rankByName[cfg.start]])
         return ''
-      var trace = sampleTrace (config, cfg, text, inside, 0, text.length, cfg.rank[cfg.start], rng)
+      var trace = sampleTrace (config, cfg, text, inside, 0, text.length, cfg.rankByName[cfg.start], rng)
       return ['root'].concat (transformTrace (ParseTree, ParseTree, cfg, trace).slice(1))
     })
 }

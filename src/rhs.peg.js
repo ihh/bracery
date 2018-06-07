@@ -106,7 +106,7 @@ MapFunction
   / "&reduce" varname:MapVarIdentifier list:FunctionArg result:VarIdentifier ("=" / "") init:FunctionArg func:QuotedFunctionArg { return makeReduceFunction (varname, list, result, init, func) }
 
 MapFunctionName = "map" / DefaultableMapFunctionName
-DefaultableMapFunctionName = "filter" / "weightsort" / "lexsort"
+DefaultableMapFunctionName = "filter" / "numsort" / "lexsort"
 
 MapVarIdentifier
   = name:VarIdentifier (":" / "") { return name }

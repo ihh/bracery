@@ -4074,7 +4074,7 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
         } else if (regexFunction[tok.funcname]) {
           result = [funcChar, tok.funcname, '/', pt.makeRhsTree ([tok.args[0]], makeSymbolName), '/', pt.makeRhsTree ([tok.args[1]], makeSymbolName)]
             .concat (tok.args.slice(2).map (function (arg, n) { return makeFuncArgTree (pt, n>0 ? arg.args : [arg], makeSymbolName) }))
-        } else if (tok.funcname === 'map' || tok.funcname === 'filter' || tok.funcname === 'weightsort' || tok.funcname === 'lexsort' || tok.funcname === 'reduce') {
+        } else if (tok.funcname === 'map' || tok.funcname === 'filter' || tok.funcname === 'numsort' || tok.funcname === 'lexsort' || tok.funcname === 'reduce') {
           result = [funcChar, tok.funcname, (tok.args[0].varname === '_' ? '' : [varChar, tok.args[0].varname, ':']), makeFuncArgTree (pt, tok.args[0].value, makeSymbolName)]
             .concat (tok.funcname === 'reduce'
                      ? [varChar, tok.args[0].local[0].varname, '=', makeFuncArgTree (pt, tok.args[0].local[0].value, makeSymbolName), makeFuncArgTree (pt, tok.args[0].local[0].local[0].args, makeSymbolName)]
@@ -4863,8 +4863,8 @@ function makeExpansionPromise (config) {
                                                   mapReducer,
                                                   { value: [] }) (makeArray (listExpansion.value))
                 })
-            } else if (node.funcname === 'weightsort' || node.funcname === 'lexsort') {
-              // weightsort/lexsort. first arg is &let$VAR:LIST{&strictquote{EXPR}}
+            } else if (node.funcname === 'numsort' || node.funcname === 'lexsort') {
+              // numsort/lexsort. first arg is &let$VAR:LIST{&strictquote{EXPR}}
               promise = makeRhsExpansionPromiseFor (node.args[0].value)
                 .then (function (listExpansion) {
                   var list = makeArray (listExpansion.value)
@@ -4876,9 +4876,9 @@ function makeExpansionPromise (config) {
                                                   mapReducer,
                                                   { value: [] }) (list)
                     .then (function (weightListExpansion) {
-                      var weights = makeArray (weightListExpansion.value).map (node.funcname === 'weightsort' ? toNumber : makeString)
+                      var weights = makeArray (weightListExpansion.value).map (node.funcname === 'numsort' ? toNumber : makeString)
                       var indices = listExpansion.value.map (function (_val, n) { return n })
-                      var sortedIndices = indices.sort (node.funcname === 'weightsort'
+                      var sortedIndices = indices.sort (node.funcname === 'numsort'
                                                         ? function (a, b) { return weights[a] - weights[b] }
                                                         : function (a, b) { return String.prototype.localeCompare.call (weights[a], weights[b]) })
                       extend (expansion.vars, weightListExpansion.vars)
@@ -5819,8 +5819,8 @@ function peg$parse(input, options) {
       peg$c90 = peg$literalExpectation("map", false),
       peg$c91 = "filter",
       peg$c92 = peg$literalExpectation("filter", false),
-      peg$c93 = "weightsort",
-      peg$c94 = peg$literalExpectation("weightsort", false),
+      peg$c93 = "numsort",
+      peg$c94 = peg$literalExpectation("numsort", false),
       peg$c95 = "lexsort",
       peg$c96 = peg$literalExpectation("lexsort", false),
       peg$c97 = ":",
@@ -7628,9 +7628,9 @@ function peg$parse(input, options) {
       if (peg$silentFails === 0) { peg$fail(peg$c92); }
     }
     if (s0 === peg$FAILED) {
-      if (input.substr(peg$currPos, 10) === peg$c93) {
+      if (input.substr(peg$currPos, 7) === peg$c93) {
         s0 = peg$c93;
-        peg$currPos += 10;
+        peg$currPos += 7;
       } else {
         s0 = peg$FAILED;
         if (peg$silentFails === 0) { peg$fail(peg$c94); }

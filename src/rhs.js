@@ -234,8 +234,8 @@ function peg$parse(input, options) {
       peg$c90 = peg$literalExpectation("map", false),
       peg$c91 = "filter",
       peg$c92 = peg$literalExpectation("filter", false),
-      peg$c93 = "weightsort",
-      peg$c94 = peg$literalExpectation("weightsort", false),
+      peg$c93 = "numsort",
+      peg$c94 = peg$literalExpectation("numsort", false),
       peg$c95 = "lexsort",
       peg$c96 = peg$literalExpectation("lexsort", false),
       peg$c97 = ":",
@@ -2043,9 +2043,9 @@ function peg$parse(input, options) {
       if (peg$silentFails === 0) { peg$fail(peg$c92); }
     }
     if (s0 === peg$FAILED) {
-      if (input.substr(peg$currPos, 10) === peg$c93) {
+      if (input.substr(peg$currPos, 7) === peg$c93) {
         s0 = peg$c93;
-        peg$currPos += 10;
+        peg$currPos += 7;
       } else {
         s0 = peg$FAILED;
         if (peg$silentFails === 0) { peg$fail(peg$c94); }

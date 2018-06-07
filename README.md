@@ -568,6 +568,8 @@ Language features include
       - `&join{list}{item}` returns a string
       - `&map$varname:{list}{expr}` and `&filter$varname:{list}{expr}` return lists
       - `&reduce$varname:{list}$result={init}{expr}` can return list or string
+      - `&shuffle{list}` returns a list
+      - `&numsort$varname{list}{weightExpr}` and `&lexsort$varname{list}{tagExpr}` return lists, numerically- or lexically-sorted (respectively) by the corresponding mapped expression
    - when coerced into a list context by one of the above functions, the empty string becomes the empty list and any nonempty string becomes a single-element list
    - when coerced into a string context (i.e. most contexts), a list is invisibly joined/flattened as if by `&join{list}{}`
 - functions, alternations, repetitions, variable assignments, and conditionals can be arbitrarily nested

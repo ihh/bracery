@@ -340,6 +340,10 @@ Example output:
 I feel bored. And when I'm bored, then bored is all I feel.
 ~~~~
 
+Note that there is no space around the equals sign in `$mood=[happy|sad|angry|bored]`.
+In general Bracery is quite sensitive to spaces, a consequence of minimizing the use of punctuation marks for syntax.
+The equals sign may be interpreted as syntax, but _only_ if it immediately follows a variable (here `$mood`), with no intervening whitespace.
+
 What if you want a potentially _different_ mood, but sampled from that same range of four moods?
 Do you have to copy and paste the `[happy|sad|angry|bored]` list? Of course not!
 Bracery's `&quote` and `&eval` constructs come to your rescue.
@@ -379,6 +383,8 @@ Maybe tomorrow, I'll be #new_mood#?
 ~~~~
 
 <!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bnew_mood%3D%3Ehappy%7Csad%7Cangry%7Cbored%5D%0A%5Bmood%3A%23new_mood%23%5D%0AI%20feel%20%23mood%23.%20And%20when%20I'm%20%23mood%23%2C%20then%20%23mood%23%20is%20all%20I%20feel.%0AMaybe%20tomorrow%2C%20I'll%20be%20%23new_mood%23%3F">Try this</a> </em>
+
+(Any whitespace following assignments is ignored, so assignments can each go on their own lines, which is tidier.)
 
 Alternations can be nested, so (for example) we can create `very` and `slightly` sub-categories of `bored`:
 

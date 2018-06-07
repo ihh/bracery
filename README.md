@@ -113,7 +113,7 @@ In other words, if you have some text that you think might have been generated b
 then you can reconstruct _how_ that program could have generated that output.
 This is like running the program backwards! And it only works if the program is very simple (e.g. no functions can be used, nor can variables be modified while the program is running).
 
-For example:
+Here's an example, using the syntactically ambiguous phrase ["fruit flies like a banana"](https://en.wikipedia.org/wiki/Time_flies_like_an_arrow;_fruit_flies_like_a_banana):
 
 ~~~~
 [sentence=>[#singular_noun# #singular_verb#|#plural_noun# #plural_verb#] #noun_phrase#]
@@ -129,7 +129,7 @@ For example:
 
 <!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bsentence%3D%3E%5B%23singular_noun%23%20%23singular_verb%23%7C%23plural_noun%23%20%23plural_verb%23%5D%20%23noun_phrase%23%5D%0A%5Bnoun_phrase%3D%3E%23noun%23%7C%23preposition%23%20%23noun%23%5D%0A%5Bnoun%3D%3E%23plural_noun%23%7C%23singular_noun%23%5D%0A%5Bsingular_noun%3D%3Efruit%7Ca%20banana%5D%0A%5Bsingular_verb%3D%3Eflies%7Clikes%7Cnears%5D%0A%5Bplural_noun%3D%3Efruit%20flies%7Cbananas%5D%0A%5Bplural_verb%3D%3Efly%7Clike%7Cnear%5D%0A%5Bpreposition%3D%3Elike%7Cnear%5D%0A%26json%26parse%23sentence%23%7Bfruit%20flies%20like%20a%20banana%7D">Try this</a> </em>
 
-This should give one of two different parses of ["fruit flies like a banana"](https://en.wikipedia.org/wiki/Time_flies_like_an_arrow;_fruit_flies_like_a_banana).
+This should output one of two different parses of the phrase.
 One parse has "fruit flies" as the noun, and "like" as the verb:
 
 ~~~~
@@ -141,6 +141,9 @@ The other parse has "fruit" as the noun, "flies" as the verb, and "like" as a pr
 ~~~~
 [["root",["#sentence#",["alt",["#singular_noun#",["alt","fruit"]]," ",["#singular_verb#",["alt","flies"]]," ",["#prep_or_noun#",["alt",["#prep#",["alt","like"]]," ",["#noun#",["alt",["#singular_noun#",["alt","a banana"]]]]]]]]]]
 ~~~~
+
+Bracery's `&parse` function is stochastic: if multiple valid parses exist, it will return a random parse,
+sampled proportionally to the probability that it's the correct parse.
 
 Finally, note that you don't need to use any of these programmer-oriented features, if you just want to write generative text.
 Just [start typing](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24greetings%3D%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%24wizard%3D%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%24earthsea%3D%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%24greetings%2C%20%24wizard%20of%20%24earthsea) and go!

@@ -1899,5 +1899,6 @@ module.exports = {
   isArray: isArray,
   randomIndex: randomIndex,
   randomElement: randomElement,
-  nRandomElements: nRandomElements
+  nRandomElements: nRandomElements,
+  syncPromiseResolve: syncPromiseResolve
 }

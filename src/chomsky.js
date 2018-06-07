@@ -92,7 +92,7 @@ function makeGrammarSymbol (ParseTree, config, cfg, rhsList, type, name, weight)
 }
 
 function getSymbols (cfg) {
-  return Object.keys (cfg)
+  return Object.keys(cfg).sort()
 }
 
 function getSources (cfg) {

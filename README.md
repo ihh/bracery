@@ -341,8 +341,11 @@ I feel bored. And when I'm bored, then bored is all I feel.
 ~~~~
 
 Note that there is no space around the equals sign in `$mood=[happy|sad|angry|bored]`.
-In general Bracery is quite sensitive to spaces, a consequence of minimizing the use of punctuation marks for syntax.
+In general Bracery is quite sensitive to spaces, a side-effect of minimizing the use of punctuation marks for syntax.
+Spaces are mostly left untouched, on the assumption that the writer meant them to be part of the output.
+Similarly, most punctuation is ignored, with some exceptions (square braces `[]`, curly braces `{}`, pipe `|`).
 The equals sign may be interpreted as syntax, but _only_ if it immediately follows a variable (here `$mood`), with no intervening whitespace.
+Some other combinations of punctuation marks (e.g. `$`, `&`, `=>`, `:=`) are syntactically meaningful but only in very specific contexts.
 
 What if you want a potentially _different_ mood, but sampled from that same range of four moods?
 Do you have to copy and paste the `[happy|sad|angry|bored]` list? Of course not!

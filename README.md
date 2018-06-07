@@ -450,7 +450,7 @@ then `b.expand('[name:PERRY] #name# ').text` will always give the result `  PERR
 but `b.expand('[name:PERRY] ~name ').text` will give `  Arjun  `, or `  Yuuma  `, or `  Darcy  ` and so on,
 according to the example grammar.
 
-If you just want the variable value, you can use the caret character prefix, `$name`, which will evaluate to the empty string if the variable has not been defined.
+If you just want the variable value, you can use the dollar character prefix, `$name`, which will evaluate to the empty string if the variable has not been defined.
 So, `b.expand('[name:PERRY] $name ').text`. will always be `  PERRY  `, again,
 but `b.expand('$name').text` will be the empty string.
 

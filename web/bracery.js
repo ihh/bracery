@@ -3257,6 +3257,8 @@ Bracery.prototype.getDefaultSymbol = function() {
 }
 
 Bracery.prototype.expand = function (braceryText, config) {
+  if (config && config.rules)
+    return new Bracery (config.rules).expand (braceryText, extend ({}, config, {rules:null}))
   braceryText = braceryText || (ParseTree.symChar + this.getDefaultSymbol())
   if (typeof(braceryText) !== 'string')
     throw new Error ('the text to be expanded must be a string')
@@ -3330,10 +3332,11 @@ function makeGrammarRules (ParseTree, config, cfg, name, checkVars, checkSym, ex
   var opts, symDef, cfgName
   if (checkVars && vars[name]) {
     symDef = vars[name]
-    cfgName = expand ? (ParseTree.funcChar + ParseTree.varChar + name) : (ParseTree.varChar + name)
+    cfgName = expand ? (ParseTree.funcChar + 'eval' + ParseTree.varChar + name) : (ParseTree.varChar + name)
   } else if (checkSym && config.get && (symDef = config.get ({ symbolName: name }))) {
+//    console.warn('symDef',name,JSON.stringify(symDef))
     symDef = symDef.join('')
-    cfgName = expand ? (ParseTree.symChar + name) : (ParseTree.funcChar + 'xget' + ParseTree.name)
+    cfgName = expand ? (ParseTree.symChar + name) : (ParseTree.funcChar + 'xget' + ParseTree.symChar + ParseTree.name)
   }
   if (symDef) {
     if (checkVars && checkSym)
@@ -3368,8 +3371,11 @@ function makeGrammarSymbol (ParseTree, config, cfg, rhsList, type, name, weight)
 			  cfgNode = makeGrammarRules (ParseTree, config, cfg, node.test[0].varname, true, true, true)
 			else if (ParseTree, ParseTree.isEvalVar (node))
 			  cfgNode = makeGrammarRules (ParseTree, config, cfg, node.args[0].varname, true, false, true)
-			else
-			  throw new Error ("Can't convert to context-free grammar: " + ParseTree.makeRhsText ([node]))
+			else {
+                          var warning = "Can't convert to context-free grammar: " + ParseTree.makeRhsText ([node])
+                          console.warn (warning)
+			  throw new Error (warning)
+                        }
 		      }
 		      return (cfgNode
 			      ? (!config.normal || normalRhs.rhs.length < 2
@@ -3572,7 +3578,8 @@ function transformTrace (ParseTree, config, cfg, trace) {
 }
 
 function fillInside (config, cfg, text) {
-//  console.warn('cfg',JSON.stringify(cfg,null,2))
+  if (config.verbose)
+    console.warn('cfg',JSON.stringify(cfg,null,2))
   var len = text.length, nSym = cfg.sort.length
   var maxSubseqLen = config.maxSubsequenceLength || len
   var inside = new Array(len+1).fill(0).map (function (_, i) {
@@ -3606,7 +3613,8 @@ function fillInside (config, cfg, text) {
           var rhs = opts[r]
           for (var k = rhs.length === 1 ? j : i; k <= j; ++k) {
 	    var weight = ruleWeight (inside, text, maxSubseqLen, i, j, k, rhs)
-//            console.warn ('fillInside', 'weight='+weight, 'i='+i, 'j='+j, 'k='+k, 'lhs='+cfg.sort[s], 'rhs='+JSON.stringify(rhs))
+  if (config.verbose)
+    console.warn ('fillInside', 'weight='+weight, 'i='+i, 'j='+j, 'k='+k, 'lhs='+cfg.sort[s], 'rhs='+JSON.stringify(rhs))
             if (weight)
 	      inside[i][ijIndex][s] = (inside[i][ijIndex][s] || 0) + weight
             if (k === kStop)
@@ -3964,7 +3972,7 @@ function makeRhsText (rhs, makeSymbolName) {
   return makeString (this.makeRhsTree (rhs, makeSymbolName))
 }
 
-function makeRhsTree (rhs, makeSymbolName) {
+function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
   var pt = this
   makeSymbolName = makeSymbolName || defaultMakeSymbolName
   return rhs.map (function (tok, n) {
@@ -3973,7 +3981,10 @@ function makeRhsTree (rhs, makeSymbolName) {
       result = escapeString (tok)
     else {
       var nextTok = (n < rhs.length - 1) ? rhs[n+1] : undefined
-      var nextIsAlpha = typeof(nextTok) === 'string' && nextTok.match(/^[A-Za-z0-9_]/)
+//      console.warn('nextTok',tok,nextTok)
+      var nextIsAlpha = (typeof(nextTok) === 'undefined'
+                         ? nextSiblingIsAlpha
+                         : (typeof(nextTok) === 'string' && nextTok.match(/^[A-Za-z0-9_]/)))
       switch (tok.type) {
       case 'unquote':
         result = tok.text
@@ -4045,7 +4056,7 @@ function makeRhsTree (rhs, makeSymbolName) {
           if (sugaredName) {
 	    result = sugaredName
           } else {
-            result = [funcChar, tok.funcname, makeFuncArgTree (pt, tok.args, makeSymbolName)]
+            result = [funcChar, tok.funcname, makeFuncArgTree (pt, tok.args, makeSymbolName, nextIsAlpha)]
           }
         }
 	break
@@ -4567,8 +4578,8 @@ var binaryFunction = {
                                                text: r,
                                                maxSubsequenceLength: config.maxSubsequenceLength || this.maxSubsequenceLength }))
       } catch (e) {
-// uncomment for parse errors
-        console.warn (e)
+        if (config.verbose > 1)
+          console.warn (e)
       }
       if (parse)
         result = makeArray (parse)
@@ -4760,6 +4771,7 @@ function makeExpansionPromise (config) {
             var name = node.varname.toLowerCase()
             expansion.value = varVal[name] || ''
             expansion.text = makeString (expansion.value)
+            node.value = expansion.value  // used by makeParseTree
             break
 
           case 'cond':
@@ -4767,7 +4779,7 @@ function makeExpansionPromise (config) {
               .then (function (testExpansion) {
                 var testValue = isTruthy (testExpansion.text) ? true : false
                 var testResult = testValue ? node.t : node.f
-                node.value = testValue  // useful for debugging
+                node.value = testValue  // used by makeParseTree
                 node.result = testResult  // used by makeParseTree
                 expansion.nodes += testExpansion.nodes
                 return makeRhsExpansionPromiseFor (testResult).then (addExpansionNodes)
@@ -4954,7 +4966,7 @@ function makeExpansionPromise (config) {
 
                     // tree
                   case 'tree':
-                    expansion.value = makeParseTree (argExpansion)
+                    expansion.value = ['root'].concat (makeParseTree (argExpansion.tree))
                     expansion.text = makeString (expansion.value)
                     break
 
@@ -5253,18 +5265,22 @@ function finalVarVal (config) {
   return varVal
 }
 
-function makeParseTree (expansion) {
-  return expansion.tree.reduce (function (tree, node) {
-    if (isTraceryExpr (node))
-      tree.push (traceryChar + traceryVarName(node) + traceryChar, makeParseTree (node.result))
+function makeParseTree (rhs) {
+  return rhs.reduce (function (tree, node) {
+    if (typeof(node) === 'string')
+      tree.push (node)
+    else if (isTraceryExpr (node))
+      tree.push ([traceryChar + traceryVarName(node) + traceryChar].concat (makeParseTree (node.value ? node.result[0].value : node.result[0].rhs)))
     else if (node.type === 'func' && node.funcname === 'eval' && node.args.length === 1 && node.args[0].type === 'lookup')
-      tree.push (funcChar + varChar + node.args[0].varname, makeParseTree (node.value))
+      tree.push ([funcChar + 'eval' + varChar + node.args[0].varname].concat (makeParseTree (node.value)))
     else if (node.type === 'sym')
-      tree.push (node.method === 'expand' ? symChar : (funcChar + 'xget'), makeParseTree (node.rhs))
+      tree.push ([(node.method === 'get' ? (funcChar + 'xget') : '') + symChar + node.name].concat (makeParseTree (node.rhs)))
     else if (node.type === 'lookup')
-      tree.push (varChar, makeString (node.value))
+      tree.push ([varChar + node.varname, makeString (node.value)])
     else if (node.type === 'alt_sampled')
-      tree.push (pipeChar, makeParseTree (node.rhs))
+      tree.push ([pipeChar].concat (makeParseTree (node.rhs)))
+    else
+      tree.push (typeof(node) === 'string' ? node : node.expansion.text)
     return tree
   }, [])
 }

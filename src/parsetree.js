@@ -327,7 +327,7 @@ function makeRhsText (rhs, makeSymbolName) {
   return makeString (this.makeRhsTree (rhs, makeSymbolName))
 }
 
-function makeRhsTree (rhs, makeSymbolName) {
+function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
   var pt = this
   makeSymbolName = makeSymbolName || defaultMakeSymbolName
   return rhs.map (function (tok, n) {
@@ -337,7 +337,9 @@ function makeRhsTree (rhs, makeSymbolName) {
     else {
       var nextTok = (n < rhs.length - 1) ? rhs[n+1] : undefined
 //      console.warn('nextTok',tok,nextTok)
-      var nextIsAlpha = typeof(nextTok) === 'string' && nextTok.match(/^[A-Za-z0-9_]/)
+      var nextIsAlpha = (typeof(nextTok) === 'undefined'
+                         ? nextSiblingIsAlpha
+                         : (typeof(nextTok) === 'string' && nextTok.match(/^[A-Za-z0-9_]/)))
       switch (tok.type) {
       case 'unquote':
         result = tok.text
@@ -409,7 +411,7 @@ function makeRhsTree (rhs, makeSymbolName) {
           if (sugaredName) {
 	    result = sugaredName
           } else {
-            result = [funcChar, tok.funcname, makeFuncArgTree (pt, tok.args, makeSymbolName)]
+            result = [funcChar, tok.funcname, makeFuncArgTree (pt, tok.args, makeSymbolName, nextIsAlpha)]
           }
         }
 	break

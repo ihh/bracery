@@ -422,7 +422,7 @@ You can ignore these and just use the Tracery syntax `#name#` if you want, but f
 - `$name` refers to a variable
 - `&name` refers to a core library function or macro
 - `~name` refers to a user extension (local or remote)
-- `#name#` means "expand variable `$name`, or fall back to calling user extension `~name` if variable `$name` is not defined"
+- `#name#` means "expand variable `$name` if defined, otherwise call user extension `~name`
 
 ## Limits on program complexity
 

@@ -1404,6 +1404,24 @@ function makeExpansionPromise (config) {
                     expansion.text = makeGenerator (argExpansion.value || argExpansion.text)
                     break
 
+                    // charclass
+                  case 'charclass':
+                    var range = arg.split('\\-').map (function (c) {
+                      return c.replace(/(.)\-(.)/g,function(_m,l,r){
+                        var cl = l.charCodeAt(0), cr = r.charCodeAt(0)
+                        return [].concat.apply ([], new Array(cr+1-cl)).map (function(_c,n) {
+                          return String.fromCharCode (cl + n)
+                        }).join('')
+                      })
+                    }).join('-')
+                      .split('')
+                      .map (function (c) { return [c] })
+                    expansion.value = pt.makeRhsTree ([{ type: 'alt',
+                                                         opts: range }],
+                                                      makeSymbolName)
+                    expansion.text = makeString (expansion.value)
+                    break
+                    
                     // strlen, length, reverse, revstr
                   case 'strlen':
                     expansion.text = '' + argExpansion.text.length

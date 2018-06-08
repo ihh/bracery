@@ -1,0 +1,11 @@
+[sentence=>#clause#, #clause#]
+[clause=>[#singular_noun# #singular_verb#|#plural_noun# #plural_verb#] #noun_phrase#]
+[noun_phrase=>#noun#|#preposition# #noun#]
+[noun=>#plural_noun#|#singular_noun#]
+[singular_noun=>time|fruit|an arrow|a banana]
+[singular_verb=>flies|likes|nears]
+[plural_noun=>times|fruit flies|arrows|bananas]
+[plural_verb=>fly|like|near]
+[preposition=>like|near]
+&json&parse#sentence#{time flies like an arrow, fruit flies like a banana}
+#sentence#

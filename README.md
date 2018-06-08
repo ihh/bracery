@@ -10,18 +10,19 @@ allowing for user extensions that may include calls to a server (e.g. for synony
 
 Bracery aims...
 
-- to keep out of the writer's way, looking mostly like a markup language and close to plain text,
-- to be easy to work with, presenting simply whether you're a casual user or an experienced programmer,
-- to avoid plundering the character space for syntax (especially punctuation marks, like quotes and commas, that are common in natural writing),
-- to allow real programming (variables, functions, lists) without forcing the writer to use/learn/care about any of those things,
-- to be usable offline by default, but also readily connectable to online generative text servers,
-- to be secure running random code from the internet, including limits on recursion and network/CPU usage,
-- to be as compatible as possible with previous work in this space, especially [@galaxykate](https://github.com/galaxykate)'s [Tracery](http://tracery.io/).
+- **to keep out of the writer's way,** looking mostly like a markup language and close to plain text;
+- **to be easy to work with,** presenting simply whether you're a casual user or an experienced programmer;
+- **to avoid plundering the keyboard for syntax,** especially common punctuation, like quotes;
+- **to allow real programming,** with variables, functions, and lists, but without forcing the writer to learn (or care) about all that;
+- **to be usable offline by default,** but also readily connectable to online generative text servers;
+- **to be secure** running random code from the internet, including limits on recursion and network/CPU usage;
+- **to be compatible** as much as possible with previous work, especially [@galaxykate](https://github.com/galaxykate)'s [Tracery](http://tracery.io/).
 
-Bracery combines elements of other languages and libraries, including
+Bracery combines a few different tricks well-known to computational linguistics and adjacent fields, such as
 variable manipulation syntax from [Tracery](http://tracery.io/),
 alternations from [regular expressions](https://en.wikipedia.org/wiki/Regular_expression),
 natural language processing from the [compromise](https://github.com/spencermountain/compromise) library,
+parsing algorithms from [bioinformatics](https://en.wikipedia.org/wiki/Bioinformatics),
 and lists from [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)).
 
 # Usage

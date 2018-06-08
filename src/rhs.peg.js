@@ -194,6 +194,7 @@ UnaryFunctionName
   / "strlen" / "length" / "shuffle" / "reverse" / "revstr"
   / "not"
   / "comment"
+  / "charclass"
 
 NullaryFunctionName = "vars"
 

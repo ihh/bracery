@@ -456,6 +456,18 @@ function doTests (testRunner) {
   expectExpand ('&quote&link{test}{$x}{$x}', '&link{test}$x$x')
   expectExpand ('$x=3 &link{test}{$x}{$x}', 'test:3==>$x', {makeLink:function(type,text,link){return type.text+':'+text.text+'==>'+link.text}})
 
+  // charclass
+  expectExpand ('&charclass{abc}', '[a|b|c]')
+  expectExpand ('&charclass{a-e}', '[a|b|c|d|e]')
+  expectExpand ('&charclass{a-ej}', '[a|b|c|d|e|j]')
+
+  expectExpand ('&charclass{a\\\\-j\\|\\\\}', '[a|-|j|\\||\\\\]')
+  expectExpand ('&eval&charclass{a\\\\-j\\|\\\\}', 'a', {maxTries:maxTries})
+  expectExpand ('&eval&charclass{a\\\\-j\\|\\\\}', '-', {maxTries:maxTries})
+  expectExpand ('&eval&charclass{a\\\\-j\\|\\\\}', 'j', {maxTries:maxTries})
+  expectExpand ('&eval&charclass{a\\\\-j\\|\\\\}', '|', {maxTries:maxTries})
+  expectExpand ('&eval&charclass{a\\\\-j\\|\\\\}', '\\', {maxTries:maxTries})
+  
   // wrapper for individual 'for a given input (lhs), expect the following output (rhs)'-style tests
   // (lhs/rhs = left/right hand side)
   function expectExpand (lhs, rhs, config) {

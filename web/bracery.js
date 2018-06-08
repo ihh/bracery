@@ -665,6 +665,18 @@ function extend (dest) {
   return dest
 }
 
+function deepCopy (orig) {
+  var result
+  if (isArray(orig))
+    result = orig.map (deepCopy)
+  else if (typeof(orig) === 'object') {
+    result = {}
+    Object.keys(orig).forEach (function (key) { result[key] = deepCopy (orig[key]) })
+  } else
+    result = orig
+  return result
+}
+
 // randomness
 function randomIndex (array, rng) {
   rng = rng || Math.random
@@ -688,15 +700,19 @@ function nRandomElements (array, n, rng) {
 }
 
 // Parser
+var parseCache = {}
 function parseRhs (rhsText) {
-  var result
-  try {
-    result = RhsParser.parse (rhsText)
-  } catch (e) {
-    console.warn ('parse error', e)
-    result = [rhsText]
+  var cached = parseCache[rhsText]
+  if (!cached) {
+    try {
+      cached = RhsParser.parse (rhsText)
+    } catch (e) {
+      console.warn ('parse error', e)
+      cached = [rhsText]
+    }
+    parseCache[rhsText] = cached
   }
-  return result
+  return deepCopy (cached)
 }
 
 function makeRoot (rhs) {
@@ -2609,6 +2625,7 @@ module.exports = {
   ordinal: ordinal,
   nPlurals: nPlurals,
   // general utility
+  deepCopy: deepCopy,
   extend: extend,
   isArray: isArray,
   randomIndex: randomIndex,

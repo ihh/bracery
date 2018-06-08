@@ -429,6 +429,8 @@ You can ignore these and just use the Tracery syntax `#name#` if you want, but f
 Bracery was designed to be run on unfiltered user input.
 Since it is capable of general programming, it must also include configurable constraints on the amount of resources a program is allowed to consume,
 otherwise a user program could easily send it into an infinite loop or otherwise hog CPU.
+Another reason to impose limits is that recursion in Bracery is implemented using recursion in JavaScript, with no [tail call optimization](https://en.wikipedia.org/wiki/Tail_call),
+so heavily recursive Bracery code can quickly max out the JavaScript stack.
 
 The main constraints that Bracery enforces are maximum parse tree depth, parse tree node count, recursion depth, and output length.
 For the `&parse` function, constraints on the parsed sequence and subsequence lengths are also enforced.

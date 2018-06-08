@@ -412,8 +412,6 @@ Maybe tomorrow, I'll be #new_mood#?
 
 <!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bnew_mood%3D%3Ehappy%7Csad%7Cangry%7C%5Bvery%7Cslightly%5D%20bored%5D%0A%5Bmood%3A%23new_mood%23%5D%0AI%20feel%20%23mood%23.%20And%20when%20I'm%20%23mood%23%2C%20then%20%23mood%23%20is%20all%20I%20feel.%0AMaybe%20tomorrow%2C%20I'll%20be%20%23new_mood%23%3F">Try this</a> </em>
 
-More details of the language are available in the following sections.
-
 # Technical details
 
 ## Namespaces
@@ -425,6 +423,15 @@ You can ignore these and just use the Tracery syntax `#name#` if you want, but f
 - `&name` refers to a core library function or macro
 - `~name` refers to a user extension (local or remote)
 - `#name#` means "expand variable `$name`, or fall back to calling user extension `~name` if variable `$name` is not defined"
+
+## Limits on program complexity
+
+Bracery was designed to be run on unfiltered user input.
+Since it is capable of general programming, it must also include configurable constraints on the amount of resources a program is allowed to consume,
+otherwise a user program could easily send it into an infinite loop or otherwise hog CPU.
+
+The main constraints that Bracery enforces are maximum parse tree depth, parse tree node count, recursion depth, and output length.
+For the `&parse` function, constraints on the parsed sequence and subsequence lengths are also enforced.
 
 ## Comparison with Tracery
 

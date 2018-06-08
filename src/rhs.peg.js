@@ -48,15 +48,15 @@ Function
   / RegexFunction
   / CallFunction
   / DefineFunction
-  / BinaryFunction
-  / UnaryFunction
-  / NullaryFunction
-  / BinaryVarFunction
-  / UnaryVarFunction
   / MathFunction
   / LinkFunction
   / ParseFunction
   / ListConstructor
+  / BinaryVarFunction
+  / UnaryVarFunction
+  / BinaryFunction
+  / NullaryFunction
+  / UnaryFunction  /* this goes last because it includes the one-letter function "a", which otherwise causes the PEG parser to miss all other function names beginning with "a" */
 
 SymbolFunction
   = sym:PrefixedSymIdentifier { return makeSugaredSymbol (sym, makeArgList ([])) }
@@ -189,12 +189,14 @@ UnaryFunctionName
   / "random" / "floor" / "ceil" / "round" / "abs"
   / "wordnum" / "dignum" / "ordinal" / "cardinal"
   / "plural" / "singular" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive"
-  / "gerund" / "adjective" / "negative" / "positive" / "a" / "uc" / "lc" / "cap"
   / "list" / "quotify" / "value" / "json" / "islist" / "first" / "last" / "notfirst" / "notlast"
   / "strlen" / "length" / "shuffle" / "reverse" / "revstr"
   / "not"
   / "comment"
   / "charclass"
+  / "alt"
+  / "gerund" / "adjective" / "negative" / "positive" / "uc" / "lc" / "cap"
+  / "a" /* this must be the last function */
 
 NullaryFunctionName = "vars"
 

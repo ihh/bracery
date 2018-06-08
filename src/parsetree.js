@@ -781,8 +781,8 @@ function makeString (item) {
 function makeGenerator (item) {
   return (item
           ? (typeof(item) === 'string'
-             ? (funcChar + 'value{' + item + '}')
-             : (funcChar + 'list{' + item.map(makeGenerator).join('') + '}'))
+             ? (funcChar + 'value' + leftBraceChar + item + rightBraceChar)
+             : (funcChar + 'list' + leftBraceChar + item.map(makeGenerator).join('') + rightBraceChar))
           : '')
 }
 
@@ -794,6 +794,16 @@ function shuffleArray (a, rng) {
     a[m] = tmp
   }
   return a
+}
+
+function makeAlternation (item) {
+  return (item
+          ? (typeof(item) === 'string'
+             ? item
+             : (item.length > 1
+                ? (leftSquareBraceChar + item.map(makeAlternation).join(pipeChar) + rightSquareBraceChar)
+                : (item.length ? makeAlternation(item[0]) : '')))
+          : '')
 }
 
 function valuesEqual (a, b) {
@@ -1418,6 +1428,11 @@ function makeExpansionPromise (config) {
                     // quotify
                   case 'quotify':
                     expansion.text = makeGenerator (argExpansion.value || argExpansion.text)
+                    break
+
+                    // alt
+                  case 'alt':
+                    expansion.text = makeAlternation (argExpansion.value || argExpansion.text)
                     break
 
                     // charclass

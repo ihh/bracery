@@ -103,7 +103,7 @@ var nodeListArgKeys = ['opts']
 // in the process, it samples any alternations or repetitions
 function sampleParseTree (rhs, config) {
   var pt = this
-  var rng = config && config.rng ? config.rng : Math.random
+  var rng = (config ? config.rng : null) || Math.random
   return rhs.map (function (node, n) {
     var result, index
     if (typeof(node) === 'string')
@@ -138,7 +138,7 @@ function sampleParseTree (rhs, config) {
                    visible: node.visible }
         break
       case 'alt':
-        index = pt.randomIndex (node.opts)
+        index = pt.randomIndex (node.opts, rng)
 	result = { type: 'alt_sampled',
                    n: index,
                    rhs: pt.sampleParseTree (node.opts[index], config) }
@@ -369,7 +369,6 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
       result = escapeString (tok)
     else {
       var nextTok = (n < rhs.length - 1) ? rhs[n+1] : undefined
-//      console.warn('nextTok',tok,nextTok)
       var nextIsAlpha = (typeof(nextTok) === 'undefined'
                          ? nextSiblingIsAlpha
                          : (typeof(nextTok) === 'string' && nextTok.match(/^[A-Za-z0-9_]/)))
@@ -518,8 +517,8 @@ function defaultMakeSymbolName (node) {
   return node.name
 }
 
-function throwSymbolError (config) {
-  throw new Error ('unhandled method (' + config.node.method + ') for symbol ' + symChar + config.node.name)
+function throwSymbolError (method, config) {
+  throw new Error ('unhandled method (' + method + ') for symbol ' + symChar + (config.symbolName || config.node.name))
 }
 
 function syncPromiseResolve() {
@@ -564,13 +563,13 @@ function makeSyncConfig (config) {
                            : config.after),
                    expand: (config.expandSync
                             ? makeSyncResolver (config, config.expandSync)
-                            : (config.expand || throwSymbolError)),
+                            : (config.expand || throwSymbolError.bind(null,'expand'))),
                    get: (config.getSync
                          ? makeSyncResolver (config, config.getSync)
-                         : (config.get || throwSymbolError)),
+                         : (config.get || throwSymbolError.bind(null,'get'))),
                    set: (config.setSync
                          ? makeSyncResolver (config, config.setSync)
-                         : (config.set || throwSymbolError)) })
+                         : (config.set || throwSymbolError.bind(null,'set'))) })
 }
 
 function makeRhsExpansionSync (config) {
@@ -969,12 +968,14 @@ var binaryFunction = {
   parse: function (l, r, lv, rv, config) {
     if (!tooLongToParse (this, config, r)) {
       try {
-        return Chomsky.parseInside (this, extend ({}, config, { root: l, text: r, maxSubsequenceLength: config.maxSubsequenceLength || this.maxSubsequenceLength }))
+        return Chomsky.parseInside (this, extend ({}, config, { root: l,
+                                                                text: r,
+                                                                maxSubsequenceLength: config.maxSubsequenceLength || this.maxSubsequenceLength }))
           .then (function (parse) {
             return parse ? makeArray(parse) : ''
           })
       } catch (e) {
-        if (config.verbose > 1)
+        if (config.verbose > 1 || true)
           console.warn (e)
         else
           console.warn ('(error during parse)')
@@ -1163,7 +1164,6 @@ function makeExpansionPromise (config) {
         if (typeof(node) === 'string') {
           expansion.text = node
         } else {
-          
           switch (node.type) {
           case 'assign':
             promise = makeAssignmentPromise.call (pt, config, [[node.varname, node.value]], node.local, node.visible)
@@ -1189,10 +1189,15 @@ function makeExpansionPromise (config) {
             break
 
           case 'func':
-	    if (node.expansion) {
-	      // guard against double expansion
-	      extend (expansion, node.expansion)
-            } else if (node.funcname === 'strictquote') {
+            // ensure expansion is reproducible by stashing/retrieving random numbers in node
+            var nodeRng = node.rng ? node.rng.shift.bind(node.rng) : rng
+            var rngCache = node.rng
+            delete node.rng
+            config.rngNode = node
+            function rngSaver() { var r = nodeRng(); var node = config.rngNode; if (!node.rng) node.rng = []; node.rng.push(r); return r }
+            config = extend ({}, config, { rng: rngSaver })
+            // dispatch by funcname
+	    if (node.funcname === 'strictquote') {
               // quote
               expansion.text = pt.makeRhsText (node.args, makeSymbolName)
             } else if (node.funcname === 'quote') {
@@ -1473,7 +1478,7 @@ function makeExpansionPromise (config) {
 
                     // shuffle
                   case 'shuffle':
-                    expansion.value = shuffleArray (makeArray (argExpansion.value), config.rng || Math.random)
+                    expansion.value = shuffleArray (makeArray (argExpansion.value), rngSaver)
                     break
 
                     // value, unquote, math: identity functions
@@ -1579,7 +1584,7 @@ function makeExpansionPromise (config) {
 
                     // nlp: numbers
                   case 'random':
-                    expansion.text = (rng() * toNumber(arg)) + ''
+                    expansion.text = (rngSaver() * toNumber(arg)) + ''
                     break
 
                   case 'floor':
@@ -1627,13 +1632,6 @@ function makeExpansionPromise (config) {
                   return expansion
                 })
             }
-	    promise = promise.then (function (expansion) {
-	      // guard against double expansion
-	      node.expansion = { text: expansion.text,
-				 value: cloneItem (expansion.value),
-                                 vars: extend ({}, expansion.vars) }
-	      return expansion
-	    })
             break
           case 'sym':
             var symbolExpansionPromise

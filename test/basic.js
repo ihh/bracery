@@ -547,10 +547,12 @@ describe('idempotent double expansion tests', function() {
     var maxTries = (config && config.maxTries) || 1
     return function (done) {
       var expand
+      var b2 = config && config.rules ? new bracery.Bracery(config.rules) : b
+      var config2 = extend ({}, config, {rules:null})
       for (var n = 0; !(expand && expand.text === rhs) && n < maxTries; ++n)
-        expand = b.expand (lhs, config)
+        expand = b2.expand (lhs, config2)
       var text = bracery.ParseTree.makeRhsExpansionText (extend ({ rhs: expand.tree },
-                                                                 config))
+                                                                 b2.makeConfig (config2)))
       verify (text, done)
     }
   })

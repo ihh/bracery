@@ -39,7 +39,7 @@ function makeGrammarRules (ParseTree, config, cfg, name, checkVars, checkSym, ex
     cfgName = expand ? (ParseTree.funcChar + ParseTree.varChar + name) : (ParseTree.varChar + name)
     symCheckedPromise = resolve()
   } else if (checkSym && config.get) {
-    symCheckedPromise = resolve (config.get ({ symbolName: name }))
+    symCheckedPromise = resolve (config.get (ParseTree.extend ({}, config, { symbolName: name })))
       .then (function (getResult) {
         if (getResult)
           symDef = getResult.join('')
@@ -58,6 +58,7 @@ function makeGrammarRules (ParseTree, config, cfg, name, checkVars, checkSym, ex
 }
 
 function makeGrammarSymbol (ParseTree, config, cfg, rhsList, type, name, weight) {
+//  console.warn ('makeGrammarSymbol', type, name, JSON.stringify(rhsList))
   var vars = config.vars || {}
   var resolve = config.sync ? ParseTree.syncPromiseResolve : Promise.resolve.bind(Promise)
   var gotSymbolPromise

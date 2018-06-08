@@ -191,10 +191,15 @@ function stringifyText (expansion) {
   return expansion
 }
 
+Bracery.prototype.makeConfig = function (config) {
+  return extend ({ expand: this._expandSymbol.bind (this),
+                   get: this._getSymbol.bind (this),
+                   set: function() { return [] } },
+                 config)
+}
+
 Bracery.prototype._expandRhs = function (config) {
-  var newConfig = extend ({ expand: this._expandSymbol.bind (this),
-                            get: this._getSymbol.bind (this),
-                            set: function() { return [] } }, config)
+  var newConfig = this.makeConfig (config)
   if (newConfig.callback) {
     var promise = ParseTree.makeRhsExpansionPromise (newConfig)
     if (typeof(newConfig.callback) === 'function')

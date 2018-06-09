@@ -265,7 +265,7 @@ function doTests (testRunner) {
   expectExpand ('$x={1}$a1={verily}$a2={in troth}&eval&quote{$a&unquote$x indeed}', 'verily indeed')
   expectExpand ('&quote&unquote&quote&infinitive$y', '&infinitive$y')
 
-  expectExpand ('$x={&{}abc&quote{def}}&quotify$x', '&list{&value{abc}&value{def}}')
+  expectExpand ('$x={&{}abc&quote{def}}&q$x', '&{abc&,def}')
 
   expectExpand ('&push$x{a}&push$x{b}&uc&push$x{c}&push$x{...}&join$x{,} &shift$x $dots:=&pop$x $quirk:=uh, &shift$x $dots &unshift$x&cat{x}{t} &uc&join$x$dots',
                 'a,b,c,... a ... uh,b ... X...T...C')  // a lot going on in this one. Spaces must be exactly correct (of course)
@@ -273,8 +273,8 @@ function doTests (testRunner) {
 
   expectExpand ('$x=&split{fresh word salad} &join{&shuffle{$x}}{ }', 'salad word fresh', {maxTries:maxTries})
 
-  expectExpand ('$x=&{&.1&.3&.2&.11}&json$x $y=&numsort{$x}{$_} &json$y', '[["1","3","2","11"]] [["1","2","3","11"]]')
-  expectExpand ('$x=&{&.1&.3&.2&.11}&json$x $y=&lexsort{$x}{$_} &json$y', '[["1","3","2","11"]] [["1","11","2","3"]]')
+  expectExpand ('$x=&{1&,3&,2&,11}&json$x $y=&numsort{$x}{$_} &json$y', '[["1","3","2","11"]] [["1","2","3","11"]]')
+  expectExpand ('$x=&{1&,3&,2&,11}&json$x $y=&lexsort{$x}{$_} &json$y', '[["1","3","2","11"]] [["1","11","2","3"]]')
 
   expectExpand ('$x=hello &push$x $x=well $x $x=&pop $x', 'well hello')  // default arguments to &push and &pop
   expectExpand ('&join&split/,/{hello,world}', 'hello world')  // default argument to &join
@@ -334,6 +334,7 @@ function doTests (testRunner) {
 
   // syntax, parse, grammar, tree
   expectExpand ('&json&syntax&quote{$x=[a|b]}', '[[["$","x","=",["{",[["[",[[["a"],"|"],[["b"]]],"]"]],"}"]]]]')
+  expectExpand ('&q&parsejson{\["a","b",\["c","d"\],\{"x":3,"w":\["abc","def"\]\}\]}', '&{a&,b&{c&,d}&{&{w&{abc&,def}}&{x&,3}}}')
 
   expectExpand ('[a=>cat|#a# #a#]&json&parse{#a#}{cat cat cat}', '[["root",["#a#",["alt",["#a#",["alt",["#a#",["alt","cat"]]," ",["#a#",["alt","cat"]]]]," ",["#a#",["alt","cat"]]]]]]', {maxTries:maxTries})
   expectExpand ('[a=>cat|#a# #a#]&json&parse{#a#}{cat cat cat}', '[["root",["#a#",["alt",["#a#",["alt","cat"]]," ",["#a#",["alt",["#a#",["alt","cat"]]," ",["#a#",["alt","cat"]]]]]]]]', {maxTries:maxTries})
@@ -419,7 +420,12 @@ function doTests (testRunner) {
   expectExpand ('&xapply~json{&{1}&{&{2}}&{&{&{3}}}}', 'x="1" y=["2"] z=[["3"]]')
   expectExpand ('&xapply~json&list{1&{2}&{3}}', 'x="1" y=["2"] z=["3"]')
 
-  expectExpand ('&quotify{&{&.a&.b&{&.c&.d}e&.f}}', '&list{&value{a}&value{b}&list{&value{c}&value{d}}&value{e}&value{f}}')
+  expectExpand ('&json{&{&,a&,b&{&,c&,d}e&,f&,}}', '[["","a","b",["","c","d"],"e","f",""]]')
+  expectExpand ('&json{&{a&,b&{&,c&,d}e&,f&,}}', '[["a","b",["","c","d"],"e","f",""]]')
+  expectExpand ('&json{&{a&,b&{&,c&,d}e&,f}}', '[["a","b",["","c","d"],"e","f"]]')
+
+  expectExpand ('&quotify{&{&,a&,b&{&,c&,d}&,e&,f&,}}', '&{&,a&,b&{&,c&,d}e&,f&,}')
+  expectExpand ('&q{&{&,a&,b&{&,c&,d}&,e&,f&,}}', '&{&,a&,b&{&,c&,d}e&,f&,}')
 
   expectExpand ('$a=3 &value{{{[$a]}}}', '{{[3]}}')
 
@@ -429,11 +435,12 @@ function doTests (testRunner) {
   expectExpand ('&xget~world', '[world|planet]')
   
   // call, apply, function
-  expectExpand ('$func=&function$first$second{0=&quotify$$0 1=$first 2=$second} &call{$func}{A}{B}', '0=&list{&value{A}&value{B}} 1=A 2=B')
-  expectExpand ('$func=&function{$first$second}{0=&quotify$$0 1=$first 2=$second} &call{$func}{A}{B}', '0=&list{&value{A}&value{B}} 1=A 2=B')
+  expectExpand ('$func=&function$first$second{0=&quotify$$0 1=$first 2=$second} &call{$func}{A}{B}', '0=&{A&,B} 1=A 2=B')
+  expectExpand ('$func=&function{$first$second}{0=&quotify$$0 1=$first 2=$second} &call{$func}{A}{B}', '0=&{A&,B} 1=A 2=B')
+  expectExpand ('$func=&function{$first,$second}{0=&quotify$$0 1=$first 2=$second} &call{$func}{A}{B}', '0=&{A&,B} 1=A 2=B')
   expectExpand ('$func=&function{}{here we go} &$func &$func', 'here we go here we go')
   expectExpand ('$func=&function{here we go} &$func &$func', '=&function{here we go}  ')
-  expectExpand ('$func=&function$first$second{0=&quotify$$0 1=$first 2=$second} $y=&list{&value{one}&value{two}} &apply{$func}$y', '0=&list{&value{one}&value{two}} 1=one 2=two')
+  expectExpand ('$func=&function$first$second{0=&quotify$$0 1=$first 2=$second} $y=&{one&,two} &apply{$func}$y', '0=&{one&,two} 1=one 2=two')
 
   expectExpand ('&function$first$second{1=$first 2=$second}', '&let$first={$$1}{&let$second={$$2}{1=$first 2=$second}}')
   expectExpand ('$x=99 &function$first$second{1=$first 2=$second x=$x}', '&let$first={$$1}{&let$second={$$2}{1=$first 2=$second x=$x}}')
@@ -443,7 +450,7 @@ function doTests (testRunner) {
   
   // regexes
   expectExpand ('&match/a/{cat}{$$0$$0}', 'aa')
-  expectExpand ('&quotify&match/[aeiou]/g{generic}{&uc$$0}', '&list{&value{E}&value{E}&value{I}}')
+  expectExpand ('&quotify&match/[aeiou]/g{generic}{&uc$$0}', '&{E&,E&,I}')
   expectExpand ('&replace/a/g{catamaran}{u|o}', 'cutomoron', {maxTries:maxTries})
   expectExpand ('&join&split/[aeiou]+/{felicitous}{..}', 'f..l..c..t..s')
   expectExpand ('&join&split{a   bc   d}{,}', 'a,bc,d')

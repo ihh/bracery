@@ -764,7 +764,11 @@ function cloneItem (item) {
           ? undefined
           : (typeof(item) === 'string'
              ? item
-             : item.map(cloneItem)))
+             : (isArray(item)
+                ? item.map(cloneItem)
+                : (typeof(item) === 'object'
+                   ? Object.keys(item).sort().map (function (key) { return [key,cloneItem(item[key])] })
+                   : item.toString()))))
 }
 
 function makeArray (item) {
@@ -783,12 +787,21 @@ function makeString (item) {
           : '')
 }
 
-function makeGenerator (item) {
-  return (item
-          ? (typeof(item) === 'string'
-             ? (funcChar + 'value' + leftBraceChar + item + rightBraceChar)
-             : (funcChar + 'list' + leftBraceChar + item.map(makeGenerator).join('') + rightBraceChar))
-          : '')
+function makeQuoted (item, prev) {
+  var result
+  if (typeof(item) === 'string')
+    result = (typeof(prev) === 'string' ? (funcChar + ',') : '') + escapeString(item)
+  else if (item) {
+    var prevChild
+    result = (funcChar + leftBraceChar
+              + item.map (function (child, n) {
+                var childQuoted = makeQuoted (child, prevChild)
+                prevChild = child
+                return childQuoted
+              }).join('') + rightBraceChar)
+  } else
+    result = ''
+  return result
 }
 
 function shuffleArray (a, rng) {
@@ -972,7 +985,7 @@ var binaryFunction = {
     return makeArray(lv).join (r)
   },
   parse: function (l, r, lv, rv, config) {
-    if (!tooLongToParse (this, config, r)) {
+    if (!unableToParse (this, config, r)) {
       try {
         return Chomsky.parseInside (this, extend ({}, config, { root: l,
                                                                 text: r,
@@ -992,8 +1005,8 @@ var binaryFunction = {
   }
 }
 
-function tooLongToParse (pt, config, text) {
-  return text.length > (config.maxParseLength || this.maxParseLength)
+function unableToParse (pt, config, text) {
+  return config.disableParse || pt.disableParse || text.length > (config.maxParseLength || pt.maxParseLength)
 }
 
 function makeRhsExpansionReducer (pt, config, reduce, init) {
@@ -1441,6 +1454,18 @@ function makeExpansionPromise (config) {
                     expansion.text = makeString (expansion.value)
                     break
 
+                    // parse JSON
+                  case 'parsejson':
+                    try {
+                      console.warn('parsejson',arg)
+                      expansion.value = cloneItem (JSON.parse (arg))
+                      expansion.text = makeString (expansion.value)
+                    } catch (e) {
+                      // do nothing, bad JSON not our problem, but maybe gripe a little
+                      console.warn(e)
+                    }
+                    break
+                    
                     // escape
                   case 'escape':
                     expansion.text = escapeString (arg)
@@ -1454,7 +1479,7 @@ function makeExpansionPromise (config) {
 
                     // quotify
                   case 'quotify':
-                    expansion.text = makeGenerator (argExpansion.value || argExpansion.text)
+                    expansion.text = makeQuoted (argExpansion.value || argExpansion.text)
                     break
 
                     // alt
@@ -1948,6 +1973,8 @@ module.exports = {
   maxReps: 10,
   maxNodes: 1000,
   maxLength: 1000,
+
+  disableParse: false,
   maxParseLength: undefined,
   maxSubsequenceLength: 100,
 
@@ -1992,7 +2019,7 @@ module.exports = {
 
   makeString: makeString,
   makeArray: makeArray,
-  makeGenerator: makeGenerator,
+  makeQuoted: makeQuoted,
   escapeString: escapeString,
   
   // English grammar

@@ -4,12 +4,14 @@ function makeLookup (name) { return { type: 'lookup', varname: name } }
 function makeAssign (name, value, visible) { return { type: 'assign', varname: name, value: value, visible: visible } }
 function makeLocalAssign (name, value, scope) { return { type: 'assign', varname: name, value: value, local: scope } }
 function makeAlternation (opts) { return { type: 'alt', opts: opts } }
-function makeFunction (name, args) { return { type: 'func', funcname: name, args: args } }
 function makeConditional (testArg, trueArg, falseArg) { return { type: 'cond', test: testArg, t: trueArg, f: falseArg } }
+function makeFunction (name, args) { return { type: 'func', funcname: funcAlias[name] || name, args: args } }
+var funcAlias = { q: 'quotify' }
 
 function wrapNodes (args) { return args.length === 1 ? args[0] : makeRoot (args) }
 function makeRoot (args) { return { type: 'root', rhs: args } }
 
+function makeValue (args) { return makeFunction ('value', args) }
 function makeQuote (args) { return makeFunction ('quote', args) }
 function makeStrictQuote (args) { return makeFunction ('strictquote', args) }
 

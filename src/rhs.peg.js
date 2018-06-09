@@ -5,7 +5,6 @@ Node
   = "\\n" { return "\n" }
   / "\\t" { return "\t" }
   / "\\" escaped:. { return escaped }
-  / "&." text:Text { return makeFunction ('value', [text]) }
   / Text
   / LocalAssignment
   / Repetition
@@ -18,7 +17,9 @@ Node
   / char:[\~\#&\$] { return char }
 
 NodeList
-  = head:Node tail:NodeList { return concatNodes (head, tail) }
+  = "&," tail:NodeList { return concatNodes (makeValue([]), tail) }
+  / head:Node "&," tail:NodeList { return concatNodes (makeValue([head]), tail.length ? tail : [makeValue([])]) }
+  / head:Node tail:NodeList { return concatNodes (head, tail) }
   / head:Node { return [head] }
   / "" { return [] }
 
@@ -44,6 +45,11 @@ Conditional
 
 Function
   = SymbolFunction
+  / BinaryVarFunction
+  / UnaryVarFunction
+  / BinaryFunction
+  / UnaryFunction
+  / NullaryFunction
   / MapFunction
   / RegexFunction
   / CallFunction
@@ -52,11 +58,7 @@ Function
   / LinkFunction
   / ParseFunction
   / ListConstructor
-  / BinaryVarFunction
-  / UnaryVarFunction
-  / BinaryFunction
-  / NullaryFunction
-  / UnaryFunction  /* this goes last because it includes the one-letter function "a", which otherwise causes the PEG parser to miss all other function names beginning with "a" */
+  / ShortUnaryFunction  /* this goes last because it includes the one-letter function "a", which otherwise causes the PEG parser to miss all other function names beginning with "a" */
 
 SymbolFunction
   = sym:PrefixedSymIdentifier { return makeSugaredSymbol (sym, makeArgList ([])) }
@@ -133,7 +135,7 @@ DefineFunction
   / "&function{}" expr:FunctionArg { return makeDefineFunction ([], expr) }
 
 ArgIdentifierList
-  = head:ArgIdentifier tail:ArgIdentifierList { return [head].concat (tail) }
+  = head:ArgIdentifier ("," / "") tail:ArgIdentifierList { return [head].concat (tail) }
   / head:ArgIdentifier { return [head] }
 
 ArgIdentifier
@@ -146,6 +148,9 @@ BinaryFunction
 
 UnaryFunction
   = "&" func:UnaryFunctionName args:FunctionArg { return makeFunction (func, args) }
+
+ShortUnaryFunction
+  = "&" func:ShortUnaryFunctionName args:FunctionArg { return makeFunction (func, args) }
 
 NullaryFunction
   = "&" func:NullaryFunctionName { return makeFunction (func, []) }
@@ -184,19 +189,21 @@ BinaryFunctionName
   / "apply" / "xapply"
 
 UnaryFunctionName
-  = "eval" / "syntax" / "tree"
-  / "escape" / StrictQuote / Quote / Unquote
+  = "eval" / "syntax" / "tree" / "jparse"
+  / "escape" / "quotify" / StrictQuote / Quote / Unquote
   / "random" / "floor" / "ceil" / "round" / "abs"
   / "wordnum" / "dignum" / "ordinal" / "cardinal"
   / "plural" / "singular" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive"
-  / "list" / "quotify" / "value" / "json" / "islist" / "first" / "last" / "notfirst" / "notlast"
+  / "json" / "parsejson"
+  / "list" / "value" / "islist" / "first" / "last" / "notfirst" / "notlast"
   / "strlen" / "length" / "shuffle" / "reverse" / "revstr"
   / "not"
   / "comment"
   / "charclass"
   / "alt"
   / "gerund" / "adjective" / "negative" / "positive" / "uc" / "lc" / "cap"
-  / "a" /* this must be the last function */
+
+ShortUnaryFunctionName = "a" / "q"
 
 NullaryFunctionName = "vars"
 

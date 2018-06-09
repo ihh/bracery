@@ -934,7 +934,7 @@ function parseTreeEmpty (rhs) {
             return node.reps.reduce (function (all, rep) { return all && pt.parseTreeEmpty(rep) }, true)
         default:
         case 'sym':
-	  result = pt.parseTreeEmpty (node.rhs || node.bind || [])
+	  result = node.rhs && pt.parseTreeEmpty (node.rhs)
 	  break
         }
       }

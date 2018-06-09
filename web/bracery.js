@@ -192,10 +192,15 @@ function stringifyText (expansion) {
   return expansion
 }
 
+Bracery.prototype.makeConfig = function (config) {
+  return extend ({ expand: this._expandSymbol.bind (this),
+                   get: this._getSymbol.bind (this),
+                   set: function() { return [] } },
+                 config)
+}
+
 Bracery.prototype._expandRhs = function (config) {
-  var newConfig = extend ({ expand: this._expandSymbol.bind (this),
-                            get: this._getSymbol.bind (this),
-                            set: function() { return [] } }, config)
+  var newConfig = this.makeConfig (config)
   if (newConfig.callback) {
     var promise = ParseTree.makeRhsExpansionPromise (newConfig)
     if (typeof(newConfig.callback) === 'function')
@@ -308,7 +313,7 @@ function makeGrammarRules (ParseTree, config, cfg, name, checkVars, checkSym, ex
     cfgName = expand ? (ParseTree.funcChar + ParseTree.varChar + name) : (ParseTree.varChar + name)
     symCheckedPromise = resolve()
   } else if (checkSym && config.get) {
-    symCheckedPromise = resolve (config.get ({ symbolName: name }))
+    symCheckedPromise = resolve (config.get (ParseTree.extend ({}, config, { symbolName: name })))
       .then (function (getResult) {
         if (getResult)
           symDef = getResult.join('')
@@ -327,6 +332,7 @@ function makeGrammarRules (ParseTree, config, cfg, name, checkVars, checkSym, ex
 }
 
 function makeGrammarSymbol (ParseTree, config, cfg, rhsList, type, name, weight) {
+//  console.warn ('makeGrammarSymbol', type, name, JSON.stringify(rhsList))
   var vars = config.vars || {}
   var resolve = config.sync ? ParseTree.syncPromiseResolve : Promise.resolve.bind(Promise)
   var gotSymbolPromise
@@ -750,20 +756,20 @@ var nodeListArgKeys = ['opts']
 // in the process, it samples any alternations or repetitions
 function sampleParseTree (rhs, config) {
   var pt = this
-  var rng = config && config.rng ? config.rng : Math.random
+  var rng = (config ? config.rng : null) || Math.random
   return rhs.map (function (node, n) {
     var result, index
     if (typeof(node) === 'string')
       result = node
-    else if (config.quoteLevel > 0) {
+    else if (config && config.quoteLevel > 0) {
       if (node.type === 'func' && node.funcname === 'unquote')
 	result = { type: 'func',
                    funcname: 'unquote',
-                   args: pt.sampleParseTree (node.args, extend ({}, config, { quoteLevel: (config.quoteLevel || 0) - 1 })) }
+                   args: pt.sampleParseTree (node.args, extend ({}, config, { quoteLevel: config.quoteLevel - 1 })) }
       else {
         result = extend ({}, node)
         if (node.type === 'func' && node.funcname === 'quote')
-          config = extend ({}, config, { quoteLevel: (config.quoteLevel || 0) + 1 })
+          config = extend ({}, config, { quoteLevel: config.quoteLevel + 1 })
         nodeArgKeys.forEach (function (key) {
           if (node[key])
             result[key] = pt.sampleParseTree (node[key], config)
@@ -785,7 +791,7 @@ function sampleParseTree (rhs, config) {
                    visible: node.visible }
         break
       case 'alt':
-        index = pt.randomIndex (node.opts)
+        index = pt.randomIndex (node.opts, rng)
 	result = { type: 'alt_sampled',
                    n: index,
                    rhs: pt.sampleParseTree (node.opts[index], config) }
@@ -819,7 +825,7 @@ function sampleParseTree (rhs, config) {
 		   args: (node.funcname === 'strictquote'
                           ? node.args
                           : (node.funcname === 'quote'
-                             ? pt.sampleParseTree (node.args, extend ({}, config, { quoteLevel: (config.quoteLevel || 0) + 1 }))
+                             ? pt.sampleParseTree (node.args, extend ({}, config, { quoteLevel: (config && config.quoteLevel || 0) + 1 }))
                              : pt.sampleParseTree (node.args, config))) }
         break
       case 'lookup':
@@ -1016,7 +1022,6 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
       result = escapeString (tok)
     else {
       var nextTok = (n < rhs.length - 1) ? rhs[n+1] : undefined
-//      console.warn('nextTok',tok,nextTok)
       var nextIsAlpha = (typeof(nextTok) === 'undefined'
                          ? nextSiblingIsAlpha
                          : (typeof(nextTok) === 'string' && nextTok.match(/^[A-Za-z0-9_]/)))
@@ -1165,8 +1170,8 @@ function defaultMakeSymbolName (node) {
   return node.name
 }
 
-function throwSymbolError (config) {
-  throw new Error ('unhandled method (' + config.node.method + ') for symbol ' + symChar + config.node.name)
+function throwSymbolError (method, config) {
+  throw new Error ('unhandled method (' + method + ') for symbol ' + symChar + (config.symbolName || config.node.name))
 }
 
 function syncPromiseResolve() {
@@ -1211,13 +1216,13 @@ function makeSyncConfig (config) {
                            : config.after),
                    expand: (config.expandSync
                             ? makeSyncResolver (config, config.expandSync)
-                            : (config.expand || throwSymbolError)),
+                            : (config.expand || throwSymbolError.bind(null,'expand'))),
                    get: (config.getSync
                          ? makeSyncResolver (config, config.getSync)
-                         : (config.get || throwSymbolError)),
+                         : (config.get || throwSymbolError.bind(null,'get'))),
                    set: (config.setSync
                          ? makeSyncResolver (config, config.setSync)
-                         : (config.set || throwSymbolError)) })
+                         : (config.set || throwSymbolError.bind(null,'set'))) })
 }
 
 function makeRhsExpansionSync (config) {
@@ -1444,7 +1449,6 @@ function shuffleArray (a, rng) {
 }
 
 function makeAlternation (item) {
-  console.warn('makeAlternation',item)
   return (item
           ? (typeof(item) === 'string'
              ? item
@@ -1617,12 +1621,14 @@ var binaryFunction = {
   parse: function (l, r, lv, rv, config) {
     if (!tooLongToParse (this, config, r)) {
       try {
-        return Chomsky.parseInside (this, extend ({}, config, { root: l, text: r, maxSubsequenceLength: config.maxSubsequenceLength || this.maxSubsequenceLength }))
+        return Chomsky.parseInside (this, extend ({}, config, { root: l,
+                                                                text: r,
+                                                                maxSubsequenceLength: config.maxSubsequenceLength || this.maxSubsequenceLength }))
           .then (function (parse) {
             return parse ? makeArray(parse) : ''
           })
       } catch (e) {
-        if (config.verbose > 1)
+        if (config.verbose > 1 || true)
           console.warn (e)
         else
           console.warn ('(error during parse)')
@@ -1811,7 +1817,6 @@ function makeExpansionPromise (config) {
         if (typeof(node) === 'string') {
           expansion.text = node
         } else {
-          
           switch (node.type) {
           case 'assign':
             promise = makeAssignmentPromise.call (pt, config, [[node.varname, node.value]], node.local, node.visible)
@@ -1837,10 +1842,15 @@ function makeExpansionPromise (config) {
             break
 
           case 'func':
-	    if (node.expansion) {
-	      // guard against double expansion
-	      extend (expansion, node.expansion)
-            } else if (node.funcname === 'strictquote') {
+            // ensure expansion is reproducible by stashing/retrieving random numbers in node
+            var nodeRng = node.rng ? node.rng.shift.bind(node.rng) : rng
+            var rngCache = node.rng
+            delete node.rng
+            config.rngNode = node
+            function rngSaver() { var r = nodeRng(); var node = config.rngNode; if (!node.rng) node.rng = []; node.rng.push(r); return r }
+            config = extend ({}, config, { rng: rngSaver })
+            // dispatch by funcname
+	    if (node.funcname === 'strictquote') {
               // quote
               expansion.text = pt.makeRhsText (node.args, makeSymbolName)
             } else if (node.funcname === 'quote') {
@@ -2080,7 +2090,6 @@ function makeExpansionPromise (config) {
 
                     // alt
                   case 'alt':
-                  case 'zzz':
                     expansion.text = makeAlternation (argExpansion.value || argExpansion.text)
                     break
 
@@ -2122,7 +2131,7 @@ function makeExpansionPromise (config) {
 
                     // shuffle
                   case 'shuffle':
-                    expansion.value = shuffleArray (makeArray (argExpansion.value), config.rng || Math.random)
+                    expansion.value = shuffleArray (makeArray (argExpansion.value), rngSaver)
                     break
 
                     // value, unquote, math: identity functions
@@ -2228,7 +2237,7 @@ function makeExpansionPromise (config) {
 
                     // nlp: numbers
                   case 'random':
-                    expansion.text = (rng() * toNumber(arg)) + ''
+                    expansion.text = (rngSaver() * toNumber(arg)) + ''
                     break
 
                   case 'floor':
@@ -2276,13 +2285,6 @@ function makeExpansionPromise (config) {
                   return expansion
                 })
             }
-	    promise = promise.then (function (expansion) {
-	      // guard against double expansion
-	      node.expansion = { text: expansion.text,
-				 value: cloneItem (expansion.value),
-                                 vars: extend ({}, expansion.vars) }
-	      return expansion
-	    })
             break
           case 'sym':
             var symbolExpansionPromise

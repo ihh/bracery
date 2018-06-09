@@ -239,7 +239,7 @@ if (opt.options.file)
   })
 
 if (opt.options.eval)
-  opt.options.eval.forEach (expand)
+  opt.options.eval.forEach (function (text) { return expand(text) })
 
 // run template Markov chain
 if (opt.options.markov || opt.options.quiz) {

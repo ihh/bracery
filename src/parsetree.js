@@ -1059,6 +1059,22 @@ function makeQuasiquoteExpansionPromise (config) {
             })
             : promise)
   }, resolve()).then (function() {
+    return nodeListArgKeys.reduce (function (promise, optsKey) {
+      var optsVal = node[optsKey]
+      nodeCopy[optsKey] = []
+      if (optsVal)
+        optsVal.forEach (function (rhs) {
+          promise = promise.then (function() {
+            return reduceQuasiquote (pt, config, rhs)
+              .then (function (rhsCopy) {
+                nodeCopy[optsKey].push (rhsCopy.tree)
+                expansion.nodes += rhsCopy.nodes
+              })
+          })
+        })
+      return promise
+    }, resolve())
+  }).then (function() {
     expansion.tree = [nodeCopy]
     return expansion
   })
@@ -1458,10 +1474,9 @@ function makeExpansionPromise (config) {
                     }).join('-')
                       .split('')
                       .map (function (c) { return [c] })
-                    expansion.value = pt.makeRhsTree ([{ type: 'alt',
-                                                         opts: range }],
-                                                      makeSymbolName)
-                    expansion.text = makeString (expansion.value)
+                    expansion.text = pt.makeRhsText ([{ type: 'alt',
+                                                        opts: range }],
+                                                     makeSymbolName)
                     break
                     
                     // strlen, length, reverse, revstr

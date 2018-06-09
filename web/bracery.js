@@ -634,7 +634,6 @@ function fillInside (config, cfg, text) {
       var inside_ij = inside[i][ijIndex]
       if (isTerm[ijText])
         inside_ij = inside[i][ijIndex] = false
-      inside_ij = inside[i][ijIndex] = new Array(nSym).fill(0)   // DEBUG
       for (var k = i; k <= j; ++k) {
         var ikIndex = i === 0 ? k : Math.min (k - i, maxSubseqLen + 1)
         if (inside[i][ikIndex] !== null) {

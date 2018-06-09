@@ -19,7 +19,7 @@ src/rhs.js: src/rhs.defs.js src/rhs.peg.js
 src/shim.js:
 	echo "window.bracery = require('./bracery');" >$@
 
-web/bracery.js: src/shim.js src/bracery.js src/parsetree.js src/rhs.js
+web/bracery.js: src/shim.js src/bracery.js src/parsetree.js src/rhs.js src/chomsky.js src/template.js
 	$(BROWSERIFY) src/shim.js >$@
 
 web/bracery.min.js: web/bracery.js

@@ -520,13 +520,13 @@ function toposortSymbols (cfg, start) {
 
 // Inside algorithm c.f. Durbin, Eddy, Krogh & Mitchison (1998) "Biological Sequence Analysis"
 // or other sources e.g. https://en.wikipedia.org/wiki/Inside%E2%80%93outside_algorithm
-function ruleWeight (inside, text, maxSubseqLen, i, j, k, rhs) {
-  var rhsLen = rhs.rhs.length
+function ruleWeight (inside, text, maxSubseqLen, i, j, k, opt) {
+  var rhsLen = opt.rhs.length
   if ((rhsLen === 0 && i !== j) || (rhsLen === 1 && k < j))
     return 0
-  var w = rhs.weight
+  var w = opt.weight
   for (var pos = 0; w && pos < rhsLen; ++pos) {
-    var node = rhs.rhs[pos]
+    var node = opt.rhs[pos]
     var start = pos ? k : i, len = pos ? (j-k) : (k-i), idx = len
     if (start && len > maxSubseqLen) {
       if (start + len === text.length)
@@ -534,9 +534,10 @@ function ruleWeight (inside, text, maxSubseqLen, i, j, k, rhs) {
       else
         return 0
     }
+    var insideCell
     w *= (node.type === 'term'
 	  ? (node.text.length === len && node.text === text.substr(start,len) ? 1 : 0)
-	  : (inside[start][idx][node.rank] || 0))
+	  : (((insideCell = inside[start][idx]) && insideCell[node.rank]) || 0))
   }
   return w
 }
@@ -556,8 +557,8 @@ function sampleTrace (config, cfg, text, inside, i, j, lhs, rng) {
   for (n = 0; n < applications.length - 1; ++n)
     if ((r -= weights[n]) <= 0)
       break
-  var app = applications[n], k = app.k, rhs = app.rhs
-  return [cfg.nameByRank[lhs]].concat (rhs.rhs.map (function (node, pos) {
+  var app = applications[n], k = app.k, opt = app.rhs
+  return [cfg.nameByRank[lhs]].concat (opt.rhs.map (function (node, pos) {
     return (node.type === 'term'
             ? node.text
             : sampleTrace (config, cfg, text, inside, pos ? k : i, pos ? j : k, node.rank, rng))
@@ -588,10 +589,26 @@ function fillInside (config, cfg, text) {
     console.warn('fillInside.grammar',JSON.stringify(cfg,null,2))
   var len = text.length, nSym = cfg.nameByRank.length
   var maxSubseqLen = config.maxSubsequenceLength || len
-  var inside = new Array(len+1).fill(0).map (function (_, i) {
-    return new Array(i === 0 ? (len+1) : Math.min(maxSubseqLen+2,len+1-i)).fill(0).map (function() {
-      return new Array(nSym).fill(0)
+  var isTerm = {}, optsByMaxRhsLen = [[], [], []]
+  cfg.stateByRank.forEach (function (state, s) {
+    state.opts.forEach (function (opt) {
+      var rhs = opt.rhs
+      rhs.forEach (function (node) {
+        if (node.type === 'term')
+          isTerm[node.text] = true
+      })
+      opt.lhsRank = s
+      for (var maxRhsLen = rhs.length; maxRhsLen <= 2; ++maxRhsLen)
+        optsByMaxRhsLen[maxRhsLen].push (opt)
     })
+  })
+  if (config.verbose)
+    console.warn('fillInside.optsByMaxRhsLen',JSON.stringify(optsByMaxRhsLen))
+
+  var inside = new Array(len+1).fill(0).map (function (_, i) {
+    // if an (i,j) cell is null, it's definitely not in the parse tree and can be skipped
+    // if an (i,j) cell is false, then text[i..j] is a terminal, but no cells have yet been filled
+    return new Array(i === 0 ? (len+1) : Math.min(maxSubseqLen+2,len+1-i)).fill(null)
   })
   for (var i = len; i >= 0; --i) {
     var jStop = undefined, jStart = undefined
@@ -613,16 +630,28 @@ function fillInside (config, cfg, text) {
         }
       }
       var ijIndex = i === 0 ? j : Math.min (j - i, maxSubseqLen + 1)
-      for (var s = nSym - 1; s >= 0; --s) {
-        var opts = cfg.stateByRank[s].opts
-        for (var r = 0; r < opts.length; ++r) {
-          var rhs = opts[r]
-          for (var k = rhs.length === 1 ? j : i; k <= j; ++k) {
-	    var weight = ruleWeight (inside, text, maxSubseqLen, i, j, k, rhs)
-            if (config.verbose)
-              console.warn ('fillInside.rule', 'weight='+weight, 'i='+i, 'j='+j, 'k='+k, 'lhs='+cfg.nameByRank[s], 'rhs='+JSON.stringify(rhs))
-            if (weight)
-	      inside[i][ijIndex][s] = (inside[i][ijIndex][s] || 0) + weight
+      var ijText = text.substr (i, j - i)
+      var inside_ij = inside[i][ijIndex]
+      if (isTerm[ijText])
+        inside_ij = inside[i][ijIndex] = false
+      for (var k = i; k <= j; ++k) {
+        var ikIndex = i === 0 ? k : Math.min (k - i, maxSubseqLen + 1)
+        if (inside[i][ikIndex] !== null) {
+          var kjIndex = k === 0 ? j : Math.min (j - k, maxSubseqLen + 1)
+          var inside_kj = inside[k][kjIndex]
+          if (inside_kj !== null || k === j) {  // allow the case where k===j just in case opt.rhs.length === 1 later
+            var opts = optsByMaxRhsLen[i === j ? 0 : (inside_kj === null ? 1 : 2)]
+            for (var nOpt = opts.length - 1; nOpt >= 0; --nOpt) {
+              var opt = opts[nOpt], s = opt.lhsRank
+	      var weight = ruleWeight (inside, text, maxSubseqLen, i, j, k, opt)
+              if (config.verbose)
+                console.warn ('fillInside.rule', 'weight='+weight, 'i='+i, 'j='+j, 'k='+k, 'ij='+text.substr(i,j-i), 'jk='+text.substr(j,k-j), 'lhs='+cfg.nameByRank[s], 'opt='+JSON.stringify(opt))
+              if (weight) {
+                if (!inside_ij)
+                  inside_ij = inside[i][ijIndex] = new Array(nSym).fill(0)
+	        inside_ij[s] += weight
+              }
+            }
             if (k === kStop)
               k = kStart - 1
 	  }
@@ -640,9 +669,10 @@ function parseInside (ParseTree, config) {
     .then (function (cfg) {
       var text = config.text, rng = config.rng
       var inside = fillInside (config, cfg, text)
-      if (!inside[0][text.length][cfg.rankByName[cfg.start]])
+      var startCell = inside[0][text.length], startState = cfg.rankByName[cfg.start]
+      if (!(startCell && startCell[startState]))
         return ''
-      var trace = sampleTrace (config, cfg, text, inside, 0, text.length, cfg.rankByName[cfg.start], rng)
+      var trace = sampleTrace (config, cfg, text, inside, 0, text.length, startState, rng)
       return ['root'].concat (transformTrace (ParseTree, ParseTree, cfg, trace).slice(1))
     })
 }

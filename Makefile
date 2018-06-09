@@ -25,6 +25,6 @@ web/bracery.js: src/shim.js src/bracery.js src/parsetree.js src/rhs.js src/choms
 web/bracery.min.js: web/bracery.js
 	$(UGLIFYJS) $< >$@
 
-README.md:
+%.md:
 	node -e 'console.log (fs.readFileSync("$@").toString().replace(/(~~~~\n)([^~]+)(\n~~~~\n\n<\!--DEMO-->).*/g,function(_m,b,c,e){return b+c+e+" <em> <a style=\"float:right;\" href=\"http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#"+encodeURIComponent(c)+"\">Try this</a> </em>"}))' >$@.tmp
 	mv $@.tmp $@

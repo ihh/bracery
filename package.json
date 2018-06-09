@@ -7,7 +7,7 @@
     "bracery": "bin/bracery"
   },
   "scripts": {
-    "test": "node ./node_modules/nyc/bin/nyc --reporter=html --reporter=text node ./node_modules/mocha/bin/mocha test/*.js",
+    "test": "node ./node_modules/nyc/bin/nyc --exclude src/rhs.js --reporter=html --reporter=text node ./node_modules/mocha/bin/mocha test/*.js",
     "coverage": "node ./node_modules/nyc/bin/nyc report --reporter=text-lcov | node ./node_modules/coveralls/bin/coveralls",
     "postinstall": "make postinstall",
     "prepublishOnly": "make; git clean -fd"

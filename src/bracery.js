@@ -180,7 +180,7 @@ Bracery.prototype._getSymbol = function (config) {
               ? (rulesRhs.length === 1
                  ? rulesRhs
                  : [ParseTree.leftSquareBraceChar + rulesRhs.join (ParseTree.pipeChar) + ParseTree.rightSquareBraceChar])
-              : '')
+              : [''])
   }
   return result
 }

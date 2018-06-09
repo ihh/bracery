@@ -108,15 +108,15 @@ function sampleParseTree (rhs, config) {
     var result, index
     if (typeof(node) === 'string')
       result = node
-    else if (config.quoteLevel > 0) {
+    else if (config && config.quoteLevel > 0) {
       if (node.type === 'func' && node.funcname === 'unquote')
 	result = { type: 'func',
                    funcname: 'unquote',
-                   args: pt.sampleParseTree (node.args, extend ({}, config, { quoteLevel: (config.quoteLevel || 0) - 1 })) }
+                   args: pt.sampleParseTree (node.args, extend ({}, config, { quoteLevel: config.quoteLevel - 1 })) }
       else {
         result = extend ({}, node)
         if (node.type === 'func' && node.funcname === 'quote')
-          config = extend ({}, config, { quoteLevel: (config.quoteLevel || 0) + 1 })
+          config = extend ({}, config, { quoteLevel: config.quoteLevel + 1 })
         nodeArgKeys.forEach (function (key) {
           if (node[key])
             result[key] = pt.sampleParseTree (node[key], config)
@@ -172,7 +172,7 @@ function sampleParseTree (rhs, config) {
 		   args: (node.funcname === 'strictquote'
                           ? node.args
                           : (node.funcname === 'quote'
-                             ? pt.sampleParseTree (node.args, extend ({}, config, { quoteLevel: (config.quoteLevel || 0) + 1 }))
+                             ? pt.sampleParseTree (node.args, extend ({}, config, { quoteLevel: (config && config.quoteLevel || 0) + 1 }))
                              : pt.sampleParseTree (node.args, config))) }
         break
       case 'lookup':

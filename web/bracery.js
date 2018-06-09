@@ -634,6 +634,7 @@ function fillInside (config, cfg, text) {
       var inside_ij = inside[i][ijIndex]
       if (isTerm[ijText])
         inside_ij = inside[i][ijIndex] = false
+      inside_ij = inside[i][ijIndex] = new Array(nSym).fill(0)   // DEBUG
       for (var k = i; k <= j; ++k) {
         var ikIndex = i === 0 ? k : Math.min (k - i, maxSubseqLen + 1)
         if (inside[i][ikIndex] !== null) {
@@ -1742,6 +1743,22 @@ function makeQuasiquoteExpansionPromise (config) {
             })
             : promise)
   }, resolve()).then (function() {
+    return nodeListArgKeys.reduce (function (promise, optsKey) {
+      var optsVal = node[optsKey]
+      nodeCopy[optsKey] = []
+      if (optsVal)
+        optsVal.forEach (function (rhs) {
+          promise = promise.then (function() {
+            return reduceQuasiquote (pt, config, rhs)
+              .then (function (rhsCopy) {
+                nodeCopy[optsKey].push (rhsCopy.tree)
+                expansion.nodes += rhsCopy.nodes
+              })
+          })
+        })
+      return promise
+    }, resolve())
+  }).then (function() {
     expansion.tree = [nodeCopy]
     return expansion
   })
@@ -2141,10 +2158,9 @@ function makeExpansionPromise (config) {
                     }).join('-')
                       .split('')
                       .map (function (c) { return [c] })
-                    expansion.value = pt.makeRhsTree ([{ type: 'alt',
-                                                         opts: range }],
-                                                      makeSymbolName)
-                    expansion.text = makeString (expansion.value)
+                    expansion.text = pt.makeRhsText ([{ type: 'alt',
+                                                        opts: range }],
+                                                     makeSymbolName)
                     break
                     
                     // strlen, length, reverse, revstr

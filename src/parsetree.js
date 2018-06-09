@@ -447,14 +447,20 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
         break
       default:
       case 'sym':
-        var hasArgList = tok.bind && tok.bind.length && tok.bind[0] && tok.bind[0].type === 'func' && tok.bind[0].funcname === 'list'
-        var hasNonemptyArgList = hasArgList && tok.bind[0].args.length
-        var isApply = tok.bind && !hasArgList
-        result = (isApply
-                  ? [funcChar + 'xapply' + symChar, makeSymbolName(tok), makeFuncArgTree (pt, tok.bind)]
-                  : (nextIsAlpha && !hasNonemptyArgList
-                     ? [symChar, [leftBraceChar, makeSymbolName(tok), rightBraceChar]]
-                     : (hasNonemptyArgList ? [funcChar] : []).concat ([symChar, makeSymbolName(tok)], [makeArgList.call (pt, tok.bind, makeSymbolName)])))
+        if (tok.method === 'get' || tok.method === 'set') {
+          result = [funcChar, 'x' + tok.method, [symChar, (nextIsAlpha
+                                                           ? [leftBraceChar, makeSymbolName(tok), rightBraceChar]
+                                                           : makeSymbolName(tok))]]
+        } else {
+          var hasArgList = tok.bind && tok.bind.length && tok.bind[0] && tok.bind[0].type === 'func' && tok.bind[0].funcname === 'list'
+          var hasNonemptyArgList = hasArgList && tok.bind[0].args.length
+          var isApply = tok.bind && !hasArgList
+          result = (isApply
+                    ? [funcChar + 'xapply' + symChar, makeSymbolName(tok), makeFuncArgTree (pt, tok.bind)]
+                    : (nextIsAlpha && !hasNonemptyArgList
+                       ? [symChar, [leftBraceChar, makeSymbolName(tok), rightBraceChar]]
+                       : (hasNonemptyArgList ? [funcChar] : []).concat ([symChar, makeSymbolName(tok)], [makeArgList.call (pt, tok.bind, makeSymbolName)])))
+        }
 	break
       }
     }

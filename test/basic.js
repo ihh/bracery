@@ -423,6 +423,11 @@ function doTests (testRunner) {
 
   expectExpand ('$a=3 &value{{{[$a]}}}', '{{[3]}}')
 
+  // xget
+  expectExpandQuote ('&quote&xget{~abc}', '&xget~abc')
+  expectExpand ('&xget~abc', 'def')
+  expectExpand ('&xget~world', '[world|planet]')
+  
   // call, apply, function
   expectExpand ('$func=&function$first$second{0=&quotify$$0 1=$first 2=$second} &call{$func}{A}{B}', '0=&list{&value{A}&value{B}} 1=A 2=B')
   expectExpand ('$func=&function{$first$second}{0=&quotify$$0 1=$first 2=$second} &call{$func}{A}{B}', '0=&list{&value{A}&value{B}} 1=A 2=B')

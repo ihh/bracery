@@ -2289,7 +2289,7 @@ function makeExpansionPromise (config) {
           case 'sym':
             var symbolExpansionPromise
             var expr = symChar + (node.name || node.id)
-            var method = node.method
+            var method = node.method || 'expand'
             if (!node.rhs && config[method])
               symbolExpansionPromise = handlerPromise ([node, varVal, depth], resolve(), config.before, method)
               .then (function() {

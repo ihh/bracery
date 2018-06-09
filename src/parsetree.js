@@ -250,8 +250,8 @@ function parseTreeEmpty (rhs) {
   var pt = this
   return rhs.reduce (function (result, node) {
     if (result) {
-      if (typeof(node) === 'string' && isTruthy (node))
-	result = false
+      if (typeof(node) === 'string')
+	result = !isTruthy (node)
       else {
         switch (node.type) {
         case 'assign':
@@ -1733,6 +1733,7 @@ function finalVarVal (config) {
     extend (varVal, initVarVal)
   this.makeExpansionText ({ node: node,
                             vars: varVal,
+                            DEBUG_vars: varVal,  // DEBUG
 			    makeSymbolName: config.makeSymbolName })
   return varVal
 }

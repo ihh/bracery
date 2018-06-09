@@ -10,7 +10,8 @@ var fs = require('fs'),
     colors = require('colors')
 
 var bracery = require('..'),
-    extend = bracery.ParseTree.extend
+    extend = bracery.ParseTree.extend,
+    Validator = require('../src/validator')
 
 // parse command-line options
 var opt = getopt.create([
@@ -172,9 +173,9 @@ function addRulesFile (filename) {
   var result
   try {
     var json = JSON.parse (text), rules
-    if (bracery.Validator.isTracery (json))
+    if (Validator.isTracery (json))
       rules = json
-    else if (bracery.Validator.isBraceryJSON (json)) {
+    else if (Validator.isBraceryJSON (json)) {
       rules = {}
       json.forEach (function (symbol) { rules[symbol.name] = symbol.rules.map (function (array) { return array[0] }) })
     } else {

@@ -139,6 +139,7 @@ function sampleParseTree (rhs, config) {
         break
       case 'alt':
         index = pt.randomIndex (node.opts, rng)
+//        console.warn('alt',JSON.stringify(node.opts),index)
 	result = { type: 'alt_sampled',
                    n: index,
                    rhs: pt.sampleParseTree (node.opts[index], config) }
@@ -1457,7 +1458,6 @@ function makeExpansionPromise (config) {
                     // parse JSON
                   case 'parsejson':
                     try {
-                      console.warn('parsejson',arg)
                       expansion.value = cloneItem (JSON.parse (arg))
                       expansion.text = makeString (expansion.value)
                     } catch (e) {

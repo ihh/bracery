@@ -7,7 +7,8 @@ var fs = require('fs'),
     http = require('http'),
     request = require('request'),
     keypress = require('keypress'),
-    colors = require('colors')
+    colors = require('colors'),
+    MersenneTwister = require('mersenne-twister')
 
 var bracery = require('..'),
     extend = bracery.ParseTree.extend,
@@ -30,6 +31,7 @@ var opt = getopt.create([
   ['t' , 'tree'             , 'show parse tree'],
   ['T' , 'compact-tree'     , 'like --tree, but compact'],
   ['a' , 'async'            , 'run asynchronously'],
+  ['R' , 'seed=NUMBER'      , 'seed random number generator'],
   ['r' , 'repl'             , 'enter Read-Evaluate-Print Loop (REPL)'],
   ['S' , 'server=SOCKET'    , 'run as a web service'],
   ['C' , 'client=URL'       , 'run as client of web service'],
@@ -41,10 +43,18 @@ var opt = getopt.create([
     .bindHelp()     // bind option 'help' to default action
     .parseSystem() // parse command line
 
-var b = new bracery.Bracery()
+var seed = opt.options.seed || Math.floor (Math.random() * 0x7fffffff)
+var mt = new MersenneTwister (seed)
+var rng = (opt.options.verbose < 0
+           ? function() { var r = mt.random(); console.warn('MersenneTwister',r); return r }
+           : mt.random.bind(mt))
+
+var b = new bracery.Bracery (null, { rng: rng })
+
 var varVal = {}
 function makeConfig() {
-  var config = { vars: extend ({}, varVal) }
+  var config = { vars: extend ({}, varVal),
+                 rng: rng }
   if (opt.options.config)
     extend (config, JSON.parse (opt.options.config))
   if (opt.options.verbose)
@@ -207,7 +217,8 @@ if (symbolNames.length || opt.options.defs) {
   var nRules = symbolNames.reduce (function (sum, name) { return sum + b.getRules(name).length }, 0)
   console.warn(colors.cyan ('(' + bracery.ParseTree.nPlurals(symbolNames.length,'symbol')
                             + ', ' + bracery.ParseTree.nPlurals(nRules,'rule')
-                            + ', default symbol ' + bracery.ParseTree.symChar + b.getDefaultSymbol() + ')'))
+                            + ', default symbol ' + bracery.ParseTree.symChar + b.getDefaultSymbol()
+                            + ', random seed ' + seed + ')'))
 }
 
 // output symbol defs

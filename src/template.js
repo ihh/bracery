@@ -72,20 +72,21 @@ function flattenTemplates (templates, parent) {
   }, templates)
 }
 
-function sampleTemplate (templates) {
+function sampleTemplate (templates, rng) {
+  rng = rng || Math.random
   var totalWeight = templates.reduce (function (total, template) { return total + (template.weight || 1) }, 0)
-  var w = totalWeight * Math.random()
+  var w = totalWeight * rng()
   for (var i = 0; i < templates.length; ++i)
     if ((w -= (templates[i].weight || 1)) <= 0)
       return templates[i]
   return undefined
 }
 
-function randomRootTemplate (templates) {
-  return sampleTemplate (templates.filter (function (template) { return template.isRoot }))
+function randomRootTemplate (templates, rng) {
+  return sampleTemplate (templates.filter (function (template) { return template.isRoot }), rng)
 }
 
-function randomReplyTemplate (templates, tags, prevTemplate) {
+function randomReplyTemplate (templates, tags, prevTemplate, rng) {
   var tagArray = typeof(tags) === 'string' ? makeTagArray(tags) : tags
   return sampleTemplate (templates.filter (function (template) {
     if (prevTemplate && prevTemplate.replies.indexOf (template) >= 0)
@@ -98,7 +99,7 @@ function randomReplyTemplate (templates, tags, prevTemplate) {
     }, allowedTags.reduce (function (match, tag) {
       return match || tagArray.indexOf(tag) >= 0
     }, false))
-  }))
+  }), rng)
 }
 
 function promiseMessageList (config) {
@@ -111,7 +112,7 @@ function promiseMessageList (config) {
                           : randomRootTemplate.bind (null, templates))
   function generateMessage() {
     var message
-    var template = generateTemplate()
+    var template = generateTemplate (config.rng)
     if (template) {
       var vars = extend ({}, config.vars || {}, { tags: template.tags || '' })
       message = { template: template,

@@ -69,7 +69,6 @@ function parseTemplateDefs (text) {
 			: template.opts[0])
     delete template.opts
   })
-  console.warn(JSON.stringify(templates))
   return templates
 }
 

@@ -8878,7 +8878,7 @@ function makeTagString (text) {
 }
 
 function parseTemplateDefs (text) {
-  var templates = []
+  var templates = [], allTemplates = []
   try {
     var newTemplateDefReg = /^(\d*)(@.*?|)(>+)\s*(.*?)\s*(#\s*(.*?)\s*(#\s*(.*?)\s*|)|)$/;
     var replyChain = [], currentTemplates = [], newTemplateDefMatch
@@ -8887,7 +8887,7 @@ function parseTemplateDefs (text) {
         if (currentTemplates.length) {
           var parsedLine = ParseTree.parseRhs (line)
           currentTemplates.forEach (function (currentTemplate) {
-            currentTemplate.content = currentTemplate.content.concat (currentTemplate.content.length ? '\n' : '', parsedLine)
+            currentTemplate.content = currentTemplate.content.concat (parsedLine)
           })
         } else if (newTemplateDefMatch = newTemplateDefReg.exec (line)) {
           var weight = newTemplateDefMatch[1],
@@ -8915,6 +8915,7 @@ function parseTemplateDefs (text) {
             else
               templates.push (currentTemplate)
             replyChain.push (currentTemplate)
+            allTemplates.push (currentTemplate)
             return currentTemplate
           })
         }
@@ -8924,6 +8925,7 @@ function parseTemplateDefs (text) {
       }
     })
   } catch(e) { console.log(e) }
+  allTemplates.forEach (function (template) { template.content = [ ParseTree.leftSquareBraceChar + template.content.join(ParseTree.pipeChar) + ParseTree.rightSquareBraceChar ] })
   return templates
 }
 

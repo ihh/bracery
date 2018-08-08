@@ -16,7 +16,7 @@ function makeTagString (text) {
 }
 
 function parseTemplateDefs (text) {
-  var templates = []
+  var templates = [], allTemplates = []
   try {
     var newTemplateDefReg = /^(\d*)(@.*?|)(>+)\s*(.*?)\s*(#\s*(.*?)\s*(#\s*(.*?)\s*|)|)$/;
     var replyChain = [], currentTemplates = [], newTemplateDefMatch
@@ -25,7 +25,7 @@ function parseTemplateDefs (text) {
         if (currentTemplates.length) {
           var parsedLine = ParseTree.parseRhs (line)
           currentTemplates.forEach (function (currentTemplate) {
-            currentTemplate.content = currentTemplate.content.concat (currentTemplate.content.length ? '\n' : '', parsedLine)
+            currentTemplate.opts.push (parsedLine)
           })
         } else if (newTemplateDefMatch = newTemplateDefReg.exec (line)) {
           var weight = newTemplateDefMatch[1],
@@ -43,7 +43,7 @@ function parseTemplateDefs (text) {
 			            tags: tags,
                                     isRoot: isRoot,
                                     weight: weight.length ? parseInt(weight) : undefined,
-			            content: [],
+			            opts: [],
                                     replies: [] }
             if (depth > replyChain.length)
               throw new Error ("Missing replies in chain")
@@ -53,6 +53,7 @@ function parseTemplateDefs (text) {
             else
               templates.push (currentTemplate)
             replyChain.push (currentTemplate)
+            allTemplates.push (currentTemplate)
             return currentTemplate
           })
         }
@@ -62,6 +63,13 @@ function parseTemplateDefs (text) {
       }
     })
   } catch(e) { console.log(e) }
+  allTemplates.forEach (function (template) {
+    template.content = (template.opts.length > 1
+			? [ { type: 'alt', opts: template.opts } ]
+			: template.opts[0])
+    delete template.opts
+  })
+  console.warn(JSON.stringify(templates))
   return templates
 }
 

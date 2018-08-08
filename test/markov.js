@@ -42,4 +42,3 @@ function expectMarkov (templateDefRows, outputRows) {
        done()
      })
 }
-

@@ -109,7 +109,7 @@ Templates can be specified in JSON or in the following plaintext shorthand
 ~~~~
 100@template_author>Template title#past_tag1 past_tag2#future_tag1 future_tag2 future_tag3
 The template itself, featuring $variables, ~nonterminals, [alternations|etc.]
-(it can be split over multiple lines)
+If split over multiple lines, each line is treated as an alternation option, as with symbols.
 ~~~~
 
 This defines a template with weight `100` by `@template_author`, with the title "Template title", and the specified past tags (`past_tag1` and `past_tag2`) and future tags (`future_tag1`, `future_tag2`, and `future_tag3`). 

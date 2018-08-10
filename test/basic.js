@@ -287,6 +287,7 @@ function doTests (testRunner) {
 
   // these used to be tests of &strip, now obsoleted by &replace (and thus &strip has been stripped and replaced by &replace)
   expectExpand ('&replace/hello/g{hello world hello}{}', ' world ')
+  expectExpand ('&replace/(hell)(o)/g{hello world hello}{$$2 well $$1}', 'o well hell world o well hell')
   expectExpand ('&replace/&unquote{~abc}/{defcon}{}', 'con')
   expectExpand ('~{abc}', 'def')
   expectExpand ('~{abc}con', 'defcon')

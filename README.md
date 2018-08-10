@@ -434,7 +434,7 @@ Language features include
       - `&random{n}`, `&floor{x}`, `&ceil{x}`, `&round{x}` do what you probably expect
       - `&eq{x}{y}`, `&neq{x}{y}`, `&gt{x}{y}`, `&geq{x}{y}`, `&lt{x}{y}`, `&leq{x}{y}` also fairly predictable
    - regular expressions:
-      - `&match/regex/flags{text}{expr}' returns a list of `expr` evaluations (`$$1`, `$$2`, etc are bound to matching groups)
+      - `&match/regex/flags{text}{expr}` returns a list of `expr` evaluations (`$$1`, `$$2`, etc are bound to matching groups)
       - `&replace/regex/flags{text}{replacement}' returns a string
       - `&split/regex/flags{text}' or just `&split{text}' returns a list
 - special functions:

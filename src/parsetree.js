@@ -899,7 +899,7 @@ var regexFunction = {
 	endText = text.substr (nextIndex)
 	return promise.then (function (expansion) {
           var sampledExprTree = pt.sampleParseTree (expr, config)
-          return makeAssignmentPromise.call (pt, config, match.map (function (group, n) { return [''+n, [group]] }), sampledExprTree)
+          return makeAssignmentPromise.call (pt, config, match.map (function (group, n) { return [makeGroupVarName(n), [group]] }), sampledExprTree)
             .then (function (exprExpansion) {
               return textReducer (textReducer (expansion, { text: skippedText, nodes: 0 }), exprExpansion)
             })

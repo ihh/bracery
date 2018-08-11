@@ -491,7 +491,7 @@ Language features include
 - functions, alternations, repetitions, variable assignments, and conditionals can be arbitrarily nested
 - everything can occur asynchronously, so symbols can be resolved and expanded from a remote store
    - but if you have a synchronously resolvable store (i.e. a local Tracery object), everything can work synchronously too
-- access to the parser
+- access to the parser (disabled by default, for performance guarantees; to enable, set `{ enableParse: true }` in the configuration object for the `expand` method)
    - `&syntax{...}` returns the parse tree for the given Bracery expression
    - `&parse{source}{expr}` returns a parse tree by which Bracery expression `source` might have generated `expr`, or the empty string if no parse exists
       - The parse is probabilistic, not deterministic: if multiple valid parses exist, then the parse tree is sampled from the posterior probability distribution of valid parse trees

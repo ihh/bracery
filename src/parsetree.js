@@ -1007,7 +1007,7 @@ var binaryFunction = {
 }
 
 function unableToParse (pt, config, text) {
-  return config.disableParse || pt.disableParse || text.length > (config.maxParseLength || pt.maxParseLength)
+  return !(config.enableParse || pt.enableParse) || text.length > (config.maxParseLength || pt.maxParseLength)
 }
 
 function makeRhsExpansionReducer (pt, config, reduce, init) {
@@ -1974,7 +1974,7 @@ module.exports = {
   maxNodes: 1000,
   maxLength: 1000,
 
-  disableParse: false,
+  enableParse: false,
   maxParseLength: undefined,
   maxSubsequenceLength: 100,
 

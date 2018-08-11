@@ -1582,7 +1582,7 @@ var regexFunction = {
 	endText = text.substr (nextIndex)
 	return promise.then (function (expansion) {
           var sampledExprTree = pt.sampleParseTree (expr, config)
-          return makeAssignmentPromise.call (pt, config, match.map (function (group, n) { return [''+n, [group]] }), sampledExprTree)
+          return makeAssignmentPromise.call (pt, config, match.map (function (group, n) { return [makeGroupVarName(n), [group]] }), sampledExprTree)
             .then (function (exprExpansion) {
               return textReducer (textReducer (expansion, { text: skippedText, nodes: 0 }), exprExpansion)
             })
@@ -1690,7 +1690,7 @@ var binaryFunction = {
 }
 
 function unableToParse (pt, config, text) {
-  return config.disableParse || pt.disableParse || text.length > (config.maxParseLength || pt.maxParseLength)
+  return !(config.enableParse || pt.enableParse) || text.length > (config.maxParseLength || pt.maxParseLength)
 }
 
 function makeRhsExpansionReducer (pt, config, reduce, init) {
@@ -2657,7 +2657,7 @@ module.exports = {
   maxNodes: 1000,
   maxLength: 1000,
 
-  disableParse: false,
+  enableParse: false,
   maxParseLength: undefined,
   maxSubsequenceLength: 100,
 
@@ -8887,7 +8887,7 @@ function parseTemplateDefs (text) {
         if (currentTemplates.length) {
           var parsedLine = ParseTree.parseRhs (line)
           currentTemplates.forEach (function (currentTemplate) {
-            currentTemplate.content = currentTemplate.content.concat (parsedLine)
+            currentTemplate.opts.push (parsedLine)
           })
         } else if (newTemplateDefMatch = newTemplateDefReg.exec (line)) {
           var weight = newTemplateDefMatch[1],
@@ -8905,7 +8905,7 @@ function parseTemplateDefs (text) {
 			            tags: tags,
                                     isRoot: isRoot,
                                     weight: weight.length ? parseInt(weight) : undefined,
-			            content: [],
+			            opts: [],
                                     replies: [] }
             if (depth > replyChain.length)
               throw new Error ("Missing replies in chain")
@@ -8925,7 +8925,12 @@ function parseTemplateDefs (text) {
       }
     })
   } catch(e) { console.log(e) }
-  allTemplates.forEach (function (template) { template.content = [ ParseTree.leftSquareBraceChar + template.content.join(ParseTree.pipeChar) + ParseTree.rightSquareBraceChar ] })
+  allTemplates.forEach (function (template) {
+    template.content = (template.opts.length > 1
+			? [ { type: 'alt', opts: template.opts } ]
+			: template.opts[0])
+    delete template.opts
+  })
   return templates
 }
 

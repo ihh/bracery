@@ -500,7 +500,7 @@ function doTests (testRunner) {
     }
     it('should expand ' + (lhs || 'the empty string').replace(/\n/g,'\\n') + ' to ' + (rhs || 'the empty string').replace(/\n/g,'\\n')
        + (config ? (' with ' + JSON.stringify(config)) : ''),
-       testRunner (lhs, rhs, config, verify))
+       testRunner (lhs, rhs, extend ({ enableParse: true }, config), verify))
   }
 
   // wrapper for quote/quasiquote equivalence tests

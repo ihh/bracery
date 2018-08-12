@@ -98,7 +98,16 @@ var symChar = '~', varChar = '$', funcChar = '&', leftBraceChar = '{', rightBrac
 var nodeArgKeys = ['rhs','args','unit','value','local','cond','t','f','bind']
 var nodeListArgKeys = ['opts']
 
-// Parse tree manipulations
+// Parse tree manipulations.
+
+// There are two methods for expanding a template into a fully-expanded parse tree.
+// The first, synchronous method is sampleParseTree, which expands any constructs (alternations, repetitions)
+// whose syntactic expansion can be performed immediately, without reference to the symbol store.
+// The second, asynchronous method is makeRhsExpansionPromise, which returns a promise of an expansion,
+// once all remote calls to the symbol store have been performed.
+// Typically, these methods must both be called, one after the other
+// (NB makeRhsExpansionPromise recursively calls itself and sampleParseTree, which recursively calls itself).
+
 // sampleParseTree is the main method for constructing a new, clean parse tree from a template.
 // in the process, it samples any alternations or repetitions
 function sampleParseTree (rhs, config) {
@@ -691,6 +700,8 @@ function reduceReducer (expansion, childExpansion, config) {
                                      pt.sampleParseTree (resultRhs, config))
 }
 
+// makeRhsExpansionPromise is the main method for asynchronously expanding a template
+// that may already have been partially expanded using sampleParseTree.
 function makeRhsExpansionPromise (config) {
   var pt = this
   var rhs = config.rhs || this.sampleParseTree (parseRhs (config.rhsText), config)

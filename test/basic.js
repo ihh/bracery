@@ -164,6 +164,9 @@ function doTests (testRunner) {
   expectExpand ('&max{four}{2}', 'four')
   expectExpand ('&min{-10}{twenty}', '-10')
 
+  // test workaround for nlp's floating-point parser, that doesn't recognize '.5' as '0.5'
+  expectExpand ('&add{.25}{.3}', '0.55')
+
   // variables
   expectExpand ('$x={aha}$x', 'aha')
   expectExpand ('$x=aha $x', 'aha')

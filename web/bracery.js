@@ -1447,9 +1447,13 @@ function handlerPromise (args, resolvedPromise, handler) {
   return promise
 }
 
-function toNumber (text) {
+function nlpWrap (text) {
   text = text.replace (/^[ \t]*\./, '0.')  // ugh, nlp doesn't recognize '.5' as '0.5'
-  return nlp(text).values().numbers()[0] || 0
+  return nlp(text)
+}
+
+function toNumber (text) {
+  return nlpWrap(text).values().numbers()[0] || 0
 }
 
 function cloneItem (item) {
@@ -1628,11 +1632,11 @@ var binaryFunction = {
     return isTruthy(l) && isTruthy(r) ? (l + r) : falseVal
   },
   add: function (l, r) {
-    var lVals = nlp(l).values()
+    var lVals = nlpWrap(l).values()
     return (lVals.length ? lVals.add(toNumber(r)).out() : r) || zeroVal
   },
   subtract: function (l, r) {
-    var lVals = nlp(l).values()
+    var lVals = nlpWrap(l).values()
     return (lVals.length ? lVals.subtract(toNumber(r)).out() : r) || zeroVal
   },
   multiply: function (l, r) {
@@ -1642,10 +1646,10 @@ var binaryFunction = {
     return (toNumber(l) / toNumber(r)).toString()
   },
   gt: function (l, r) {
-    return nlp(l).values().greaterThan(toNumber(r)).out()
+    return nlpWrap(l).values().greaterThan(toNumber(r)).out()
   },
   lt: function (l, r) {
-    return nlp(l).values().lessThan(toNumber(r)).out()
+    return nlpWrap(l).values().lessThan(toNumber(r)).out()
   },
   eq: function (l, r) {
     return toNumber(l) === toNumber(r) ? l : falseVal

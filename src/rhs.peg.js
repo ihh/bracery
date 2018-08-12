@@ -41,7 +41,9 @@ Repetition
   / "&rep" unit:FunctionArg "{" min:Number "}" { return makeRep (unit, min, min) }
 
 Conditional
-  = "&if" testArg:FunctionArg ("then" / "") trueArg:FunctionArg ("else" / "")  falseArg:FunctionArg { return makeConditional (testArg, trueArg, falseArg) }
+  = "&if" testArg:FunctionArg ("then" / "") trueArg:FunctionArg ("else" / "") falseArg:FunctionArg { return makeConditional (testArg, trueArg, falseArg) }
+  / "&prob" probArg:FunctionArg trueArg:FunctionArg falseArg:FunctionArg
+{ return makeConditional ([makeFunction ('lt', [makeFunction ('random', ['1']), wrapNodes (probArg)])], trueArg, falseArg) }
 
 Function
   = SymbolFunction

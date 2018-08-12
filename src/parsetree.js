@@ -309,6 +309,13 @@ function isTraceryExpr (node, makeSymbolName) {
     && node.test[0].varname.toLowerCase() === makeSymbolName (node.f[0]).toLowerCase()
 }
 
+function isProbExpr (node) {
+  return typeof(node) === 'object' && node.type === 'cond'
+    && node.test.length === 1 && typeof(node.test[0]) === 'object' && node.test[0].type === 'function' && node.test[0].funcname === 'lt' && node.test[0].args.length === 2
+    && typeof(node.test[0].args[0]) === 'object' && node.test[0].args[0].type === 'function' && node.test[0].args[0].funcname === 'random' && node.test[0].args[0].args.length === 1
+    && typeof(node.test[0].args[0].args[0]) === 'string' && node.test[0].args[0].args[0] === '1'
+}
+
 function makeEvalVar (name) {
   return { type: 'func',
            funcname: 'eval',
@@ -401,11 +408,12 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
         result = [funcChar, 'rep', makeFuncArgTree (pt, tok.unit, makeSymbolName), [leftBraceChar, tok.min + (tok.max !== tok.min ? (',' + tok.max) : ''), rightBraceChar]]
 	break
       case 'cond':
+        var isProb = isProbExpr (tok)
         result = (isTraceryExpr (tok, makeSymbolName)
                   ? [traceryChar, tok.test[0].varname, traceryChar]
-                  : [['if',tok.test],
-		     ['then',tok.t],
-		     ['else',tok.f]].reduce (function (memo, keyword_arg, n) {
+                  : [(isProb ? ['prob',tok.test.args[1]] : ['if',tok.test]),
+		     [isProb ? '' : 'then',tok.t],
+		     [isProb ? '' : 'else',tok.f]].reduce (function (memo, keyword_arg, n) {
                        return memo.concat ([(n ? '' : funcChar) + keyword_arg[0], [leftBraceChar, pt.makeRhsTree (keyword_arg[1], makeSymbolName), rightBraceChar]])
                      }, []))
         break;
@@ -757,6 +765,7 @@ function handlerPromise (args, resolvedPromise, handler) {
 }
 
 function toNumber (text) {
+  text = text.replace (/^[ \t]*\./, '0.')  // ugh, nlp doesn't recognize '.5' as '0.5'
   return nlp(text).values().numbers()[0] || 0
 }
 
@@ -2001,6 +2010,7 @@ module.exports = {
   getSymbolNodes: getSymbolNodes,
   parseTreeEmpty: parseTreeEmpty,
   isTraceryExpr: isTraceryExpr,
+  isProbExpr: isProbExpr,
   isEvalVar: isEvalVar,
   makeSugaredName: makeSugaredName,
   makeRhsText: makeRhsText,

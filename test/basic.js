@@ -486,6 +486,10 @@ function doTests (testRunner) {
   expectExpand ('$b=&charclass{ -x}[a=>#a##b##a#|cat]&json&parse#a#{cat cat}', '[["root",["#a#",["alt",["#a#",["alt","cat"]],["#b#",["alt"," "]],["#a#",["alt","cat"]]]]]]')
   expectExpand ('[a=>#a#&unquote&charclass{ -x}#a#|cat]&json&parse#a#{cat cat}', '[["root",["#a#",["alt",["#a#",["alt","cat"]],["alt"," "],["#a#",["alt","cat"]]]]]]')
 
+  // prob
+  expectExpand ('&prob{.5}{a}{b}', 'a', {maxTries:maxTries})
+  expectExpand ('&prob{.5}{a}{b}', 'b', {maxTries:maxTries})
+  
   // wrapper for individual 'for a given input (lhs), expect the following output (rhs)'-style tests
   // (lhs/rhs = left/right hand side)
   function expectExpand (lhs, rhs, config) {

@@ -432,6 +432,7 @@ Language features include
       - `&ordinal{3}` is `3rd`, `&cardinal{3rd}` is `3`
       - `&dignum{3}` is `3`, `&wordnum{three}` is `three`
       - `&random{n}`, `&floor{x}`, `&ceil{x}`, `&round{x}` do what you probably expect
+         - `&prob{p}{succeed}{fail}` expands to `succeed` with probability `p`, and `fail` otherwise
       - `&eq{x}{y}`, `&neq{x}{y}`, `&gt{x}{y}`, `&geq{x}{y}`, `&lt{x}{y}`, `&leq{x}{y}` also fairly predictable
    - regular expressions:
       - `&match/regex/flags{text}{expr}` returns a list of `expr` evaluations (`$$1`, `$$2`, etc are bound to matching groups)

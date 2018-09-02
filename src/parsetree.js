@@ -1616,13 +1616,16 @@ function makeExpansionPromise (config) {
                     expansion.text = nlp(arg).nouns(0).toSingular().text()
                     break
                   case 'topic':
-                    expansion.text = nlp(arg).topics(0).text()
+                    var nlpArg = nlp(arg)
+                    expansion.text = nlpArg.topics(0).text() || nlpArg.nouns(0).text()
                     break
                   case 'person':
-                    expansion.text = nlp(arg).people(0).text()
+                    var nlpArg = nlp(arg)
+                    expansion.text = nlp(arg).people(0).text() || nlpArg.nouns(0).text()
                     break
                   case 'place':
-                    expansion.text = nlp(arg).places(0).text()
+                    var nlpArg = nlp(arg)
+                    expansion.text = nlp(arg).places(0).text() || nlpArg.nouns(0).text()
                     break
 
                     // nlp: verbs

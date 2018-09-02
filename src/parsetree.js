@@ -148,7 +148,6 @@ function sampleParseTree (rhs, config) {
         break
       case 'alt':
         index = pt.randomIndex (node.opts, rng)
-//        console.warn('alt',JSON.stringify(node.opts),index)
 	result = { type: 'alt_sampled',
                    n: index,
                    rhs: pt.sampleParseTree (node.opts[index], config) }
@@ -1718,22 +1717,36 @@ function makeExpansionPromise (config) {
                            }))
                         : resolve([]))
                   .then (function (args) {
-                    return makeAssignmentPromise.call (pt,
-                                                       extend ({}, config, { vars: varVal }),
-                                                       args.map (function (arg, n) { return [makeGroupVarName (n + 1), null, arg] })
-                                                       .concat ([[makeGroupVarName(0),
-                                                                  [{ type: 'func',
-                                                                     funcname: 'list',
-                                                                     args: args.map (function (_arg, n) { return { type: 'lookup', varname: makeGroupVarName (n + 1) } }) }]]]),
-                                                       function (localConfig) {
-                                                         // these callbacks should return rhs's, i.e. arrays
-                                                         // config.expand should return the sampled tree, calling sampleParseTree() if necessary
-                                                         // config.get should return a single-element list
-                                                         // config.set should return an empty list
-                                                         return config[method] (extend ({},
-                                                                                        localConfig,
-                                                                                        { node: node }))
-                                                       })
+                    return makeAssignmentPromise
+                      .call (pt,
+                             extend ({}, config, { vars: varVal }),
+                             args.map (function (arg, n) { return [makeGroupVarName (n + 1), null, arg] })
+                             .concat ([[makeGroupVarName(0),
+                                        [{ type: 'func',
+                                           funcname: 'list',
+                                           args: args.map (function (_arg, n) { return { type: 'lookup', varname: makeGroupVarName (n + 1) } }) }]]]),
+                             function (localConfig) {
+                               // these callbacks should return rhs's, i.e. arrays
+                               // config.expand should return the sampled tree, calling sampleParseTree() if necessary
+                               // config.get should return a single-element list
+                               // config.set should return an empty list
+                               return config[method] (extend ({},
+                                                              localConfig,
+                                                              { node: node }))
+                             })
+                      .then (function (rhs) {
+                        return (node.bind
+                                ? args.reduce (function (result, arg, n) {
+                                  return [{ type: 'assign',
+                                            varname: makeGroupVarName (n + 1),
+                                            value: [arg],
+                                            local: result }]
+                                }, [{ type: 'assign',
+                                      varname: makeGroupVarName (0),
+                                      value: args,
+                                      local: rhs }])
+                                : rhs)
+                      })
                   })
               }).then (function (rhs) {
                 node.rhs = rhs

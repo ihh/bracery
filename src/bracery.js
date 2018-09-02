@@ -162,8 +162,9 @@ Bracery.prototype._expandSymbol = function (config) {
           return typeof(result) === 'string' ? [result] : result
         })
       }
-    } else
+    } else {
       rhs = ParseTree.sampleParseTree (ParseTree.randomElement (rules, this.rng), config)
+    }
   } else
     rhs = []
   return rhs

@@ -412,6 +412,9 @@ function doTests (testRunner) {
   expectExpand ('&~lambda{hi, }{!!!}', 'hi, world!!!')
   expectExpand ('$y=&cat{hi, }{!!!}&xapply~lambda$y', 'hi, world!!!')
 
+  expectExpand ('$a=3 &~x{A}{B}', 'In x: a=3 1=A 2=B 0=AB', {rules:{x:["In x: a=$a 1=$$1 2=$$2 0=$$0"]}})
+  expectExpand ('$x=&quote{In x: a=$a 1=$$1 2=$$2 0=$$0} $a=3 &$x{A}{B}', 'In x: a=3 1=A 2=B 0=AB')
+
   expectExpand ('~lambda', 'undefinedworldundefined')
   expectExpand ('&xapply~lambda{}', 'undefinedworldundefined')
   expectExpand ('&~lambda{}', 'worldundefined')

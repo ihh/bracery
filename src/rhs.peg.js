@@ -264,6 +264,7 @@ VarAssignmentTarget
 
 VarLookup
   = "$$" num:Number { return makeLookup (makeGroupVarName (num)) }
+  / "$${" num:Number "}" { return makeLookup (makeGroupVarName (num)) }
   / varname:VarIdentifier { return makeSugaredLookup (varname) }
 
 PlainVarLookup

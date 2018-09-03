@@ -42,6 +42,7 @@ Repetition
 
 Conditional
   = "&if" testArg:FunctionArg ("then" / "") trueArg:FunctionArg ("else" / "") falseArg:FunctionArg { return makeConditional (testArg, trueArg, falseArg) }
+  / "&if" testArg:FunctionArg ("then" / "") trueArg:FunctionArg { return makeConditional (testArg, trueArg, []) }
   / "&prob" probArg:FunctionArg trueArg:FunctionArg falseArg:FunctionArg
 { return makeConditional ([makeFunction ('lt', [makeFunction ('random', ['1']), wrapNodes (probArg)])], trueArg, falseArg) }
 

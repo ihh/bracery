@@ -444,8 +444,9 @@ Language features include
       - `&rep{x}{3,5}` expands to `xxx`, `xxxx`, or `xxxxx`
    - conditionals:
       - `&if{testExpr}then{trueExpr}else{falseExpr}`
-      - Evaluates to `trueExpr` if `testExpr` contains any non-whitespace characters, and `falseExpr` otherwise.
-      - The `then` and `else` keywords are optional; you can write `&if{testExpr}{trueExpr}{falseExpr}`
+      - Evaluates to `trueExpr` if `testExpr` contains any non-whitespace characters, and `falseExpr` otherwise
+      - The `falseExpr` clause is optional and defaults to the empty string
+      - The `then` and `else` keywords are optional; you can write `&if{testExpr}{trueExpr}{falseExpr}` or  `&if{testExpr}{trueExpr}`
       - The conditional test (`testExpr`) can use arithmetic operators `&eq`, `&neq`, `&gt`, `&lt`, `&geq`, `&leq`
          - also comparison `&same{x}{y}` and boolean operators `&and{x}{y}`, `&not{x}`
    - dynamic evaluation

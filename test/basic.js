@@ -492,6 +492,11 @@ function doTests (testRunner) {
   expectExpand ('$b=&charclass{ -x}[a=>#a##b##a#|cat]&json&parse#a#{cat cat}', '[["root",["#a#",["alt",["#a#",["alt","cat"]],["#b#",["alt"," "]],["#a#",["alt","cat"]]]]]]')
   expectExpand ('[a=>#a#&unquote&charclass{ -x}#a#|cat]&json&parse#a#{cat cat}', '[["root",["#a#",["alt",["#a#",["alt","cat"]],["alt"," "],["#a#",["alt","cat"]]]]]]')
 
+  // if
+  expectExpand ('$x=1 &if$x{hello} there', 'hello there')
+  expectExpand ('$x=1 &if&not$x{hello} there', ' there')
+  expectExpand ('$x=1 &if&not$x{hello}{hi} there', 'hi there')
+
   // prob
   expectExpand ('&prob{.5}{a}{b}', 'a', {maxTries:maxTries})
   expectExpand ('&prob{.5}{a}{b}', 'b', {maxTries:maxTries})

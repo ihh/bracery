@@ -1817,8 +1817,12 @@ function makeParseTree (rhs) {
       tree.push ([varChar + node.varname, makeString (node.value)])
     else if (node.type === 'alt_sampled')
       tree.push ([pipeChar].concat (makeParseTree (node.rhs)))
+    else if (typeof(node) === 'string')
+      tree.push (node)
+    else if (node.expansion && node.expansion.text)
+      tree.push (node.expansion.text)
     else
-      tree.push (typeof(node) === 'string' ? node : node.expansion.text)
+      console.error ("Can't handle node in makeParseTree", node)
     return tree
   }, [])
 }

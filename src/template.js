@@ -3,6 +3,13 @@ var extend = ParseTree.extend
 
 var defaultMaxReplies = 100
 
+var standardFooter = { type: 'assign',
+                       varname: 'tags',
+                       value: [{ type: 'func',
+                                 funcname: 'eval',
+                                 args: [{ type: 'lookup',
+                                          varname: 'tags' }] }] }
+
 function makeTagArray (text) {
   return text.replace (/^\s*(.*?)\s*$/, function (_m, g) { return g })
     .split(/\s+/)
@@ -67,6 +74,8 @@ function parseTemplateDefs (text) {
     template.content = (template.opts.length > 1
 			? [ { type: 'alt', opts: template.opts } ]
 			: template.opts[0])
+      .concat ([standardFooter])
+    
     delete template.opts
   })
   return templates

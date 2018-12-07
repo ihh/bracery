@@ -256,6 +256,11 @@ if (opt.options.eval)
 if (opt.options.markov || opt.options.quiz) {
   function messageToString (message, config) {
     var color = (config && config.color) || {}
+    var nextVars
+    if (message.nextVars) {
+      nextVars = extend ({}, message.nextVars)
+      delete nextVars.prevtags
+    }
     return ((message.template.title && color.title
                ? (color.title.call (colors, '[' + message.template.title + ']') + ' ')
                : '')
@@ -265,6 +270,9 @@ if (opt.options.markov || opt.options.quiz) {
             + (color.message || noColor).call (colors, message.expansion.text)
             + (message.tags.match(/\S/) && color.tags
                ? (' ' + color.tags.call (colors, bracery.Template.makeTagArray(message.tags).join(' ')))
+               : '')
+            + (nextVars && color.vars
+               ? color.vars.call (colors, ' {' + Object.keys(nextVars).map(function(n){return n+':'+JSON.stringify(nextVars[n])}).join(',') + '}')
                : '')
             + '\n')
   }
@@ -302,7 +310,8 @@ if (opt.options.markov || opt.options.quiz) {
                      { color: { title: function (text) { return colors.magenta (text) + '\n' },
                                 author: colors.blue,
                                 message: colors.green,
-                                tags: opt.options.verbose ? colors.yellow : undefined } }))
+                                tags: opt.options.verbose ? colors.yellow : undefined,
+                                vars: opt.options.verbose > 1 ? colors.cyan : undefined } }))
       process.stdout.write (colors.bold('Accept?') + ' ' + colors.gray('(Y/n)') + ' ')
 
       keypress (process.stdin)
@@ -338,7 +347,8 @@ if (opt.options.markov || opt.options.quiz) {
                                   { color: { title: colors.magenta,
                                              author: colors.blue,
                                              message: colors.green,
-                                             tags: opt.options.verbose ? colors.yellow : undefined } }))
+                                             tags: opt.options.verbose ? colors.yellow : undefined,
+                                             vars: opt.options.verbose > 1 ? colors.cyan : undefined } }))
     })
   printedSomething = true
 }

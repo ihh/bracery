@@ -163,7 +163,7 @@ Bracery.prototype._expandSymbol = function (config) {
         })
       }
     } else {
-      rhs = ParseTree.sampleParseTree (ParseTree.randomElement (rules, this.rng), config)
+      rhs = ParseTree.sampleParseTree (ParseTree.deepCopy (ParseTree.randomElement (rules, this.rng)), config)
     }
   } else
     rhs = []

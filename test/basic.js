@@ -9,6 +9,7 @@ var initJson = { abc: 'def',
                  dynamo: function (config) { return [config.random() < .5 ? 'dynamik' : 'DYNAMIC'] },
                  lambda: function (config, x, y) { return x + 'world' + y },
                  json: function (config, x, y, z) { return 'x=' + JSON.stringify(x) + ' y=' + JSON.stringify(y) + ' z=' + JSON.stringify(z) },
+                 coinflip: '&prob{.5}{heads}{tails}',
                  test1: 'testing',
                  test2: '~TEST1',
                  test3: 'x~test3',
@@ -500,7 +501,10 @@ function doTests (testRunner) {
   // prob
   expectExpand ('&prob{.5}{a}{b}', 'a', {maxTries:maxTries})
   expectExpand ('&prob{.5}{a}{b}', 'b', {maxTries:maxTries})
-  
+
+  expectExpand ('~coinflip', 'heads', {maxTries:maxTries})  // test bug that occurred when &random was permanently cached when called from a user-defined symbol, so future results were always the same
+  expectExpand ('~coinflip', 'tails', {maxTries:maxTries})
+
   // wrapper for individual 'for a given input (lhs), expect the following output (rhs)'-style tests
   // (lhs/rhs = left/right hand side)
   function expectExpand (lhs, rhs, config) {

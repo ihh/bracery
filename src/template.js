@@ -108,13 +108,16 @@ function randomReplyTemplate (templates, tags, prevTemplate, rng) {
     if (prevTemplate && prevTemplate.replies.indexOf (template) >= 0)
       return true
     var prevTags = makeTagArray (template.previousTags)
-    var allowedTags = prevTags.filter (function (tag) { return tag[0] !== '!' })
-    var excludedTags = prevTags.filter (function (tag) { return tag[0] === '!' }).map (function (xtag) { return xtag.substr(1) })
-    return excludedTags.reduce (function (match, xtag) {
+    var allowedTags = prevTags.filter (function (tag) { return tag[0] !== '!' && tag[0] !== '-' && tag[0] !== '+' })
+    var excludedTags = prevTags.filter (function (tag) { return tag[0] === '!' || tag[0] === '-' }).map (function (xtag) { return xtag.substr(1) })
+    var requiredTags = prevTags.filter (function (tag) { return tag[0] === '+' }).map (function (xtag) { return xtag.substr(1) })
+    return requiredTags.reduce (function (match, xtag) {
+      return match && tagArray.indexOf(xtag) >= 0
+    }, excludedTags.reduce (function (match, xtag) {
       return match && tagArray.indexOf(xtag) < 0
     }, allowedTags.reduce (function (match, tag) {
       return match || tagArray.indexOf(tag) >= 0
-    }, false))
+    }, false)))
   }), rng)
 }
 

@@ -26,6 +26,7 @@ function parseTemplateDefs (text) {
   var templates = [], allTemplates = []
   try {
     var newTemplateDefReg = /^(\d*)(@.*?|)(>+)\s*(.*?)\s*(#\s*(.*?)\s*(#\s*(.*?)\s*|)|)$/;
+    var commentReg = /^ *#.*$/;
     var replyChain = [], currentTemplates = [], newTemplateDefMatch
     text.split(/\n/).forEach (function (line) {
       if (line.length) {
@@ -63,7 +64,10 @@ function parseTemplateDefs (text) {
             allTemplates.push (currentTemplate)
             return currentTemplate
           })
-        }
+        } else if (commentReg.exec (line)) {
+          /* comment, do nothing */
+        } else
+          console.warn ("Can't parse template definition line: " + line)
       } else {
         // line is empty
         currentTemplates = []

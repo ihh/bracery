@@ -74,6 +74,7 @@ function makeRoot (rhs) {
 }
 
 var newSymbolDefReg = /^>([A-Za-z_]\w*)\s*$/;
+var commentReg = /^ *#.*$/;
 function parseTextDefs (text) {
   var rules = {}
   try {
@@ -84,6 +85,10 @@ function parseTextDefs (text) {
           currentRules.push (line)
         else if (newSymbolDefMatch = newSymbolDefReg.exec (line))
           rules[newSymbolDefMatch[1]] = currentRules = []
+        else if (commentReg.exec (line)) {
+          /* comment, do nothing */
+        } else
+          console.warn ("Can't parse symbol definition line: " + line)
       } else {
         // line is empty
         currentRules = undefined

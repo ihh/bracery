@@ -182,7 +182,7 @@ ListConstructor
   = "&{" args:NodeList "}" { return makeFunction ('list', args) }
 
 BinaryFunctionName
-  = "add" / "subtract" / "multiply" / "divide"
+  = "add" / "subtract" / "multiply" / "divide" / "pow"
   / "gt" / "geq" / "lt" / "leq"
   / "eq" / "neq"
   / "min" / "max"

@@ -122,6 +122,8 @@ function doTests (testRunner) {
   expectExpand ('&add{two}{&subtract{three}{four}}', 'one')
   expectExpand ('&multiply{two}{three}', '6')
   expectExpand ('&divide{three}{two}', '1.5')
+  expectExpand ('&pow{three}{two}', '9')
+  expectExpand ('&pow{2}{3}', '8')
 
   expectExpand ('&gt{three cats}{2}', 'three cats')
   expectExpand ('&gt{three cats}{4}', '')

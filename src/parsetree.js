@@ -972,6 +972,9 @@ var binaryFunction = {
   divide: function (l, r) {
     return (toNumber(l) / toNumber(r)).toString()
   },
+  pow: function (l, r) {
+    return Math.pow (toNumber(l), toNumber(r)).toString()
+  },
   gt: function (l, r) {
     return nlpWrap(l).values().greaterThan(toNumber(r)).out()
   },

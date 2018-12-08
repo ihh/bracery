@@ -427,7 +427,7 @@ Language features include
       - `&add{two}{4}` gives `six`, `&add{two cats}{4}` gives `six cats`
          - form of result is determined by first argument, so `&add{4}{two}` and `&add{4}{two cats}` both evaluate to `6`
       - `&subtract{x}{y}` behaves like `&add`
-      - `&multiply{x}{y}`, `&divide{x}{y}` return digits only: `&multiply{ten cats}{two dogs}` is `20`
+      - `&multiply{x}{y}`, `&divide{x}{y}`, `&pow{x}{y}` return digits only: `&multiply{ten cats}{two dogs}` is `20`
       - `&math{($x+$y*$z)/$a}` defines a context that allows infix arithmetic operators
       - `&ordinal{3}` is `3rd`, `&cardinal{3rd}` is `3`
       - `&dignum{3}` is `3`, `&wordnum{three}` is `three`
@@ -436,8 +436,8 @@ Language features include
       - `&eq{x}{y}`, `&neq{x}{y}`, `&gt{x}{y}`, `&geq{x}{y}`, `&lt{x}{y}`, `&leq{x}{y}` also fairly predictable
    - regular expressions:
       - `&match/regex/flags{text}{expr}` returns a list of `expr` evaluations (`$$1`, `$$2`, etc are bound to matching groups)
-      - `&replace/regex/flags{text}{replacement}' returns a string
-      - `&split/regex/flags{text}' or just `&split{text}' returns a list
+      - `&replace/regex/flags{text}{replacement}` returns a string
+      - `&split/regex/flags{text}` or just `&split{text}` returns a list
 - special functions:
    - repetition:
       - `&rep{x}{3}` expands to `xxx`
@@ -466,7 +466,7 @@ Language features include
       - `&apply{expr}{args}` is the same but the arguments are in list form
       - `&function$arg1$arg2$arg3{...}` is exactly the same as `&quote{&let$arg1={$$1}{&let$arg2={$$2}{&let$arg3={$$3}{...}}}}`
       - you can also pass args to user extensions e.g. `&~extension{arg1}{arg2}{arg3}`
-         - `&~extension` is short for `&xcall{~extension}'
+         - `&~extension` is short for `&xcall{~extension}`
          - the 'apply' form of this is `&xapply{~extension}{arglist}`
       - the implementation may optionally allow retrieval of the Bracery code behind an extension symbol, using the syntax `&xget{~extension}`, but this is not guaranteed
          - specifically, extensions don't have to be implemented in Bracery themselves

@@ -9144,6 +9144,7 @@ function flattenTemplates (templates, parent) {
 
 function sampleTemplate (templates, rng) {
   rng = rng || Math.random
+  //  console.warn ("Templates: " + templates.map((t)=>t.title).join(","))
   var totalWeight = templates.reduce (function (total, template) { return total + (template.weight || 1) }, 0)
   var w = totalWeight * rng()
   for (var i = 0; i < templates.length; ++i)
@@ -9169,9 +9170,10 @@ function randomReplyTemplate (templates, tags, prevTemplate, rng) {
       return match && tagArray.indexOf(xtag) >= 0
     }, excludedTags.reduce (function (match, xtag) {
       return match && tagArray.indexOf(xtag) < 0
-    }, allowedTags.reduce (function (match, tag) {
-      return match || tagArray.indexOf(tag) >= 0
-    }, false)))
+    }, (allowedTags.length === 0 ||
+        allowedTags.reduce (function (match, tag) {
+          return match || tagArray.indexOf(tag) >= 0
+        }, false))))
   }), rng)
 }
 

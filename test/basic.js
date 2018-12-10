@@ -471,6 +471,7 @@ function doTests (testRunner) {
   // math
   expectExpand ('$a=4 $d=3 $b=5 $c=2 &math{($a * $d) - $b + $c}', '9')
   expectExpand ('$a=4 $d=3 $b=5 $c=2 &math{&value{zero} + ($a * $d) - $b + $c}', 'nine')
+  expectExpand ('$a=4 $d=3 $b=5 $c=2 &math{0.2*$a+$b}', '5.8')
   expectExpand ('&quote&math{  (   $a  *   $d    )-$b+$c  }', '&math{($a * $d) - $b + $c}')
 
   // link

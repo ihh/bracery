@@ -15,18 +15,19 @@
 (setq bracery-field-regexp "#[a-z0-9]+ +\\(.*\\)")
 
 (setq bracery-highlights
-      '(("^#[^\n]*" . font-lock-comment-face)  ;; red (comments)
+      '(("^#.*" . font-lock-comment-face)  ;; red (comments)
         ("#[A-Za-z0-9_]#" . font-lock-function-name-face)  ;; blue (#xxx#)
-	("^>[^#]+[^ #\n]" . font-lock-warning-face)  ;; magenta (start of header line)
-        (" #.*" . font-lock-variable-name-face)  ;; yellow (tags on header line)
+	("^>[ \"$-~]*[^ #]" . font-lock-warning-face)  ;; magenta (start of header line)
+        (" #[^#]*#" . font-lock-variable-name-face)  ;; yellow (tags on header line)
         ("~[A-Za-z0-9_]+" . font-lock-function-name-face)  ;; blue (~xxx)
-        ("$[A-Za-z0-9_]+" . font-lock-constant-face)  ;; 
-        ("&[A-Za-z0-9_]+" . font-lock-keyword-face)  ;; cyan
+        ("~{[A-Za-z0-9_]+}" . font-lock-function-name-face)  ;; blue (~{xxx})
+        ("$[A-Za-z0-9_]+" . font-lock-constant-face)  ;; green ($xxx)
+        ("${[A-Za-z0-9_]+}" . font-lock-constant-face)  ;; green (${xxx})
+        ("&[A-Za-z0-9_]+" . font-lock-keyword-face)  ;; cyan (&xxx)
         ))
 
 (defvar bracery-mode-syntax-table
   (let ((st (make-syntax-table)))
-    ;; The following line ought to prevent '"' being auto-highlighted as a quote, but doesn't seem to work...
     (modify-syntax-entry ?\" "." st)
     (modify-syntax-entry ?_ "w" st)
     st)

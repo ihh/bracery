@@ -294,6 +294,9 @@ Text = chars:[^\~\#&\$\{\}\[\]\|\\]+ { return chars.join("") }
 Number
   = num:[0-9]+ { return parseInt (num.join('')) }
 
+Float
+  = left:[0-9]+ "." right:[0-9]+ { return parseFloat(left.join("") + "." +   right.join("")) }
+
 Identifier
   = firstChar:[A-Za-z_] rest:[A-Za-z_0-9]* { return firstChar + rest.join("") }
 
@@ -324,7 +327,8 @@ MultiplicativeExpr
   / PrimaryExpr
 
 PrimaryExpr
-  = n:Number { return n.toString() }
+  = f:Float { return f.toString() }
+  / n:Number { return n.toString() }
   / arg:FunctionArg { return wrapNodes (arg) }
   / "(" _ additive:AdditiveExpr _ ")" { return makeFunction ('value', [additive]) }
 

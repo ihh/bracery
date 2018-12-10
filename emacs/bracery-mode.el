@@ -17,7 +17,7 @@
 (setq bracery-highlights
       '(("^#.*" . font-lock-comment-face)  ;; red (comments)
         ("#[A-Za-z0-9_]#" . font-lock-function-name-face)  ;; blue (#xxx#)
-	("^>[ \"$-~]*[^ #]" . font-lock-warning-face)  ;; magenta (start of header line)
+	("^>[ !\"$-~]*[^ #]" . font-lock-warning-face)  ;; magenta (start of header line)
         (" #[^#]*#" . font-lock-variable-name-face)  ;; yellow (tags on header line)
         ("~[A-Za-z0-9_]+" . font-lock-function-name-face)  ;; blue (~xxx)
         ("~{[A-Za-z0-9_]+}" . font-lock-function-name-face)  ;; blue (~{xxx})

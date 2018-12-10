@@ -304,12 +304,12 @@ if (opt.options.markov || opt.options.quiz) {
         console.warn (chainToString (thread,
                                      { color: { title: null,
                                                 author: colors.blue,
-                                                message: colors.green } }))
+                                                message: colors.white } }))
       console.warn (messageToString
                     (message,
                      { color: { title: function (text) { return colors.magenta (text) + '\n' },
                                 author: colors.blue,
-                                message: colors.green,
+                                message: colors.white,
                                 tags: opt.options.verbose ? colors.cyan : undefined,
                                 vars: opt.options.verbose > 1 ? colors.yellow : undefined } }))
       process.stdout.write (colors.bold('Accept?') + ' ' + colors.gray('(Y/n)') + ' ')
@@ -346,7 +346,7 @@ if (opt.options.markov || opt.options.quiz) {
       console.log (chainToString (chain,
                                   { color: { title: colors.magenta,
                                              author: colors.blue,
-                                             message: colors.green,
+                                             message: colors.white,
                                              tags: opt.options.verbose ? colors.cyan : undefined,
                                              vars: opt.options.verbose > 1 ? colors.yellow : undefined } }))
     })

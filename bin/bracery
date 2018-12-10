@@ -310,8 +310,8 @@ if (opt.options.markov || opt.options.quiz) {
                      { color: { title: function (text) { return colors.magenta (text) + '\n' },
                                 author: colors.blue,
                                 message: colors.green,
-                                tags: opt.options.verbose ? colors.yellow : undefined,
-                                vars: opt.options.verbose > 1 ? colors.cyan : undefined } }))
+                                tags: opt.options.verbose ? colors.cyan : undefined,
+                                vars: opt.options.verbose > 1 ? colors.yellow : undefined } }))
       process.stdout.write (colors.bold('Accept?') + ' ' + colors.gray('(Y/n)') + ' ')
 
       keypress (process.stdin)
@@ -347,8 +347,8 @@ if (opt.options.markov || opt.options.quiz) {
                                   { color: { title: colors.magenta,
                                              author: colors.blue,
                                              message: colors.green,
-                                             tags: opt.options.verbose ? colors.yellow : undefined,
-                                             vars: opt.options.verbose > 1 ? colors.cyan : undefined } }))
+                                             tags: opt.options.verbose ? colors.cyan : undefined,
+                                             vars: opt.options.verbose > 1 ? colors.yellow : undefined } }))
     })
   printedSomething = true
 }

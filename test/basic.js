@@ -25,7 +25,7 @@ function doTests (testRunner) {
   var maxTries = 100
 
   // Theo's alternation test
-  expectExpand ('$Theo:=[dad|mom] $theo $theo come to [Africa|our house|nowhere] [just kidding |seriously] ha ha ha ha ha ',
+  expectExpand ('$Theo:={[dad|mom]} $theo $theo come to [Africa|our house|nowhere] [just kidding |seriously] ha ha ha ha ha ',
                 'dad dad dad come to nowhere just kidding  ha ha ha ha ha ',
                 { maxTries: maxTries })
   
@@ -273,7 +273,7 @@ function doTests (testRunner) {
 
   expectExpand ('$x={&{}abc&quote{def}}&q$x', '&{abc&,def}')
 
-  expectExpand ('&push$x{a}&push$x{b}&uc&push$x{c}&push$x{...}&join$x{,} &shift$x $dots:=&pop$x $quirk:=uh, &shift$x $dots &unshift$x&cat{x}{t} &uc&join$x$dots',
+  expectExpand ('&push$x{a}&push$x{b}&uc&push$x{c}&push$x{...}&join$x{,} &shift$x $dots:={&pop$x} $quirk:=uh, &shift$x $dots &unshift$x&cat{x}{t} &uc&join$x$dots',
                 'a,b,c,... a ... uh,b ... X...T...C')  // a lot going on in this one. Spaces must be exactly correct (of course)
   expectExpand ('$x=5 &inc$x x=$x $x=10 &dec$x x=$x', 'x=6 x=9')  // note exact spaces
 
@@ -439,6 +439,10 @@ function doTests (testRunner) {
 
   expectExpand ('$a=3 &value{{{[$a]}}}', '{{[3]}}')
 
+  expectExpand ('$x=&{&{&q{ab}&q{cd}&q{ef}}&{&q{gh}&q{ij}&q{kl}}&{&q{mn}&q{op}&q{qr}}} $x', 'abcdefghijklmnopqr')
+  expectExpand ('$x=&{&{&q{ab}&q{cd}&q{ef}}&{&q{gh}&q{ij}&q{kl}}&{&q{mn}&q{op}&q{qr}}} &nth{0}$x', 'abcdef')
+  expectExpand ('$x=&{&{&q{ab}&q{cd}&q{ef}}&{&q{gh}&q{ij}&q{kl}}&{&q{mn}&q{op}&q{qr}}} &nth{1}&nth{0}$x', 'cd')
+  
   // xget
   expectExpandQuote ('&quote&xget{~abc}', '&xget~abc')
   expectExpand ('&xget~abc', 'def')

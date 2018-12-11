@@ -23,6 +23,8 @@
         ("~{[A-Za-z0-9_]+}" . font-lock-function-name-face)
         ("=[^ ]+" . font-lock-type-face)
         ("={.*}" . font-lock-type-face)
+        (":=[^ ]+" . font-lock-type-face)
+        (":={.*}" . font-lock-type-face)
         ("$[A-Za-z0-9_]+" . font-lock-variable-name-face)
         ("${[A-Za-z0-9_]+}" . font-lock-variable-name-face)
         ("&[A-Za-z0-9_]+" . font-lock-keyword-face)

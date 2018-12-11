@@ -1016,6 +1016,10 @@ var binaryFunction = {
   join: function (l, r, lv, rv) {
     return makeArray(lv).join (r)
   },
+  nth: function (l, r, lv, rv) {
+    var i = Math.floor (toNumber(l)), a = makeArray(rv)
+    return (i < 0 || i >= a.length) ? '' : a[i]
+  },
   parse: function (l, r, lv, rv, config) {
     if (!unableToParse (this, config, r)) {
       try {

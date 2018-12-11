@@ -453,9 +453,10 @@ Language features include
       - `&eval{expr}` parses `expr` as Bracery and dynamically expands it
          - conversely, `&quote{expr}` returns `expr` as a text string, without doing any expansions
          - `&quote{...}`, `&unquote{...}`, `&strictquote{...}` work pretty much like quasiquote/unquote/quote in Scheme
+         - `&\`{...}`, `&,{...}`, `&'{...}` are the corresponding shorthand equivalents
       - `&eval{&quote{expr}}` is the same as `expr`, although...
          - there is a configurable limit on the number of dynamic evaluations that an expression can use, to guard against infinite recursion or hammering the server
-      - `&quotify{expr}` wraps with `&quote` and `&list`
+      - `&quotify{expr}` wraps a string or (nested) list with `&quote` and `&list` (shorthand is `&q`)
    - locally scoped variables:
       - Tracery-style `#[x:value1][y:value2]symbol_name#` (what Tracery calls "actions")
       - Bracery-style `&let$x={value1}$y={value2}{something involving x and y}`
@@ -482,6 +483,7 @@ Language features include
       - `&prepend{item}{list}`, `&append{list}{item}` return lists
       - `&first{list}`, `&last{list}` return individual list items (can be strings or nested lists)
       - `&notfirst{list}`, `&notlast{list}` return lists
+      - `&nth{index}{list}` returns item number `index` from `list` (0-based)
       - `&cat{list1}{list2}` returns a list
       - `&join{list}{item}` returns a string
       - `&map$varname:{list}{expr}` and `&filter$varname:{list}{expr}` return lists

@@ -81,13 +81,13 @@ function parseTextDefs (text) {
     var currentRules, newSymbolDefMatch
     text.split(/\n/).forEach (function (line) {
       if (line.length) {
-        if (currentRules)
+        if (commentReg.exec (line)) {
+          /* comment, do nothing */
+        } else if (currentRules)
           currentRules.push (line)
         else if (newSymbolDefMatch = newSymbolDefReg.exec (line))
           rules[newSymbolDefMatch[1]] = currentRules = []
-        else if (commentReg.exec (line)) {
-          /* comment, do nothing */
-        } else
+        else
           console.warn ("Can't parse symbol definition line: " + line)
       } else {
         // line is empty

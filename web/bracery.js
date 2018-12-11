@@ -765,13 +765,13 @@ function parseTextDefs (text) {
     var currentRules, newSymbolDefMatch
     text.split(/\n/).forEach (function (line) {
       if (line.length) {
-        if (currentRules)
+        if (commentReg.exec (line)) {
+          /* comment, do nothing */
+        } else if (currentRules)
           currentRules.push (line)
         else if (newSymbolDefMatch = newSymbolDefReg.exec (line))
           rules[newSymbolDefMatch[1]] = currentRules = []
-        else if (commentReg.exec (line)) {
-          /* comment, do nothing */
-        } else
+        else
           console.warn ("Can't parse symbol definition line: " + line)
       } else {
         // line is empty
@@ -9198,7 +9198,9 @@ function parseTemplateDefs (text) {
     var replyChain = [], currentTemplates = [], newTemplateDefMatch
     text.split(/\n/).forEach (function (line) {
       if (line.length) {
-        if (currentTemplates.length) {
+        if (commentReg.exec (line)) {
+          /* comment, do nothing */
+        } else if (currentTemplates.length) {
           var parsedLine = ParseTree.parseRhs (line)
           currentTemplates.forEach (function (currentTemplate) {
             currentTemplate.opts.push (parsedLine)
@@ -9232,8 +9234,6 @@ function parseTemplateDefs (text) {
             allTemplates.push (currentTemplate)
             return currentTemplate
           })
-        } else if (commentReg.exec (line)) {
-          /* comment, do nothing */
         } else
           console.warn ("Can't parse template definition line: " + line)
       } else {

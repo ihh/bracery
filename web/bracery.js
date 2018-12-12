@@ -9192,13 +9192,29 @@ function makeTagString (text) {
 
 function parseTemplateDefs (text) {
   var templates = [], allTemplates = []
+  var initCommandParam = { 'PREV': '',
+			   'TAGS': '',
+			   'TITLE': '',
+			   'WEIGHT': '',
+			   'AUTHOR': '' },
+      commandParam = extend ({}, initCommandParam)
   try {
     var newTemplateDefReg = /^(\d*)(@.*?|)(>+)\s*(.*?)\s*(#\s*(.*?)\s*(#\s*(.*?)\s*|)|)$/;
+    var commandReg = /^ *## +(\S+)\s?(.*?)\s*$/;
     var commentReg = /^ *#.*$/;
-    var replyChain = [], currentTemplates = [], newTemplateDefMatch
+    var replyChain = [], currentTemplates = [], newTemplateDefMatch, commandMatch
     text.split(/\n/).forEach (function (line) {
       if (line.length) {
-        if (commentReg.exec (line)) {
+        if (commandMatch = commandReg.exec (line)) {
+	  var param = commandMatch[1], value = commandMatch[2]
+	  if (param === 'RESET') {
+	    if (value)  // RESET XXX resets the param setting for XXX
+	      commandParam[value] = initCommandParam[value]
+	    else  // RESET without an argument resets all params
+	      commandParam = extend ({}, initCommandParam)
+	  } else
+	    commandParam[param] = value
+        } else if (commentReg.exec (line)) {
           /* comment, do nothing */
         } else if (currentTemplates.length) {
           var parsedLine = ParseTree.parseRhs (line)
@@ -9206,12 +9222,12 @@ function parseTemplateDefs (text) {
             currentTemplate.opts.push (parsedLine)
           })
         } else if (newTemplateDefMatch = newTemplateDefReg.exec (line)) {
-          var weight = newTemplateDefMatch[1],
-              author = newTemplateDefMatch[2],
+          var weight = newTemplateDefMatch[1] || commandParam['WEIGHT'],
+              author = newTemplateDefMatch[2] || commandParam['AUTHOR'],
               depth = newTemplateDefMatch[3].length - 1,
-	      title = newTemplateDefMatch[4],
-	      prevTags = makeTagString (newTemplateDefMatch[6]),
-	      tags = makeTagString (newTemplateDefMatch[8])
+	      title = (newTemplateDefMatch[4] || '') + commandParam['TITLE'],
+	      prevTags = makeTagString ((newTemplateDefMatch[6] || '') + ' ' + commandParam['PREV']),
+	      tags = makeTagString ((newTemplateDefMatch[8] || '') + ' ' + commandParam['TAGS'])
           var isRoot = depth === 0 && (!prevTags.match(/\S/) || (prevTags.search(' root ') >= 0))
           var authorNames = author ? author.substr(1).split(',') : [null]
           currentTemplates = authorNames.map (function (authorName) {
@@ -9223,6 +9239,7 @@ function parseTemplateDefs (text) {
                                     weight: weight.length ? parseInt(weight) : undefined,
 			            opts: [],
                                     replies: [] }
+	    console.warn('currentTemplate',JSON.stringify(currentTemplate))
             if (depth > replyChain.length)
               throw new Error ("Missing replies in chain")
             replyChain = replyChain.slice (0, depth)
@@ -9243,9 +9260,11 @@ function parseTemplateDefs (text) {
     })
   } catch(e) { console.log(e) }
   allTemplates.forEach (function (template) {
-    template.content = (template.opts.length > 1
-			? [ { type: 'alt', opts: template.opts } ]
-			: template.opts[0])
+    template.content = (template.opts.length
+			? (template.opts.length > 1
+			   ? [ { type: 'alt', opts: template.opts } ]
+			   : template.opts[0])
+			: [])
       .concat ([standardFooter])
     
     delete template.opts

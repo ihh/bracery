@@ -9239,7 +9239,6 @@ function parseTemplateDefs (text) {
                                     weight: weight.length ? parseInt(weight) : undefined,
 			            opts: [],
                                     replies: [] }
-	    console.warn('currentTemplate',JSON.stringify(currentTemplate))
             if (depth > replyChain.length)
               throw new Error ("Missing replies in chain")
             replyChain = replyChain.slice (0, depth)

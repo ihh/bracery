@@ -23,6 +23,16 @@ describe('Markov chain tests (' + binPath + ')', function() {
                         '@client>Ack # syn_ack # ack', 'ACK', '']
   var synAckOutput = ['[Syn] client: SYN', '[Ack/Syn] server: ACK / SYN', '[Ack] client: ACK']
   expectMarkov (synAckTemplate, synAckOutput)
+
+  var synAckCmdTemplate = ['## AUTHOR @client',
+			   '## TAGS syn',
+			   '>Syn', 'SYN', '',
+			   '## PREV syn',
+			   '## RESET TAGS',
+                           '@server>Ack/Syn # # syn_ack', 'ACK / SYN', '',
+			   '## RESET',
+                           '@client>Ack # syn_ack # ack', 'ACK', '']
+  expectMarkov (synAckCmdTemplate, synAckOutput)//.concat(synAckCmdTemplate))
 })
 
 function runCommand (args) {

@@ -166,6 +166,7 @@ UnaryVarFunction
   = "&" func:ShiftOrPop v:VarFunctionArg { return makeFunction (func, v) }
   / "&" func:ShiftOrPop { return makeFunction (func, [makeStrictQuote ([makeLookup (defaultListVarName)])] ) }
   / "&" func:IncOrDec v:VarFunctionArg _ { return makeFunction (func, v) }
+  / "++" v:VarFunctionArg _ { return v.concat (makeFunction (func, v)) }
 
 MathFunction
   = "&math{" _ math:MathExpr _ "}" { return makeFunction ('math', [math]) }

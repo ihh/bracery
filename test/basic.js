@@ -276,7 +276,8 @@ function doTests (testRunner) {
   expectExpand ('&push$x{a}&push$x{b}&uc&push$x{c}&push$x{...}&join$x{,} &shift$x $dots:={&pop$x} $quirk:=uh, &shift$x $dots &unshift$x&cat{x}{t} &uc&join$x$dots',
                 'a,b,c,... a ... uh,b ... X...T...C')  // a lot going on in this one. Spaces must be exactly correct (of course)
   expectExpand ('$x=5 &inc$x x=$x $x=10 &dec$x x=$x', 'x=6 x=9')  // note exact spaces
-
+  expectExpand ('$a=10 $b=20 $c=30 $d=40 ++$a --$b $c++ $d-- a=$a b=$b c=$c d=$d', '10 20 31 39 a=11 b=19 c=31 d=39')  // note exact spaces
+  
   expectExpand ('$x=&split{fresh word salad} &join{&shuffle{$x}}{ }', 'salad word fresh', {maxTries:maxTries})
 
   expectExpand ('$x=&{1&,3&,2&,11}&json$x $y=&numsort{$x}{$_} &json$y', '[["1","3","2","11"]] [["1","2","3","11"]]')

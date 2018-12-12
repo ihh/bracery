@@ -434,6 +434,7 @@ Language features include
       - `&random{n}`, `&floor{x}`, `&ceil{x}`, `&round{x}` do what you probably expect
          - `&prob{p}{succeed}{fail}` expands to `succeed` with probability `p`, and `fail` otherwise
       - `&eq{x}{y}`, `&neq{x}{y}`, `&gt{x}{y}`, `&geq{x}{y}`, `&lt{x}{y}`, `&leq{x}{y}` also fairly predictable
+      - similarly `&inc{$x}`, `&dec{$x}`, `$x++`, `++$x`, `$x--`, `--$y`
    - regular expressions:
       - `&match/regex/flags{text}{expr}` returns a list of `expr` evaluations (`$$1`, `$$2`, etc are bound to matching groups)
       - `&replace/regex/flags{text}{replacement}` returns a string
@@ -483,7 +484,7 @@ Language features include
       - `&prepend{item}{list}`, `&append{list}{item}` return lists
       - `&first{list}`, `&last{list}` return individual list items (can be strings or nested lists)
       - `&notfirst{list}`, `&notlast{list}` return lists
-      - `&nth{index}{list}` returns item number `index` from `list` (0-based)
+      - `&nth{index}{list}` returns item number `index` (0-based) from `list`
       - `&cat{list1}{list2}` returns a list
       - `&join{list}{item}` returns a string
       - `&map$varname:{list}{expr}` and `&filter$varname:{list}{expr}` return lists

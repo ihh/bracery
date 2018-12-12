@@ -14,7 +14,7 @@ Node
   / VarLookup
   / Alternation
   / args:DummyBrackets { return wrapNodes (args) }
-  / char:[\~\#&\$] { return char }
+  / char:[\~\#&\$\+\-] { return char }
 
 NodeList
   = "&," tail:NodeList { return concatNodes (makeValue([]), tail) }
@@ -166,7 +166,10 @@ UnaryVarFunction
   = "&" func:ShiftOrPop v:VarFunctionArg { return makeFunction (func, v) }
   / "&" func:ShiftOrPop { return makeFunction (func, [makeStrictQuote ([makeLookup (defaultListVarName)])] ) }
   / "&" func:IncOrDec v:VarFunctionArg _ { return makeFunction (func, v) }
-  / "++" v:VarFunctionArg _ { return v.concat (makeFunction (func, v)) }
+  / "++" v:VarFunctionArg { return wrapNodes (v[0].args.concat ([makeFunction ('inc', v)])) }
+  / "--" v:VarFunctionArg { return wrapNodes (v[0].args.concat ([makeFunction ('dec', v)])) }
+  / v:VarFunctionArg "++" { return wrapNodes ([makeFunction ('inc', v)].concat (v[0].args)) }
+  / v:VarFunctionArg "--" { return wrapNodes ([makeFunction ('dec', v)].concat (v[0].args)) }
 
 MathFunction
   = "&math{" _ math:MathExpr _ "}" { return makeFunction ('math', [math]) }
@@ -291,7 +294,7 @@ UpperCaseIdentifier
   = firstChar:[A-Z] rest:[A-Z_0-9]* { return firstChar + rest.join("") }
 
 // Atoms
-Text = chars:[^\~\#&\$\{\}\[\]\|\\]+ { return chars.join("") }
+Text = chars:[^\~\#&\$\+\-\{\}\[\]\|\\]+ { return chars.join("") }
 
 Number
   = num:[0-9]+ { return parseInt (num.join('')) }

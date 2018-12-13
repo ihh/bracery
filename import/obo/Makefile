@@ -40,3 +40,11 @@ ceph.obo:
 
 cephalopod_anatomy.json: ceph.obo
 	perl obo.pl --id CEPH --maxsyn 1 --desc "Cephalopod body parts. From the OBO Cephalopod Ontology" --source "https://github.com/obophenotype/cephalopod-ontology" --tag 'parts' --file $< >$@
+
+
+# Hymenoptera anatomy
+hao.obo:
+	curl -O 'https://raw.githubusercontent.com/hymao/hao/master/hao.obo' >$@
+
+ant_anatomy.json: hao.obo
+	 perl obo.pl --file $< --maxsyn 1 --maxnum 100 --root 'HAO:0000003' >$@

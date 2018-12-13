@@ -6,6 +6,7 @@ use Getopt::Long;
 
 my ($filename, $id, $root, $subset);
 my ($tag, $desc, $source) = ('entries', 'n/a', 'n/a');
+my $is_a = 'is_a';
 my $maxLen = 100;
 my $maxNum = 1000;
 my $maxSynonyms = 3;
@@ -20,6 +21,7 @@ GetOptions ("maxlen=i" => \$maxLen,
 	    "source=s" => \$source,
 	    "root=s" => \$root,
 	    "subset=s" => \$subset,
+	    "relation=s" => \$is_a,
 	    "file=s"   => \$filename)
     or die("Error in command line arguments\n");
 
@@ -50,8 +52,11 @@ print " [\n";
 print "  ", join (",\n  ", map ("[" . makeEntry($_) . "]", @short)), "\n ]\n}\n";
 
 sub transClosure {
-    my ($term) = @_;
-    return $term->{'id'} eq $root ? ($term) : ($term, map (transClosure($_), @{$term->{'parents'}}));
+    my ($term, $visited) = @_;
+    $visited = $visited || {};
+    if ($visited->{$term}) { return () }
+    $visited->{$term} = 1;
+    return ($root && $term->{'id'} eq $root) ? ($term) : ($term, map (transClosure($_,$visited), @{$term->{'parents'}}));
 }
 
 sub makeEntry {
@@ -75,10 +80,10 @@ sub parseOBO {
     foreach $_ (@text) {
 	if (/\S/) {
 	    if (!$current && /^\[([^\]]+)\]\s*$/) {
-		$current = { 'is_a' => [],
-				 'child' => [],
+		$current = { 'child' => [],
 				 'subset' => [],
 				 'type' => $1 };
+		$current->{$is_a} = [];
 	    } elsif (/^(\w+): (.*)/) {
 		my ($field, $value) = ($1, $2);
 		if (exists($current->{$field})) {
@@ -111,7 +116,7 @@ sub parseOBO {
     foreach $term (@term) {
 	my $parent_id;
 	$term->{'parents'} = [];
-	foreach $parent_id (@{$term->{'is_a'}}) {
+	foreach $parent_id (@{$term->{$is_a}}) {
 	    if ($parent_id =~ /^(\S+)/) {
 		my $parent = $by_id{$1};
 		push @{$parent->{'child'}}, $term;

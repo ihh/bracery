@@ -1,4 +1,4 @@
-all: diseases.json infectious_diseases.json cancer.json symptoms.json environmental_hazards.json anthropogenic_features.json geographic_features.json cephalopod_anatomy.json
+all: diseases.json infectious_diseases.json cancer.json symptoms.json environmental_hazards.json anthropogenic_features.json geographic_features.json cephalopod_anatomy.json ant_anatomy.json
 
 # Human Disease ontology
 doid.obo:

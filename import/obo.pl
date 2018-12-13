@@ -4,7 +4,7 @@ use strict;
 
 use Getopt::Long;
 
-my ($filename, $tag, $desc, $source);
+my ($filename, $tag, $desc, $source, $id);
 my $maxLen = 100;
 my $maxNum = 1000;
 my $maxSynonyms = 3;
@@ -13,6 +13,7 @@ GetOptions ("maxlen=i" => \$maxLen,
 	    "maxnum=i" => \$maxNum,
 	    "maxsyn=i" => \$maxSynonyms,
 	    "mindepth=i" => \$minDepth,
+	    "id=s" => \$id,
 	    "tag=s" => \$tag,
 	    "desc=s" => \$desc,
 	    "source=s" => \$source,
@@ -23,7 +24,7 @@ die "Please specify --file" unless $filename;
 
 my ($terms, $by_id) = parseOBO (`cat $filename`);
 
-my @t = grep (!($_->{'name'} =~ /^\d/ || $_->{'name'} =~ /\d$/ || length($_->{'name'}) > $maxLen), @$terms);
+my @t = grep ((!$id || $_->{'id'} =~ /$id/) && !($_->{'name'} =~ /^\d/ || $_->{'name'} =~ /\d$/ || length($_->{'name'}) > $maxLen), @$terms);
 if (@t > $maxNum) {
     my $i;
     for $i (0..$maxNum-1) {

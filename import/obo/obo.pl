@@ -4,7 +4,8 @@ use strict;
 
 use Getopt::Long;
 
-my ($filename, $tag, $desc, $source, $id);
+my ($filename, $id, $root, $subset);
+my ($tag, $desc, $source) = ('entries', 'n/a', 'n/a');
 my $maxLen = 100;
 my $maxNum = 1000;
 my $maxSynonyms = 3;
@@ -17,6 +18,8 @@ GetOptions ("maxlen=i" => \$maxLen,
 	    "tag=s" => \$tag,
 	    "desc=s" => \$desc,
 	    "source=s" => \$source,
+	    "root=s" => \$root,
+	    "subset=s" => \$subset,
 	    "file=s"   => \$filename)
     or die("Error in command line arguments\n");
 
@@ -24,7 +27,12 @@ die "Please specify --file" unless $filename;
 
 my ($terms, $by_id) = parseOBO (`cat $filename`);
 
-my @t = grep ((!$id || $_->{'id'} =~ /$id/) && !($_->{'name'} =~ /^\d/ || $_->{'name'} =~ /\d$/ || length($_->{'name'}) > $maxLen), @$terms);
+my @t = grep ((!$id || $_->{'id'} =~ /$id/)
+	      && !($_->{'name'} =~ /^\d/ || $_->{'name'} =~ /\d$/ || length($_->{'name'}) > $maxLen)
+	      && (!$root || grep ($_->{'id'} eq $root, transClosure($_)))
+	      && (!$subset || inSubset($_,$subset))
+	      && transClosure($_) > $minDepth,
+	      @$terms);
 if (@t > $maxNum) {
     my $i;
     for $i (0..$maxNum-1) {
@@ -32,7 +40,7 @@ if (@t > $maxNum) {
 	@t[$i,$j] = @t[$j,$i];
     }
 }
-my @short = grep (transClosure($_) > $minDepth, @t[0..$maxNum-1]);
+my @short = @t > $maxNum ? @t[0..$maxNum-1] : @t;
 
 print "{\n";
 print " \"description\": \"$desc\",\n";
@@ -43,7 +51,7 @@ print "  ", join (",\n  ", map ("[" . makeEntry($_) . "]", @short)), "\n ]\n}\n"
 
 sub transClosure {
     my ($term) = @_;
-    return ($term, map (transClosure($_), @{$term->{'parents'}}));
+    return $term->{'id'} eq $root ? ($term) : ($term, map (transClosure($_), @{$term->{'parents'}}));
 }
 
 sub makeEntry {
@@ -69,6 +77,7 @@ sub parseOBO {
 	    if (!$current && /^\[([^\]]+)\]\s*$/) {
 		$current = { 'is_a' => [],
 				 'child' => [],
+				 'subset' => [],
 				 'type' => $1 };
 	    } elsif (/^(\w+): (.*)/) {
 		my ($field, $value) = ($1, $2);
@@ -94,6 +103,7 @@ sub parseOBO {
     foreach $term (@term) {
 	my $id = $term->{'id'};
 	if ($id && $id =~ /^(\S+)/) {
+	    $term->{'id'} = $1;
 	    $by_id{$1} = $term;
 	}
     }
@@ -121,4 +131,10 @@ sub parseOBO {
     }
 
     return (\@t, \%by_id, \@term);
+}
+
+sub inSubset {
+    my ($term, $subset) = @_;
+    my @defs = @{$term->{'subset'}};
+    return grep (/^$subset/, @defs) > 0;
 }

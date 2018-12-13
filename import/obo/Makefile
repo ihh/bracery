@@ -1,4 +1,4 @@
-all: diseases.json cephalopodAnatomy.json symptoms.json
+all: diseases.json infectious_diseases.json cancer.json cephalopodAnatomy.json symptoms.json
 
 # Human Disease ontology
 doid.obo:
@@ -6,6 +6,12 @@ doid.obo:
 
 diseases.json: doid.obo
 	perl obo.pl --desc "Disease terms, with increasing specificity. A random subset of the OBO Human Disease Ontology" --source "https://github.com/DiseaseOntology/HumanDiseaseOntology" --tag 'diseases' --file $< >$@
+
+infectious_diseases.json: doid.obo
+	perl obo.pl --maxsyn 1 --subset zoonotic_infectious_disease --desc "Infectious diseases. A subset of the OBO Human Disease Ontology" --source "https://github.com/DiseaseOntology/HumanDiseaseOntology" --tag 'diseases' --file $< >$@
+
+cancer.json: doid.obo
+	perl obo.pl --maxsyn 1 --root DOID:162 --desc "Types of cancer. A subset of the OBO Human Disease Ontology" --source "https://github.com/DiseaseOntology/HumanDiseaseOntology" --tag 'cancers' --file $< >$@
 
 # Cephalopod ontology
 ceph.obo:

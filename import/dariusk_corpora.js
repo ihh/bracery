@@ -1,3 +1,4 @@
+var fs = require('fs')
 var rp = require('request-promise')
 var bb = require('bluebird')
 var _ = require('lodash')
@@ -183,6 +184,18 @@ var symbolPath = {
 //  cute_kaomoji: 'words/emoji/cute_kaomoji.json',
 }
 
+var symbolFile = {
+  disease: 'obo/diseases.json',
+  infectious_disease: 'obo/infectious_diseases.json',
+  cancer: 'obo/cancer.json',
+  symptom: 'obo/symptoms.json',
+  environmental_hazard: 'obo/environmental_hazards.json',
+  anthropogenic_feature: 'obo/anthropogenic_features.json',
+  geographic_feature: 'obo/geographic_features.json',
+  cephalopod_part: 'obo/cephalopod_anatomy.json',
+  ant_part: 'obo/ant_anatomy.json'
+}
+
 Object.keys(symbolPath).forEach (function (symbol) {
   targets.push ({ name: symbol,
 		  path: symbolPath[symbol] })
@@ -191,34 +204,53 @@ Object.keys(symbolPath).forEach (function (symbol) {
 bb.Promise.map (targets, function (target) {
   return rp (baseUrl + target.path)
     .then (function (htmlString) {
-      var json = JSON.parse (htmlString)
-      var array
-      if (target.key)
-        array = json[target.key]
-      else if (_.isArray(json))
-        array = json
-      else {
-        var keys = Object.keys(json)
-	    .filter (function (key) {
-	      return _.isArray (json[key])
-	    })
-        if (keys.length === 1)
-          array = json[keys[0]]
-      }
-      if (!array)
-        throw new Error ('Error autodetecting key for ' + target.path)
-      console.warn ('$' + target.name + ' <-- ' + target.path)
-      var result = { name: target.name,
-                     summary: target.summary,
-                     rules: array.map (function (text) {
-                       return target.rhs ? target.rhs(text) : [text]
-                     })
-                   }
-      return result
+      return processFile (target, htmlString)
     }).catch (function (err) {
       console.warn ('Error fetching ' + target.path)
       throw err
     })
 }).then (function (results) {
+  results = results.concat (Object.keys(symbolFile).map (function (symbol) {
+    var filename = symbolFile[symbol]
+    return processFile ({ name: symbol,
+                          path: filename,
+                          rhs: function (entry) {
+                            return _.isArray(entry) ? entry[entry.length-1] : entry
+                          } },
+                        fs.readFileSync(filename).toString())
+  }))
   console.log (JSON.stringify (results))
 })
+
+function processFile (target, text) {
+  var json
+  try {
+    json = JSON.parse (text)
+  } catch (e) {
+    console.warn(text)
+    throw e
+  }
+  var array
+  if (target.key)
+    array = json[target.key]
+  else if (_.isArray(json))
+    array = json
+  else {
+    var keys = Object.keys(json)
+	.filter (function (key) {
+	  return _.isArray (json[key])
+	})
+    if (keys.length === 1)
+      array = json[keys[0]]
+  }
+  if (!array)
+    throw new Error ('Error autodetecting key for ' + target.path)
+  console.warn ('~' + target.name + ' <-- ' + target.path)
+  var result = { name: target.name,
+                 summary: target.summary,
+                 rules: array.map (function (text) {
+                   return target.rhs ? target.rhs(text) : [text]
+                 })
+               }
+  return result
+}

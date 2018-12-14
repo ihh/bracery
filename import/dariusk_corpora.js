@@ -215,7 +215,7 @@ bb.Promise.map (targets, function (target) {
     return processFile ({ name: symbol,
                           path: filename,
                           rhs: function (entry) {
-                            return _.isArray(entry) ? entry[entry.length-1] : entry
+                            return _.isArray(entry) ? entry.slice(entry.length-1) : [entry]
                           } },
                         fs.readFileSync(filename).toString())
   }))

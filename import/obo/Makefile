@@ -18,7 +18,7 @@ symp.obo:
 	curl -O 'https://raw.githubusercontent.com/DiseaseOntology/SymptomOntology/master/symp.obo' >$@
 
 symptoms.json: symp.obo
-	perl obo.pl --maxsyn 1 --desc "Disease symptoms. From the OBO Symptom Ontology" --source "https://github.com/DiseaseOntology/SymptomOntology" --tag 'symptoms' --file $< >$@
+	perl obo.pl --maxsyn 1 --desc "Disease symptoms. From the OBO Symptom Ontology" --source "https://github.com/DiseaseOntology/SymptomOntology" --tag 'symptoms' --file $< | perl -pe 's/(| of) infant//' >$@
 
 # Environment ontology
 envo.obo:

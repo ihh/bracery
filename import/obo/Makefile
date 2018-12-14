@@ -47,4 +47,4 @@ hao.obo:
 	curl -O 'https://raw.githubusercontent.com/hymao/hao/master/hao.obo' >$@
 
 ant_anatomy.json: hao.obo
-	 perl obo.pl --file $< --maxsyn 1 --maxnum 100 --root 'HAO:0000003' >$@
+	 perl obo.pl --file $< --maxsyn 1 --maxnum 100 --root 'HAO:0000003' --desc "Hymenoptera (ant, bee, wasp) body parts. From the OBO Hymenoptera Anatomy Ontology" --source "https://github.com/hymao/hao" --tag 'parts' >$@

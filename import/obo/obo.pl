@@ -49,7 +49,7 @@ print " \"description\": \"$desc\",\n";
 print " \"source\": \"$source\",\n";
 print " \"$tag\":\n";
 print " [\n";
-print "  ", join (",\n  ", map ("[" . makeEntry($_) . "]", @short)), "\n ]\n}\n";
+print "  ", join (",\n  ", map (makeEntry($_), @short)), "\n ]\n}\n";
 
 sub transClosure {
     my ($term, $visited) = @_;
@@ -65,7 +65,9 @@ sub makeEntry {
     @syns = @syns[0..$#syns-$minDepth];
     @syns = @syns[0..$maxSynonyms-1];
     @syns = grep (length($_->{'name'}), @syns);
-    return join (", ", map (makeStr($_->{'name'}), reverse @syns));
+    return ($maxSynonyms == 1
+	    ? makeStr($syns[0]->{'name'})
+	    : ("[ " . join (", ", map (makeStr($_->{'name'}), reverse @syns)) . " ]"));
 }
 
 sub makeStr {

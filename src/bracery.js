@@ -98,7 +98,7 @@ Bracery.prototype.addRules = function (name, rules) {
     rules = Array.prototype.splice.call (arguments, 1)
   // check types
   name = validateSymbolName (name)
-  var oldRules = this.rules[name]
+  var oldRules = this.rules.hasOwnProperty(name) ? this.rules[name] : null
   if (typeof(rules) === 'function') {
     if (oldRules)
       throw new Error ('symbols with bound functions cannot have any other rules')

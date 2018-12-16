@@ -8,12 +8,14 @@ var bracery = require('../index')
 var initJson = { abc: 'def',
                  hello: '[hello|hi]',
                  world: ['world', 'planet'],
+                 constructor: 'testing a reserved word',
                  test1: 'testing',
                  test2: '~TEST1',
                  test3: 'x#test3#',
                  test4: '&quote{~TEST1}' }
 
 var initText = [">abc","def","",
+                ">constructor","testing a reserved word","",
                 ">hello","[hello|hi]","",
                 ">test1","testing","",
                 ">test2","~TEST1","",
@@ -23,6 +25,7 @@ var initText = [">abc","def","",
                 ""].join('\n')
 
 var initBracery = ["[abc=>","def","]\n",
+                   "[constructor=>","testing a reserved word","]\n",
                    "[hello=>","[hello|hi]","]\n",
                    "[test1=>","testing","]\n",
                    "[test2=>","~TEST1","]\n",
@@ -37,6 +40,9 @@ describe('command-line tests (' + binPath + ')', function() {
   // simple expansions
   expectExpand ('~test1', 'testing')
   expectExpand ('~test2', 'TESTING')
+
+  // reserved word
+  expectExpand ('~constructor', 'testing a reserved word')
 
   // config
   expectExpand ('~test3', 'xxx')

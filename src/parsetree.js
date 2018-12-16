@@ -55,8 +55,10 @@ function nRandomElements (array, n, rng) {
 // Parser
 var parseCache = {}
 function parseRhs (rhsText) {
-  var cached = parseCache[rhsText]
-  if (!cached) {
+  var cached
+  if (parseCache.hasOwnProperty(rhsText))
+    cached = parseCache[rhsText]
+  else {
     try {
       cached = RhsParser.parse (rhsText)
     } catch (e) {

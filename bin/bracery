@@ -253,14 +253,18 @@ if (opt.options.eval)
   opt.options.eval.forEach (function (text) { return expand(text) })
 
 // run template Markov chain
-if (opt.options.markov || opt.options.quiz) {
-  function messageToString (message, config) {
-    var color = (config && config.color) || {}
+function tagsString (message) { return bracery.Template.makeTagArray(message.tags).join(' ') }
+function varsString (message) {
     var nextVars
     if (message.nextVars) {
       nextVars = extend ({}, message.nextVars)
       delete nextVars.prevtags
     }
+  return '{' + Object.keys(nextVars).map(function(n){return n+':'+JSON.stringify(nextVars[n])}).join(',') + '}'
+}
+if (opt.options.markov || opt.options.quiz) {
+  function messageToString (message, config) {
+    var color = (config && config.color) || {}
     return ((message.template.title && color.title
                ? (color.title.call (colors, '[' + message.template.title + ']') + ' ')
                : '')
@@ -269,10 +273,10 @@ if (opt.options.markov || opt.options.quiz) {
                : '')
             + (color.message || noColor).call (colors, message.expansion.text)
             + (message.tags.match(/\S/) && color.tags
-               ? (' ' + color.tags.call (colors, bracery.Template.makeTagArray(message.tags).join(' ')))
+               ? (' ' + color.tags.call (colors, tagString(message)))
                : '')
-            + (nextVars && color.vars
-               ? color.vars.call (colors, ' {' + Object.keys(nextVars).map(function(n){return n+':'+JSON.stringify(nextVars[n])}).join(',') + '}')
+            + (message.nextVars && color.vars
+               ? (' ' + color.tags.call (colors, varsString(message)))
                : '')
             + '\n')
   }
@@ -305,13 +309,14 @@ if (opt.options.markov || opt.options.quiz) {
                                      { color: { title: null,
                                                 author: colors.blue,
                                                 message: colors.white } }))
+      var varsColor = colors.yellow, tagsColor = colors.cyan
       console.warn (messageToString
                     (message,
                      { color: { title: function (text) { return colors.magenta (text) + '\n' },
                                 author: colors.blue,
                                 message: colors.white,
-                                tags: opt.options.verbose ? colors.cyan : undefined,
-                                vars: opt.options.verbose > 1 ? colors.yellow : undefined } }))
+                                tags: opt.options.verbose ? tagsColor : undefined,
+                                vars: opt.options.verbose > 1 ? varsColor : undefined } }))
       process.stdout.write (colors.bold('Accept?') + ' ' + colors.gray('(Y/n)') + ' ')
 
       keypress (process.stdin)
@@ -320,15 +325,20 @@ if (opt.options.markov || opt.options.quiz) {
         process.stdin.removeListener ('keypress', handleKey)
         process.stdin.pause()
       }
+      var debug = 0
       function handleKey (ch, key) {
         var result
         if (key) {
-          if (key.ctrl && key.name === 'c')  // handle ctrl-C
+          if (key.name === 'q' || (key.ctrl && key.name === 'c'))  // handle ctrl-C
             pause()
           if (key.name === 'y' || key.name === 'return' || key.name === 'space' || key.name === 'down' || key.name === 'right')
             result = true
           if (key.name === 'n' || key.name === 'backspace' || key.name === 'up' || key.name === 'left')
             result = false
+          if (key.name === 't')
+            console.warn (tagsColor.call (colors, (debug++ ? '' : '\n') + tagsString(message)))
+          if (key.name === 'v')
+            console.warn (varsColor.call (colors, (debug++ ? '' : '\n') + varsString(message)))
         }
         if (typeof(result) !== 'undefined') {
           pause()

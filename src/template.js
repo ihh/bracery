@@ -122,12 +122,20 @@ function sampleTemplate (templates, rng) {
 }
 
 function randomRootTemplate (templates, rng) {
-  return sampleTemplate (templates.filter (function (template) { return template.isRoot }), rng)
+  return sampleTemplate (allRootTemplates (templates), rng)
 }
 
 function randomReplyTemplate (templates, tags, prevTemplate, rng) {
+  return sampleTemplate (allReplyTemplates (templates, tags, prevTemplate), rng)
+}
+
+function allRootTemplates (templates) {
+  return templates.filter (function (template) { return template.isRoot })
+}
+
+function allReplyTemplates (templates, tags, prevTemplate) {
   var tagArray = typeof(tags) === 'string' ? makeTagArray(tags) : tags
-  return sampleTemplate (templates.filter (function (template) {
+  return templates.filter (function (template) {
     if (prevTemplate && prevTemplate.replies.indexOf (template) >= 0)
       return true
     var prevTags = makeTagArray (template.previousTags)
@@ -142,7 +150,7 @@ function randomReplyTemplate (templates, tags, prevTemplate, rng) {
         allowedTags.reduce (function (match, tag) {
           return match || tagArray.indexOf(tag) >= 0
         }, false))))
-  }), rng)
+  })
 }
 
 function promiseMessageList (config) {
@@ -153,9 +161,12 @@ function promiseMessageList (config) {
   var generateTemplate = (prevMessage
                           ? randomReplyTemplate.bind (null, templates, prevMessage.tags, prevMessage.template)
                           : randomRootTemplate.bind (null, templates))
-  function generateMessage() {
+  var allTemplates = (prevMessage
+                      ? allReplyTemplates.bind (null, templates, prevMessage.tags, prevMessage.template)
+                      : allRootTemplates.bind (null, templates))
+  function generateMessage (template) {
     var message
-    var template = generateTemplate (config.rng)
+    var template = template || generateTemplate (config.rng)
     if (template) {
       var vars = extend ({}, config.vars || {}, { tags: template.tags || '' })
       message = { template: template,
@@ -171,15 +182,19 @@ function promiseMessageList (config) {
     }
     return message
   }
-  function promiseMessage() {
-    var proposedMessage = generateMessage()
+  function promiseMessage (template) {
+    var proposedMessage = generateMessage (template)
     return new Promise (function (resolve, reject) {
       if (!proposedMessage)
         resolve (true)
       else
-        accept (proposedMessage, config.thread, resolve)
+        accept (proposedMessage, config.thread, resolve, allTemplates)
     }).then (function (accepted) {
-      return accepted ? proposedMessage : promiseMessage()
+      return (typeof(accepted) === 'object'
+              ? promiseMessage (accepted)
+              : (accepted
+                 ? proposedMessage
+                 : promiseMessage()))
     })
   }
   return promiseMessage()

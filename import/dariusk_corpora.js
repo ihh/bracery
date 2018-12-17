@@ -3,13 +3,13 @@ var rp = require('request-promise')
 var bb = require('bluebird')
 var _ = require('lodash')
 
-var baseUrl = 'https://raw.githubusercontent.com/dariusk/corpora/master/data/'
+var baseUrl = 'https://raw.githubusercontent.com/ihh/corpora/pulls/data/'
 
 var targets = [
   { name: 'common_animal',
     path: 'animals/common.json',
     key: 'animals' },
-
+  
   { name: 'common_flower',
     path: 'plants/flowers.json',
     key: 'flowers' },
@@ -126,10 +126,20 @@ var symbolPath = {
   name_prefix: 'humans/prefixes.json',
   name_suffix: 'humans/suffixes.json',
   famous_scientist: 'humans/scientists.json',
+  cat_breed: 'animals/cats.json',
+  rabbit_breed: 'animals/rabbits.json',
+  dinosaur_species: 'animals/dinosaurs.json',
+  dog_name: 'animals/dog_names.json',
+  dog_breed: 'animals/dogs.json',
+  donkey_breed: 'animals/donkeys.json',
+  horse_breed: 'animals/horses.json',
+  pony_breed: 'animals/ponies.json',
   music_genre: 'music/genres.json',
   musical_instrument: 'music/instruments.json',
   random_room: 'architecture/rooms.json',
   art_genre: 'art/isms.json',
+  movie_genre: 'film-tv/netflix-categories.json',
+  popular_movie: 'film-tv/popular-movies.json',
   car_manufacturer: 'corporations/cars.json',
   fortune500_company: 'corporations/fortune500.json',
   american_industry: 'corporations/industries.json',
@@ -154,6 +164,7 @@ var symbolPath = {
   sculpture_material: 'materials/sculpture-materials.json',
   pharma_drug: 'medicine/drugs.json',
   hospital_name: 'medicine/hospitals.json',
+  roman_god: 'mythology/roman_deities.json',
   greek_god: 'mythology/greek_gods.json',
   greek_monster: 'mythology/greek_monsters.json',
   greek_titan: 'mythology/greek_titans.json',

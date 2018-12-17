@@ -309,7 +309,7 @@ if (opt.options.markov || opt.options.quiz) {
                                      { color: { title: null,
                                                 author: colors.blue,
                                                 message: colors.white } }))
-      var varsColor = colors.yellow, tagsColor = colors.cyan, templateColor = colors.magenta
+      var varsColor = colors.yellow, tagsColor = colors.cyan
       console.warn (messageToString
                     (message,
                      { color: { title: function (text) { return colors.magenta (text) + '\n' },
@@ -326,7 +326,7 @@ if (opt.options.markov || opt.options.quiz) {
         process.stdin.pause()
       }
       var debug = 0
-      var templateList 
+      var templateList, defaultSelection
       function handleKey (ch, key) {
         var result
         if (key) {
@@ -351,12 +351,17 @@ if (opt.options.markov || opt.options.quiz) {
               }
             }
             if (templateList) {
-              console.warn (templateColor.call (colors,
-                                                templateList.map (function (template, n) {
-                                                  return ('\n' + (n+1) + '. '
-                                                          + (template.author ? ('@' + template.author) : '')
-                                                          + '>' + template.title + ' #' + template.previousTags + '#' + template.tags)
-                                                }).join('')))
+              console.warn (templateList.map (function (template, n) {
+                var result = ('\n' + (n+1) + '. '
+                              + colors.blue (template.author ? ('@' + template.author) : '')
+                              + colors.magenta ('>' + template.title)
+                              + tagsColor.call (colors, ' #' + template.previousTags + '#' + template.tags))
+                if (template === message.template) {
+                  defaultSelection = template
+                  result = colors.inverse(result)
+                }
+                return result
+              }).join(''))
               console.warn ('Select a template:')
               result = templateList
             }
@@ -378,7 +383,7 @@ if (opt.options.markov || opt.options.quiz) {
               process.stdin.setRawMode(true)
               callback ((choice > 0 && choice <= result.length)
                         ? result[choice - 1]
-                        : false)
+                        : defaultSelection)
             })
           } else
             callback (result)

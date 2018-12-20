@@ -273,7 +273,7 @@ if (opt.options.markov || opt.options.quiz) {
                : '')
             + (color.message || noColor).call (colors, message.expansion.text)
             + (message.tags.match(/\S/) && color.tags
-               ? (' ' + color.tags.call (colors, tagString(message)))
+               ? (' ' + color.tags.call (colors, tagsString(message)))
                : '')
             + (message.nextVars && color.vars
                ? (' ' + color.tags.call (colors, varsString(message)))

@@ -789,6 +789,21 @@ var symChar = '~', varChar = '$', funcChar = '&', leftBraceChar = '{', rightBrac
 var nodeArgKeys = ['rhs','args','unit','value','local','cond','t','f','bind']
 var nodeListArgKeys = ['opts']
 
+// Footers
+var footer = [ { type: 'func',
+                 funcname: 'eval',
+                 footer: true,
+                 args: [ { type: 'lookup',
+                           varname: 'footer' } ] } ]
+
+function stripFooter (rhs) {
+  return rhs.filter (function (node) { return !node.footer })
+}
+
+function addFooter (rhs) {
+  return stripFooter (rhs).concat (footer)
+}
+
 // Parse tree manipulations.
 
 // There are two methods for expanding a template into a fully-expanded parse tree.
@@ -1070,7 +1085,7 @@ function makeRhsText (rhs, makeSymbolName) {
 function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
   var pt = this
   makeSymbolName = makeSymbolName || defaultMakeSymbolName
-  return rhs.map (function (tok, n) {
+  return stripFooter(rhs).map (function (tok, n) {
     var result
     if (typeof(tok) === 'string')
       result = escapeString (tok)
@@ -2726,6 +2741,11 @@ module.exports = {
   parseTextDefs: parseTextDefs,
   makeRoot: makeRoot,
 
+  // footers
+  footer: footer,
+  stripFooter: stripFooter,
+  addFooter: addFooter,
+  
   // parse tree constants
   symChar: symChar,
   varChar: varChar,

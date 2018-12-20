@@ -155,7 +155,7 @@ function sampleParseTree (rhs, config) {
         if (node.opts)
           result.opts = node.opts.map (function (opt) { return pt.sampleParseTree (opt, config) })
       }
-    } else
+    } else {
       switch (node.type) {
       case 'root':
         result = { type: node.type,
@@ -220,6 +220,9 @@ function sampleParseTree (rhs, config) {
           result.bind = pt.sampleParseTree (node.bind, config)
 	break
       }
+      if (node.footer)
+        result.footer = node.footer
+    }
     return result
   })
 }

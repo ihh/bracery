@@ -96,11 +96,14 @@ Each message has the following fields:
 The root node of the expansion tree "inherits" any variable assignments from the predecessor,
 with two special variables overridden as follows:
 
-- the `tags` variable, at the beginning of the expansion, is set to the template's future-tags (joined by whitespace into a single string)
-- the `prevtags` variable, at the beginning of the expansion, is set to the predecessor message's future-tags (joined by whitespace into a single string)
+- the `$tags` variable, at the beginning of the expansion, is set to the template's future-tags (joined by whitespace into a single string)
+- the `$prevtags` variable, at the beginning of the expansion, is set to the predecessor message's future-tags (joined by whitespace into a single string)
 
 The value of the `tags` variable by the end of the expansion is used to find the message's future-tags (it is considered to be a whitespace-separated list).
 Thus, the template's default future-tags can be "overridden" by variable assignments from the Bracery source text.
+
+The special variable `$footer` also has significance, in that the Bracery code `&eval{$footer}` is implicitly appended to every message.
+A common pattern is to set (or manipulate) `$tags` from within `$footer`.
 
 ## Braceplate syntax
 

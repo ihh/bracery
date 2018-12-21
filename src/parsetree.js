@@ -332,6 +332,13 @@ function isEvalVar (node) {
           && node.args[0].type === 'lookup')
 }
 
+function makeEvalVar (name) {
+  return { type: 'func',
+           funcname: 'eval',
+           args: [{ type: 'lookup',
+                    varname: name }] }
+}
+
 function isTraceryExpr (node, makeSymbolName) {
   makeSymbolName = makeSymbolName || defaultMakeSymbolName
   return typeof(node) === 'object' && node.type === 'cond'
@@ -340,30 +347,6 @@ function isTraceryExpr (node, makeSymbolName) {
     && node.f.length === 1 && typeof(node.f[0]) === 'object' && node.f[0].type === 'sym' && !(node.f[0].bind && node.f[0].bind.length && node.f[0].bind[0].args && node.f[0].bind[0].args.length)
     && node.test[0].varname.toLowerCase() === node.t[0].args[0].varname.toLowerCase()
     && node.test[0].varname.toLowerCase() === makeSymbolName (node.f[0]).toLowerCase()
-}
-
-function isProbExpr (node) {
-  return typeof(node) === 'object' && node.type === 'cond'
-    && node.test.length === 1 && typeof(node.test[0]) === 'object' && node.test[0].type === 'function' && node.test[0].funcname === 'lt' && node.test[0].args.length === 2
-    && typeof(node.test[0].args[0]) === 'object' && node.test[0].args[0].type === 'function' && node.test[0].args[0].funcname === 'random' && node.test[0].args[0].args.length === 1
-    && typeof(node.test[0].args[0].args[0]) === 'string' && node.test[0].args[0].args[0] === '1'
-}
-
-var choiceVar = 'choice'
-function isChoiceExpr (node) {
-  return typeof(node) === 'object' && node.type === 'cond'
-    && node.test.length === 1 && typeof(node.test[0]) === 'object' && node.test[0].type === 'lookup' && node.test[0].varname === choiceVar
-    && node.t.length === 1 && typeof(node.t[0]) === 'object' && node.t[0].type === 'cond'
-    && node.t[0].test.length === 1 && typeof(node.t[0].test[0]) === 'object' && node.t[0].test[0].type === 'func' && node.t[0].test[0].funcname === 'eq'
-    && node.t[0].test[0].args[0].type === 'lookup' && node.t[0].test[0].args[0].varname === choiceVar
-    && node.t[0].test[0].args[1].type === 'root' && node.t[0].test[0].args[1].rhs.length === 0
-}
-
-function makeEvalVar (name) {
-  return { type: 'func',
-           funcname: 'eval',
-           args: [{ type: 'lookup',
-                    varname: name }] }
 }
 
 function makeTraceryExpr (name) {
@@ -375,6 +358,47 @@ function makeTraceryExpr (name) {
 
 function traceryVarName (traceryNode) {
   return traceryNode.test[0].varname.toLowerCase()
+}
+
+function isProbExpr (node) {
+  return typeof(node) === 'object' && node.type === 'cond'
+    && node.test.length === 1 && typeof(node.test[0]) === 'object' && node.test[0].type === 'function' && node.test[0].funcname === 'lt' && node.test[0].args.length === 2
+    && typeof(node.test[0].args[0]) === 'object' && node.test[0].args[0].type === 'function' && node.test[0].args[0].funcname === 'random' && node.test[0].args[0].args.length === 1
+    && typeof(node.test[0].args[0].args[0]) === 'string' && node.test[0].args[0].args[0] === '1'
+}
+
+var choiceVarName = 'choice'
+function isChoiceExpr (node) {
+  return typeof(node) === 'object' && node.type === 'cond'
+    && node.test.length === 1 && typeof(node.test[0]) === 'object' && node.test[0].type === 'lookup' && node.test[0].varname === choiceVarName
+    && node.t.length === 1 && typeof(node.t[0]) === 'object' && node.t[0].type === 'cond'
+    && node.t[0].test.length === 1 && typeof(node.t[0].test[0]) === 'object' && node.t[0].test[0].type === 'func' && node.t[0].test[0].funcname === 'neq'
+    && node.t[0].test[0].args[0].type === 'lookup' && node.t[0].test[0].args[0].varname === choiceVarName
+    && node.t[0].test[0].args[1].type === 'root' && node.t[0].test[0].args[1].rhs.length === 0
+}
+
+function choiceExprProposeRhs (node) {
+  return node.f
+}
+
+function choiceExprAcceptRhs (node) {
+  return node.t[0].t
+}
+
+function choiceExprRejectRhs (node) {
+  return node.t[0].f
+}
+
+function isProposeExpr (node) {
+  return isChoiceExpr(node) && choiceExprAcceptRhs(node).length === 0 && choiceExprRejectRhs(node).length === 0
+}
+
+function isAcceptExpr (node) {
+  return isChoiceExpr(node) && choiceExprProposeRhs(node).length === 0 && choiceExprRejectRhs(node).length === 0
+}
+
+function isRejectExpr (node) {
+  return isChoiceExpr(node) && choiceExprProposeRhs(node).length === 0 && choiceExprAcceptRhs(node).length === 0
 }
 
 function makeFuncArgTree (pt, args, makeSymbolName, forceBraces) {
@@ -451,14 +475,24 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
         result = [funcChar, 'rep', makeFuncArgTree (pt, tok.unit, makeSymbolName), [leftBraceChar, tok.min + (tok.max !== tok.min ? (',' + tok.max) : ''), rightBraceChar]]
 	break
       case 'cond':
-        var isProb = isProbExpr (tok)
-        result = (isTraceryExpr (tok, makeSymbolName)
+        var isTracery = isTraceryExpr (tok, makeSymbolName), isProb = isProbExpr (tok), isChoice = isChoiceExpr (tok)
+        result = (isTracery
                   ? [traceryChar, tok.test[0].varname, traceryChar]
-                  : [(isProb ? ['prob',tok.test.args[1]] : ['if',tok.test]),
-		     [isProb ? '' : 'then',tok.t],
-		     [isProb ? '' : 'else',tok.f]].reduce (function (memo, keyword_arg, n) {
-                       return memo.concat ([(n ? '' : funcChar) + keyword_arg[0], [leftBraceChar, pt.makeRhsTree (keyword_arg[1], makeSymbolName), rightBraceChar]])
-                     }, []))
+                  : (isChoice
+                     ? (isProposeExpr(tok)
+                        ? [funcChar + 'propose', makeFuncArgTree (pt, choiceExprProposeRhs(tok), makeSymbolName, nextIsAlpha)]
+                        : (isAcceptExpr(tok)
+                           ? [funcChar + 'accept', makeFuncArgTree (pt, choiceExprAcceptRhs(tok), makeSymbolName, nextIsAlpha)]
+                           : (isRejectExpr(tok)
+                              ? [funcChar + 'reject', makeFuncArgTree (pt, choiceExprAcceptRhs(tok), makeSymbolName, nextIsAlpha)]
+                              : [funcChar + 'choice'].concat ([choiceExprProposeRhs(tok),
+                                                               choiceExprAcceptRhs(tok),
+                                                               choiceExprRejectRhs(tok)].map (function (arg) { return makeFuncArgTree (pt, arg, makeSymbolName, nextIsAlpha) })))))
+                     : [(isProb ? ['prob',tok.test.args[1]] : ['if',tok.test]),
+		        [isProb ? '' : 'then',tok.t],
+		        [isProb ? '' : 'else',tok.f]].reduce (function (memo, keyword_arg, n) {
+                          return memo.concat ([(n ? '' : funcChar) + keyword_arg[0], [leftBraceChar, pt.makeRhsTree (keyword_arg[1], makeSymbolName), rightBraceChar]])
+                        }, [])))
         break;
       case 'func':
         if (tok.funcname === 'link') {
@@ -1851,6 +1885,18 @@ function makeParseTree (rhs) {
       tree.push (node)
     else if (isTraceryExpr (node))
       tree.push ([traceryChar + traceryVarName(node) + traceryChar].concat (makeParseTree (node.value ? node.result[0].value : node.result[0].rhs)))
+    else if (isProposeExpr (node))
+      tree.push (funcChar + 'propose', makeParseTree (choiceExprProposeRhs (node)))
+    else if (isAcceptExpr (node))
+      tree.push (funcChar + 'accept', makeParseTree (choiceExprAcceptRhs (node)))
+    else if (isRejectExpr (node))
+      tree.push (funcChar + 'reject', makeParseTree (choiceExprRejectRhs (node)))
+    else if (isChoiceExpr (node))
+      tree.push.call (tree, [funcChar + 'choice']
+                      .concat ([choiceExprProposeRhs(node),
+                                choiceExprAcceptRhs(node),
+                                choiceExprRejectRhs(node)]
+                               .map (function (arg) { return makeFuncArgTree (pt, arg, makeSymbolName, nextIsAlpha) })))
     else if (node.type === 'func' && node.funcname === 'eval' && node.args.length === 1 && node.args[0].type === 'lookup')
       tree.push ([funcChar + varChar + node.args[0].varname].concat (makeParseTree (node.value)))
     else if (node.type === 'sym')
@@ -2094,6 +2140,7 @@ module.exports = {
   isTraceryExpr: isTraceryExpr,
   isProbExpr: isProbExpr,
   isEvalVar: isEvalVar,
+  isChoiceExpr: isChoiceExpr,
   makeSugaredName: makeSugaredName,
   makeRhsText: makeRhsText,
   makeRhsTree: makeRhsTree,

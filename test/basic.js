@@ -489,6 +489,20 @@ function doTests (testRunner) {
   expectExpand ('&quote&link{test}{$x}{$x}', '&link{test}$x$x')
   expectExpand ('$x=3 &link{test}{$x}{$x}', 'test:3==>$x', {makeLink:function(type,text,link){return type.text+':'+text.text+'==>'+link.text}})
 
+  // propose, accept, reject
+  expectExpand ('&choice{How about coffee?}{I love coffee!}{I hate coffee.}', 'How about coffee?')
+  expectExpand ('$choice=0 &choice{How about coffee?}{I love coffee!}{I hate coffee.}', 'I hate coffee.')
+  expectExpand ('$choice=1 &choice{How about coffee?}{I love coffee!}{I hate coffee.}', 'I love coffee!')
+  expectExpand ('&propose{Dinner?}', 'Dinner?')
+  expectExpand ('$choice=0 &propose{Dinner?}', '')
+  expectExpand ('$choice=1 &propose{Dinner?}', '')
+  expectExpand ('&accept{OK.}', '')
+  expectExpand ('$choice=0 &accept{OK.}', '')
+  expectExpand ('$choice=1 &accept{OK.}', 'OK.')
+  expectExpand ('&reject{Nope.}', '')
+  expectExpand ('$choice=0 &reject{Nope.}', 'Nope.')
+  expectExpand ('$choice=1 &reject{Nope.}', '')
+  
   // charclass, alt
   expectExpand ('&charclass{abc}', '[a|b|c]')
   expectExpand ('&charclass{a-e}', '[a|b|c|d|e]')

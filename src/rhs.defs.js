@@ -6,6 +6,7 @@ function makeLocalAssign (name, value, scope) { return { type: 'assign', varname
 function makeAlternation (opts) { return { type: 'alt', opts: opts } }
 function makeConditional (testArg, trueArg, falseArg) { return { type: 'cond', test: testArg, t: trueArg, f: falseArg } }
 function makeFunction (name, args) { return { type: 'func', funcname: funcAlias[name] || name, args: args } }
+
 var funcAlias = { q: 'quotify' }
 
 function wrapNodes (args) { return args.length === 1 ? args[0] : makeRoot (args) }
@@ -81,6 +82,19 @@ function makeTraceryExpr (sym, mods) {
   return mods.reduce (function (expr, mod) {
     return makeFunction (mod, [expr])
   }, makeConditional ([makeLookup(sym)], [makeFunction('eval',[makeLookup(sym)])], [makeSymbol(sym)]))
+}
+
+function makeProbExpr (probArg, trueArg, falseArg) {
+  return makeConditional ([makeFunction ('lt', [makeFunction ('random', ['1']), wrapNodes (probArg)])], trueArg, falseArg)
+}
+
+var choiceVarName = 'choice'
+function makeChoiceExpr (proposeArg, acceptArg, rejectArg) {
+  return makeConditional ([makeLookup (choiceVarName)],
+                          [makeConditional ([makeFunction ('neq', [makeLookup (choiceVarName), wrapNodes ([])])],
+                                            acceptArg,
+                                            rejectArg)],
+                          proposeArg)
 }
 
 function validRange (min, max) {

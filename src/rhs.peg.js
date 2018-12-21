@@ -43,8 +43,11 @@ Repetition
 Conditional
   = "&if" testArg:FunctionArg ("then" / "") trueArg:FunctionArg ("else" / "") falseArg:FunctionArg { return makeConditional (testArg, trueArg, falseArg) }
   / "&if" testArg:FunctionArg ("then" / "") trueArg:FunctionArg { return makeConditional (testArg, trueArg, []) }
-  / "&prob" probArg:FunctionArg trueArg:FunctionArg falseArg:FunctionArg
-{ return makeConditional ([makeFunction ('lt', [makeFunction ('random', ['1']), wrapNodes (probArg)])], trueArg, falseArg) }
+  / "&prob" probArg:FunctionArg trueArg:FunctionArg falseArg:FunctionArg { return makeProbExpr (probArg, trueArg, falseArg) }
+  / "&choice" proposeArg:FunctionArg acceptArg:FunctionArg rejectArg:FunctionArg { return makeChoiceExpr (proposeArg, acceptArg, rejectArg) }
+  / "&propose" proposeArg:FunctionArg { return makeChoiceExpr (proposeArg, [], []) }
+  / "&accept" acceptArg:FunctionArg { return makeChoiceExpr ([], acceptArg, []) }
+  / "&reject" rejectArg:FunctionArg { return makeChoiceExpr ([], [], rejectArg) }
 
 Function
   = SymbolFunction

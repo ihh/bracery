@@ -2140,7 +2140,15 @@ module.exports = {
   isTraceryExpr: isTraceryExpr,
   isProbExpr: isProbExpr,
   isEvalVar: isEvalVar,
+
   isChoiceExpr: isChoiceExpr,
+  isProposeExpr: isProposeExpr,
+  isAcceptExpr: isAcceptExpr,
+  isRejectExpr: isRejectExpr,
+  choiceExprProposeRhs: choiceExprProposeRhs,
+  choiceExprAcceptRhs: choiceExprAcceptRhs,
+  choiceExprRejectRhs: choiceExprRejectRhs,
+
   makeSugaredName: makeSugaredName,
   makeRhsText: makeRhsText,
   makeRhsTree: makeRhsTree,

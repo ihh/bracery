@@ -349,6 +349,16 @@ function isProbExpr (node) {
     && typeof(node.test[0].args[0].args[0]) === 'string' && node.test[0].args[0].args[0] === '1'
 }
 
+var choiceVar = 'choice'
+function isChoiceExpr (node) {
+  return typeof(node) === 'object' && node.type === 'cond'
+    && node.test.length === 1 && typeof(node.test[0]) === 'object' && node.test[0].type === 'lookup' && node.test[0].varname === choiceVar
+    && node.t.length === 1 && typeof(node.t[0]) === 'object' && node.t[0].type === 'cond'
+    && node.t[0].test.length === 1 && typeof(node.t[0].test[0]) === 'object' && node.t[0].test[0].type === 'func' && node.t[0].test[0].funcname === 'eq'
+    && node.t[0].test[0].args[0].type === 'lookup' && node.t[0].test[0].args[0].varname === choiceVar
+    && node.t[0].test[0].args[1].type === 'root' && node.t[0].test[0].args[1].rhs.length === 0
+}
+
 function makeEvalVar (name) {
   return { type: 'func',
            funcname: 'eval',
@@ -1007,10 +1017,10 @@ var binaryFunction = {
     return nlpWrap(l).values().lessThan(toNumber(r)).out()
   },
   eq: function (l, r) {
-    return toNumber(l) === toNumber(r) ? l : falseVal
+    return toNumber(l) === toNumber(r) ? (l || r || 'eq') : falseVal
   },
   neq: function (l, r) {
-    return toNumber(l) === toNumber(r) ? falseVal : l
+    return toNumber(l) === toNumber(r) ? falseVal : (l || r || 'neq')
   },
   leq: function (l, r) {
     return binaryFunction.eq(l,r) || binaryFunction.lt(l,r)

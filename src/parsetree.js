@@ -1385,7 +1385,7 @@ function makeExpansionPromise (config) {
                                                   { value: [] }) (list)
                     .then (function (weightListExpansion) {
                       var weights = makeArray (weightListExpansion.value).map (node.funcname === 'numsort' ? toNumber : makeString)
-                      var indices = listExpansion.value.map (function (_val, n) { return n })
+                      var indices = list.map (function (_val, n) { return n })
                       var sortedIndices = indices.sort (node.funcname === 'numsort'
                                                         ? function (a, b) { return weights[a] - weights[b] }
                                                         : function (a, b) { return String.prototype.localeCompare.call (weights[a], weights[b]) })

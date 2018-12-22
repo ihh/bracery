@@ -449,7 +449,7 @@ Language features include
       - The `falseExpr` clause is optional and defaults to the empty string
       - The `then` and `else` keywords are optional; you can write `&if{testExpr}{trueExpr}{falseExpr}` or  `&if{testExpr}{trueExpr}`
       - The conditional test (`testExpr`) can use arithmetic operators `&eq`, `&neq`, `&gt`, `&lt`, `&geq`, `&leq`
-         - also comparison `&same{x}{y}` and boolean operators `&and{x}{y}`, `&not{x}`
+         - also comparison `&same{x}{y}` and boolean operators `&and{x}{y}`, `&or{x}{y}`, `&not{x}`
    - dynamic evaluation
       - `&eval{expr}` parses `expr` as Bracery and dynamically expands it
          - conversely, `&quote{expr}` returns `expr` as a text string, without doing any expansions

@@ -190,7 +190,7 @@ BinaryFunctionName
   / "eq" / "neq"
   / "min" / "max"
   / "same"
-  / "and"
+  / "and" / "or"
   / "cat" / "prepend" / "append" / "join" / "nth"
   / "apply" / "xapply"
 

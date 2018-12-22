@@ -990,13 +990,16 @@ var binaryFunction = {
   and: function (l, r) {
     return isTruthy(l) && isTruthy(r) ? (l + r) : falseVal
   },
+  or: function (l, r) {
+    return isTruthy(l) ? l : r
+  },
   add: function (l, r) {
     var lVals = nlpWrap(l).values()
-    return (lVals.length ? lVals.add(toNumber(r)).out() : r) || zeroVal
+    return binaryFunction.or (lVals.length ? lVals.add(toNumber(r)).out() : r, zeroVal)
   },
   subtract: function (l, r) {
     var lVals = nlpWrap(l).values()
-    return (lVals.length ? lVals.subtract(toNumber(r)).out() : r) || zeroVal
+    return binaryFunction.or (lVals.length ? lVals.subtract(toNumber(r)).out() : r, zeroVal)
   },
   multiply: function (l, r) {
     return (toNumber(l) * toNumber(r)).toString()
@@ -1014,16 +1017,16 @@ var binaryFunction = {
     return nlpWrap(l).values().lessThan(toNumber(r)).out()
   },
   eq: function (l, r) {
-    return toNumber(l) === toNumber(r) ? (l || r || 'eq') : falseVal
+    return toNumber(l) === toNumber(r) ? binaryFunction.or (binaryFunction.or (l, r), 'eq') : falseVal
   },
   neq: function (l, r) {
-    return toNumber(l) === toNumber(r) ? falseVal : (l || r || 'neq')
+    return toNumber(l) === toNumber(r) ? falseVal : binaryFunction.or (binaryFunction.or (l, r), 'neq')
   },
   leq: function (l, r) {
-    return binaryFunction.eq(l,r) || binaryFunction.lt(l,r)
+    return binaryFunction.or (binaryFunction.eq(l,r), binaryFunction.lt(l,r))
   },
   geq: function (l, r) {
-    return binaryFunction.eq(l,r) || binaryFunction.gt(l,r)
+    return binaryFunction.or (binaryFunction.eq(l,r), binaryFunction.gt(l,r))
   },
   min: function (l, r, lv, rv) {
     return isTruthy (binaryFunction.leq(l,r)) ? lv : rv
@@ -1599,7 +1602,7 @@ function makeExpansionPromise (config) {
 
                     // not
                   case 'not':
-                    expansion.text = isTruthy (arg) ? '' : trueVal
+                    expansion.text = isTruthy (arg) ? falseVal : trueVal
                     break
 
                     // list functions
@@ -2107,6 +2110,7 @@ module.exports = {
   summarizeExpansion: summarizeExpansion,
   finalVarVal: finalVarVal,
 
+  isTruthy: isTruthy,
   makeString: makeString,
   makeArray: makeArray,
   makeQuoted: makeQuoted,

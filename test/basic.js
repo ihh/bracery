@@ -320,13 +320,16 @@ function doTests (testRunner) {
   expectExpand ('&comment{hello world}', '')
   expectExpandQuote ('&quote&comment{hello world}', '&comment{hello world}')
 
-  // same, and, not
+  // same, and, or, not
   expectExpand ('&same{abc}{def}', '')
   expectExpand ('&same{abc}{abc}', 'abc')
 
   expectExpand ('&and{ }{world}', '')
   expectExpand ('&and{hello}{  }', '')
   expectExpand ('&and{hello}{world}', 'helloworld')
+
+  expectExpand ('&or{a}{b}', 'a')
+  expectExpand ('&or{ }{b}', 'b')
 
   expectExpand ('&not{}', '1')
   expectExpand ('&not{ }', '1')

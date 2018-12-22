@@ -180,11 +180,11 @@ function promiseMessageList (config) {
   }
 
   function hasReject (message) {
-    return message.nextVars.reject
+    return message && message.nextVars && ParseTree.isTruthy (message.nextVars.reject)
   }
 
   function isChoice (message) {
-    return message && message.nextVars && (message.nextVars.accept || message.nextVars.reject)
+    return message && message.nextVars && (ParseTree.isTruthy (message.nextVars.accept) || ParseTree.isTruthy (message.nextVars.reject))
   }
   
   function appendChoiceFooter (message, choice) {

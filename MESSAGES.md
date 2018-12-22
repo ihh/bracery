@@ -63,7 +63,9 @@ Type `cd import; make` to run.
 Braceplates _(Bracery message templates)_ are a lightweight scheme for sequencing a series of Bracery messages in a Markov chain,
 allowing for limited contextual continuity between successive messages.
 
-The idea is that each template has a set of _past-tags_ and a set of _future-tags_.
+## Tags
+
+Each template has a set of _past-tags_ and a set of _future-tags_.
 Tags are arbitrary strings, excluding spaces.
 Matches between tags determine the connectivity of the Markov chain.
 
@@ -71,7 +73,11 @@ The past and future-tags are interpreted as follows:
 
 - For template B to be considered as a possible successor (i.e. reply) to a message generated from template A, at least one of A's future-tags must also be one of B's past-tags
 - If any of A's future-tags appear in B's past-tags with an exclamation point in front (e.g. A has future-tag `tag` and B has past-tag `!tag`), then B is disallowed as a successor to A (these tags are referred to as B's _excluded-past-tags_)
+   - The minus sign is an alias for the exclamation point in past-tags, so `-tag` means the same as `!tag`
+- If any of B's past-tags have a plus sign in front (e.g. B has past-tags `+tag`), then A _must_ have that tag in its future-tags.
 - The special past-tag `root` is used to denote _root templates_ that can be used at the top of a thread (or the past-tags can be left empty for the same effect)
+
+## Templates
 
 Each Bracery message template has the following fields:
 
@@ -81,6 +87,8 @@ Each Bracery message template has the following fields:
 - the Bracery _source text_ that is used to generate individual messages from this template
 - (optional) the name of the _sender_ (or, more generally, a user or NPC associated with the message)
 - (optional, defaults to 1) the integer _weight_ of the template (used by the recommendation engine)
+
+## Messages
 
 An individual Braceplate _message_, generated from one of the above templates, exists in the context of a _thread_ of messages.
 The first message in the thread must be generated from a root template, as described above.
@@ -93,6 +101,10 @@ Each message has the following fields:
 - a set of _future-tags_ which by default are the same as the template's future-tags, but can be overridden by the `$tags` variable, if that variable is assigned a value in the expansion tree
 - (if not the first message in the thread) a _predecessor_ message, with appropriate overlap between the predecessor's future-tags and the template's past-tags
 
+## Special variables
+
+### Tags
+
 The root node of the expansion tree "inherits" any variable assignments from the predecessor,
 with two special variables overridden as follows:
 
@@ -102,8 +114,24 @@ with two special variables overridden as follows:
 The value of the `tags` variable by the end of the expansion is used to find the message's future-tags (it is considered to be a whitespace-separated list).
 Thus, the template's default future-tags can be "overridden" by variable assignments from the Bracery source text.
 
+### Footers
+
 The special variable `$footer` also has significance, in that the Bracery code `&eval{$footer}` is implicitly appended to every message.
 A common pattern is to set (or manipulate) `$tags` from within `$footer`.
+
+### Accept/reject handlers
+
+The variables `$accept` and `$reject` are reset to the empty string at the beginning of every message.
+If, during the message, `$reject` is defined truthy (i.e. nonempty and non-whitespace), then the UI will interpret the player "reject" action
+as an "accept" with `&eval{$reject}` appended to the message.
+Similarly, if `$accept` is defined truthy, then the player "accept" action will append `&eval{$accept}` to the message.
+
+This allows forced binary choice semantics, similar to a game like [Reigns](https://www.devolverdigital.com/games/view/reigns).
+For example:
+
+~~~~
+The peasants riot for food. $accept={You distribute grain.} $reject={You crush the rebellion.}
+~~~~
 
 ## Braceplate syntax
 

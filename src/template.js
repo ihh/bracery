@@ -192,7 +192,6 @@ function promiseMessageList (config) {
   }
   return promiseMessage()
     .then (function (message) {
-      console.warn('message',JSON.stringify(message))
       return (message
               ? ((maxReplies > 0 || typeof(maxReplies) === 'undefined' || maxReplies === null)
                  ? (promiseMessageList (extend ({},

@@ -804,7 +804,8 @@ function stripFooter (rhs) {
 }
 
 function addFooter (rhs, footerVarName) {
-  return stripFooter (rhs).concat (makeFooter (footerVarName))
+  var strippedRhs = footerVarName ? rhs : stripFooter(rhs)
+  return strippedRhs.concat (makeFooter (footerVarName))
 }
 
 // Parse tree manipulations.

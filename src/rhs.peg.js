@@ -255,11 +255,14 @@ VarAssignmentList
 
 VarAssignment
   = "&set$" varname:Identifier args:FunctionArg _ { return makeAssign (varname, args) }
-  / "&set{" ("$" / "") varname:Identifier "}" _ args:FunctionArg { return makeAssign (varname, args) }
+  / "&set{" ("$" / "") varname:Identifier "}" args:FunctionArg { return makeAssign (varname, args) }
   / "[" varname:Identifier ":" args:NodeList "]" _ { return makeAssign (varname, args) }
   / "[" varname:Identifier "=>" opts:AltList "]" _ { return makeAssign (varname, [makeQuote (opts.length === 1 ? opts[0] : [makeAlternation (opts)])]) }
   / "$" varname:Identifier "=" target:VarAssignmentTarget { return makeAssign (varname, target) }
   / "$" varname:Identifier ":=" target:VarAssignmentTarget { return makeAssign (varname, target, true) }
+  / "&" varname:VarAssignFunctionName arg:QuotedFunctionArg { return makeAssign (varname, arg) }
+
+VarAssignFunctionName = "accept" / "reject"
 
 VarAssignmentTarget
   = DelimitedNodeList

@@ -193,6 +193,10 @@ function doTests (testRunner) {
 
   expectExpand ('$x=3 $y=8 &map&vars{\[$_:&eval{\$$_}\]}', '[x:3][y:8]')  // how to quote the environment...
 
+  expectExpand ('&set$x{oho}$x', 'oho')
+  expectExpand ('&accept$x $accept', ' $x')
+  expectExpand ('&reject{123}$reject', '123')
+
   // syntax edge cases involving dummy alternations
   expectExpand ('$abc=[ABC]', '=[ABC]')
   expectExpand ('$abc={[DEF]}', '')

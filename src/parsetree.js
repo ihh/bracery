@@ -2141,6 +2141,7 @@ module.exports = {
   isProbExpr: isProbExpr,
   isEvalVar: isEvalVar,
 
+  choiceVarName: choiceVarName,
   isChoiceExpr: isChoiceExpr,
   isProposeExpr: isProposeExpr,
   isAcceptExpr: isAcceptExpr,

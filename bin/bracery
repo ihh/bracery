@@ -393,7 +393,10 @@ if (opt.options.markov || opt.options.quiz) {
       process.stdin.setRawMode(true)
       process.stdin.resume()
     }
-  }
+  } else
+    markovConfig.accept = function (message, thread, callback, templateListCallback) {
+      callback (rng() < .5)
+    }
 
   bracery.Template.promiseMessageList (markovConfig)
     .then (function (chain) {

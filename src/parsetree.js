@@ -109,9 +109,10 @@ var nodeListArgKeys = ['opts']
 var defaultFooterVarName = 'footer'
 function makeFooter (footerVarName) {
   return [ { type: 'func',
-             funcname: 'eval',
              footer: true,
+             funcname: 'eval',
              args: [ { type: 'lookup',
+                       footer: true,
                        varname: footerVarName || defaultFooterVarName } ] } ]
 }
 

@@ -159,7 +159,7 @@ function promiseMessageList (config) {
     var message
     var template = template || generateTemplate (config.rng)
     if (template) {
-      var vars = extend ({}, config.vars || {}, { tags: template.tags || '' })
+      var vars = extend ({}, config.vars || {}, { tags: template.tags || '', choice: '' })
       message = { template: template,
                   vars: extend ({}, vars),
                   expansion: bracery._expandRhs (extend ({},
@@ -174,8 +174,24 @@ function promiseMessageList (config) {
     }
     return message
   }
+
+  function isChoiceTemplate (template) {
+    return (' ' + template.previousTags + ' ').indexOf (' ' + ParseTree.choiceVarName + ' ') >= 0
+  }
+  
+  function markAsAccepted (message) {
+    message.vars.choice = '1'
+    return message
+  }
+
+  function markAsRejected (message) {
+    message.vars.choice = '0'
+    return message
+  }
+
   function promiseMessage (template) {
     var proposedMessage = generateMessage (template)
+    var isChoice = proposedMessage && isChoiceTemplate (proposedMessage.template)
     return new Promise (function (resolve, reject) {
       if (!proposedMessage)
         resolve (true)
@@ -185,12 +201,13 @@ function promiseMessageList (config) {
       return (typeof(accepted) === 'object'
               ? promiseMessage (accepted)
               : (accepted
-                 ? proposedMessage
-                 : promiseMessage()))
+                 ? (isChoice ? markAsAccepted(proposedMessage) : proposedMessage)
+                 : (isChoice ? markAsRejected(proposedMessage) : promiseMessage())))
     })
   }
   return promiseMessage()
     .then (function (message) {
+      console.warn('message',JSON.stringify(message))
       return (message
               ? ((maxReplies > 0 || typeof(maxReplies) === 'undefined' || maxReplies === null)
                  ? (promiseMessageList (extend ({},

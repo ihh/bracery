@@ -88,15 +88,6 @@ function makeProbExpr (probArg, trueArg, falseArg) {
   return makeConditional ([makeFunction ('lt', [makeFunction ('random', ['1']), wrapNodes (probArg)])], trueArg, falseArg)
 }
 
-var choiceVarName = 'choice'
-function makeChoiceExpr (proposeArg, acceptArg, rejectArg) {
-  return makeConditional ([makeLookup (choiceVarName)],
-                          [makeConditional ([makeFunction ('neq', [makeLookup (choiceVarName), wrapNodes ([])])],
-                                            acceptArg,
-                                            rejectArg)],
-                          proposeArg)
-}
-
 function validRange (min, max) {
   return min <= max
 }

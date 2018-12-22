@@ -159,7 +159,11 @@ function promiseMessageList (config) {
     var message
     var template = template || generateTemplate (config.rng)
     if (template) {
-      var vars = extend ({}, config.vars || {}, { tags: template.tags || '', choice: '' })
+      var vars = extend ({},
+                         config.vars || {},
+                         { tags: template.tags || '',
+                           accept: '',
+                           reject: '' })
       message = { template: template,
                   vars: extend ({}, vars),
                   expansion: bracery._expandRhs (extend ({},
@@ -175,6 +179,28 @@ function promiseMessageList (config) {
     return message
   }
 
+  function hasReject (message) {
+    return message.nextVars.reject
+  }
+
+  function isChoice (message) {
+    return message && message.nextVars && (message.nextVars.accept || message.nextVars.reject)
+  }
+  
+  function appendChoiceFooter (message, choice) {
+    if (message) {
+      var footer = ParseTree.makeFooter (choice)
+      var footerExpansion = bracery._expandRhs (extend ({},
+                                                        config,
+                                                        { rhs: ParseTree.sampleParseTree (footer,
+                                                                                          bracery.rng),
+                                                          vars: message.nextVars }))
+      message.expansion.text = message.expansion.text + footerExpansion.text
+      message.expansion.tree.push (footerExpansion.tree)
+    }
+    return message
+  }
+
   function promiseMessage (template) {
     var proposedMessage = generateMessage (template)
     return new Promise (function (resolve, reject) {
@@ -186,8 +212,8 @@ function promiseMessageList (config) {
       return (typeof(accepted) === 'object'
               ? promiseMessage (accepted)
               : (accepted
-                 ? proposedMessage
-                 : promiseMessage()))
+                 ? (isChoice(proposedMessage) ? appendChoiceFooter(proposedMessage,'accept') : proposedMessage)
+                 : (hasReject(proposedMessage) ? appendChoiceFooter(proposedMessage,'reject') : promiseMessage())))
     })
   }
   return promiseMessage()

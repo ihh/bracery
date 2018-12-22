@@ -1,0 +1,8 @@
+@client>Syn # # syn
+SYN $reject=&quote{...no wait, stop$s=1}
+
+@server>Ack/Syn # syn # syn_ack
+ACK / SYN &if$s{Stop, you say? $accept=No.}
+
+@client>Ack # syn_ack # ack
+ACK $reject=Please

@@ -2068,6 +2068,7 @@ module.exports = {
   makeRoot: makeRoot,
 
   // footers
+  makeFooter: makeFooter,
   stripFooter: stripFooter,
   addFooter: addFooter,
   

@@ -790,18 +790,21 @@ var nodeArgKeys = ['rhs','args','unit','value','local','cond','t','f','bind']
 var nodeListArgKeys = ['opts']
 
 // Footers
-var footer = [ { type: 'func',
-                 funcname: 'eval',
-                 footer: true,
-                 args: [ { type: 'lookup',
-                           varname: 'footer' } ] } ]
+var defaultFooterVarName = 'footer'
+function makeFooter (footerVarName) {
+  return [ { type: 'func',
+             funcname: 'eval',
+             footer: true,
+             args: [ { type: 'lookup',
+                       varname: footerVarName || defaultFooterVarName } ] } ]
+}
 
 function stripFooter (rhs) {
   return rhs.filter (function (node) { return !node.footer })
 }
 
-function addFooter (rhs) {
-  return stripFooter (rhs).concat (footer)
+function addFooter (rhs, footerVarName) {
+  return stripFooter (rhs).concat (makeFooter (footerVarName))
 }
 
 // Parse tree manipulations.
@@ -9497,7 +9500,6 @@ function promiseMessageList (config) {
   }
   return promiseMessage()
     .then (function (message) {
-      console.warn('message',JSON.stringify(message))
       return (message
               ? ((maxReplies > 0 || typeof(maxReplies) === 'undefined' || maxReplies === null)
                  ? (promiseMessageList (extend ({},

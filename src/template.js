@@ -237,6 +237,8 @@ function promiseMessageList (config) {
 module.exports = { parseTemplateDefs: parseTemplateDefs,
                    flattenTemplates: flattenTemplates,
                    sampleTemplate: sampleTemplate,
+                   allRootTemplates: allRootTemplates,
+                   allReplyTemplates: allReplyTemplates,
                    randomRootTemplate: randomRootTemplate,
                    randomReplyTemplate: randomReplyTemplate,
                    promiseMessageList: promiseMessageList,

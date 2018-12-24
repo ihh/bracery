@@ -147,6 +147,11 @@ Bracery.prototype.addRule = Bracery.prototype.addRules
 Bracery.prototype.deleteRule = Bracery.prototype.deleteRules
 Bracery.prototype.setRule = Bracery.prototype.setRules
 
+Bracery.prototype._expandRhs = function (config) {
+  var result = this.expandParsed (config)
+  return config.callback ? result.then(stringifyText) : stringifyText(result)
+}
+
 Bracery.prototype._expandSymbol = function (config) {
   var symbolName = config.node.name.toLowerCase()
   var rhs
@@ -200,17 +205,6 @@ Bracery.prototype.makeConfig = function (config) {
                  config)
 }
 
-Bracery.prototype._expandRhs = function (config) {
-  var newConfig = this.makeConfig (config)
-  if (newConfig.callback) {
-    var promise = ParseTree.makeRhsExpansionPromise (newConfig)
-    if (typeof(newConfig.callback) === 'function')
-      promise = promise.then (newConfig.callback)
-    return promise.then (stringifyText)
-  }
-  return stringifyText (ParseTree.makeRhsExpansionSync (newConfig))
-}
-
 function validateSymbolName (name) {
   if (typeof(name) !== 'string')
     throw new Error ('name must be a string')
@@ -229,6 +223,17 @@ Bracery.prototype.getDefaultSymbol = function() {
       return name
   }
   return bracery.symbolNames()[0]
+}
+
+Bracery.prototype.expandParsed = function (config) {
+  var newConfig = this.makeConfig (config)
+  if (newConfig.callback) {
+    var promise = ParseTree.makeRhsExpansionPromise (newConfig)
+    if (typeof(newConfig.callback) === 'function')
+      promise = promise.then (newConfig.callback)
+    return promise
+  }
+  return ParseTree.makeRhsExpansionSync (newConfig)
 }
 
 Bracery.prototype.expand = function (braceryText, config) {
@@ -1419,7 +1424,7 @@ function reduceReducer (expansion, childExpansion, config) {
 // that may already have been partially expanded using sampleParseTree.
 function makeRhsExpansionPromise (config) {
   var pt = this
-  var rhs = config.rhs || this.sampleParseTree (parseRhs (config.rhsText), config)
+  var rhs = config.rhs || this.sampleParseTree (config.parsedRhsText || parseRhs (config.rhsText), config)
   var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
   var maxLength = config.maxLength || pt.maxLength
   var maxNodes = config.maxNodes || pt.maxNodes
@@ -9614,6 +9619,8 @@ function promiseMessageList (config) {
 module.exports = { parseTemplateDefs: parseTemplateDefs,
                    flattenTemplates: flattenTemplates,
                    sampleTemplate: sampleTemplate,
+                   allRootTemplates: allRootTemplates,
+                   allReplyTemplates: allReplyTemplates,
                    randomRootTemplate: randomRootTemplate,
                    randomReplyTemplate: randomReplyTemplate,
                    promiseMessageList: promiseMessageList,

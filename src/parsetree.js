@@ -735,7 +735,7 @@ function reduceReducer (expansion, childExpansion, config) {
 // that may already have been partially expanded using sampleParseTree.
 function makeRhsExpansionPromise (config) {
   var pt = this
-  var rhs = config.rhs || this.sampleParseTree (parseRhs (config.rhsText), config)
+  var rhs = config.rhs || this.sampleParseTree (config.parsedRhsText || parseRhs (config.rhsText), config)
   var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
   var maxLength = config.maxLength || pt.maxLength
   var maxNodes = config.maxNodes || pt.maxNodes

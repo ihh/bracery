@@ -1026,6 +1026,10 @@ function isEvalVar (node) {
           && node.args[0].type === 'lookup')
 }
 
+function getEvalVar (node) {
+  return node.args[0].varname
+}
+
 function makeEvalVar (name) {
   return { type: 'func',
            funcname: 'eval',
@@ -2783,6 +2787,7 @@ module.exports = {
   isTraceryExpr: isTraceryExpr,
   isProbExpr: isProbExpr,
   isEvalVar: isEvalVar,
+  getEvalVar: getEvalVar,
 
   makeSugaredName: makeSugaredName,
   makeRhsText: makeRhsText,

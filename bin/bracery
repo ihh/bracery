@@ -306,7 +306,8 @@ if (opt.options.markov || opt.options.quiz) {
                                vars: varVal })
   if (opt.options.quiz) {
     markovConfig.accept = function (message, thread, callback, templateListCallback) {
-      //console.log ('\033c')  // clear screen
+      if (!(opt.options.verbose > 1))
+        console.log ('\033c')  // clear screen
       if (thread)
         console.warn (chainToString (thread,
                                      { color: { title: null,

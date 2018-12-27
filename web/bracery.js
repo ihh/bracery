@@ -9546,11 +9546,12 @@ function promiseMessageList (config) {
     var message
     var template = template || generateTemplate (config.rng)
     if (template) {
-      var vars = extend ({},
-                         config.vars || {},
-                         { tags: template.tags || '',
-                           accept: '',
-                           reject: '' })
+      var initVars = extend ({},
+                             config.vars || {},
+                             { tags: template.tags || '',
+                               accept: '',
+                               reject: '' })
+      var vars = extend ({}, initVars)
       message = { template: template,
                   vars: extend ({}, vars),
                   expansion: bracery._expandRhs (extend ({},
@@ -9561,6 +9562,7 @@ function promiseMessageList (config) {
       message.title = vars.title || template.title
       message.tags = vars.prevtags = vars.tags
       delete vars.tags
+      message.vars = extend ({}, initVars)
       message.nextVars = extend ({}, vars)
     }
     return message
@@ -9577,13 +9579,19 @@ function promiseMessageList (config) {
   function appendChoiceFooter (message, choice) {
     if (message) {
       var footer = ParseTree.makeFooter (choice)
+      if (!message.footerVars) {
+        message.footerVars = extend ({}, message.nextVars)
+        delete message.nextVars
+      }
+      var vars = extend ({}, message.footerVars)
       var footerExpansion = bracery._expandRhs (extend ({},
                                                         config,
                                                         { rhs: ParseTree.sampleParseTree (footer,
                                                                                           bracery.rng),
-                                                          vars: message.nextVars }))
+                                                          vars: vars }))
       message.expansion.text = message.expansion.text + footerExpansion.text
       message.expansion.tree.push (footerExpansion.tree)
+      message.nextVars = extend ({}, vars)
     }
     return message
   }

@@ -254,12 +254,12 @@ if (opt.options.eval)
 
 // run template Markov chain
 function tagsString (message) { return bracery.Template.makeTagArray(message.tags).join(' ') }
-function varsString (message) {
-    var nextVars
-    if (message.nextVars) {
-      nextVars = extend ({}, message.nextVars)
-      delete nextVars.prevtags
-    }
+function varsString (nv) {
+  var nextVars = {}
+  if (nv) {
+    nextVars = extend (nextVars, nv)
+    delete nextVars.prevtags
+  }
   return '{' + Object.keys(nextVars).map(function(n){return n+':'+JSON.stringify(nextVars[n])}).join(',') + '}'
 }
 if (opt.options.markov || opt.options.quiz) {
@@ -275,8 +275,11 @@ if (opt.options.markov || opt.options.quiz) {
             + (message.tags.match(/\S/) && color.tags
                ? (' ' + color.tags.call (colors, tagsString(message)))
                : '')
-            + (message.nextVars && color.vars
-               ? (' ' + color.tags.call (colors, varsString(message)))
+            + (message.vars && color.vars
+               ? (' ' + color.vars.call (colors, varsString(message.vars)))
+               : '')
+            + (message.nextVars && color.nextVars
+               ? (' ' + color.nextVars.call (colors, varsString(message.nextVars)))
                : '')
             + '\n')
   }
@@ -309,14 +312,15 @@ if (opt.options.markov || opt.options.quiz) {
                                      { color: { title: null,
                                                 author: colors.blue,
                                                 message: colors.white } }))
-      var varsColor = colors.yellow, tagsColor = colors.cyan
+      var varsColor = colors.yellow, nextVarsColor = colors.red, tagsColor = colors.cyan
       console.warn (messageToString
                     (message,
                      { color: { title: function (text) { return colors.magenta (text) + '\n' },
                                 author: colors.blue,
                                 message: colors.white,
                                 tags: opt.options.verbose ? tagsColor : undefined,
-                                vars: opt.options.verbose > 1 ? varsColor : undefined } }))
+                                vars: opt.options.verbose > 1 ? varsColor : undefined,
+                                nextVars: opt.options.verbose > 1 ? nextVarsColor : undefined} }))
       process.stdout.write (colors.bold('Accept?') + ' ' + colors.gray('(Y/n)') + ' ')
 
       keypress (process.stdin)
@@ -405,6 +409,7 @@ if (opt.options.markov || opt.options.quiz) {
                                              author: colors.blue,
                                              message: colors.white,
                                              tags: opt.options.verbose ? colors.cyan : undefined,
+                                             nextVars: opt.options.verbose > 1 ? colors.red : undefined,
                                              vars: opt.options.verbose > 1 ? colors.yellow : undefined } }))
     })
   printedSomething = true

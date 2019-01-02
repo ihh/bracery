@@ -101,7 +101,7 @@ function parseTextDefs (text) {
 }
 
 // Parse tree constants
-var symChar = '~', varChar = '$', funcChar = '&', leftBraceChar = '{', rightBraceChar = '}', leftSquareBraceChar = '[', rightSquareBraceChar = ']', pipeChar = '|', assignChar = '=', traceryChar = '#'
+var symChar = '~', varChar = '$', funcChar = '&', leftBraceChar = '{', rightBraceChar = '}', leftSquareBraceChar = '[', rightSquareBraceChar = ']', pipeChar = '|', assignChar = '=', traceryChar = '#', defaultMapVar = '_'
 var nodeArgKeys = ['rhs','args','unit','value','local','cond','t','f','bind']
 var nodeListArgKeys = ['opts']
 
@@ -481,7 +481,7 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
           break
         case 'map':
         case 'reduce':
-          result = [funcChar, tok.funcname, (tok.args[0].varname === '_' ? '' : [varChar, tok.args[0].varname, ':']), makeFuncArgTree (pt, tok.args[0].value, makeSymbolName)]
+          result = [funcChar, tok.funcname, (tok.args[0].varname === defaultMapVar ? '' : [varChar, tok.args[0].varname, ':']), makeFuncArgTree (pt, tok.args[0].value, makeSymbolName)]
             .concat (tok.funcname === 'reduce'
                      ? [varChar, tok.args[0].local[0].varname, '=', makeFuncArgTree (pt, tok.args[0].local[0].value, makeSymbolName), makeFuncArgTree (pt, tok.args[0].local[0].local[0].args, makeSymbolName, nextIsAlpha)]
                      : [makeFuncArgTree (pt, tok.args[0].local[0].args, makeSymbolName, nextIsAlpha)])
@@ -2119,7 +2119,8 @@ module.exports = {
   pipeChar: pipeChar,
   assignChar: assignChar,
   traceryChar: traceryChar,
-
+  defaultMapVar: defaultMapVar,
+  
   // parse tree manipulations
   sampleParseTree: sampleParseTree,
   getSymbolNodes: getSymbolNodes,

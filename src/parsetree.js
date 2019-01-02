@@ -462,37 +462,50 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
                      }, []))
         break;
       case 'func':
-        if (tok.funcname === 'link') {
+        switch (funcType (tok.funcname)) {
+        case 'link':
           result = [funcChar, tok.funcname].concat ([tok.args[0], tok.args[1], tok.args[2].args[0]].map (function (arg) { return makeFuncArgTree (pt, [arg], makeSymbolName, nextIsAlpha) }))
-        } else if (tok.funcname === 'parse') {
+          break
+        case 'parse':
           result = [funcChar, tok.funcname].concat ([tok.args[0].args, [tok.args[1]]].map (function (args) { return makeFuncArgTree (pt, args, makeSymbolName, nextIsAlpha) }))
-        } else if (binaryFunction[tok.funcname] || tok.funcname === 'apply') {
+          break
+        case 'apply':
           result = [funcChar, tok.funcname].concat (tok.args.map (function (arg) { return makeFuncArgTree (pt, [arg], makeSymbolName, nextIsAlpha) }))
-        } else if (varFunction[tok.funcname]) {
+          break
+        case 'push':
           result = [funcChar, tok.funcname, varChar, tok.args[0].args[0].varname].concat (tok.args.length > 1 ? [makeFuncArgTree (pt, tok.args.slice(1), makeSymbolName, nextIsAlpha)] : (nextIsAlpha ? [' '] : []))
-        } else if (regexFunction[tok.funcname]) {
+          break
+        case 'match':
           result = [funcChar, tok.funcname, '/', pt.makeRhsTree ([tok.args[0]], makeSymbolName), '/', pt.makeRhsTree ([tok.args[1]], makeSymbolName, nextIsAlpha)]
             .concat (tok.args.slice(2).map (function (arg, n) { return makeFuncArgTree (pt, n>0 ? arg.args : [arg], makeSymbolName, nextIsAlpha) }))
-        } else if (tok.funcname === 'map' || tok.funcname === 'filter' || tok.funcname === 'numsort' || tok.funcname === 'lexsort' || tok.funcname === 'reduce') {
+          break
+        case 'map':
+        case 'reduce':
           result = [funcChar, tok.funcname, (tok.args[0].varname === '_' ? '' : [varChar, tok.args[0].varname, ':']), makeFuncArgTree (pt, tok.args[0].value, makeSymbolName)]
             .concat (tok.funcname === 'reduce'
                      ? [varChar, tok.args[0].local[0].varname, '=', makeFuncArgTree (pt, tok.args[0].local[0].value, makeSymbolName), makeFuncArgTree (pt, tok.args[0].local[0].local[0].args, makeSymbolName, nextIsAlpha)]
                      : [makeFuncArgTree (pt, tok.args[0].local[0].args, makeSymbolName, nextIsAlpha)])
-        } else if (tok.funcname === 'vars') {
+          break
+        case 'vars':
           result = [funcChar, tok.funcname]
-        } else if (tok.funcname === 'call') {
+          break
+        case 'call':
           result = [funcChar, tok.funcname, makeFuncArgTree (pt, [tok.args[0]], makeSymbolName)].concat (makeArgList.call (pt, tok.args[1].args, makeSymbolName, nextIsAlpha))
-        } else if (tok.funcname === 'strictquote' || tok.funcname === 'quote' || tok.funcname === 'unquote') {
+          break
+        case 'quote':
           result = [funcChar, tok.funcname, makeFuncArgTree (pt, tok.args, makeSymbolName, tok.funcname === 'unquote' || nextIsAlpha)]
-        } else if (tok.funcname === 'math') {
-          return [funcChar, tok.funcname, [leftBraceChar, makeMathTree (pt, tok.args[0], makeSymbolName, nextIsAlpha), rightBraceChar]]
-        } else {
+          break
+        case 'math':
+          result = [funcChar, tok.funcname, [leftBraceChar, makeMathTree (pt, tok.args[0], makeSymbolName, nextIsAlpha), rightBraceChar]]
+          break
+        default:
 	  var sugaredName = pt.makeSugaredName (tok, makeSymbolName, nextIsAlpha)
           if (sugaredName) {
 	    result = sugaredName
           } else {
             result = [funcChar, tok.funcname, makeFuncArgTree (pt, tok.args, makeSymbolName, nextIsAlpha)]
           }
+          break
         }
 	break
       case 'alt_sampled':
@@ -1073,6 +1086,22 @@ var binaryFunction = {
     var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
     return resolve('')
   }
+}
+
+function funcType (funcname) {
+  if (funcname === 'link' || funcname === 'parse' || funcname === 'reduce' || funcname === 'vars' || funcname === 'call' || funcname === 'math')
+    return funcname
+  if (binaryFunction[funcname] || funcname === 'apply')
+    return 'apply'
+  if (varFunction[funcname])
+    return 'push'
+  if (regexFunction[funcname])
+    return 'match'
+  if (funcname === 'map' || funcname === 'filter' || funcname === 'numsort' || funcname === 'lexsort')
+    return 'map'
+  if (funcname === 'strictquote' || funcname === 'quote' || funcname === 'unquote')
+    return 'quote'
+  return 'list'
 }
 
 function unableToParse (pt, config, text) {
@@ -2099,7 +2128,8 @@ module.exports = {
   isProbExpr: isProbExpr,
   isEvalVar: isEvalVar,
   getEvalVar: getEvalVar,
-
+  funcType: funcType,
+  
   makeSugaredName: makeSugaredName,
   makeRhsText: makeRhsText,
   makeRhsTree: makeRhsTree,

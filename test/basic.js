@@ -93,6 +93,7 @@ function doTests (testRunner) {
   expectExpand ('&quote&quote{&~hello{abc}{def}}', '&quote{&~hello{abc}{def}}')
 
   expectExpandQuote ('&quote{&xapply~{ lambda }{$y}}', '&xapply~lambda$y')
+  expectExpandQuote ('&quote{&xcall~a{b}{cd}{e}}', '&~a{b}{cd}{e}')
   
   // case manipulation
   expectExpand ('&quote{~TEST1}', '~TEST1')

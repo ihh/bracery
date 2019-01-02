@@ -1089,9 +1089,11 @@ var binaryFunction = {
 }
 
 function funcType (funcname) {
-  if (funcname === 'link' || funcname === 'parse' || funcname === 'reduce' || funcname === 'vars' || funcname === 'call' || funcname === 'math')
+  if (funcname === 'link' || funcname === 'parse' || funcname === 'reduce' || funcname === 'vars' || funcname === 'math')
     return funcname
-  if (binaryFunction[funcname] || funcname === 'apply')
+  if (funcname === 'call' || funcname === 'xcall')
+    return 'call'
+  if (binaryFunction[funcname] || funcname === 'apply' || funcname === 'xapply')
     return 'apply'
   if (varFunction[funcname])
     return 'push'

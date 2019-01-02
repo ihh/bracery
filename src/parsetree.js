@@ -2120,6 +2120,7 @@ module.exports = {
   makeArray: makeArray,
   makeQuoted: makeQuoted,
   escapeString: escapeString,
+  toNumber: toNumber,
   
   // English grammar
   conjugate: conjugate,

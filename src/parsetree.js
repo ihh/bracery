@@ -1219,7 +1219,7 @@ function makeEvalPromise (config, makeSymbolName, evalNode, evalNodeRhs, argsNod
                  }))
               : resolve ([]))
         .then (function (args) {
-          args = args || []
+          args = makeArray (args || [])
           return makeAssignmentPromise.call (pt,
                                              config,
                                              [[makeGroupVarName(0), null, args]]

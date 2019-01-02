@@ -477,6 +477,8 @@ function doTests (testRunner) {
   expectExpand ('[a=>cat|cat]&apply$a{}', 'cat')
   expectExpand ('&apply&quote{x=$$1 y=$$2}&split{3 4}', 'x=3 y=4')
   expectExpand ('&apply&quote{x=$$1 y=$$2}{3 4}', 'x=3 4 y=')
+
+  expectExpand ('&quote{&call$f{A}{B}}', '&call$f{A}{B}')
   
   // regexes
   expectExpand ('&match/a/{cat}{$$0$$0}', 'aa')

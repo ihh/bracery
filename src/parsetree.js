@@ -490,7 +490,7 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
           result = [funcChar, tok.funcname]
           break
         case 'call':
-          result = [funcChar, tok.funcname, makeFuncArgTree (pt, [tok.args[0]], makeSymbolName)].concat (makeArgList.call (pt, tok.args[1].args, makeSymbolName, nextIsAlpha))
+          result = [funcChar, tok.funcname, makeFuncArgTree (pt, [tok.args[0]], makeSymbolName)].concat (makeArgList.call (pt, tok.args, 1, makeSymbolName))
           break
         case 'quote':
           result = [funcChar, tok.funcname, makeFuncArgTree (pt, tok.args, makeSymbolName, tok.funcname === 'unquote' || nextIsAlpha)]
@@ -525,7 +525,7 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
                     ? [funcChar + 'xapply' + symChar, makeSymbolName(tok), makeFuncArgTree (pt, tok.bind, nextIsAlpha)]
                     : (nextIsAlpha && !hasNonemptyArgList
                        ? [symChar, [leftBraceChar, makeSymbolName(tok), rightBraceChar]]
-                       : (hasNonemptyArgList ? [funcChar] : []).concat ([symChar, makeSymbolName(tok)], [makeArgList.call (pt, tok.bind, makeSymbolName)])))
+                       : (hasNonemptyArgList ? [funcChar] : []).concat ([symChar, makeSymbolName(tok)], [makeArgList.call (pt, tok.bind, 0, makeSymbolName)])))
         }
 	break
       }
@@ -541,10 +541,10 @@ function makeOptTree (makeSymbolName, nOpts, opt, n) {
   return [optTree].concat (n < nOpts - 1 ? [pipeChar] : [])
 }
 
-function makeArgList (args, makeSymbolName) {
+function makeArgList (args, n, makeSymbolName) {
   var pt = this
-  return (args && args.length && args[0].args && args[0].args.length
-          ? args[0].args.map (function (arg) { return [leftBraceChar].concat (pt.makeRhsTree ([arg], makeSymbolName)).concat ([rightBraceChar]) })
+  return (args && args.length && args[n].args && args[n].args.length
+          ? args[n].args.map (function (arg) { return [leftBraceChar].concat (pt.makeRhsTree ([arg], makeSymbolName)).concat ([rightBraceChar]) })
           : [])
 }
 

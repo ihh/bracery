@@ -160,6 +160,7 @@ NullaryFunction
 BinaryVarFunction
   = "&" func:PushOrUnshift v:VarFunctionArg right:FunctionArg _ { return makeFunction (func, [wrapNodes (v), wrapNodes (right)]) }
   / "&" func:PushOrUnshift right:FunctionArg _ { return makeFunction (func, [makeStrictQuote ([makeLookup (defaultListVarName)]), wrapNodes (right)]) }
+  / "&meter" icon:FunctionArg expr:QuotedFunctionArg _ { return makeFunction ('push', [makeStrictQuote ([makeLookup ('meters')]), wrapNodes (makeArgList ([makeArgList ([icon, expr])]))]) }
 
 UnaryVarFunction
   = "&" func:ShiftOrPop v:VarFunctionArg { return makeFunction (func, v) }

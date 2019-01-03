@@ -195,6 +195,8 @@ function doTests (testRunner) {
   expectExpand ('$x=3 $y=8 &map&vars{\[$_:&eval{\$$_}\]}', '[x:3][y:8]')  // how to quote the environment...
 
   expectExpand ('&set$x{oho}$x', 'oho')
+
+  // Game-specific extensions: accept/reject, meters
   expectExpand ('&accept$x $accept', ' $x')
   expectExpand ('&reject{123}$reject', '123')
 

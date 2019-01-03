@@ -65,7 +65,8 @@ function makeConfig() {
 // logging
 var before = {}, after = {}
 if (opt.options.verbose > 1) {
-  before.all = console.warn.bind (console, 'before node,varval,depth:')
+  //  before.all = console.warn.bind (console, 'before node,varval,depth:')
+  before.all = function(node,vars,depth) { console.warn ('before node,varval,depth:', JSON.stringify(node),vars,depth) }
   after.all = console.warn.bind (console, 'after node,varval,depth,expansion:')
   if (opt.options.async || opt.options.client) {
     before.expand = console.warn.bind (console, 'before_expand node,varval,depth:')

@@ -3159,7 +3159,7 @@ function peg$parse(input, options) {
       peg$c139 = function(func, right) { return makeFunction (func, [makeStrictQuote ([makeLookup (defaultListVarName)]), wrapNodes (right)]) },
       peg$c140 = "&meter",
       peg$c141 = peg$literalExpectation("&meter", false),
-      peg$c142 = function(icon, expr) { return makeFunction ('push', [makeStrictQuote ([makeLookup ('meters')]), wrapNodes (makeArgList ([makeArgList ([icon, expr])]))]) },
+      peg$c142 = function(icon, expr) { return makeMeter (icon, expr) },
       peg$c143 = function(func, v) { return makeFunction (func, v) },
       peg$c144 = function(func) { return makeFunction (func, [makeStrictQuote ([makeLookup (defaultListVarName)])] ) },
       peg$c145 = "++",
@@ -5874,7 +5874,7 @@ function peg$parse(input, options) {
         if (s1 !== peg$FAILED) {
           s2 = peg$parseFunctionArg();
           if (s2 !== peg$FAILED) {
-            s3 = peg$parseQuotedFunctionArg();
+            s3 = peg$parseAdditiveExpr();
             if (s3 !== peg$FAILED) {
               s4 = peg$parse_();
               if (s4 !== peg$FAILED) {
@@ -9429,6 +9429,11 @@ function peg$parse(input, options) {
 
   function validRange (min, max) {
     return min <= max
+  }
+
+  function makeMeter (icon, expr) {
+    return makeFunction ('push', [makeStrictQuote ([makeLookup ('meters')]),
+                                  wrapNodes (makeArgList ([makeArgList ([icon, [makeStrictQuote ([makeFunction ('math', [expr])])]])]))])
   }
 
 

@@ -199,6 +199,7 @@ function doTests (testRunner) {
   // Game-specific extensions: accept/reject, meters
   expectExpand ('&accept$x $accept', ' $x')
   expectExpand ('&reject{123}$reject', '123')
+  expectExpand ('&meter{a}{b}&meter{c}{$d}&json$meters', '[[["a","b"],["c","$d"]]]')
 
   // syntax edge cases involving dummy alternations
   expectExpand ('$abc=[ABC]', '=[ABC]')

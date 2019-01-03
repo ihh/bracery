@@ -91,3 +91,8 @@ function makeProbExpr (probArg, trueArg, falseArg) {
 function validRange (min, max) {
   return min <= max
 }
+
+function makeMeter (icon, expr) {
+  return makeFunction ('push', [makeStrictQuote ([makeLookup ('meters')]),
+                                wrapNodes (makeArgList ([makeArgList ([icon, [makeStrictQuote ([makeFunction ('math', [expr])])]])]))])
+}

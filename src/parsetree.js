@@ -1754,6 +1754,10 @@ function makeExpansionPromise (config) {
                     expansion.text = Math.abs (toNumber(arg))
                     break
 
+                  case 'percent':
+                    expansion.text = Math.round (100 * toNumber(arg)) + '%'
+                    break
+
                   case 'wordnum':
                     expansion.text = nlp(arg).values().toText().out()
                     break

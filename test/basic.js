@@ -173,6 +173,9 @@ function doTests (testRunner) {
   expectExpand ('&max{four}{2}', 'four')
   expectExpand ('&min{-10}{twenty}', '-10')
 
+  expectExpand ('&percent{.5}', '50%')
+  expectExpand ('&percent{1.01}', '101%')
+
   // test workaround for nlp's floating-point parser, that doesn't recognize '.5' as '0.5'
   expectExpand ('&add{.25}{.3}', '0.55')
 
@@ -199,7 +202,7 @@ function doTests (testRunner) {
   // Game-specific extensions: accept/reject, meters
   expectExpand ('&accept$x $accept', ' $x')
   expectExpand ('&reject{123}$reject', '123')
-  expectExpand ('&meter{a}{$b}&meter{c}{$d/100}&json$meters', '[[["a","&math{$b}"],["c","&math{$d/100}"]]]')
+  expectExpand ('&meter{a}{$b} &meter{c}{$d/100} &json$meters', '[[["a","&math{$b}",""],["c","&math{$d/100}",""]]]')
 
   // syntax edge cases involving dummy alternations
   expectExpand ('$abc=[ABC]', '=[ABC]')

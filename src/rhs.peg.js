@@ -160,6 +160,7 @@ NullaryFunction
 BinaryVarFunction
   = "&" func:PushOrUnshift v:VarFunctionArg right:FunctionArg _ { return makeFunction (func, [wrapNodes (v), wrapNodes (right)]) }
   / "&" func:PushOrUnshift right:FunctionArg _ { return makeFunction (func, [makeStrictQuote ([makeLookup (defaultListVarName)]), wrapNodes (right)]) }
+  / "&meter" icon:FunctionArg expr:MathExpr status:QuotedFunctionArg _ { return makeMeter (icon, expr, status) }
   / "&meter" icon:FunctionArg expr:MathExpr _ { return makeMeter (icon, expr) }
 
 UnaryVarFunction
@@ -198,7 +199,7 @@ BinaryFunctionName
 UnaryFunctionName
   = "eval" / "syntax" / "tree" / "jparse"
   / "escape" / "quotify" / StrictQuote / Quote / Unquote
-  / "random" / "floor" / "ceil" / "round" / "abs"
+  / "random" / "floor" / "ceil" / "round" / "abs" / "percent"
   / "wordnum" / "dignum" / "ordinal" / "cardinal"
   / "plural" / "singular" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive"
   / "json" / "parsejson"

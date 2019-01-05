@@ -262,9 +262,9 @@ VarAssignment
   / "[" varname:Identifier "=>" opts:AltList "]" _ { return makeAssign (varname, [makeQuote (opts.length === 1 ? opts[0] : [makeAlternation (opts)])]) }
   / "$" varname:Identifier "=" target:VarAssignmentTarget { return makeAssign (varname, target) }
   / "$" varname:Identifier ":=" target:VarAssignmentTarget { return makeAssign (varname, target, true) }
-  / "&" varname:VarAssignFunctionName arg:QuotedFunctionArg { return makeAssign (varname, arg) }
+  / "&" varname:VarAssignFunctionName arg:QuotedFunctionArg _ { return makeAssign (varname, arg) }
 
-VarAssignFunctionName = "accept" / "reject"
+VarAssignFunctionName = "accept" / "reject" / "status"
 
 VarAssignmentTarget
   = DelimitedNodeList

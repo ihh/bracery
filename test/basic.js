@@ -199,12 +199,14 @@ function doTests (testRunner) {
 
   expectExpand ('&set$x{oho}$x', 'oho')
 
-  // Game-specific extensions: accept/reject, meters
-  expectExpand ('&accept$x $accept', ' $x')
+  // Game-specific extensions: &accept, &reject, &meter, &status
+  expectExpand ('&accept$x $accept', '$x')
   expectExpand ('&reject{123}$reject', '123')
 
   expectExpand ('&meter{a}{$b} &meter{c}{$d/100} &json$meters', '[[["a","&math{$b}"],["c","&math{$d/100}"]]]')
   expectExpand ('&meter{a}{$b}{$c} &json$meters', '[[["a","&math{$b}","$c"]]]')
+
+  expectExpand ('&status{$blah}$status', '$blah')
 
   // syntax edge cases involving dummy alternations
   expectExpand ('$abc=[ABC]', '=[ABC]')

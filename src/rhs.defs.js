@@ -95,6 +95,6 @@ function validRange (min, max) {
 function makeMeter (icon, expr, status) {
   return makeFunction ('push', [makeStrictQuote ([makeLookup ('meters')]),
                                 wrapNodes (makeArgList ([makeArgList ([icon,
-                                                                       [makeStrictQuote ([makeFunction ('math', [expr])])],
-                                                                       status || []])]))])
+                                                                       [makeStrictQuote ([makeFunction ('math', [expr])])]]
+                                                                      .concat (status ? [status] : []))]))])
 }

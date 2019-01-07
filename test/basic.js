@@ -511,6 +511,9 @@ function doTests (testRunner) {
   expectExpand ('$a=4 $d=3 $b=5 $c=2 &math{0.2*$a+$b}', '5.8')
   expectExpand ('&quote&math{  (   $a  *   $d    )-$b+$c  }', '&math{($a * $d) - $b + $c}')
 
+  expectExpand ('&math{.5}', '0.5')
+  expectExpand ('&math{0.5}', '0.5')
+
   // link
   expectExpand ('$x=3 &link{test$x}{$x}{$x}', '&link{test3}{3}{$x}')
   expectExpand ('&quote&link{test}{$x}{$x}', '&link{test}$x$x')

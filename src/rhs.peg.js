@@ -310,7 +310,7 @@ Number
   = num:[0-9]+ { return parseInt (num.join('')) }
 
 Float
-  = left:[0-9]+ "." right:[0-9]+ { return parseFloat(left.join("") + "." +   right.join("")) }
+  = left:[0-9]* "." right:[0-9]+ { return parseFloat(left.join("") + "." +   right.join("")) }
 
 Identifier
   = firstChar:[A-Za-z_] rest:[A-Za-z_0-9]* { return firstChar + rest.join("") }

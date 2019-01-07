@@ -262,6 +262,12 @@ VarAssignment
   / "[" varname:Identifier "=>" opts:AltList "]" _ { return makeAssign (varname, [makeQuote (opts.length === 1 ? opts[0] : [makeAlternation (opts)])]) }
   / "$" varname:Identifier "=" target:VarAssignmentTarget { return makeAssign (varname, target) }
   / "$" varname:Identifier ":=" target:VarAssignmentTarget { return makeAssign (varname, target, true) }
+  / "$" varname:Identifier "+=" delta:VarAssignmentTarget { return makeModify (varname, 'add', delta) }
+  / "$" varname:Identifier "-=" delta:VarAssignmentTarget { return makeModify (varname, 'subtract', delta) }
+  / "$" varname:Identifier "*=" scale:VarAssignmentTarget { return makeModify (varname, 'multiply', scale) }
+  / "$" varname:Identifier "/=" scale:VarAssignmentTarget { return makeModify (varname, 'divide', scale) }
+  / "$" varname:Identifier ".=" suffix:VarAssignmentTarget { return makeModifyConcat (varname, suffix) }
+  / "&tag" tag:FunctionArg _ { return makeModifyConcat ('tags', [' '].concat (tag)) }
   / "&" varname:VarAssignFunctionName arg:QuotedFunctionArg _ { return makeAssign (varname, arg) }
 
 VarAssignFunctionName = "accept" / "reject" / "status"

@@ -199,7 +199,7 @@ function doTests (testRunner) {
 
   expectExpand ('&set$x{oho}$x', 'oho')
 
-  // Game-specific extensions: &accept, &reject, &meter, &status
+  // Game-specific extensions: &accept, &reject, &meter, &status, &tag
   expectExpand ('&accept$x $accept', '$x')
   expectExpand ('&reject{123}$reject', '123')
 
@@ -207,6 +207,8 @@ function doTests (testRunner) {
   expectExpand ('&meter{a}{$b}{$c} &json$meters', '[[["a","&math{$b}","$c"]]]')
 
   expectExpand ('&status{$blah}$status', '$blah')
+
+  expectExpand ('$tags=abc &tag{def}&tag{ghi} $tags', 'abc def ghi')
 
   // syntax edge cases involving dummy alternations
   expectExpand ('$abc=[ABC]', '=[ABC]')
@@ -297,7 +299,9 @@ function doTests (testRunner) {
                 'a,b,c,... a ... uh,b ... X...T...C')  // a lot going on in this one. Spaces must be exactly correct (of course)
   expectExpand ('$x=5 &inc$x x=$x $x=10 &dec$x x=$x', 'x=6 x=9')  // note exact spaces
   expectExpand ('$a=10 $b=20 $c=30 $d=40 ++$a --$b $c++ $d-- a=$a b=$b c=$c d=$d', '10 20 31 39 a=11 b=19 c=31 d=39')  // note exact spaces
-  
+
+  expectExpand ('$a=ten $a $a+=3 $a $a-=5 $a $a*=2 $a $a/=4 $a $a.=2 $a', 'ten thirteen eight 16 4 42')
+
   expectExpand ('$x=&split{fresh word salad} &join{&shuffle{$x}}{ }', 'salad word fresh', {maxTries:maxTries})
 
   expectExpand ('$x=&{1&,3&,2&,11}&json$x $y=&numsort{$x}{$_} &json$y', '[["1","3","2","11"]] [["1","2","3","11"]]')

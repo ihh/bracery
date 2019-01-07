@@ -24,6 +24,9 @@ function makeDefineFunction (args, inner) {
   return makeQuote ([makeLocalAssignChain (args.map (function (arg, n) { return makeAssign (arg, [makeLookup (makeGroupVarName (n + 1))]) }), inner)])
 }
 
+function makeModify (name, func, val) { return makeAssign (name, [makeFunction (func, [makeLookup (name), wrapNodes (val)])]) }
+function makeModifyConcat (name, suffix) { return makeAssign (name, [makeLookup (name)].concat (suffix)) }
+
 function makeArgList (args) {
   return args && args.length ? [makeFunction ('list', args.map (wrapNodes))] : undefined
 }

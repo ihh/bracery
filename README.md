@@ -435,6 +435,7 @@ Language features include
          - `&prob{p}{succeed}{fail}` expands to `succeed` with probability `p`, and `fail` otherwise
       - `&eq{x}{y}`, `&neq{x}{y}`, `&gt{x}{y}`, `&geq{x}{y}`, `&lt{x}{y}`, `&leq{x}{y}` also fairly predictable
       - similarly `&inc{$x}`, `&dec{$x}`, `$x++`, `++$x`, `$x--`, `--$y`
+         - and `$x+=1`, `$x-=2`, `$x*=3`, `$x/=4`
    - regular expressions:
       - `&match/regex/flags{text}{expr}` returns a list of `expr` evaluations (`$$1`, `$$2`, etc are bound to matching groups)
       - `&replace/regex/flags{text}{replacement}` returns a string

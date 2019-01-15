@@ -520,12 +520,11 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
         break;
       case 'func':
         if (isMeterExpr (tok)) {
+          var status = getMeterStatus (tok)
           result = [funcChar, 'meter',
                     [leftBraceChar, pt.makeRhsTree ([getMeterIcon (tok)], makeSymbolName), rightBraceChar],
-                    [leftBraceChar, pt.makeRhsTree (getMeterLevel (tok), makeSymbolName), rightBraceChar]]
-          var status = getMeterStatus (tok)
-          if (status)
-            result.push ([leftBraceChar, pt.makeRhsTree (status, makeSymbolName), rightBraceChar])
+                    [leftBraceChar, pt.makeRhsTree (getMeterLevel (tok), makeSymbolName), rightBraceChar],
+                    status ? [leftBraceChar, pt.makeRhsTree (status, makeSymbolName), rightBraceChar] : ' ']
         } else
           switch (funcType (tok.funcname)) {
           case 'link':
@@ -2221,6 +2220,7 @@ module.exports = {
   makeExpansionSync: makeExpansionSync,
   makeRhsExpansionSync: makeRhsExpansionSync,
 
+  summarize: summarize,
   summarizeRhs: summarizeRhs,
   summarizeExpansion: summarizeExpansion,
   finalVarVal: finalVarVal,

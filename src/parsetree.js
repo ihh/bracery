@@ -387,6 +387,19 @@ function isQuoteAssignExpr (node) {
     && node.value.length === 1 && node.value[0].type === 'func' && node.value[0].funcname === 'strictquote'
 }
 
+// &tag{x} expands to $tags={$tags x}
+function isTagExpr (node) {
+  return typeof(node) === 'object' && node.type === 'assign' && !node.local
+    && node.varname === 'tags'
+    && node.value.length > 2
+    && node.value[0].type === 'lookup' && node.value[0].varname === 'tags'
+    && node.value[1] === ' '
+}
+
+function getTagExprRhs (node) {
+  return node.value.slice(2)
+}
+
 function makeFuncArgTree (pt, args, makeSymbolName, forceBraces) {
   var noBraces = !forceBraces && args.length === 1 && (args[0].type === 'func' || args[0].type === 'lookup' || args[0].type === 'alt')
   return [noBraces ? '' : leftBraceChar, pt.makeRhsTree (args, makeSymbolName), noBraces ? '' : rightBraceChar]
@@ -448,6 +461,8 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
       case 'assign':
         if (isQuoteAssignExpr (tok))
           result = [funcChar, tok.varname, [leftBraceChar, pt.makeRhsTree(tok.value[0].args,makeSymbolName), rightBraceChar]]
+        else if (isTagExpr (tok))
+          result = [funcChar, 'tag', [leftBraceChar, pt.makeRhsTree(getTagExprRhs(tok),makeSymbolName), rightBraceChar]]
         else {
           var assign = [varChar, tok.varname, (tok.visible ? ':' : '') + assignChar, [leftBraceChar, pt.makeRhsTree(tok.value,makeSymbolName), rightBraceChar]]
           if (tok.local)
@@ -2147,6 +2162,8 @@ module.exports = {
   isTraceryExpr: isTraceryExpr,
   isProbExpr: isProbExpr,
   isQuoteAssignExpr: isQuoteAssignExpr,
+  isTagExpr: isTagExpr,
+  getTagExprRhs: getTagExprRhs,
   isEvalVar: isEvalVar,
   getEvalVar: getEvalVar,
   funcType: funcType,

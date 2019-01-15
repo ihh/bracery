@@ -380,6 +380,13 @@ function isProbExpr (node) {
     && typeof(node.test[0].args[0].args[0]) === 'string' && node.test[0].args[0].args[0] === '1'
 }
 
+// &accept{x} expands to $accept=&quote{$x}
+function isQuoteAssignExpr (node) {
+  return typeof(node) === 'object' && node.type === 'assign' && !node.local
+    && (node.varname === 'accept' || node.varname === 'reject' || node.varname === 'status')
+    && node.value.length === 1 && node.value[0].type === 'func' && node.value[0].funcname === 'strictquote'
+}
+
 function makeFuncArgTree (pt, args, makeSymbolName, forceBraces) {
   var noBraces = !forceBraces && args.length === 1 && (args[0].type === 'func' || args[0].type === 'lookup' || args[0].type === 'alt')
   return [noBraces ? '' : leftBraceChar, pt.makeRhsTree (args, makeSymbolName), noBraces ? '' : rightBraceChar]
@@ -439,11 +446,15 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
                   : [varChar, tok.varname])
 	break
       case 'assign':
-        var assign = [varChar, tok.varname, (tok.visible ? ':' : '') + assignChar, [leftBraceChar, pt.makeRhsTree(tok.value,makeSymbolName), rightBraceChar]]
-        if (tok.local)
-          result = [funcChar, 'let'].concat (assign, [[leftBraceChar, pt.makeRhsTree(tok.local,makeSymbolName), rightBraceChar]])
-        else
-          result = assign
+        if (isQuoteAssignExpr (tok))
+          result = [funcChar, tok.varname, [leftBraceChar, pt.makeRhsTree(tok.value[0].args,makeSymbolName), rightBraceChar]]
+        else {
+          var assign = [varChar, tok.varname, (tok.visible ? ':' : '') + assignChar, [leftBraceChar, pt.makeRhsTree(tok.value,makeSymbolName), rightBraceChar]]
+          if (tok.local)
+            result = [funcChar, 'let'].concat (assign, [[leftBraceChar, pt.makeRhsTree(tok.local,makeSymbolName), rightBraceChar]])
+          else
+            result = assign
+        }
 	break
       case 'alt':
         result = [leftSquareBraceChar,
@@ -2135,6 +2146,7 @@ module.exports = {
   parseTreeEmpty: parseTreeEmpty,
   isTraceryExpr: isTraceryExpr,
   isProbExpr: isProbExpr,
+  isQuoteAssignExpr: isQuoteAssignExpr,
   isEvalVar: isEvalVar,
   getEvalVar: getEvalVar,
   funcType: funcType,

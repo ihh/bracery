@@ -1069,6 +1069,55 @@ function isProbExpr (node) {
     && typeof(node.test[0].args[0].args[0]) === 'string' && node.test[0].args[0].args[0] === '1'
 }
 
+// &accept{x} expands to $accept=&quote{$x}
+// similarly &reject{x} and &status{x}
+function isQuoteAssignExpr (node) {
+  return typeof(node) === 'object' && node.type === 'assign' && !node.local
+    && (node.varname === 'accept' || node.varname === 'reject' || node.varname === 'status')
+    && node.value.length === 1 && node.value[0].type === 'func' && node.value[0].funcname === 'strictquote'
+}
+
+// &tag{x} expands to $tags={$tags x}
+function isTagExpr (node) {
+  return typeof(node) === 'object' && node.type === 'assign' && !node.local
+    && node.varname === 'tags'
+    && node.value.length > 2
+    && node.value[0].type === 'lookup' && node.value[0].varname === 'tags'
+    && node.value[1] === ' '
+}
+
+function getTagExprRhs (node) {
+  return node.value.slice(2)
+}
+
+// &meter{x}{y}    expands to &push$meters&list{&value{x}&strictquote&math{y}
+// &meter{x}{y}{z} expands to &push$meters&list{&value{x}&strictquote&math{y}&strictquote{z}}
+function isMeterExpr (node) {
+  return typeof(node) === 'object' && node.type === 'func' && node.funcname === 'push'
+    && node.args[0].args[0].varname === 'meters'
+    && typeof(node.args[1]) === 'object' && node.args[1].type === 'func' && node.args[1].funcname === 'list'
+    && (node.args[1].args[0].args.length === 2 || node.args[1].args[0].args.length === 3)
+    && typeof(node.args[1].args[0].args[1]) === 'object' && node.args[1].args[0].args[1].type === 'func'
+    && node.args[1].args[0].args[1].funcname === 'strictquote' && node.args[1].args[0].args[1].args.length === 1
+    && typeof(node.args[1].args[0].args[1].args[0]) === 'object' && node.args[1].args[0].args[1].args[0].type === 'func'
+    && node.args[1].args[0].args[1].args[0].funcname === 'math'
+    && (node.args[1].args[0].args.length === 2
+        || (typeof(node.args[1].args[0].args[2]) === 'object' && node.args[1].args[0].args[2].type === 'func'
+            && node.args[1].args[0].args[2].funcname === 'strictquote'))
+}
+
+function getMeterIcon (node) {
+  return node.args[1].args[0].args[0]
+}
+
+function getMeterLevel (node) {
+  return node.args[1].args[0].args[1].args[0].args
+}
+
+function getMeterStatus (node) {
+  return node.args[1].args[0].args.length === 3 ? node.args[1].args[0].args[2].args : ''
+}
+
 function makeFuncArgTree (pt, args, makeSymbolName, forceBraces) {
   var noBraces = !forceBraces && args.length === 1 && (args[0].type === 'func' || args[0].type === 'lookup' || args[0].type === 'alt')
   return [noBraces ? '' : leftBraceChar, pt.makeRhsTree (args, makeSymbolName), noBraces ? '' : rightBraceChar]
@@ -1128,11 +1177,17 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
                   : [varChar, tok.varname])
 	break
       case 'assign':
-        var assign = [varChar, tok.varname, (tok.visible ? ':' : '') + assignChar, [leftBraceChar, pt.makeRhsTree(tok.value,makeSymbolName), rightBraceChar]]
-        if (tok.local)
-          result = [funcChar, 'let'].concat (assign, [[leftBraceChar, pt.makeRhsTree(tok.local,makeSymbolName), rightBraceChar]])
-        else
-          result = assign
+        if (isQuoteAssignExpr (tok))
+          result = [funcChar, tok.varname, [leftBraceChar, pt.makeRhsTree(tok.value[0].args,makeSymbolName), rightBraceChar]]
+        else if (isTagExpr (tok))
+          result = [funcChar, 'tag', [leftBraceChar, pt.makeRhsTree(getTagExprRhs(tok),makeSymbolName), rightBraceChar]]
+        else {
+          var assign = [varChar, tok.varname, (tok.visible ? ':' : '') + assignChar, [leftBraceChar, pt.makeRhsTree(tok.value,makeSymbolName), rightBraceChar]]
+          if (tok.local)
+            result = [funcChar, 'let'].concat (assign, [[leftBraceChar, pt.makeRhsTree(tok.local,makeSymbolName), rightBraceChar]])
+          else
+            result = assign
+        }
 	break
       case 'alt':
         result = [leftSquareBraceChar,
@@ -1153,51 +1208,59 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
                      }, []))
         break;
       case 'func':
-        switch (funcType (tok.funcname)) {
-        case 'link':
-          result = [funcChar, tok.funcname].concat ([tok.args[0], tok.args[1], tok.args[2].args[0]].map (function (arg) { return makeFuncArgTree (pt, [arg], makeSymbolName, nextIsAlpha) }))
-          break
-        case 'parse':
-          result = [funcChar, tok.funcname].concat ([tok.args[0].args, [tok.args[1]]].map (function (args) { return makeFuncArgTree (pt, args, makeSymbolName, nextIsAlpha) }))
-          break
-        case 'apply':
-          result = [funcChar, tok.funcname].concat (tok.args.map (function (arg) { return makeFuncArgTree (pt, [arg], makeSymbolName, nextIsAlpha) }))
-          break
-        case 'push':
-          result = [funcChar, tok.funcname, varChar, tok.args[0].args[0].varname].concat (tok.args.length > 1 ? [makeFuncArgTree (pt, tok.args.slice(1), makeSymbolName, nextIsAlpha)] : (nextIsAlpha ? [' '] : []))
-          break
-        case 'match':
-          result = [funcChar, tok.funcname, '/', pt.makeRhsTree ([tok.args[0]], makeSymbolName), '/', pt.makeRhsTree ([tok.args[1]], makeSymbolName, nextIsAlpha)]
-            .concat (tok.args.slice(2).map (function (arg, n) { return makeFuncArgTree (pt, n>0 ? arg.args : [arg], makeSymbolName, nextIsAlpha) }))
-          break
-        case 'map':
-        case 'reduce':
-          result = [funcChar, tok.funcname, (tok.args[0].varname === defaultMapVar ? '' : [varChar, tok.args[0].varname, ':']), makeFuncArgTree (pt, tok.args[0].value, makeSymbolName)]
-            .concat (tok.funcname === 'reduce'
-                     ? [varChar, tok.args[0].local[0].varname, '=', makeFuncArgTree (pt, tok.args[0].local[0].value, makeSymbolName), makeFuncArgTree (pt, tok.args[0].local[0].local[0].args, makeSymbolName, nextIsAlpha)]
-                     : [makeFuncArgTree (pt, tok.args[0].local[0].args, makeSymbolName, nextIsAlpha)])
-          break
-        case 'vars':
-          result = [funcChar, tok.funcname]
-          break
-        case 'call':
-          result = [funcChar, tok.funcname, makeFuncArgTree (pt, [tok.args[0]], makeSymbolName)].concat (makeArgList.call (pt, tok.args, 1, makeSymbolName))
-          break
-        case 'quote':
-          result = [funcChar, tok.funcname, makeFuncArgTree (pt, tok.args, makeSymbolName, tok.funcname === 'unquote' || nextIsAlpha)]
-          break
-        case 'math':
-          result = [funcChar, tok.funcname, [leftBraceChar, makeMathTree (pt, tok.args[0], makeSymbolName, nextIsAlpha), rightBraceChar]]
-          break
-        default:
-	  var sugaredName = pt.makeSugaredName (tok, makeSymbolName, nextIsAlpha)
-          if (sugaredName) {
-	    result = sugaredName
-          } else {
-            result = [funcChar, tok.funcname, makeFuncArgTree (pt, tok.args, makeSymbolName, nextIsAlpha)]
+        if (isMeterExpr (tok)) {
+          result = [funcChar, 'meter',
+                    [leftBraceChar, pt.makeRhsTree ([getMeterIcon (tok)], makeSymbolName), rightBraceChar],
+                    [leftBraceChar, pt.makeRhsTree (getMeterLevel (tok), makeSymbolName), rightBraceChar]]
+          var status = getMeterStatus (tok)
+          if (status)
+            result.push ([leftBraceChar, pt.makeRhsTree (status, makeSymbolName), rightBraceChar])
+        } else
+          switch (funcType (tok.funcname)) {
+          case 'link':
+            result = [funcChar, tok.funcname].concat ([tok.args[0], tok.args[1], tok.args[2].args[0]].map (function (arg) { return makeFuncArgTree (pt, [arg], makeSymbolName, nextIsAlpha) }))
+            break
+          case 'parse':
+            result = [funcChar, tok.funcname].concat ([tok.args[0].args, [tok.args[1]]].map (function (args) { return makeFuncArgTree (pt, args, makeSymbolName, nextIsAlpha) }))
+            break
+          case 'apply':
+            result = [funcChar, tok.funcname].concat (tok.args.map (function (arg) { return makeFuncArgTree (pt, [arg], makeSymbolName, nextIsAlpha) }))
+            break
+          case 'push':
+            result = [funcChar, tok.funcname, varChar, tok.args[0].args[0].varname].concat (tok.args.length > 1 ? [makeFuncArgTree (pt, tok.args.slice(1), makeSymbolName, nextIsAlpha)] : (nextIsAlpha ? [' '] : []))
+            break
+          case 'match':
+            result = [funcChar, tok.funcname, '/', pt.makeRhsTree ([tok.args[0]], makeSymbolName), '/', pt.makeRhsTree ([tok.args[1]], makeSymbolName, nextIsAlpha)]
+              .concat (tok.args.slice(2).map (function (arg, n) { return makeFuncArgTree (pt, n>0 ? arg.args : [arg], makeSymbolName, nextIsAlpha) }))
+            break
+          case 'map':
+          case 'reduce':
+            result = [funcChar, tok.funcname, (tok.args[0].varname === defaultMapVar ? '' : [varChar, tok.args[0].varname, ':']), makeFuncArgTree (pt, tok.args[0].value, makeSymbolName)]
+              .concat (tok.funcname === 'reduce'
+                       ? [varChar, tok.args[0].local[0].varname, '=', makeFuncArgTree (pt, tok.args[0].local[0].value, makeSymbolName), makeFuncArgTree (pt, tok.args[0].local[0].local[0].args, makeSymbolName, nextIsAlpha)]
+                       : [makeFuncArgTree (pt, tok.args[0].local[0].args, makeSymbolName, nextIsAlpha)])
+            break
+          case 'vars':
+            result = [funcChar, tok.funcname]
+            break
+          case 'call':
+            result = [funcChar, tok.funcname, makeFuncArgTree (pt, [tok.args[0]], makeSymbolName)].concat (makeArgList.call (pt, tok.args, 1, makeSymbolName))
+            break
+          case 'quote':
+            result = [funcChar, tok.funcname, makeFuncArgTree (pt, tok.args, makeSymbolName, tok.funcname === 'unquote' || nextIsAlpha)]
+            break
+          case 'math':
+            result = [funcChar, tok.funcname, [leftBraceChar, makeMathTree (pt, tok.args[0], makeSymbolName, nextIsAlpha), rightBraceChar]]
+            break
+          default:
+	    var sugaredName = pt.makeSugaredName (tok, makeSymbolName, nextIsAlpha)
+            if (sugaredName) {
+	      result = sugaredName
+            } else {
+              result = [funcChar, tok.funcname, makeFuncArgTree (pt, tok.args, makeSymbolName, nextIsAlpha)]
+            }
+            break
           }
-          break
-        }
 	break
       case 'alt_sampled':
       case 'rep_sampled':
@@ -2824,6 +2887,13 @@ module.exports = {
   parseTreeEmpty: parseTreeEmpty,
   isTraceryExpr: isTraceryExpr,
   isProbExpr: isProbExpr,
+  isQuoteAssignExpr: isQuoteAssignExpr,
+  isTagExpr: isTagExpr,
+  getTagExprRhs: getTagExprRhs,
+  isMeterExpr: isMeterExpr,
+  getMeterIcon: getMeterIcon,
+  getMeterLevel: getMeterLevel,
+  getMeterStatus: getMeterStatus,
   isEvalVar: isEvalVar,
   getEvalVar: getEvalVar,
   funcType: funcType,
@@ -2831,6 +2901,7 @@ module.exports = {
   makeSugaredName: makeSugaredName,
   makeRhsText: makeRhsText,
   makeRhsTree: makeRhsTree,
+  makeMathTree: makeMathTree,
   makeExpansionText: makeExpansionText,
   makeRhsExpansionText: makeRhsExpansionText,
 

@@ -210,6 +210,13 @@ function doTests (testRunner) {
 
   expectExpand ('$tags=abc &tag{def}&tag{ghi} $tags', 'abc def ghi')
 
+  expectExpandQuote ('&quote&accept{$x}', '&accept{$x}')
+  expectExpandQuote ('&quote&reject{$y $z}', '&reject{$y $z}')
+  expectExpandQuote ('&quote&status{$blah}', '&status{$blah}')
+  expectExpandQuote ('&quote&tag{newtag}', '&tag{newtag}')
+  expectExpandQuote ('&quote&meter{icon}{$a + $b}', '&meter{icon}{$a + $b}')
+  expectExpandQuote ('&quote&meter{icon}{$a + $b}{status}', '&meter{icon}{$a + $b}{status}')
+  
   // syntax edge cases involving dummy alternations
   expectExpand ('$abc=[ABC]', '=[ABC]')
   expectExpand ('$abc={[DEF]}', '')

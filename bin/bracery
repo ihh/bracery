@@ -49,12 +49,13 @@ var rng = (opt.options.verbose < 0
            ? function() { var r = mt.random(); console.warn('MersenneTwister',r); return r }
            : mt.random.bind(mt))
 
-var b = new bracery.Bracery (null, { rng: rng, enableParse: true })
+var b = new bracery.Bracery (null, { rng: rng })
 
 var varVal = {}
 function makeConfig() {
   var config = { vars: extend ({}, varVal),
-                 rng: rng }
+                 rng: rng,
+                 enableParse: true }
   if (opt.options.config)
     extend (config, JSON.parse (opt.options.config))
   if (opt.options.verbose)

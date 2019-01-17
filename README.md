@@ -148,11 +148,11 @@ Bracery's `&parse` function is stochastic: if multiple valid parses exist, it wi
 sampled proportionally to the probability that it's the correct parse.
 
 Finally, note that you don't need to use any of these programmer-oriented features, if you just want to write generative text.
-Just [start typing](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24greetings%3D%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%24wizard%3D%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%24earthsea%3D%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%24greetings%2C%20%24wizard%20of%20%24earthsea) and go!
+Just [start typing](http://vega.biowiki.org/bracery/web/demo.html#%24greetings%3D%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%24wizard%3D%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%24earthsea%3D%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%24greetings%2C%20%24wizard%20of%20%24earthsea) and go!
 
 ## Web usage
 
-The "wizard of earthsea" example is available as a [web demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html) ([source](web/demo.html)).
+The "wizard of earthsea" example is available as a [web demo](http://vega.biowiki.org/bracery/web/demo.html) ([source](web/demo.html)).
 
 Here's another example, taken from Kate Compton's [online tutorial](http://www.crystalcodepalace.com/traceryTut.html) to Tracery:
 
@@ -188,7 +188,7 @@ For example, you can use Tracery-style JSON:
 }
 ~~~~
 
-Here is a [web demo](http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/tracery.html) ([source](web/tracery.html))
+Here is a [web demo](http://vega.biowiki.org/bracery/web/tracery.html) ([source](web/tracery.html))
 using the Tracery-style JSON symbol definitions.
 These can also be [found](examples/travel.json), along with other examples from Kate's online tutorial,
 in the [examples](examples/) directory of this repository.

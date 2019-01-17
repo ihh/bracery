@@ -35,7 +35,7 @@ and `well met, magus of the world`
 [hello|well met|how goes it|greetings], [wizard|witch|mage|magus|magician|sorcerer|enchanter] of [earthsea|Earth|Middle Earth|the planet|the world]
 ~~~~
 
-<!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%2C%20%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%20of%20%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D">Try this</a> </em>
+<!--DEMO--> <em> <a style="float:right;" href="http://vega.biowiki.org/bracery/web/demo.html#%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%2C%20%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%20of%20%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D">Try this</a> </em>
 
 Here's the same example, but using variables to keep track of the choices:
 
@@ -46,7 +46,7 @@ $earthsea=[earthsea|Earth|Middle Earth|the planet|the world]
 $greetings, $wizard of $earthsea
 ~~~~
 
-<!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24greetings%3D%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%24wizard%3D%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%24earthsea%3D%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%24greetings%2C%20%24wizard%20of%20%24earthsea">Try this</a> </em>
+<!--DEMO--> <em> <a style="float:right;" href="http://vega.biowiki.org/bracery/web/demo.html#%24greetings%3D%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%24wizard%3D%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%24earthsea%3D%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%24greetings%2C%20%24wizard%20of%20%24earthsea">Try this</a> </em>
 
 You can also use variables to store Bracery code itself, for later expansion:
 
@@ -60,7 +60,7 @@ $earthsea=&quote{[earthsea|Earth|Middle Earth|the planet|the world]}
 &eval{$greetings}, &eval{$wizard} of &eval{$earthsea}
 ~~~~
 
-<!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24greetings%3D%26quote%7B%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%7D%0A%0A%24wizard%3D%26quote%7B%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%7D%0A%0A%24earthsea%3D%26quote%7B%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%7D%0A%0A%26eval%7B%24greetings%7D%2C%20%26eval%7B%24wizard%7D%20of%20%26eval%7B%24earthsea%7D">Try this</a> </em>
+<!--DEMO--> <em> <a style="float:right;" href="http://vega.biowiki.org/bracery/web/demo.html#%24greetings%3D%26quote%7B%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%7D%0A%0A%24wizard%3D%26quote%7B%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%7D%0A%0A%24earthsea%3D%26quote%7B%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%7D%0A%0A%26eval%7B%24greetings%7D%2C%20%26eval%7B%24wizard%7D%20of%20%26eval%7B%24earthsea%7D">Try this</a> </em>
 
 The above example uses [dynamic evaluation](https://en.wikipedia.org/wiki/Eval).
 Here's the same code with some [syntactic sugar](https://en.wikipedia.org/wiki/Syntactic_sugar)
@@ -73,7 +73,7 @@ for the way variables are assigned and expanded:
 #greetings#, #wizard# of #earthsea#
 ~~~~
 
-<!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bgreetings%3D%3Ehello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%5Bwizard%3D%3Ewizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%5Bearthsea%3D%3Eearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%23greetings%23%2C%20%23wizard%23%20of%20%23earthsea%23">Try this</a> </em>
+<!--DEMO--> <em> <a style="float:right;" href="http://vega.biowiki.org/bracery/web/demo.html#%5Bgreetings%3D%3Ehello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%5Bwizard%3D%3Ewizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%5Bearthsea%3D%3Eearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%23greetings%23%2C%20%23wizard%23%20of%20%23earthsea%23">Try this</a> </em>
 
 Programmers may recognize this kind of thing too ([lambdas](https://en.wikipedia.org/wiki/Anonymous_function)):
 
@@ -87,7 +87,7 @@ $sentence=&function{$name}{$greetings, $name}
 &$sentence{$wizard of $earthsea}
 ~~~~
 
-<!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24greetings%3D%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%24wizard%3D%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%24earthsea%3D%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%0A%24sentence%3D%26function%7B%24name%7D%7B%24greetings%2C%20%24name%7D%0A%0A%26%24sentence%7B%24wizard%20of%20%24earthsea%7D">Try this</a> </em>
+<!--DEMO--> <em> <a style="float:right;" href="http://vega.biowiki.org/bracery/web/demo.html#%24greetings%3D%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%24wizard%3D%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%24earthsea%3D%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%0A%24sentence%3D%26function%7B%24name%7D%7B%24greetings%2C%20%24name%7D%0A%0A%26%24sentence%7B%24wizard%20of%20%24earthsea%7D">Try this</a> </em>
 
 And maybe this as well ([lists](https://en.wikipedia.org/wiki/List_(abstract_data_type))):
 
@@ -101,7 +101,7 @@ $sentence={$greetings, $wizard of $earthsea}
 &join{&shuffle{&split{$sentence}}}
 ~~~~
 
-<!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%24greetings%3D%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%24wizard%3D%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%24earthsea%3D%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%0A%24sentence%3D%7B%24greetings%2C%20%24wizard%20of%20%24earthsea%7D%0A%0A%26join%7B%26shuffle%7B%26split%7B%24sentence%7D%7D%7D">Try this</a> </em>
+<!--DEMO--> <em> <a style="float:right;" href="http://vega.biowiki.org/bracery/web/demo.html#%24greetings%3D%5Bhello%7Cwell%20met%7Chow%20goes%20it%7Cgreetings%5D%0A%24wizard%3D%5Bwizard%7Cwitch%7Cmage%7Cmagus%7Cmagician%7Csorcerer%7Cenchanter%5D%0A%24earthsea%3D%5Bearthsea%7CEarth%7CMiddle%20Earth%7Cthe%20planet%7Cthe%20world%5D%0A%0A%24sentence%3D%7B%24greetings%2C%20%24wizard%20of%20%24earthsea%7D%0A%0A%26join%7B%26shuffle%7B%26split%7B%24sentence%7D%7D%7D">Try this</a> </em>
 
 which gives jumbled-up output like
 
@@ -129,7 +129,7 @@ Here's an example, using the syntactically ambiguous phrase ["fruit flies like a
 &json&parse#sentence#{fruit flies like a banana}
 ~~~~
 
-<!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bsentence%3D%3E%5B%23singular_noun%23%20%23singular_verb%23%7C%23plural_noun%23%20%23plural_verb%23%5D%20%23noun_phrase%23%5D%0A%5Bnoun_phrase%3D%3E%23noun%23%7C%23preposition%23%20%23noun%23%5D%0A%5Bnoun%3D%3E%23plural_noun%23%7C%23singular_noun%23%5D%0A%5Bsingular_noun%3D%3Efruit%7Ca%20banana%5D%0A%5Bsingular_verb%3D%3Eflies%7Clikes%7Cnears%5D%0A%5Bplural_noun%3D%3Efruit%20flies%7Cbananas%5D%0A%5Bplural_verb%3D%3Efly%7Clike%7Cnear%5D%0A%5Bpreposition%3D%3Elike%7Cnear%5D%0A%26json%26parse%23sentence%23%7Bfruit%20flies%20like%20a%20banana%7D">Try this</a> </em>
+<!--DEMO--> <em> <a style="float:right;" href="http://vega.biowiki.org/bracery/web/demo.html#%5Bsentence%3D%3E%5B%23singular_noun%23%20%23singular_verb%23%7C%23plural_noun%23%20%23plural_verb%23%5D%20%23noun_phrase%23%5D%0A%5Bnoun_phrase%3D%3E%23noun%23%7C%23preposition%23%20%23noun%23%5D%0A%5Bnoun%3D%3E%23plural_noun%23%7C%23singular_noun%23%5D%0A%5Bsingular_noun%3D%3Efruit%7Ca%20banana%5D%0A%5Bsingular_verb%3D%3Eflies%7Clikes%7Cnears%5D%0A%5Bplural_noun%3D%3Efruit%20flies%7Cbananas%5D%0A%5Bplural_verb%3D%3Efly%7Clike%7Cnear%5D%0A%5Bpreposition%3D%3Elike%7Cnear%5D%0A%26json%26parse%23sentence%23%7Bfruit%20flies%20like%20a%20banana%7D">Try this</a> </em>
 
 This should output one of two different parses of the phrase.
 One parse has "fruit flies" as the noun, and "like" as the verb:
@@ -165,7 +165,7 @@ Here's another example, taken from Kate Compton's [online tutorial](http://www.c
 #origin#
 ~~~~
 
-<!--DEMO--> <em> <a style="float:right;" href="http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#%5Bname%3D%3EArjun%7CYuuma%7CDarcy%7CMia%7CChiaki%7CIzzi%7CAzra%7CLina%5D%0A%5Banimal%3D%3Eunicorn%7Craven%7Csparrow%7Cscorpion%7Ccoyote%7Ceagle%7Cowl%7Clizard%7Czebra%7Cduck%7Ckitten%5D%0A%5Bmood%3D%3Evexed%7Cindignant%7Cimpassioned%7Cwistful%7Castute%7Ccourteous%5D%0A%5Bstory%3D%3E%23hero%23%20traveled%20with%20her%20pet%20%23heroPet%23.%20%20%23hero%23%20was%20never%20%23mood%23%2C%20for%20the%20%23heroPet%23%20was%20always%20too%20%23mood%23.%5D%0A%5Borigin%3D%3E%23%5Bhero%3A%23name%23%5D%5BheroPet%3A%23animal%23%5Dstory%23%5D%0A%23origin%23">Try this</a> </em>
+<!--DEMO--> <em> <a style="float:right;" href="http://vega.biowiki.org/bracery/web/demo.html#%5Bname%3D%3EArjun%7CYuuma%7CDarcy%7CMia%7CChiaki%7CIzzi%7CAzra%7CLina%5D%0A%5Banimal%3D%3Eunicorn%7Craven%7Csparrow%7Cscorpion%7Ccoyote%7Ceagle%7Cowl%7Clizard%7Czebra%7Cduck%7Ckitten%5D%0A%5Bmood%3D%3Evexed%7Cindignant%7Cimpassioned%7Cwistful%7Castute%7Ccourteous%5D%0A%5Bstory%3D%3E%23hero%23%20traveled%20with%20her%20pet%20%23heroPet%23.%20%20%23hero%23%20was%20never%20%23mood%23%2C%20for%20the%20%23heroPet%23%20was%20always%20too%20%23mood%23.%5D%0A%5Borigin%3D%3E%23%5Bhero%3A%23name%23%5D%5BheroPet%3A%23animal%23%5Dstory%23%5D%0A%23origin%23">Try this</a> </em>
 
 This example generates lines like the following:
 
@@ -517,3 +517,4 @@ Language features include
    - the syntax `[name=>value1|value2|value3|...]` is shorthand for `$name={&quote{[value1|value2|value3|...]}` and ensures that every occurrence of `#name#` (or `&eval{$name}`) will be expanded from an independently-sampled one of the values
 
 Most/all of these features are exercised in the file [test/basic.js](test/basic.js).
+

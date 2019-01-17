@@ -26,5 +26,5 @@ web/bracery.min.js: web/bracery.js
 	$(UGLIFYJS) $< >$@
 
 %.md:
-	node -e 'console.log (fs.readFileSync("$@").toString().replace(/(~~~~\n)([^~]+)(\n~~~~\n\n<\!--DEMO-->).*/g,function(_m,b,c,e){return b+c+e+" <em> <a style=\"float:right;\" href=\"http://htmlpreview.github.io/?https://github.com/ihh/bracery/blob/master/web/demo.html#"+encodeURIComponent(c)+"\">Try this</a> </em>"}))' >$@.tmp
+	node -e 'console.log (fs.readFileSync("$@").toString().replace(/(~~~~\n)([^~]+)(\n~~~~\n\n<\!--DEMO-->).*/g,function(_m,b,c,e){return b+c+e+" <em> <a style=\"float:right;\" href=\"http://vega.biowiki.org/bracery/web/demo.html#"+encodeURIComponent(c)+"\">Try this</a> </em>"}))' >$@.tmp
 	mv $@.tmp $@

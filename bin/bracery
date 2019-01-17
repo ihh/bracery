@@ -49,7 +49,7 @@ var rng = (opt.options.verbose < 0
            ? function() { var r = mt.random(); console.warn('MersenneTwister',r); return r }
            : mt.random.bind(mt))
 
-var b = new bracery.Bracery (null, { rng: rng })
+var b = new bracery.Bracery (null, { rng: rng, enableParse: true })
 
 var varVal = {}
 function makeConfig() {

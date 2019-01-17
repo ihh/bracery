@@ -67,7 +67,7 @@
 	    try {
 	      var text = evalElement.innerText.match(/\S/) ? evalElement.innerText : ''
 	      var config = configElement.innerText.match(/\S/) ? JSON.parse(configElement.innerText) : {}
-	      var b = new bracery.Bracery()
+	      var b = new bracery.Bracery (null, { enableParse: true })
               evalElement.placeholder = 'Enter text, e.g. [something|other]'
 	      show (b.expand (text, config))
 	  } catch (e) {

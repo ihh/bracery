@@ -25,7 +25,7 @@
         ("]" . font-lock-builtin-face)
         ("&~?[A-Za-z0-9_]+{[^}]*}{[^}]*}" . font-lock-function-name-face)
         ("&~?[A-Za-z0-9_]+{[^}]*}" . font-lock-function-name-face)
-        ("~[A-Za-z0-9_]+" . font-lock-string-face)
+        ("~~?[A-Za-z0-9_]+" . font-lock-string-face)
         ("~{[A-Za-z0-9_]+}" . font-lock-string-face)
         ("=[^ ]+" . font-lock-type-face)
         ("={.*}" . font-lock-type-face)

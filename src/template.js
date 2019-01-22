@@ -21,12 +21,15 @@ function parseTemplateDefs (text) {
 			   'TAGS': '',
 			   'TITLE': '',
 			   'WEIGHT': '',
-			   'AUTHOR': '' },
+			   'AUTHOR': '',
+                           'PREFIX': '',
+                           'SUFFIX': '' },
       commandParam = extend ({}, initCommandParam)
   try {
     var newTemplateDefReg = /^(\d*)(@.*?|)(>+)\s*(.*?)\s*(#\s*(.*?)\s*(#\s*(.*?)\s*|)|)$/;
     var commandReg = /^ *## +(\S+)\s?(.*?)\s*$/;
     var commentReg = /^ *#([^#]*|[^#]* .*)$/;
+    var localSymbolReg = /~~([A-Za-z0-9_]+)/g;
     var replyChain = [], currentTemplates = [], newTemplateDefMatch, commandMatch
     text.split(/\n/).forEach (function (line) {
       if (line.length) {
@@ -42,6 +45,7 @@ function parseTemplateDefs (text) {
         } else if (commentReg.exec (line)) {
           /* comment, do nothing */
         } else if (currentTemplates.length) {
+          line = line.replace (localSymbolReg, function (_m, sym) { return "~" + commandParam.PREFIX + sym + commandParam.SUFFIX })
           var parsedLine = ParseTree.parseRhs (line)
           currentTemplates.forEach (function (currentTemplate) {
             currentTemplate.opts.push (parsedLine)

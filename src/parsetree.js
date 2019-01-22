@@ -78,6 +78,7 @@ function makeRoot (rhs) {
 var newSymbolDefReg = /^>([A-Za-z_]\w*)\s*$/;
 var commentReg = /^ *#([^#]*|[^#]* .*)$/;
 var commandReg = /^ *## +(\S+)\s?(.*?)\s*$/;
+var localSymbolReg = /~~([A-Za-z0-9_]+)/g;
 function parseTextDefs (text) {
   var initCommandParam = { PREFIX: '',
                            SUFFIX: '' },
@@ -98,9 +99,10 @@ function parseTextDefs (text) {
 	    commandParam[param] = value
         } else if (commentReg.exec (line)) {
           /* comment, do nothing */
-        } else if (currentRules)
+        } else if (currentRules) {
+          line = line.replace (localSymbolReg, function (_m, sym) { return "~" + commandParam.PREFIX + sym + commandParam.SUFFIX })
           currentRules.push (line)
-        else if (newSymbolDefMatch = newSymbolDefReg.exec (line))
+        } else if (newSymbolDefMatch = newSymbolDefReg.exec (line))
           rules[commandParam.PREFIX + newSymbolDefMatch[1] + commandParam.SUFFIX] = currentRules = []
         else
           console.warn ("Can't parse symbol definition line: " + line)

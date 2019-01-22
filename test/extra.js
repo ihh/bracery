@@ -104,8 +104,8 @@ describe('formats', function() {
   })
 
   it('should recognize PREFIX, SUFFIX, RESET, and comments', function (done) {
-    var d = bracery.ParseTree.parseTextDefs ('# comment\n## PREFIX xyz\n>a\nhello\n$b\n\n## SUFFIX 123\n>b\nworld\nplanet\n\n## RESET PREFIX\n>test\nyes\nno\n\n## RESET\n\n>foo\nbar\nbaz\n')
-    assertJsonEqual (d, {foo:['bar','baz'],test123:['yes','no'],xyza:['hello','$b'],xyzb123:['world','planet']})
+    var d = bracery.ParseTree.parseTextDefs ('# comment\n## PREFIX xyz\n>a\nhello\n$b\n\n## SUFFIX 123\n>b\nworld\nplanet ~~EARTH\n\n## RESET PREFIX\n>test\nyes ~~a\nno\n\n## RESET\n\n>foo\nbar\nbaz\n')
+    assertJsonEqual (d, {foo:['bar','baz'],test123:['yes ~a123','no'],xyza:['hello','$b'],xyzb123:['world','planet ~xyzEARTH123']})
     done()
   })
 

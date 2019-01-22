@@ -381,10 +381,10 @@ function isProbExpr (node) {
 }
 
 // &accept{x} expands to $accept=&quote{$x}
-// similarly &reject{x} and &status{x}
+// similarly &reject{x}, &status{x}, and &footer{x}
 function isQuoteAssignExpr (node) {
   return typeof(node) === 'object' && node.type === 'assign' && !node.local
-    && (node.varname === 'accept' || node.varname === 'reject' || node.varname === 'status')
+    && (node.varname === 'accept' || node.varname === 'reject' || node.varname === 'status' || node.varname === 'footer')
     && node.value.length === 1 && node.value[0].type === 'func' && node.value[0].funcname === 'strictquote'
 }
 

@@ -270,7 +270,7 @@ VarAssignment
   / "&tag" tag:FunctionArg _ { return makeModifyConcat ('tags', [' '].concat (tag)) }
   / "&" varname:VarAssignFunctionName arg:QuotedFunctionArg _ { return makeAssign (varname, arg) }
 
-VarAssignFunctionName = "accept" / "reject" / "status"
+VarAssignFunctionName = "accept" / "reject" / "status" / "footer"
 
 VarAssignmentTarget
   = DelimitedNodeList

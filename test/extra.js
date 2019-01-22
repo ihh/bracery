@@ -103,6 +103,12 @@ describe('formats', function() {
     done()
   })
 
+  it('should recognize PREFIX, SUFFIX, RESET, and comments', function (done) {
+    var d = bracery.ParseTree.parseTextDefs ('# comment\n## PREFIX xyz\n>a\nhello\n$b\n\n## SUFFIX 123\n>b\nworld\nplanet\n\n## RESET PREFIX\n>test\nyes\nno\n\n## RESET\n\n>foo\nbar\nbaz\n')
+    assertJsonEqual (d, {foo:['bar','baz'],test123:['yes','no'],xyza:['hello','$b'],xyzb123:['world','planet']})
+    done()
+  })
+
   it('should return final variables', function (done) {
     var expansion = b.expand ('$x=3 $y=5')
     var vars = bracery.ParseTree.finalVarVal ({ node: { type: 'root', rhs: expansion.tree },

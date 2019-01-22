@@ -26,7 +26,7 @@ function parseTemplateDefs (text) {
   try {
     var newTemplateDefReg = /^(\d*)(@.*?|)(>+)\s*(.*?)\s*(#\s*(.*?)\s*(#\s*(.*?)\s*|)|)$/;
     var commandReg = /^ *## +(\S+)\s?(.*?)\s*$/;
-    var commentReg = /^ *#.*$/;
+    var commentReg = /^ *#([^#]*|[^#]* .*)$/;
     var replyChain = [], currentTemplates = [], newTemplateDefMatch, commandMatch
     text.split(/\n/).forEach (function (line) {
       if (line.length) {

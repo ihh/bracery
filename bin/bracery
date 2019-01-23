@@ -16,7 +16,7 @@ var bracery = require('..'),
 
 // parse command-line options
 var opt = getopt.create([
-  ['d' , 'defs=PATH+'       , 'load symbol definitions from Tracery JSON file(s)'],
+  ['d' , 'defs=PATH+'       , 'load symbol definitions from JSON or text file(s)'],
   ['s' , 'symbols=EXPR+'    , 'specify Tracery JSON symbol definitions from command line'],
   ['E' , 'evalsym=EXPR+'    , 'evaluate Tracery symbol definitions as JavaScript from command line (use with caution!)'],
   ['b' , 'bracery'          , 'convert Tracery symbol definitions to Bracery'],
@@ -35,7 +35,7 @@ var opt = getopt.create([
   ['r' , 'repl'             , 'enter Read-Evaluate-Print Loop (REPL)'],
   ['S' , 'server=SOCKET'    , 'run as a web service'],
   ['C' , 'client=URL'       , 'run as client of web service'],
-  ['m' , 'markov=FILE'      , 'run as Markov chain from template file'],
+  ['m' , 'markov=FILE'      , 'run as Markov chain from Braceplate template file'],
   ['q' , 'quiz=FILE'        , 'like --markov, but interactive'],
   ['v' , 'verbose=NUM'      , 'print logging info'],
   ['h' , 'help'             , 'display this help message']

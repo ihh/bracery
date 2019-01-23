@@ -767,7 +767,7 @@ function makeRoot (rhs) {
 var newSymbolDefReg = /^>([A-Za-z_]\w*)\s*$/;
 var commentReg = /^ *#([^#]*|[^#]* .*)$/;
 var commandReg = /^ *## +(\S+)\s?(.*?)\s*$/;
-var localSymbolReg = /~~([A-Za-z0-9_]+)/g;
+var localSymbolReg = /~\*([A-Za-z0-9_]+)/g;
 function parseTextDefs (text) {
   var initCommandParam = { PREFIX: '',
                            SUFFIX: '' },
@@ -9907,9 +9907,11 @@ function makeTagArray (text) {
     .map (function (tag) { return tag.toLowerCase() })
 }
 
-function makeTagString (text) {
+function makeTagString (text, prefix, suffix) {
+  prefix = prefix || ''
+  suffix = suffix || ''
   return (text
-          ? (' ' + makeTagArray(text).join(' ') + ' ')
+          ? (' ' + makeTagArray(text).map(function(tag){return prefix+tag+suffix}).join(' ') + ' ')
 	  : '')
 }
 
@@ -9927,7 +9929,9 @@ function parseTemplateDefs (text) {
     var newTemplateDefReg = /^(\d*)(@.*?|)(>+)\s*(.*?)\s*(#\s*(.*?)\s*(#\s*(.*?)\s*|)|)$/;
     var commandReg = /^ *## +(\S+)\s?(.*?)\s*$/;
     var commentReg = /^ *#([^#]*|[^#]* .*)$/;
-    var localSymbolReg = /~~([A-Za-z0-9_]+)/g;
+    var localSymbolReg = /~\*([A-Za-z0-9_]+)/g;
+    var localTagReg = /\*(\S+)/g;
+    function expandLocalTag (_m, tag) { return commandParam['PREFIX'] + tag + commandParam['SUFFIX'] }
     var replyChain = [], currentTemplates = [], newTemplateDefMatch, commandMatch
     text.split(/\n/).forEach (function (line) {
       if (line.length) {
@@ -9943,7 +9947,7 @@ function parseTemplateDefs (text) {
         } else if (commentReg.exec (line)) {
           /* comment, do nothing */
         } else if (currentTemplates.length) {
-          line = line.replace (localSymbolReg, function (_m, sym) { return "~" + commandParam.PREFIX + sym + commandParam.SUFFIX })
+          line = line.replace (localSymbolReg, function (_m, sym) { return "~" + commandParam['PREFIX'] + sym + commandParam['SUFFIX'] })
           var parsedLine = ParseTree.parseRhs (line)
           currentTemplates.forEach (function (currentTemplate) {
             currentTemplate.opts.push (parsedLine)
@@ -9953,8 +9957,10 @@ function parseTemplateDefs (text) {
               author = newTemplateDefMatch[2] || commandParam['AUTHOR'],
               depth = newTemplateDefMatch[3].length - 1,
 	      title = (newTemplateDefMatch[4] || '') + commandParam['TITLE'],
-	      prevTags = makeTagString ((newTemplateDefMatch[6] || '') + ' ' + commandParam['PREV']),
-	      tags = makeTagString ((newTemplateDefMatch[8] || '') + ' ' + commandParam['TAGS'])
+	      prevTags = (makeTagString ((newTemplateDefMatch[6] || '') + ' ' + commandParam['PREV'])
+                          .replace (localTagReg, expandLocalTag)),
+	      tags = (makeTagString ((newTemplateDefMatch[8] || '') + ' ' + commandParam['TAGS'])
+                      .replace (localTagReg, expandLocalTag))
           var isRoot = depth === 0 && (!prevTags.match(/\S/) || (prevTags.search(' root ') >= 0))
           var authorNames = author ? author.substr(1).split(',') : [null]
           currentTemplates = authorNames.map (function (authorName) {

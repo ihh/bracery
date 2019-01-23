@@ -1,6 +1,7 @@
 # Additional notes
 
 This file contains notes on some advanced/experimental features of Bracery.
+It is a supplement to the main [README.md](README.md) file.
 
 # Plain text symbol definitions
 

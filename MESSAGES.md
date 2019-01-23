@@ -216,7 +216,7 @@ The parameters have the following meanings:
 | `PREFIX`  | Will be prepended to every subsequent past- or future-tag that starts with an asterisk |
 | `SUFFIX`  | Will be appended to every subsequent past- or future-tag that starts with an asterisk |
 
-In addition, any string of the form `~~symbol` will be replaced with `~PREFIXsymbol` where `PREFIX` and `SUFFIX` are the appropriate parameter values.
+In addition, any string of the form `~~symbol` will be replaced with `~PREFIXsymbolSUFFIX` where `PREFIX` and `SUFFIX` are the appropriate parameter values.
 You can also write `~*symbol` as an alternate syntax for `~~symbol`
 (to be consistent with the convention that all tags of the form `*tag` will be expanded to `PREFIXtagSUFFIX`).
 

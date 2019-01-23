@@ -16,26 +16,32 @@
 
 (setq bracery-highlights
       '(("^#.*" . font-lock-comment-face)
-        ("#[A-Za-z0-9_]+#" . font-lock-string-face)
-	("^>[ !\"$-~]*[^ #]" . font-lock-string-face)
-	("^@[A-Za-z0-9_]+>[ !\"$-~]*[^ #]" . font-lock-string-face)
-	("^>" . font-lock-string-face)
-	("^@[A-Za-z0-9_]+>" . font-lock-string-face)
-        (" #[^#]*#" . font-lock-constant-face)
+	("^\\([0-9\.]*\\)\\(\\|@[A-Za-z0-9_,]+\\)\\(>+\\)\\(.*?\\) *\\(#\\) *\\(.*?\\) *\\(#\\) *\\(.*\\)"
+	 (1 'highlight t) ;; weight
+	 (2 font-lock-warning-face t) ;; author
+	 (3 'shadow t) ;; >
+	 (4 'match t) ;; title
+	 (5 'shadow t) ;; #
+	 (6 'custom-state t) ;; past-tags
+	 (7 'shadow t) ;; #
+	 (8 'dired-header t)) ;; future-tags
+	("^\\(>\\)\\([A-Za-z0-9_]+\\) *$" (1 'underline t) (2 'link-visited t))
         ("{[^][|]*|[^][|}]*}?" . font-lock-builtin-face)
         ("[|[][^][|}]*}?" . font-lock-builtin-face)
         ("]" . font-lock-builtin-face)
         ("&~?[A-Za-z0-9_]+{[^}]*}{[^}]*}" . font-lock-function-name-face)
         ("&~?[A-Za-z0-9_]+{[^}]*}" . font-lock-function-name-face)
-        ("~[~\\*]?[A-Za-z0-9_]+" . font-lock-string-face)
-        ("~{[A-Za-z0-9_]+}" . font-lock-string-face)
-        ("=[^ ]+" . font-lock-type-face)
+        ("#\\([A-Za-z0-9_]+\\)#" 1 'italic t)
+        ("~[~\\*]?\\([A-Za-z0-9_]+\\)" 1 'italic t)
+        ("~{\\([A-Za-z0-9_]+\\)}" 1 'italic t)
+        ("~[~\\*]\\([A-Za-z0-9_]+\\)" 1 'bold-italic t)
+        ("=[^{ ]+" . font-lock-type-face)
         ("={.*}" . font-lock-type-face)
-        (":=[^ ]+" . font-lock-type-face)
+        (":=[^{ ]+" . font-lock-type-face)
         (":={.*}" . font-lock-type-face)
-        ("$[A-Za-z0-9_]+" . font-lock-variable-name-face)
-        ("${[A-Za-z0-9_]+}" . font-lock-variable-name-face)
-        ("&[A-Za-z0-9_]+" . font-lock-keyword-face)
+        ("$[A-Za-z0-9_]+" 0 font-lock-variable-name-face t)
+        ("${[A-Za-z0-9_]+}" 0 font-lock-variable-name-face t)
+        ("&[A-Za-z0-9_]+" 0 font-lock-keyword-face t)
         ))
 
 (defvar bracery-mode-syntax-table

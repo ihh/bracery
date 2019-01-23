@@ -767,7 +767,7 @@ function makeRoot (rhs) {
 var newSymbolDefReg = /^>([A-Za-z_]\w*)\s*$/;
 var commentReg = /^ *#([^#]*|[^#]* .*)$/;
 var commandReg = /^ *## +(\S+)\s?(.*?)\s*$/;
-var localSymbolReg = /~\*([A-Za-z0-9_]+)/g;
+var localSymbolReg = /~[~\*]([A-Za-z0-9_]+)/g;
 function parseTextDefs (text) {
   var initCommandParam = { PREFIX: '',
                            SUFFIX: '' },
@@ -9929,12 +9929,13 @@ function parseTemplateDefs (text) {
     var newTemplateDefReg = /^(\d*)(@.*?|)(>+)\s*(.*?)\s*(#\s*(.*?)\s*(#\s*(.*?)\s*|)|)$/;
     var commandReg = /^ *## +(\S+)\s?(.*?)\s*$/;
     var commentReg = /^ *#([^#]*|[^#]* .*)$/;
-    var localSymbolReg = /~\*([A-Za-z0-9_]+)/g;
+    var localSymbolReg = /~[~\*]([A-Za-z0-9_]+)/g;
     var localTagReg = /\*(\S+)/g;
     function expandLocalTag (_m, tag) { return commandParam['PREFIX'] + tag + commandParam['SUFFIX'] }
     var replyChain = [], currentTemplates = [], newTemplateDefMatch, commandMatch
     text.split(/\n/).forEach (function (line) {
       if (line.length) {
+        line = line.replace (localSymbolReg, function (_m, sym) { return "~" + commandParam['PREFIX'] + sym + commandParam['SUFFIX'] })
         if (commandMatch = commandReg.exec (line)) {
 	  var param = commandMatch[1], value = commandMatch[2]
 	  if (param === 'RESET') {
@@ -9947,7 +9948,6 @@ function parseTemplateDefs (text) {
         } else if (commentReg.exec (line)) {
           /* comment, do nothing */
         } else if (currentTemplates.length) {
-          line = line.replace (localSymbolReg, function (_m, sym) { return "~" + commandParam['PREFIX'] + sym + commandParam['SUFFIX'] })
           var parsedLine = ParseTree.parseRhs (line)
           currentTemplates.forEach (function (currentTemplate) {
             currentTemplate.opts.push (parsedLine)

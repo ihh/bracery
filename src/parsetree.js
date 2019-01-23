@@ -78,7 +78,7 @@ function makeRoot (rhs) {
 var newSymbolDefReg = /^>([A-Za-z_]\w*)\s*$/;
 var commentReg = /^ *#([^#]*|[^#]* .*)$/;
 var commandReg = /^ *## +(\S+)\s?(.*?)\s*$/;
-var localSymbolReg = /~\*([A-Za-z0-9_]+)/g;
+var localSymbolReg = /~[~\*]([A-Za-z0-9_]+)/g;
 function parseTextDefs (text) {
   var initCommandParam = { PREFIX: '',
                            SUFFIX: '' },

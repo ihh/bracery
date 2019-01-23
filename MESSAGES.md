@@ -233,7 +233,7 @@ Using the local-scoping parser hacks:
 > # root *flop # *flip
 Flip!
 
-> # *flip # *flop
+> (response) # *flip # *flop
 Flop!
 
 ## RESET
@@ -245,6 +245,6 @@ Without the local-scoping parser hacks:
 >Flip-flop # root my_scope_flop # my_scope_flip
 Flip!
 
->Flip-flop # my_scope_flip # my_scope_flop
+>Flip-flop (response) # my_scope_flip # my_scope_flop
 Flop!
 ~~~~

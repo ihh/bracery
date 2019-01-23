@@ -181,7 +181,7 @@ You can also use the `templates2dot.js` script to get a visualization of the Mar
 bin/templates2dot.js -o examples/markov/good_news_bad_news.txt
 ~~~~
 
-# Parser hacks
+# Parser hacks for local scoping
 
 The parsers for both the plaintext symbol definitions and the message definitions include a few hacks that allow you to approximate the effect of local scoping in a file.
 
@@ -219,3 +219,32 @@ The parameters have the following meanings:
 In addition, any string of the form `~~symbol` will be replaced with `~PREFIXsymbol` where `PREFIX` and `SUFFIX` are the appropriate parameter values.
 You can also write `~*symbol` as an alternate syntax for `~~symbol`
 (to be consistent with the convention that all tags of the form `*tag` will be expanded to `PREFIXtagSUFFIX`).
+
+## Example
+
+The following two template definitions files are equivalent.
+
+Using the local-scoping parser hacks:
+
+~~~~
+## PREFIX my_scope_
+## TITLE Flip-flop
+
+> # root *flop # *flip
+Flip!
+
+> # *flip # *flop
+Flop!
+
+## RESET
+~~~~
+
+Without the local-scoping parser hacks:
+
+~~~~
+>Flip-flop # root my_scope_flop # my_scope_flip
+Flip!
+
+>Flip-flop # my_scope_flip # my_scope_flop
+Flop!
+~~~~

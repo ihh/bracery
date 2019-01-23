@@ -19,6 +19,8 @@
         ("#[A-Za-z0-9_]+#" . font-lock-string-face)
 	("^>[ !\"$-~]*[^ #]" . font-lock-string-face)
 	("^@[A-Za-z0-9_]+>[ !\"$-~]*[^ #]" . font-lock-string-face)
+	("^>" . font-lock-string-face)
+	("^@[A-Za-z0-9_]+>" . font-lock-string-face)
         (" #[^#]*#" . font-lock-constant-face)
         ("{[^][|]*|[^][|}]*}?" . font-lock-builtin-face)
         ("[|[][^][|}]*}?" . font-lock-builtin-face)

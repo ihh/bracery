@@ -22,7 +22,7 @@ var opt = getopt.create([
   ['b' , 'bracery'          , 'convert Tracery symbol definitions to Bracery'],
   ['B' , 'output-bracery=PATH', 'save symbol definitions to Bracery file'],
   ['o' , 'output-json=PATH' , 'save symbol definitions to Tracery JSON file'],
-  ['O' , 'output-text=PATH' , 'save symbol definitions in deprecated/secret one-line-per-option format'],
+  ['O' , 'output-text=PATH' , 'save symbol definitions in compact one-line-per-option format'],
   ['f' , 'file=PATH+'       , 'evaluate Bracery expression text from file(s)'],
   ['e' , 'eval=EXPR+'       , 'evaluate Bracery expression(s) text from comand line'],
   ['n' , 'num=NUMBER'       , 'number of randomized samples to output'],

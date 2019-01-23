@@ -58,7 +58,7 @@ function parseTemplateDefs (text) {
           var weight = newTemplateDefMatch[1] || commandParam['WEIGHT'],
               author = newTemplateDefMatch[2] || commandParam['AUTHOR'],
               depth = newTemplateDefMatch[3].length - 1,
-	      title = (newTemplateDefMatch[4] || '') + commandParam['TITLE'],
+	      title = commandParam['TITLE'] + (newTemplateDefMatch[4] || ''),
 	      prevTags = (makeTagString ((newTemplateDefMatch[6] || '') + ' ' + commandParam['PREV'])
                           .replace (localTagReg, expandLocalTag)),
 	      tags = (makeTagString ((newTemplateDefMatch[8] || '') + ' ' + commandParam['TAGS'])

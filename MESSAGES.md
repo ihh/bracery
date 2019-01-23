@@ -180,3 +180,42 @@ You can also use the `templates2dot.js` script to get a visualization of the Mar
 ~~~~
 bin/templates2dot.js -o examples/markov/good_news_bad_news.txt
 ~~~~
+
+# Parser hacks
+
+The parsers for both the plaintext symbol definitions and the message definitions include a few hacks that allow you to approximate the effect of local scoping in a file.
+
+The parser has several built-in configuration parameters with names like `PREV`, `TAGS`, `PREFIX`, and so on.
+These can be modified by placing a line in the file that looks like this:
+
+~~~~
+## PREV (new value of PREV)
+~~~~
+
+And they can be reset to the empty string like so:
+
+~~~~
+## RESET PREV
+~~~~
+
+If the parameter name is omitted, then all parameters will be reset:
+
+~~~~
+## RESET
+~~~~
+
+The parameters have the following meanings:
+
+| Parameter | Meaning |
+|-----------|---------|
+| `PREV`    | Will be used as default past-tags for all subsequent messages (along with any other past-tags specified for that message) |
+| `TAGS`    | Will be used as default future-tags for all subsequent messages (along with any other future-tags specified for that message) |
+| `TITLE`   | Will be prepended to the title of all subsequent messages |
+| `WEIGHT`  | Will be used as the default weight of all subsequent messages for which no weight is explicitly specified |
+| `AUTHOR`  | Will be used as the default author field of all subsequent messages for which no author is explicitly specified |
+| `PREFIX`  | Will be prepended to every subsequent past- or future-tag that starts with an asterisk |
+| `SUFFIX`  | Will be appended to every subsequent past- or future-tag that starts with an asterisk |
+
+In addition, any string of the form `~~symbol` will be replaced with `~PREFIXsymbol` where `PREFIX` and `SUFFIX` are the appropriate parameter values.
+You can also write `~*symbol` as an alternate syntax for `~~symbol`
+(to be consistent with the convention that all tags of the form `*tag` will be expanded to `PREFIXtagSUFFIX`).

@@ -518,4 +518,7 @@ Language features include
 
 Most/all of these features are exercised in the file [test/basic.js](test/basic.js).
 
+# Advanced features
 
+Bracery contains some advanced features designed to allow Bracery messages to be sequenced (as in a Markov chain).
+These are described in the accompanying file [MESSAGES.md](MESSAGES.md).

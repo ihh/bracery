@@ -192,7 +192,8 @@ These can be modified by placing a line in the file that looks like this:
 ## PREV (new value of PREV)
 ~~~~
 
-And they can be reset to the empty string like so:
+The parameter value will then apply throughout the remainder of the file, after this line.
+It can be reset to the empty string like so:
 
 ~~~~
 ## RESET PREV

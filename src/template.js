@@ -28,7 +28,7 @@ function parseTemplateDefs (text) {
                            'SUFFIX': '' },
       commandParam = extend ({}, initCommandParam)
   try {
-    var newTemplateDefReg = /^(\d*)(@.*?|)(>+)\s*(.*?)\s*(#\s*(.*?)\s*(#\s*(.*?)\s*|)|)$/;
+    var newTemplateDefReg = /^([\d\.]*)(@.*?|)(>+)\s*(.*?)\s*(#\s*(.*?)\s*(#\s*(.*?)\s*|)|)$/;
     var commandReg = /^ *## +(\S+)\s?(.*?)\s*$/;
     var commentReg = /^ *#([^#]*|[^#]* .*)$/;
     var localSymbolReg = /~[~\*]([A-Za-z0-9_]+)/g;

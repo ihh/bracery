@@ -180,7 +180,7 @@ function promiseMessageList (config) {
                   expansion: bracery._expandRhs (extend ({},
                                                          config,
                                                          { rhs: ParseTree.sampleParseTree (ParseTree.addFooter (template.content),
-                                                                                           bracery.rng),
+                                                                                           { rng: bracery.rng }),
                                                            vars: vars })) }
       message.title = vars.title || template.title
       message.tags = vars.prevtags = vars.tags
@@ -210,7 +210,7 @@ function promiseMessageList (config) {
       var footerExpansion = bracery._expandRhs (extend ({},
                                                         config,
                                                         { rhs: ParseTree.sampleParseTree (footer,
-                                                                                          bracery.rng),
+                                                                                          { rng: bracery.rng }),
                                                           vars: vars }))
       message.expansion.text = message.expansion.text + footerExpansion.text
       message.expansion.tree.push (footerExpansion.tree)

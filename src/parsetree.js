@@ -101,7 +101,16 @@ function parseTextDefs (text) {
         } else if (commentReg.exec (line)) {
           /* comment, do nothing */
         } else if (currentRules) {
-          line = line.replace (localSymbolReg, function (_m, sym) { return "~" + commandParam['PREFIX'] + sym + commandParam['SUFFIX'] })
+          line = line.replace (localSymbolReg, function (_m, sym) {
+            var newSym = commandParam['PREFIX'] + sym + commandParam['SUFFIX']
+            if (sym.toUpperCase() === sym)
+              newSym = newSym.toUpperCase()
+            else if (sym[0].toUpperCase() === sym[0])
+              newSym = newSym[0].toUpperCase() + newSym.substr(1).toLowerCase()
+            else
+              newSym = newSym.toLowerCase()
+            return "~" + newSym
+          })
           line = line.replace (localTagInBodyReg, function (_m, tag) { return commandParam['PREFIX'] + tag + commandParam['SUFFIX'] })
           currentRules.push (line)
         } else if (newSymbolDefMatch = newSymbolDefReg.exec (line))

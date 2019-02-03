@@ -32,9 +32,10 @@
         ("&~?[A-Za-z0-9_]+{[^}]*}{[^}]*}" . font-lock-function-name-face)
         ("&~?[A-Za-z0-9_]+{[^}]*}" . font-lock-function-name-face)
         ("#\\([A-Za-z0-9_]+\\)#" 1 'italic t)
-        ("~[~\\*]?\\([A-Za-z0-9_]+\\)" 1 'italic t)
-        ("~{\\([A-Za-z0-9_]+\\)}" 1 'italic t)
-        ("~[~\\*]\\([A-Za-z0-9_]+\\)" 1 'bold-italic t)
+        ("\\(~[~\\*]?[A-Za-z0-9_]+\\)" 1 'italic t)
+        ("\\(~{[A-Za-z0-9_]+\\)}" 1 'italic t)
+        ("\\(~[~\\*][A-Za-z0-9_]+\\)" 1 'bold-italic t)
+        ("#[#\*][A-Za-z0-9_]+" . font-lock-type-face)  ;; ##TAG or #*TAG
         ("=[^{ ]+" . font-lock-type-face)
         ("={.*}" . font-lock-type-face)
         (":=[^{ ]+" . font-lock-type-face)

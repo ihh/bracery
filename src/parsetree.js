@@ -79,6 +79,7 @@ var newSymbolDefReg = /^>([A-Za-z_]\w*)\s*$/;
 var commentReg = /^ *#([^#]*|[^#]* .*)$/;
 var commandReg = /^ *## +(\S+)\s?(.*?)\s*$/;
 var localSymbolReg = /~[~\*]([A-Za-z0-9_]+)/g;
+var localTagInBodyReg = /#[#\*](\S+)/g;
 function parseTextDefs (text) {
   var initCommandParam = { PREFIX: '',
                            SUFFIX: '' },
@@ -100,10 +101,11 @@ function parseTextDefs (text) {
         } else if (commentReg.exec (line)) {
           /* comment, do nothing */
         } else if (currentRules) {
-          line = line.replace (localSymbolReg, function (_m, sym) { return "~" + commandParam.PREFIX + sym + commandParam.SUFFIX })
+          line = line.replace (localSymbolReg, function (_m, sym) { return "~" + commandParam['PREFIX'] + sym + commandParam['SUFFIX'] })
+          line = line.replace (localTagInBodyReg, function (_m, tag) { return commandParam['PREFIX'] + tag + commandParam['SUFFIX'] })
           currentRules.push (line)
         } else if (newSymbolDefMatch = newSymbolDefReg.exec (line))
-          rules[commandParam.PREFIX + newSymbolDefMatch[1] + commandParam.SUFFIX] = currentRules = []
+          rules[commandParam['PREFIX'] + newSymbolDefMatch[1] + commandParam['SUFFIX']] = currentRules = []
         else
           console.warn ("Can't parse symbol definition line: " + line)
       } else {

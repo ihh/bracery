@@ -51,6 +51,7 @@ function parseTemplateDefs (text) {
         } else if (commentReg.exec (line)) {
           /* comment, do nothing */
         } else if (currentTemplates.length) {
+          line = line.replace (localTagInBodyReg, expandLocalTag)
           var parsedLine = ParseTree.parseRhs (line)
           currentTemplates.forEach (function (currentTemplate) {
             currentTemplate.opts.push (parsedLine)

@@ -768,6 +768,7 @@ var newSymbolDefReg = /^>([A-Za-z_]\w*)\s*$/;
 var commentReg = /^ *#([^#]*|[^#]* .*)$/;
 var commandReg = /^ *## +(\S+)\s?(.*?)\s*$/;
 var localSymbolReg = /~[~\*]([A-Za-z0-9_]+)/g;
+var localTagInBodyReg = /#[#\*](\S+)/g;
 function parseTextDefs (text) {
   var initCommandParam = { PREFIX: '',
                            SUFFIX: '' },
@@ -789,10 +790,11 @@ function parseTextDefs (text) {
         } else if (commentReg.exec (line)) {
           /* comment, do nothing */
         } else if (currentRules) {
-          line = line.replace (localSymbolReg, function (_m, sym) { return "~" + commandParam.PREFIX + sym + commandParam.SUFFIX })
+          line = line.replace (localSymbolReg, function (_m, sym) { return "~" + commandParam['PREFIX'] + sym + commandParam['SUFFIX'] })
+          line = line.replace (localTagInBodyReg, function (_m, tag) { return commandParam['PREFIX'] + tag + commandParam['SUFFIX'] })
           currentRules.push (line)
         } else if (newSymbolDefMatch = newSymbolDefReg.exec (line))
-          rules[commandParam.PREFIX + newSymbolDefMatch[1] + commandParam.SUFFIX] = currentRules = []
+          rules[commandParam['PREFIX'] + newSymbolDefMatch[1] + commandParam['SUFFIX']] = currentRules = []
         else
           console.warn ("Can't parse symbol definition line: " + line)
       } else {
@@ -9931,6 +9933,7 @@ function parseTemplateDefs (text) {
     var commentReg = /^ *#([^#]*|[^#]* .*)$/;
     var localSymbolReg = /~[~\*]([A-Za-z0-9_]+)/g;
     var localTagReg = /\*(\S+)/g;
+    var localTagInBodyReg = /#[#\*](\S+)/g;
     function expandLocalTag (_m, tag) { return commandParam['PREFIX'] + tag + commandParam['SUFFIX'] }
     var replyChain = [], currentTemplates = [], newTemplateDefMatch, commandMatch
     text.split(/\n/).forEach (function (line) {
@@ -9948,6 +9951,7 @@ function parseTemplateDefs (text) {
         } else if (commentReg.exec (line)) {
           /* comment, do nothing */
         } else if (currentTemplates.length) {
+          line = line.replace (localTagInBodyReg, expandLocalTag)
           var parsedLine = ParseTree.parseRhs (line)
           currentTemplates.forEach (function (currentTemplate) {
             currentTemplate.opts.push (parsedLine)
@@ -10078,7 +10082,7 @@ function promiseMessageList (config) {
                   expansion: bracery._expandRhs (extend ({},
                                                          config,
                                                          { rhs: ParseTree.sampleParseTree (ParseTree.addFooter (template.content),
-                                                                                           bracery.rng),
+                                                                                           { rng: bracery.rng }),
                                                            vars: vars })) }
       message.title = vars.title || template.title
       message.tags = vars.prevtags = vars.tags
@@ -10108,7 +10112,7 @@ function promiseMessageList (config) {
       var footerExpansion = bracery._expandRhs (extend ({},
                                                         config,
                                                         { rhs: ParseTree.sampleParseTree (footer,
-                                                                                          bracery.rng),
+                                                                                          { rng: bracery.rng }),
                                                           vars: vars }))
       message.expansion.text = message.expansion.text + footerExpansion.text
       message.expansion.tree.push (footerExpansion.tree)

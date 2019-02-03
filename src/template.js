@@ -33,6 +33,7 @@ function parseTemplateDefs (text) {
     var commentReg = /^ *#([^#]*|[^#]* .*)$/;
     var localSymbolReg = /~[~\*]([A-Za-z0-9_]+)/g;
     var localTagReg = /\*(\S+)/g;
+    var localTagInBodyReg = /#[#\*](\S+)/g;
     function expandLocalTag (_m, tag) { return commandParam['PREFIX'] + tag + commandParam['SUFFIX'] }
     var replyChain = [], currentTemplates = [], newTemplateDefMatch, commandMatch
     text.split(/\n/).forEach (function (line) {

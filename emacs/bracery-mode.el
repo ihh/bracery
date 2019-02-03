@@ -24,7 +24,7 @@
 	 (5 'shadow t) ;; #
 	 (6 'custom-state t) ;; past-tags
 	 (7 'shadow t) ;; #
-	 (8 'dired-header t)) ;; future-tags
+	 (8 font-lock-type-face t)) ;; future-tags
 	("^\\(>\\)\\([A-Za-z0-9_]+\\) *$" (1 'underline t) (2 'link-visited t))
         ("{[^][|]*|[^][|}]*}?" . font-lock-builtin-face)
         ("[|[][^][|}]*}?" . font-lock-builtin-face)

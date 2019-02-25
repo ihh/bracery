@@ -6,7 +6,7 @@
     <div style="width: 600px; background-color: #eee; padding: 4px;">
       <h1><a href="https://github.com/ihh/bracery">Bracery</a></h1>
       <p>
-	Text to be expanded (<a href="#" id="erase">erase</a> / <a href="#" id="reset">example</a>):
+	Text to be expanded (<a href="#" id="erase">erase</a> / <a href="#" id="reset">example</a> / <a href="#" id="link">link</a>):
 	<div>
 	  <div contenteditable="true" id="eval" style="width: 100%; min-height: 10em; resize: vertical; background: white; border-width: 1px; border-style: solid;">
 	  </div>
@@ -41,6 +41,7 @@
 	  var evalElement = document.getElementById('eval')
 	  var eraseElement = document.getElementById('erase')
 	  var resetElement = document.getElementById('reset')
+	  var linkElement = document.getElementById('link')
 	  var rerollElement = document.getElementById('reroll')
 	  var expElement = document.getElementById('expansion')
 	  var configElement = document.getElementById('config')
@@ -62,6 +63,17 @@
 	                             '#greetings#, #wizard# of #earthsea#'].join('\n')+'\n'))
 	    update()
 	  }
+	  function link() {
+            // hack: pass in text via hash, to work around hosts (e.g. github HTML preview) that won't allow URI parameters
+	    window.location.href = window.location.href.replace(/#.*/,'') + '#' + window.encodeURIComponent(evalElement.innerText)
+	    var ta = document.createElement('textarea')
+	    ta.value = window.location.href
+	    document.body.appendChild(ta)
+	    ta.select()
+	    document.execCommand('copy')
+	    document.body.removeChild(ta)
+	    window.alert ("URL copied to clipboard")
+	  }
 	  function update (evt) {
 	    try {
 	      var text = evalElement.innerText.match(/\S/) ? evalElement.innerText : ''
@@ -78,6 +90,7 @@
 	  expElement.addEventListener ('click', update)
 	  eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.innerText = ''; update() })
 	  resetElement.addEventListener ('click', function (evt) { evt.preventDefault(); reset() })
+	  linkElement.addEventListener ('click', function (evt) { evt.preventDefault(); link() })
 	  rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); update() })
 	  showElement.addEventListener ('click', function (evt) { evt.preventDefault(); showContainer.remove(); advElement.style = '' })
 	  configElement.innerText = '{"maxDepth":100,"maxRecursion":3,"enableParse":true}'

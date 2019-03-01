@@ -6,21 +6,19 @@
     <div style="width: 600px; background-color: #eee; padding: 4px;">
       <h1><a href="https://github.com/ihh/bracery">Bracery</a></h1>
       <p>
-	Text to be expanded (<a href="#" id="erase">erase</a> / <a href="#" id="reset">example</a> / <a href="#" id="link">link</a>):
+	Expansion (<a id="reroll" href="#">re-roll</a>):
+	<div id="expansion" style="width: 100%; background-color: lightgray;">
+	</div>
+	<br><p>
+	Source text (<a href="#" id="erase">erase</a> / <a href="#" id="reset">example</a> / <a href="#" id="link">link</a>):
 	<div>
 	  <div contenteditable="true" id="eval" style="width: 100%; min-height: 10em; resize: vertical; background: white; border-width: 1px; border-style: solid;">
 	  </div>
 	</div>
-	<br><p>
-	Expansion (<a id="reroll" href="#">re-roll</a>):
-	<div id="expansion" style="width: 100%; background-color: lightgray;">
-	</div>
 	<div id="showadvancedcontainer">
-	  <br><p>
-	    <a href="#" id="showadvanced">Advanced</a>
+	  <a href="#" id="showadvanced">Advanced options</a>
 	</div>
 	<div id="advanced" style="display: none;">
-	    <br><p>
 	    Configuration:
 	    <div>
 	      <div contenteditable="true" id="config" style="width: 100%; background: white; border-width: 1px; border-style: solid;">

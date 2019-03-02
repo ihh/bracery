@@ -25,13 +25,19 @@ asset/bracery-view.js: $(WEB_BRACERY) asset/view.js
 	cat $^ >$@
 
 BRACERY_SOURCES = bracery.js template.js parsetree.js chomsky.js validator.js rhs.js
-bracery-expand.zip: bracery-expand.js expand-deps/node_modules $(addprefix expand-deps/,$(BRACERY_SOURCES))
+bracery-expand.zip: bracery-expand.js expand-deps/compromise.es6.min.js $(addprefix expand-deps/,$(BRACERY_SOURCES))
 	cp $< index.js
-	$(ZIP) -r $@ index.js expand-deps/
+	$(ZIP) $@ index.js expand-deps/*.js
 	rm index.js
 
 expand-deps/node_modules:
 	cd expand-deps; npm install
 
-expand-deps/%.js: ../src/%.js
+expand-deps/%.js: ../src/%.js expand-deps
 	cp $< $@
+
+expand-deps/%.js: ../node_modules/compromise/builds/%.js expand-deps
+	cp $< $@
+
+expand-deps:
+	mkdir $@

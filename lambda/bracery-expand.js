@@ -9,7 +9,8 @@ const doc = require('dynamodb-doc');
 const dynamo = new doc.DynamoDB();
 const tableName = 'BraceryTable';
 
-const Bracery = require('bracery');
+global.nlp = require('./expand-deps/compromise.es6.min');
+const Bracery = require('./expand-deps/bracery');
 
 // The Lambda function
 exports.handler = (event, context, callback) => {

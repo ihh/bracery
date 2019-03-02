@@ -23,7 +23,11 @@ exports.handler = (event, context, callback) => {
 
   // Get symbol name, and body if we have it
   const name = event.pathParameters.name;
-  const body = event.body || {};
+  const body = (event.body
+                ? (typeof(event.body) === 'string'
+                   ? JSON.parse (event.body)
+                   : event.body)
+                : {});
 
   // Set up some returns
   const done = (err, res) => callback (null, {
@@ -34,7 +38,7 @@ exports.handler = (event, context, callback) => {
     },
   });
 
-  const notFound = () => done (new Error(`Name not found "${name}"`));
+  const notFound = () => done ({ statusCode: '404', message: `Name not found "${name}"` });
   const badMethod = () => done (new Error(`Unsupported method "${event.httpMethod}"`));
   const wrongPassword = () => done ({ statusCode: '401', message: "Incorrect password" });
   const serverError = () => done ({ statusCode: '500', message: "Server error" });

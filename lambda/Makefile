@@ -3,22 +3,22 @@ ZIP = zip
 
 all: bracery-store.zip bracery-view.zip bracery-asset.zip bracery-expand.zip
 
-CONFIG = bracery-config.js
-bracery-store.zip: bracery-store.js $(CONFIG)
+COMMON = bracery-config.js bracery-util.js
+bracery-store.zip: bracery-store.js $(COMMON)
 	cp $< index.js
-	$(ZIP) $@ index.js $(CONFIG)
+	$(ZIP) $@ index.js $(COMMON)
 	rm index.js
 
 TEMPLATES = index.html
-bracery-view.zip: bracery-view.js $(CONFIG) $(TEMPLATES)
+bracery-view.zip: bracery-view.js $(COMMON) $(TEMPLATES)
 	cp $< index.js
-	$(ZIP) $@ index.js $(CONFIG) $(TEMPLATES)
+	$(ZIP) $@ index.js $(COMMON) $(TEMPLATES)
 	rm index.js
 
 ASSETS = asset/bracery-view.js asset/bracery-view.css
-bracery-asset.zip: bracery-asset.js $(CONFIG) $(ASSETS)
+bracery-asset.zip: bracery-asset.js $(COMMON) $(ASSETS)
 	cp $< index.js
-	$(ZIP) $@ index.js $(CONFIG) $(ASSETS)
+	$(ZIP) $@ index.js $(COMMON) $(ASSETS)
 	rm index.js
 
 WEB_BRACERY = ../web/bracery.min.js
@@ -26,9 +26,9 @@ asset/bracery-view.js: $(WEB_BRACERY) asset/view.js
 	cat $^ >$@
 
 BRACERY_SOURCES = bracery.js template.js parsetree.js chomsky.js validator.js rhs.js
-bracery-expand.zip: bracery-expand.js $(CONFIG) expand-deps/compromise.es6.min.js $(addprefix expand-deps/,$(BRACERY_SOURCES))
+bracery-expand.zip: bracery-expand.js $(COMMON) expand-deps/compromise.es6.min.js $(addprefix expand-deps/,$(BRACERY_SOURCES))
 	cp $< index.js
-	$(ZIP) $@ index.js $(CONFIG) expand-deps/*.js
+	$(ZIP) $@ index.js $(COMMON) expand-deps/*.js
 	rm index.js
 
 expand-deps/node_modules:

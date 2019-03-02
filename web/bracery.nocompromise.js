@@ -216,7 +216,7 @@ function validateSymbolName (name) {
 
 Bracery.prototype.getDefaultSymbol = function() {
   var bracery = this
-  if (typeof(bracery.defaultSymbol) === 'string')
+  if (typeof(bracery.defaultSymbol) === 'string' || typeof(bracery.defaultSymbol) === 'undefined')
     return bracery.defaultSymbol
   for (var n = 0; n < bracery.defaultSymbol.length; ++n) {
     var name = bracery.defaultSymbol[n]
@@ -240,7 +240,9 @@ Bracery.prototype.expandParsed = function (config) {
 Bracery.prototype.expand = function (braceryText, config) {
   if (config && config.rules)
     return new Bracery (config.rules).expand (braceryText, extend ({}, config, {rules:null}))
-  braceryText = braceryText || (ParseTree.symChar + this.getDefaultSymbol())
+  var defaultSymbolName = this.getDefaultSymbol()
+  if (defaultSymbolName && !braceryText)
+    braceryText = ParseTree.symChar + defaultSymbolName
   if (typeof(braceryText) !== 'string')
     throw new Error ('the text to be expanded must be a string')
   return this._expandRhs (extend ({ vars: {} }, config, { rhsText: braceryText }))

@@ -1,14 +1,21 @@
 module.exports = {
+  // Routes
+  baseUrl: 'https://bracery.org',
+  storePrefix: '/store/',
+  assetPrefix: '/asset/',
+  expandPrefix: '/expand/',
+  viewPrefix: '/',
+
+  // Files
   templateHtmlFilename: 'index.html',
-
-  storePrefix: '/bracery-store/',
-  assetPrefix: '/bracery-asset/',
-  expandPrefix: '/bracery-expand/',
-  viewPrefix: '/bracery-view/',
-  
   viewAssetStub: 'bracery-view',
-
+  
+  // DynamoDB
   tableName: 'BraceryTable',
 
-  stringEncoding: 'utf-8'
+  // Encoding
+  stringEncoding: 'utf-8',
+
+  // Default page
+  defaultSymbolName: 'welcome',
 };

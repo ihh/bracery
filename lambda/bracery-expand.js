@@ -8,16 +8,13 @@
 const config = require('./bracery-config');
 const tableName = config.tableName;
 
+const util = require('./bracery-util');
+
 const doc = require('dynamodb-doc');
 const dynamo = new doc.DynamoDB();
 
 global.nlp = require('./expand-deps/compromise.es6.min');  // hack/workaround
 const Bracery = require('./expand-deps/bracery').Bracery;
-
-function extend (a, b) {
-  Object.keys (b).forEach ((k) => { a[k] = b[k]; });
-  return a;
-}
 
 // The Lambda function
 exports.handler = (event, context, callback) => {
@@ -68,8 +65,8 @@ exports.handler = (event, context, callback) => {
                      getSymbol (config)
                      .then ((symbolDefinition) =>
                             bracery.expand (symbolDefinition,
-                                       extend ({ callback: resolve },
-                                               braceryConfig))));
+                                       util.extend ({ callback: resolve },
+                                                    braceryConfig))));
 
   const expandSymbol = (config) => expandSymbolFull (config).then ((expansion) => expansion.tree);
 

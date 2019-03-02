@@ -9,22 +9,26 @@
     <div style="width: 600px; background-color: #eee; padding: 4px;">
       <h1>%SYMBOL_NAME%</h1>
       <p>
-	<a id="reroll" href="#">Re-roll</a>
 	<div id="expansion" style="width: 100%; background-color: lightgray;">
+	  <i>...randomizing...</i>
 	</div>
 	<br><p>
+	<a id="reroll" href="#">Re-roll</a> /
 	Source text (<a href="#" id="erase">erase</a> / <a href="#" id="reset">example</a> / <a href="https://github.com/ihh/bracery">docs</a>):
 	<div>
 	  <div contenteditable="true" id="eval" style="width: 100%; min-height: 10em; resize: vertical; background: white; border-width: 1px; border-style: solid;">
+	    %SYMBOL_DEFINITION%
 	  </div>
 	</div>
 	<br><p>
-	<span id="urlprefix"></span>
-	<input type="text" id="name" name="name" size="20">
+	<span id="urlprefix">%BASE_URL%%VIEW_PATH_PREFIX%</span>
+	<input type="text" id="name" name="name" size="20" value="%SYMBOL_NAME%">
 	<button id="save" type="button">Save</button>
-	<span id="error"></span>
+	<br><p>
 	<label for="password">Password (optional):</label>
 	<input type="password" id="password" name="password" size="20">
+	<br><p>
+	<div id="error" style="color:red;"></div>
     </div>
     <script src="%JAVASCRIPT_FILE%"></script>
     <script>

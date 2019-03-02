@@ -1,6 +1,8 @@
 /* This is a small AWS lambda function for storing/retrieving Bracery in DynamoDB.
 */
 
+//console.log('Loiading function');
+
 const doc = require('dynamodb-doc');
 const dynamo = new doc.DynamoDB();
 const tableName = 'BraceryTable';
@@ -16,7 +18,7 @@ exports.handler = (event, context, callback) => {
 
   const done = (err, res) => callback(null, {
     statusCode: err ? (err.statusCode || '400') : '200',
-    body: err ? err.message : res,
+    body: err ? err.message : JSON.stringify(res),
     headers: {
       'Content-Type': 'application/json',
     },

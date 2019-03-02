@@ -19,11 +19,17 @@ src/rhs.js: src/rhs.defs.js src/rhs.peg.js
 src/shim.js:
 	echo "window.bracery = require('./bracery');" >$@
 
-web/bracery.js: src/shim.js src/bracery.js src/parsetree.js src/rhs.js src/chomsky.js src/template.js
+
+web/bracery.nocompromise.js: src/shim.js src/bracery.js src/parsetree.js src/rhs.js src/chomsky.js src/template.js
 	$(BROWSERIFY) src/shim.js >$@
 
-web/bracery.min.js: web/bracery.js
-	$(UGLIFYJS) $< >$@
+web/bracery.js: web/bracery.nocompromise.js
+	cat $(NODE_MOD)/compromise/builds/compromise.es6.js >$@
+	cat $< >>$@
+
+web/bracery.min.js: web/bracery.nocompromise.js
+	cat $(NODE_MOD)/compromise/builds/compromise.es6.min.js >$@
+	cat $< >>$@
 
 %.md:
 	node -e 'console.log (fs.readFileSync("$@").toString().replace(/(~~~~\n)([^~]+)(\n~~~~\n\n<\!--DEMO-->).*/g,function(_m,b,c,e){return b+c+e+" <em> <a style=\"float:right;\" href=\"http://vega.biowiki.org/bracery/web/demo.html#"+encodeURIComponent(c)+"\">Try this</a> </em>"}))' >$@.tmp

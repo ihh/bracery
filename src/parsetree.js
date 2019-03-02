@@ -1,6 +1,8 @@
 var RhsParser = require('./rhs')
 var Chomsky = require('./chomsky')
 
+//var nlp = require('compromise')
+
 function isTruthy (x) { return makeString(x).match(/\S/) }
 var trueVal = '1'  // truthy value used when a result should be truthy but the default result in this context would otherwise be an empty string e.g. &same{}{} or &not{}
 var falseVal = ''  // falsy value
@@ -2199,6 +2201,9 @@ module.exports = {
   parseTextDefs: parseTextDefs,
   makeRoot: makeRoot,
 
+  // compromise
+  nlp: nlp,
+  
   // footers
   makeFooter: makeFooter,
   stripFooter: stripFooter,

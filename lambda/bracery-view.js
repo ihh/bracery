@@ -9,9 +9,13 @@ const templateHtmlFileEncoding = "utf8";
 
 // The static assets pointed to by these template substitutions
 // should be uploaded in the Lambda zip of bracery-asset.js (or to S3, or wherever)
-const templateVarValMap = { "JAVASCRIPT_FILE": "bracery.js",
-                            "STYLE_FILE": "bracery.css" };
-const templateNameVar = "SYMBOL_NAME";
+var storePrefix = '/bracery-store/';
+var assetPrefix = '/bracery-asset/';
+var viewAssetStub = 'bracery-view';
+const templateVarValMap = { 'JAVASCRIPT_FILE': assetPrefix + viewAssetStub + '.js',
+                            'STYLE_FILE': assetPrefix + viewAssetStub + '.css',
+                            'STORE_PATH_PREFIX': storePrefix };
+const templateNameVar = 'SYMBOL_NAME';
 
 // The Lambda function
 exports.handler = (event, context, callback) => {
@@ -38,14 +42,14 @@ exports.handler = (event, context, callback) => {
   })
   tmpMap[templateNameVar] = name;
     
-  // Read the file, do the template substitutions, and return
+  // Read the file, do the %VAR%->val template substitutions, and return
   fs.readFile (templateHtmlFilename, templateHtmlFileEncoding, (err, templateHtml) => {
     if (err)
       done (err)
     else
       ok (Object.keys (tmpMap).reduce ((text, templateVar) => {
         var templateVal = tmpMap[templateVar];
-        return text.replace (new RegExp (templateVar, 'g'), templateVal);
+        return text.replace (new RegExp ('%' + templateVar + '%', 'g'), templateVal);
       }, templateHtml));
   });
   

@@ -1,6 +1,6 @@
 /* This is a small AWS lambda function for storing/retrieving Bracery in DynamoDB.
-   It implements a super-simple RESTful-ish store, mapping names to Bracery strings.
-   Each name is (optionally) protected by a password.
+   It implements a super-simple RESTful-ish store, mapping (symbol) names to Bracery strings.
+   Each name's definition is (optionally) protected by a password.
 */
 
 //console.log('Loading function');
@@ -15,14 +15,16 @@ const iterations = 10;
 const keylen = 64;
 const digest = 'sha512';
 
+// The Lambda function
 exports.handler = (event, context, callback) => {
   //console.log('Received event:', JSON.stringify(event, null, 2));
 
+  // Get symbol name, and body if we have it
   const name = event.pathParameters.name;
   const body = event.body || {};
 
   // Set up some returns
-  const done = (err, res) => callback(null, {
+  const done = (err, res) => callback (null, {
     statusCode: err ? (err.statusCode || '400') : '200',
     body: err ? err.message : JSON.stringify(res),
     headers: {

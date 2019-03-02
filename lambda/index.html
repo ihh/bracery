@@ -1,0 +1,33 @@
+<html>
+  <head>
+    <title>SYMBOL_NAME</title>
+    <!-- Include a stylesheet with the name "STYLE_FILE" as follows...
+	<link href="STYLE_FILE" rel="stylesheet">
+	-->
+  </head>
+  <body style="display: flex; flex-direction: row; justify-content: space-around;">
+    <div style="width: 600px; background-color: #eee; padding: 4px;">
+      <h1><a href="https://github.com/ihh/bracery">SYMBOL_NAME</a></h1>
+      <p>
+	<a id="reroll" href="#">Re-roll</a>
+	<div id="expansion" style="width: 100%; background-color: lightgray;">
+	</div>
+	<br><p>
+	Source text (<a href="#" id="erase">erase</a> / <a href="#" id="reset">example</a>):
+	<div>
+	  <div contenteditable="true" id="eval" style="width: 100%; min-height: 10em; resize: vertical; background: white; border-width: 1px; border-style: solid;">
+	  </div>
+	</div>
+    </div>
+    <script src="JAVASCRIPT_FILE"></script>
+    <script>
+      var evalElement = document.getElementById('eval')
+      var eraseElement = document.getElementById('erase')
+      var resetElement = document.getElementById('reset')
+      var rerollElement = document.getElementById('reroll')
+      var expElement = document.getElementById('expansion')
+      var name = "SYMBOL_NAME"
+      // more goes here
+    </script>
+  </body>
+</html>

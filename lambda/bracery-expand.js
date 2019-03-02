@@ -12,6 +12,11 @@ const tableName = 'BraceryTable';
 global.nlp = require('./expand-deps/compromise.es6.min');
 const Bracery = require('./expand-deps/bracery').Bracery;
 
+function extend (a, b) {
+  Object.keys (b).forEach ((k) => { a[k] = b[k]; });
+  return a;
+}
+
 // The Lambda function
 exports.handler = (event, context, callback) => {
   //console.log('Received event:', JSON.stringify(event, null, 2));
@@ -28,52 +33,53 @@ exports.handler = (event, context, callback) => {
     },
   });
 
-  const notFound = () => done (new Error(`Name not found "${name}"`));
-  const badMethod = () => done (new Error(`Unsupported method "${event.httpMethod}"`));
-  const wrongPassword = () => done ({ statusCode: '401', message: "Incorrect password" });
-  const serverError = () => done ({ statusCode: '500', message: "Server error" });
   const ok = (result) => done (null, result);
 
   // Set up Bracery
-  let bracery = null;
+  let bracery = new Bracery(), braceryConfig;
 
   // Create a getSymbol function that queries the database for the given name
-  const getSymbol = (symbolName) =>
-        new Promise ((resolve, reject) => {
-          dynamo.query({ TableName: tableName,
-                         KeyConditionExpression: "#nkey = :nval",
-                         ExpressionAttributeNames:{
-                           "#nkey": "name"
-                         },
-                         ExpressionAttributeValues: {
-                           ":nval": symbolName.toLowerCase()
-                         }}, (err, res) => {
-                           if (!err) {
-                             const result = res.Items && res.Items.length && res.Items[0];
-                           if (result && result.bracery)
-                             resolve (result.bracery);
-                         }
-                           resolve ('');
-                         });
-        });
-  
+  const getSymbol = (config) => {
+    const symbolName = config.symbolName || config.node.name;
+    return new Promise ((resolve, reject) => {
+      dynamo.query({ TableName: tableName,
+                     KeyConditionExpression: "#nkey = :nval",
+                     ExpressionAttributeNames:{
+                       "#nkey": "name"
+                     },
+                     ExpressionAttributeValues: {
+                       ":nval": symbolName.toLowerCase()
+                     }}, (err, res) => {
+                       if (!err) {
+                         const result = res.Items && res.Items.length && res.Items[0];
+                         if (result && result.bracery)
+                           resolve (result.bracery);
+                       }
+                       resolve ('');
+                     });
+    });
+  };
+
   // Create an expandSymbol function that queries the database for the given name, and expands it as Bracery
-  const expandSymbolFull = (symbolName) =>
+  const expandSymbolFull = (config) =>
         new Promise ((resolve, reject) =>
-                     getSymbol (symbolName)
+                     getSymbol (config)
                      .then ((symbolDefinition) =>
                             bracery.expand (symbolDefinition,
-                                            { callback: resolve })));
+                                       extend ({ callback: resolve },
+                                               braceryConfig))));
 
   const expandSymbol = (config) => expandSymbolFull (config).then ((expansion) => expansion.tree);
-  
+
+  // create a dummy setSymbol function
   const setSymbol = () => [];
 
-  // Pass this expandSymbol into Bracery's initial config
-  bracery = new Bracery (null, { expand: expandSymbol,
-                                 get: getSymbol,
-                                 set: setSymbol });
+  // Pass the symbol accessors into Bracery's config
+  braceryConfig = { expand: expandSymbol,
+                    get: getSymbol,
+                    set: setSymbol };
+  bracery = new Bracery (null, );
 
   // Call expandSymbol and return
-  expandSymbolFull.then (ok);
+  expandSymbolFull ({ symbolName: name }).then (ok);
 };

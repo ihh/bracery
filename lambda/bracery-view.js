@@ -11,12 +11,14 @@ const templateHtmlFileEncoding = "utf8";
 // should be uploaded in the Lambda zip of bracery-asset.js (or to S3, or wherever)
 var storePrefix = '/bracery-store/';
 var assetPrefix = '/bracery-asset/';
+var expandPrefix = '/bracery-expand/';
 var viewAssetStub = 'bracery-view';
 var viewPrefix = '/' + viewAssetStub + '/';
 const templateVarValMap = { 'JAVASCRIPT_FILE': assetPrefix + viewAssetStub + '.js',
                             'STYLE_FILE': assetPrefix + viewAssetStub + '.css',
                             'STORE_PATH_PREFIX': storePrefix,
-                            'VIEW_PATH_PREFIX': viewPrefix };
+                            'VIEW_PATH_PREFIX': viewPrefix,
+                            'EXPAND_PATH_PREFIX': expandPrefix };
 const templateNameVar = 'SYMBOL_NAME';
 
 // The Lambda function

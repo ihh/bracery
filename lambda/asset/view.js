@@ -1,7 +1,13 @@
+function extend (a, b) {
+  Object.keys (b).forEach ((k) => { a[k] = b[k]; });
+  return a;
+}
+
 function initBraceryView (config) {
   var name = config.name
   var storePrefix = config.store
   var viewPrefix = config.view
+  var expandPrefix = config.expand
   
   var evalElement = document.getElementById('eval')
   var eraseElement = document.getElementById('erase')
@@ -36,9 +42,9 @@ function initBraceryView (config) {
     else {
       function reqListener () {
         var responseBody = JSON.parse (this.responseText);
-        var b = responseBody.bracery;
-        braceryCache[symbolName] = b;
-        callback (b);
+        var result = responseBody.bracery;
+        braceryCache[symbolName] = result;
+        callback (result);
       }
       var req = new XMLHttpRequest();
       req.addEventListener("load", reqListener);
@@ -47,6 +53,21 @@ function initBraceryView (config) {
     }
   }
 
+  function expandBracery (symbolName, callback) {
+    if (++serviceCalls > config.maxServiceCalls)
+      callback ('')
+    else {
+      function reqListener () {
+        var responseBody = JSON.parse (this.responseText);
+        callback (responseBody.tree || []);
+      }
+      var req = new XMLHttpRequest();
+      req.addEventListener("load", reqListener);
+      req.open("GET", window.location.origin + expandPrefix + symbolName);
+      req.send();
+    }
+  }
+  
   function reset() {
     function setEvalAndUpdate (newEvalText) {
       evalElement.innerText = newEvalText
@@ -72,30 +93,25 @@ function initBraceryView (config) {
   function update (evt) {
     try {
       var text = evalElement.innerText.match(/\S/) ? evalElement.innerText : ''
-      var bracery
+      var b = new bracery.Bracery(), braceryConfig
+
       function expandSymbol (config) {
-        var symbolName = config.node.name.toLowerCase()
+        var symbolName = config.symbolName || config.node.name
         return new Promise (function (resolve, reject) {
-          getBracery (symbolName, function (symDef) {
-            function expandCallback (expansion) {
-              resolve (expansion.tree)
-            }
-            bracery.expand (symDef,
-                            { callback: expandCallback })
-          })
+          expandBracery (symbolName.toLowerCase(), resolve)
         })
       }
       function getSymbol (config) {
         var symbolName = config.symbolName || config.node.name
         return new Promise (function (resolve, reject) {
-          getBracery (symbolName, resolve)
+          getBracery (symbolName.toLowerCase(), resolve)
         })
       }
       function setSymbol() { return [] }
-      var braceryConfig = { expand: expandSymbol,
-                            get: getSymbol,
-                            set: setSymbol }
-      bracery = new bracery.Bracery (null, braceryConfig)
+
+      braceryConfig = { expand: expandSymbol,
+                        get: getSymbol,
+                        set: setSymbol }
 
       evalElement.placeholder = 'Enter text, e.g. [something|other]'
 

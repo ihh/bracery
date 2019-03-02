@@ -5,9 +5,11 @@
 
 //console.log('Loading function');
 
+const config = require('./bracery-config');
+const tableName = config.tableName;
+
 const doc = require('dynamodb-doc');
 const dynamo = new doc.DynamoDB();
-const tableName = 'BraceryTable';
 
 const crypto = require('crypto');
 const salt = 'salt' + Math.random();

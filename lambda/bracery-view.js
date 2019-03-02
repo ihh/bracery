@@ -5,17 +5,19 @@
 
 const fs = require('fs');
 
-// The following template file should be uploaded with the AWS zip.
-const templateHtmlFilename = "index.html";
-const templateHtmlFileEncoding = "utf8";
+const config = require('./bracery-config');
+// The template file should be uploaded with the AWS lambda zip archive for this function.
+const templateHtmlFilename = config.templateHtmlFilename;
+const templateHtmlFileEncoding = config.stringEncoding;
+
+const storePrefix = config.storePrefix;
+const assetPrefix = config.assetPrefix;
+const expandPrefix = config.expandPrefix;
+const viewAssetStub = config.viewAssetStub;
+const viewPrefix = config.viewPrefix;
 
 // The static assets pointed to by these template substitutions
 // should be uploaded in the Lambda zip of bracery-asset.js (or to S3, or wherever)
-var storePrefix = '/bracery-store/';
-var assetPrefix = '/bracery-asset/';
-var expandPrefix = '/bracery-expand/';
-var viewAssetStub = 'bracery-view';
-var viewPrefix = '/' + viewAssetStub + '/';
 const templateVarValMap = { 'JAVASCRIPT_FILE': assetPrefix + viewAssetStub + '.js',
                             'STYLE_FILE': assetPrefix + viewAssetStub + '.css',
                             'STORE_PATH_PREFIX': storePrefix,

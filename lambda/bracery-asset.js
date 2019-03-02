@@ -5,11 +5,17 @@
 
 //console.log('Loading function');
 
+const fs = require('fs');
+
+const config = require('./bracery-config');
+const stringEncoding = config.stringEncoding;
+
 // Static files should be uploaded as static files in the AWS Lambda zip
 const staticFileDir = 'asset';
 
-// String encoding for static files
-const stringEncoding = 'utf8';
+// MIME types by filename suffix
+const suffixMimeType = { '.js': 'application/javascript',
+                         '.css': 'text/css' };
 
 // The Lambda function
 exports.handler = (event, context, callback) => {
@@ -17,13 +23,18 @@ exports.handler = (event, context, callback) => {
 
   // Get filename parameter
   const filename = event.pathParameters.filename;
-
+  let mimeType = 'text/plain';
+  const suffixRegex = new RegExp ('(\.[^\.]+)$');
+  const match = suffixRegex.exec (filename);
+  if (match)
+    mimeType = suffixMimeType[match[1]];
+  
   // Set up some returns
   const done = (err, res) => callback (null, {
     statusCode: err ? (err.statusCode || '404') : '200',
-    body: err ? err.message : JSON.stringify(res),
+    body: err ? `File "${filename}" not found`  : res,
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': mimeType + '; charset=' + stringEncoding,
     },
   });
 

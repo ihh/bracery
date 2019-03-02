@@ -5,11 +5,13 @@
 
 //console.log('Loading function');
 
+const config = require('./bracery-config');
+const tableName = config.tableName;
+
 const doc = require('dynamodb-doc');
 const dynamo = new doc.DynamoDB();
-const tableName = 'BraceryTable';
 
-global.nlp = require('./expand-deps/compromise.es6.min');
+global.nlp = require('./expand-deps/compromise.es6.min');  // hack/workaround
 const Bracery = require('./expand-deps/bracery').Bracery;
 
 function extend (a, b) {

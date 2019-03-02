@@ -3,6 +3,8 @@
 
 //console.log('Loading function');
 
+const fs = require('fs');
+
 // The following template file should be uploaded with the AWS zip.
 const templateHtmlFilename = "index.html";
 const templateHtmlFileEncoding = "utf8";
@@ -31,9 +33,9 @@ exports.handler = (event, context, callback) => {
   // Set up some returns
   const done = (err, res) => callback (null, {
     statusCode: err ? (err.statusCode || '500') : '200',
-    body: err ? err.message : JSON.stringify(res),
+    body: err ? err.message : res,
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'text/html; charset=' + templateHtmlFileEncoding,
     },
   });
 

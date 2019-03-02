@@ -1,6 +1,7 @@
 function initBraceryView (config) {
   var name = config.name
   var storePrefix = config.store
+  var viewPrefix = config.view
   
   var evalElement = document.getElementById('eval')
   var eraseElement = document.getElementById('erase')
@@ -8,23 +9,44 @@ function initBraceryView (config) {
   var rerollElement = document.getElementById('reroll')
   var expElement = document.getElementById('expansion')
 
+  var urlElement = document.getElementById('urlprefix')
+  var nameElement = document.getElementById('name')
+  var passwordElement = document.getElementById('password')
+  var saveElement = document.getElementById('save')
+  var errorElement = document.getElementById('error')
+  
+  urlElement.innerText = window.location.origin + viewPrefix
+  nameElement.value = name
+  
   var config = { maxDepth: 100,
                  maxRecursion: 5,
+                 maxServiceCalls: 10,
                  enableParse: false }
 
   function show (expansion) {
     expElement.innerText = expansion.text
   }
+
+  var braceryCache = {}, serviceCalls = 0
   function getBracery (symbolName, callback) {
+    if (braceryCache[symbolName])
+      callback (braceryCache[symbolName])
+    else if (++serviceCalls > config.maxServiceCalls)
+      callback ('')
+    else {
       function reqListener () {
         var responseBody = JSON.parse (this.responseText);
-        callback (responseBody.bracery);
+        var b = responseBody.bracery;
+        braceryCache[symbolName] = b;
+        callback (b);
       }
       var req = new XMLHttpRequest();
       req.addEventListener("load", reqListener);
       req.open("GET", window.location.origin + storePrefix + symbolName);
       req.send();
+    }
   }
+
   function reset() {
     function setEvalAndUpdate (newEvalText) {
       evalElement.innerText = newEvalText
@@ -53,19 +75,13 @@ function initBraceryView (config) {
       var bracery
       function expandSymbol (config) {
         var symbolName = config.node.name.toLowerCase()
-        var recursiveViewExpansions = config.recursiveViewExpansions || 0
         return new Promise (function (resolve, reject) {
           getBracery (symbolName, function (symDef) {
-            if (recursiveViewExpansions >= config.maxRecursion)
-              resolve ('')
-            else {
-              function expandCallback (expansion) {
-                resolve (expansion.tree)
-              }
-              bracery.expand (symDef,
-                              { recursiveViewExpansions: recursiveViewExpansions + 1,
-                                callback: expandCallback })
+            function expandCallback (expansion) {
+              resolve (expansion.tree)
             }
+            bracery.expand (symDef,
+                            { callback: expandCallback })
           })
         })
       }

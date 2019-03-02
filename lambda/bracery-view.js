@@ -12,9 +12,11 @@ const templateHtmlFileEncoding = "utf8";
 var storePrefix = '/bracery-store/';
 var assetPrefix = '/bracery-asset/';
 var viewAssetStub = 'bracery-view';
+var viewPrefix = '/' + viewAssetStub + '/';
 const templateVarValMap = { 'JAVASCRIPT_FILE': assetPrefix + viewAssetStub + '.js',
                             'STYLE_FILE': assetPrefix + viewAssetStub + '.css',
-                            'STORE_PATH_PREFIX': storePrefix };
+                            'STORE_PATH_PREFIX': storePrefix,
+                            'VIEW_PATH_PREFIX': viewPrefix };
 const templateNameVar = 'SYMBOL_NAME';
 
 // The Lambda function

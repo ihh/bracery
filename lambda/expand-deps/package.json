@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "compromise": "^11.13.1"
+  };
+}

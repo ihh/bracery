@@ -102,7 +102,7 @@ function initBraceryView (config) {
 
   function reset() {
     function setEvalAndUpdate (newEvalText) {
-      evalElement.innerText = newEvalText
+      evalElement.value = newEvalText
       update()
     }
     // hack: pass text in URL via hash, to work around hosts (e.g. github HTML preview) that won't allow URI parameters
@@ -113,7 +113,7 @@ function initBraceryView (config) {
   }
   function link() {
     // hack: pass out text in URL via hash, to work around hosts (e.g. github HTML preview) that won't allow URI parameters
-    window.location.href = window.location.href.replace(/#.*/,'') + '#' + window.encodeURIComponent(evalElement.innerText)
+    window.location.href = window.location.href.replace(/#.*/,'') + '#' + window.encodeURIComponent(evalElement.value)
     var ta = document.createElement('textarea')
     ta.value = window.location.href
     document.body.appendChild(ta)
@@ -127,7 +127,7 @@ function initBraceryView (config) {
   }
   function save() {
     var name = nameElement.value.toLowerCase()
-    var text = evalElement.innerText
+    var text = evalElement.value
     var password = passwordElement.value
     if (!name)
       errorElement.innerText = 'Please enter a name.'
@@ -162,7 +162,7 @@ function initBraceryView (config) {
   function update (evt) {
     cancelDelayedUpdate()
     try {
-      var text = evalElement.innerText.match(/\S/) ? evalElement.innerText : ''
+      var text = evalElement.value.match(/\S/) ? evalElement.value : ''
       errorElement.innerText = ''
 
       function expandSymbol (config) {
@@ -195,7 +195,7 @@ function initBraceryView (config) {
   }
   evalElement.addEventListener ('keyup', delayedUpdate)
   expElement.addEventListener ('click', update)
-  eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.innerText = ''; update() })
+  eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.value = ''; update() })
   resetElement.addEventListener ('click', function (evt) { evt.preventDefault(); reset() })
   rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); update() })
   saveElement.addEventListener ('click', function (evt) { evt.preventDefault(); save() })

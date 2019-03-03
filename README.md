@@ -25,11 +25,13 @@ natural language processing from the [compromise](https://github.com/spencermoun
 parsing algorithms from [bioinformatics](https://en.wikipedia.org/wiki/Bioinformatics),
 and lists from [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)).
 
-# Usage
+## Procedural text repository
 
 A Bracery micro-wiki, built using serverless functions available in the [lambda/](lambda/README.md) directory,
 is available at https://bracery.org/
 It can also be run from the command line, in the browser, etc.
+
+# Usage
 
 The following Bracery code generates lines like
 `how goes it, magician of Middle Earth`

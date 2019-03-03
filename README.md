@@ -27,9 +27,11 @@ and lists from [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_langua
 
 ## Procedural text repository
 
-A Bracery micro-wiki, built using serverless functions available in the [lambda/](lambda/README.md) directory,
-is available at https://bracery.org/
-It can also be run from the command line, in the browser, etc.
+A writable repository of Bracery scripts is available at https://bracery.org/
+Edit Bracery in the web browser, save and share immediately.
+
+The micro-wiki repository is serverless, built using AWS Lambda functions available in the [lambda/](lambda/README.md) directory.
+Bracery can also be run from the command line, in the browser, etc.
 
 # Usage
 

@@ -27,6 +27,10 @@ and lists from [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_langua
 
 # Usage
 
+A Bracery micro-wiki, built using serverless functions available in the [lambda/](lambda/README.md) directory,
+is available at https://bracery.org/
+It can also be run from the command line, in the browser, etc.
+
 The following Bracery code generates lines like
 `how goes it, magician of Middle Earth`
 and `well met, magus of the world`

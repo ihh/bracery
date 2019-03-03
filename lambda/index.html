@@ -2,8 +2,8 @@
   <head>
     <title>%SYMBOL_NAME%</title>
     <!-- Include a stylesheet with the name "%STYLE_FILE%" as follows...
-	<link href="%STYLE_FILE%" rel="stylesheet">
-	-->
+	 <link href="%STYLE_FILE%" rel="stylesheet">
+	 -->
   </head>
   <body style="display: flex; flex-direction: row; justify-content: space-around;">
     <div style="width: 600px; background-color: #eee; padding: 4px;">
@@ -14,19 +14,24 @@
 	</div>
 	<br><p>
 	<a id="reroll" href="#">Re-roll</a> /
-	Source text (<a href="#" id="erase">erase</a> / <a href="#" id="reset">example</a> / <a href="https://github.com/ihh/bracery">docs</a>):
-	<div>
-	  <textarea contenteditable="true" id="eval" style="width: 100%; min-height: 10em; resize: vertical; background: white; border-width: 1px; border-style: solid; font-family: monospace; word-break: break-all;">%SYMBOL_DEFINITION%</textarea>
+	<a href="#" id="sourcereveal">Source</a>
+	<span id="sourcecontrols" style="display: none;">
+	  Source text (<a href="#" id="erase">erase</a> / <a href="#" id="reset">example</a> / <a href="https://github.com/ihh/bracery">docs</a>):
+	</span>
+	<div id="sourcepanel" style="display: none;">
+	  <div>
+	    <textarea contenteditable="true" id="eval" style="width: 100%; min-height: 10em; resize: vertical; background: white; border-width: 1px; border-style: solid; font-family: monospace; word-break: break-all;">%SYMBOL_DEFINITION%</textarea>
+	  </div>
+	  <br><p>
+	    <span id="urlprefix">%BASE_URL%%VIEW_PATH_PREFIX%</span>
+	    <input type="text" id="name" name="name" size="20" value="%SYMBOL_NAME%">
+	    <button id="save" type="button">Save</button>
+	    <br><p>
+	    <label for="password">Password (optional):</label>
+	    <input type="password" id="password" name="password" size="20">
+	    <br><p>
+	    <div id="error" style="color:red;"></div>
 	</div>
-	<br><p>
-	<span id="urlprefix">%BASE_URL%%VIEW_PATH_PREFIX%</span>
-	<input type="text" id="name" name="name" size="20" value="%SYMBOL_NAME%">
-	<button id="save" type="button">Save</button>
-	<br><p>
-	<label for="password">Password (optional):</label>
-	<input type="password" id="password" name="password" size="20">
-	<br><p>
-	<div id="error" style="color:red;"></div>
     </div>
     <script src="%JAVASCRIPT_FILE%"></script>
     <script>

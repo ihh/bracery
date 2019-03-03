@@ -24,6 +24,10 @@ function initBraceryView (config) {
   var passwordElement = document.getElementById('password')
   var saveElement = document.getElementById('save')
   var errorElement = document.getElementById('error')
+
+  var sourceRevealElement = document.getElementById('sourcereveal')
+  var sourceControlsElement = document.getElementById('sourcecontrols')
+  var sourcePanelElement = document.getElementById('sourcepanel')
   
   urlElement.innerText = window.location.origin + viewPrefix
   nameElement.value = name
@@ -193,6 +197,12 @@ function initBraceryView (config) {
       expElement.innerText = e
     }
   }
+  function revealSource (evt) {
+    evt.preventDefault()
+    sourceControlsElement.style.display = ''
+    sourcePanelElement.style.display = ''
+    sourceRevealElement.style.display = 'none'
+  }
   evalElement.addEventListener ('keyup', delayedUpdate)
   expElement.addEventListener ('click', update)
   eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.value = ''; update() })
@@ -200,6 +210,7 @@ function initBraceryView (config) {
   rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); update() })
   saveElement.addEventListener ('click', function (evt) { evt.preventDefault(); save() })
   nameElement.addEventListener ('keyup', function (evt) { evt.preventDefault(); sanitize() })
+  sourceRevealElement.addEventListener ('click', revealSource)
   update()
 }
 

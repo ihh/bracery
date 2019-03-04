@@ -34,6 +34,7 @@ const templateVarValMap = { 'JAVASCRIPT_FILE': assetPrefix + viewAssetStub + '.j
                             'EXPAND_PATH_PREFIX': expandPrefix };
 const templateNameVar = 'SYMBOL_NAME';
 const templateDefVar = 'SYMBOL_DEFINITION';
+const templateVarsVar = 'VARS';
 const templateRecentVar = 'RECENT_SYMBOLS';
 
 // The Lambda function
@@ -43,11 +44,15 @@ exports.handler = (event, context, callback) => {
   // Get the symbol name
   const name = (event && event.pathParameters && event.pathParameters.name) || defaultName;
 
+  // Get initial vars as query parameters, if supplied
+  const vars = util.getVars (event);
+
   // Add the name & a dummy empty definition to the template var->val map
   let tmpMap = util.extend ({}, templateVarValMap);
   tmpMap[templateNameVar] = name;
   tmpMap[templateDefVar] = '';
   tmpMap[templateRecentVar] = '[]';
+  tmpMap[templateVarsVar] = JSON.stringify (vars);
 
   // Set up some returns
   const done = (err, res) => callback (null, {
@@ -107,13 +112,8 @@ exports.handler = (event, context, callback) => {
           done (err)
         else
           ok (Object.keys (tmpMap).reduce ((text, templateVar) => {
-            let templateVal = tmpMap[templateVar];
-            let escapedTemplateVal = templateVal
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
+            const templateVal = tmpMap[templateVar];
+            const escapedTemplateVal = util.sanitize (templateVal);
             return text
               .replace (new RegExp ('%' + templateVar + '%', 'g'), templateVal)
               .replace (new RegExp ('%ESCAPED_' + templateVar + '%', 'g'), escapedTemplateVal);

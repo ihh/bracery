@@ -5,6 +5,7 @@
 
 //console.log('Loading function');
 
+const util = require('./bracery-util');
 const config = require('./bracery-config');
 const tableName = config.tableName;
 
@@ -24,11 +25,7 @@ exports.handler = (event, context, callback) => {
 
   // Get symbol name, and body if we have it
   const name = event.pathParameters.name;
-  const body = (event.body
-                ? (typeof(event.body) === 'string'
-                   ? JSON.parse (event.body)
-                   : event.body)
-                : {});
+  const body = util.getBody (event);
 
   // Set up some returns
   const done = (err, res) => callback (null, {

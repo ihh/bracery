@@ -23,11 +23,8 @@ exports.handler = (event, context, callback) => {
   // Get symbol name
   const name = event.pathParameters.name;
 
-  // Get initial vars as query parameters, if supplied
-  let vars = {};
-  if (event.queryStringParameters)
-    Object.keys (event.queryStringParameters)
-    .forEach ((param) => { vars[param] = decodeURI (event.queryStringParameters[param]) });
+  // Get initial vars as query or body parameters, if supplied
+  const vars = util.getVars (event);
 
   // Set up some returns
   const done = (err, res) => callback (null, {

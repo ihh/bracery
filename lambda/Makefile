@@ -3,7 +3,7 @@ ZIP = zip
 
 all: bracery-store.zip bracery-view.zip bracery-asset.zip bracery-expand.zip
 
-COMMON = bracery-config.js bracery-util.js
+COMMON = bracery-config.js bracery-web.js bracery-util.js
 bracery-store.zip: bracery-store.js $(COMMON)
 	cp $< index.js
 	$(ZIP) $@ index.js $(COMMON)
@@ -23,8 +23,11 @@ bracery-asset.zip: bracery-asset.js $(COMMON) $(ASSETS)
 
 WEB_BRACERY = ../web/bracery.min.js
 MARKED = marked.min.js
-asset/bracery-view.js: $(WEB_BRACERY) asset/$(MARKED) asset/view.js
+asset/bracery-view.js: $(WEB_BRACERY) asset/$(MARKED) asset/bracery-web.js asset/view.js
 	cat $^ >$@
+
+asset/bracery-web.js: asset/bracery-web-shim.js
+	browserify $< >$@
 
 MARKED_DIR = ../node_modules/marked
 asset/%.js: $(MARKED_DIR)/%.js expand-deps

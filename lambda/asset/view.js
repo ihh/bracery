@@ -1,18 +1,29 @@
-function extend (dest) {
-  dest = dest || {}
-  Array.prototype.slice.call (arguments, 1).forEach (function (src) {
-    if (src)
-      Object.keys(src).forEach (function (key) { dest[key] = src[key] })
-  })
-  return dest
+var extend = window.braceryWeb.extend;
+
+function getUrlParams() {
+    var params = {};
+    var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+        params[key] = value;
+    });
+    return params;
 }
 
 function initBraceryView (config) {
   var name = config.name
+  var vars = config.vars
   var recent = config.recent
   var storePrefix = config.store
   var viewPrefix = config.view
   var expandPrefix = config.expand
+
+  var urlParams = getUrlParams()
+  var expandConfig = { maxDepth: 100,
+                       maxRecursion: 5,
+                       enableParse: false }
+  Object.keys (expandConfig).forEach (function (param) {
+    if (urlParams[param])
+      expandConfig[param] = urlParams[param]
+  })
   
   var evalElement = document.getElementById('eval')
   var eraseElement = document.getElementById('erase')
@@ -35,16 +46,13 @@ function initBraceryView (config) {
   var baseUrl = window.location.origin + viewPrefix
   urlElement.innerText = baseUrl
   nameElement.value = name
+  evalElement.placeholder = 'Enter text, e.g. [something|other]'
 
   if (recent && recent.length)
     recentElement.innerHTML = 'Recently updated: ' + recent
     .map (function (recentName) { return '<a href="' + baseUrl + recentName + '">' + recentName + '</a>' })
     .join (", ")
   
-  var config = { maxDepth: 100,
-                 maxRecursion: 5,
-                 enableParse: false }
-
   var totalExpansions = 0, currentExpansion = 0   // use this to avoid async issues where earlier calls overwrite later results
   function show() {
     var expansionCount = ++totalExpansions
@@ -54,6 +62,15 @@ function initBraceryView (config) {
         currentExpansion = expansionCount
       }
     }
+  }
+
+  function makeLink (text, link) {
+    var safeLink = window.braceryWeb.sanitize (link.text)
+    return '<a href="#" onclick="handleBraceryLink(\'' + safeLink + '\')">' + text.text + '</a>'
+  }
+  function handleBraceryLink (newEvalText) {
+    window.event.preventDefault();
+    return update (newEvalText);
   }
 
   var braceryCache = {}, serviceCalls = 0
@@ -112,17 +129,16 @@ function initBraceryView (config) {
       body.password = password
     req.send (JSON.stringify (body));
   }
-
   function reset() {
-    function setEvalAndUpdate (newEvalText) {
-      evalElement.innerText = newEvalText
-      update()
-    }
     // hack: pass text in URL via hash, to work around hosts (e.g. github HTML preview) that won't allow URI parameters
     if (window.location.hash)
       setEvalAndUpdate (window.decodeURIComponent (window.location.hash.substr(1)))
     else
       getBracery (name, setEvalAndUpdate);
+  }
+  function setEvalAndUpdate (newEvalText) {
+    evalElement.innerText = newEvalText
+    update()
   }
   function link() {
     // hack: pass out text in URL via hash, to work around hosts (e.g. github HTML preview) that won't allow URI parameters
@@ -135,7 +151,7 @@ function initBraceryView (config) {
     document.body.removeChild(ta)
     // window.alert ("URL copied to clipboard")
   }
-  function sanitize() {
+  function sanitizeName() {
     nameElement.value = nameElement.value.replace(/ /g,'_').replace(/[^A-Za-z_0-9]/g,'')
   }
   function save() {
@@ -162,7 +178,7 @@ function initBraceryView (config) {
   var delayedUpdateTimer = null, updateDelay = 400
   function delayedUpdate (evt) {
     cancelDelayedUpdate()
-    setTimeout (update.bind(null,evt), updateDelay)
+    setTimeout (update, updateDelay)
   }
   function cancelDelayedUpdate() {
     if (delayedUpdateTimer) {
@@ -170,11 +186,13 @@ function initBraceryView (config) {
       delayedUpdateTimer = null
     }
   }
-  function update (evt) {
+  function update (text) {
     cancelDelayedUpdate()
     try {
-      var text = evalElement.innerText.match(/\S/) ? evalElement.innerText : ''
       errorElement.innerText = ''
+
+      if (typeof(text) === 'undefined')
+        text = evalElement.innerText.match(/\S/) ? evalElement.innerText : ''
 
       function expandSymbol (config) {
         var symbolName = config.symbolName || config.node.name
@@ -190,16 +208,16 @@ function initBraceryView (config) {
       }
       function setSymbol() { return [] }
 
-      var braceryConfig = { expand: expandSymbol,
-                            get: getSymbol,
-                            set: setSymbol }
-
-      evalElement.placeholder = 'Enter text, e.g. [something|other]'
+      var callbacks = { expand: expandSymbol,
+                        get: getSymbol,
+                        set: setSymbol,
+                        callback: show(),
+                        makeLink: makeLink }
 
       var b = new bracery.Bracery()
-      b.expand (text, extend (braceryConfig,
-                              { callback: show() },
-                              config))
+      b.expand (text, extend (callbacks,
+                              expandConfig,
+                              { vars: vars }))
     } catch (e) {
       expElement.innerText = e
     }
@@ -215,8 +233,9 @@ function initBraceryView (config) {
   resetElement.addEventListener ('click', function (evt) { evt.preventDefault(); reset() })
   rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); update() })
   saveElement.addEventListener ('click', function (evt) { evt.preventDefault(); save() })
-  nameElement.addEventListener ('keyup', function (evt) { evt.preventDefault(); sanitize() })
+  nameElement.addEventListener ('keyup', function (evt) { evt.preventDefault(); sanitizeName() })
   sourceRevealElement.addEventListener ('click', revealSource)
+  window.handleBraceryLink = handleBraceryLink  // make this globally available
   update()
 }
 

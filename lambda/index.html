@@ -20,7 +20,7 @@
 	</span>
 	<div id="sourcepanel" style="display: none;">
 	  <div>
-	    <textarea contenteditable="true" id="eval" style="width: 100%; min-height: 10em; resize: vertical; background: white; border-width: 1px; border-style: solid; font-family: monospace; word-break: break-all;">%SYMBOL_DEFINITION%</textarea>
+	    <div contenteditable="true" id="eval" style="width: 100%; min-height: 10em; resize: vertical; background: white; border-width: 1px; border-style: solid; white-space: pre-wrap; word-break: break-all;">%ESCAPED_SYMBOL_DEFINITION%</div>
 	  </div>
 	  <br><p>
 	    <span id="urlprefix">%BASE_URL%%VIEW_PATH_PREFIX%</span>
@@ -32,10 +32,12 @@
 	    <br><p>
 	    <div id="error" style="color:red;"></div>
 	</div>
+	<br>
+	<div id="recent"></div>
     </div>
     <script src="%JAVASCRIPT_FILE%"></script>
     <script>
-      initBraceryView ({ name: "%SYMBOL_NAME%", store: "%STORE_PATH_PREFIX%", view: "%VIEW_PATH_PREFIX%", expand: "%EXPAND_PATH_PREFIX%" });
+      initBraceryView ({ name: "%SYMBOL_NAME%", recent: %RECENT_SYMBOLS%, store: "%STORE_PATH_PREFIX%", view: "%VIEW_PATH_PREFIX%", expand: "%EXPAND_PATH_PREFIX%" });
     </script>
   </body>
 </html>

@@ -7,8 +7,10 @@ const fs = require('fs');
 const doc = require('dynamodb-doc');
 const dynamo = new doc.DynamoDB();
 
+const util = require('./bracery-util');
 const config = require('./bracery-config');
 const tableName = config.tableName;
+const updateIndexName = config.updateIndexName;
 const defaultName = config.defaultSymbolName;
 
 // The template file should be uploaded with the AWS lambda zip archive for this function.
@@ -32,6 +34,7 @@ const templateVarValMap = { 'JAVASCRIPT_FILE': assetPrefix + viewAssetStub + '.j
                             'EXPAND_PATH_PREFIX': expandPrefix };
 const templateNameVar = 'SYMBOL_NAME';
 const templateDefVar = 'SYMBOL_DEFINITION';
+const templateRecentVar = 'RECENT_SYMBOLS';
 
 // The Lambda function
 exports.handler = (event, context, callback) => {
@@ -39,6 +42,12 @@ exports.handler = (event, context, callback) => {
 
   // Get the symbol name
   const name = (event && event.pathParameters && event.pathParameters.name) || defaultName;
+
+  // Add the name & a dummy empty definition to the template var->val map
+  let tmpMap = util.extend ({}, templateVarValMap);
+  tmpMap[templateNameVar] = name;
+  tmpMap[templateDefVar] = '';
+  tmpMap[templateRecentVar] = '[]';
 
   // Set up some returns
   const done = (err, res) => callback (null, {
@@ -52,7 +61,7 @@ exports.handler = (event, context, callback) => {
   const ok = (result) => done (null, result);
 
   // Query the database for the given symbol definition
-  var symbolPromise = new Promise ((resolve, reject) => {
+  let symbolPromise = new Promise ((resolve, reject) => {
     dynamo.query({ TableName: tableName,
                    KeyConditionExpression: "#nkey = :nval",
                    ExpressionAttributeNames:{
@@ -64,31 +73,52 @@ exports.handler = (event, context, callback) => {
                      if (!err) {
                        const result = res.Items && res.Items.length && res.Items[0];
                        if (result && result.bracery)
-                         resolve (result.bracery);
+                         tmpMap[templateDefVar] = result.bracery;
                      }
-                     resolve ('');
+                     resolve();
                    });
   });
 
-  symbolPromise.then ((def) => {
-    // Add the name & definition to the template var->val map
-    var tmpMap = {}
-    Object.keys (templateVarValMap).forEach ((templateVar) => {
-      tmpMap[templateVar] = templateVarValMap[templateVar]
-    })
-    tmpMap[templateNameVar] = name;
-    tmpMap[templateDefVar] = def;
-    
-    // Read the file, do the %VAR%->val template substitutions, and return
-    fs.readFile (templateHtmlFilename, templateHtmlFileEncoding, (err, templateHtml) => {
-      if (err)
-        done (err)
-      else
-        ok (Object.keys (tmpMap).reduce ((text, templateVar) => {
-          var templateVal = tmpMap[templateVar];
-          return text.replace (new RegExp ('%' + templateVar + '%', 'g'), templateVal);
-        }, templateHtml));
-    });
+  // Query the database for recently-updated symbols
+  let newsPromise = new Promise ((resolve, reject) => {
+    dynamo.query({ TableName: tableName,
+                   IndexName: updateIndexName,
+                   ScanIndexForward: false,
+                   Limit: config.recentlyUpdatedLimit,
+                   KeyConditionExpression: "#viskey = :visval",
+                   ExpressionAttributeNames:{
+                     "#viskey": "visibility"
+                   },
+                   ExpressionAttributeValues: {
+                     ":visval": config.defaultVisibility
+                   }}, (err, res) => {
+                     if (!err && res.Items)
+                       tmpMap[templateRecentVar] = JSON.stringify (res.Items.map ((item) => item.name));
+                     resolve();
+                   });
   });
+
+  symbolPromise
+    .then (() => newsPromise)
+    .then (() => {
+      // Read the file, do the %VAR%->val template substitutions, and return
+      fs.readFile (templateHtmlFilename, templateHtmlFileEncoding, (err, templateHtml) => {
+        if (err)
+          done (err)
+        else
+          ok (Object.keys (tmpMap).reduce ((text, templateVar) => {
+            let templateVal = tmpMap[templateVar];
+            let escapedTemplateVal = templateVal
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+            return text
+              .replace (new RegExp ('%' + templateVar + '%', 'g'), templateVal)
+              .replace (new RegExp ('%ESCAPED_' + templateVar + '%', 'g'), escapedTemplateVal);
+          }, templateHtml));
+      });
+    });
 
 };

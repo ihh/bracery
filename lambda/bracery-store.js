@@ -8,11 +8,12 @@
 const config = require('./bracery-config');
 const tableName = config.tableName;
 
+const BRACERY_SALT = process.env.BRACERY_SALT;  // must be defined from AWS Lambda
+
 const doc = require('dynamodb-doc');
 const dynamo = new doc.DynamoDB();
 
 const crypto = require('crypto');
-const salt = 'salt' + Math.random();
 const iterations = 10;
 const keylen = 64;
 const digest = 'sha512';
@@ -41,7 +42,7 @@ exports.handler = (event, context, callback) => {
   const notFound = () => done ({ statusCode: '404', message: `Name not found "${name}"` });
   const badMethod = () => done (new Error(`Unsupported method "${event.httpMethod}"`));
   const wrongPassword = () => done ({ statusCode: '401', message: "Incorrect password" });
-  const serverError = () => done ({ statusCode: '500', message: "Server error" });
+  const serverError = (msg) => done ({ statusCode: '500', message: msg || "Server error" });
   const ok = (result) => done (null, result);
 
   // The callback function after querying the database for anything matching the given name
@@ -53,9 +54,9 @@ exports.handler = (event, context, callback) => {
 
     // The callback function after we've hashed the user-supplied password
     const gotPassword = (passwordHash) => {
-      if (event.httpMethod !== 'GET' && result && (result.password ? (result.password !== passwordHash) : passwordHash))
+      if (event.httpMethod !== 'GET' && result && result.password && result.password !== passwordHash)
         return wrongPassword();
-
+        
       // Handle the HTTP methods
       switch (event.httpMethod) {
       case 'DELETE':
@@ -75,16 +76,23 @@ exports.handler = (event, context, callback) => {
       case 'PUT':
         {
           if (result) {
+            let expr = "SET bracery = :b, updated = :t";
+            let attrs = { ":b": body.bracery,
+                          ":t": Date.now() };
+            if (passwordHash) {
+              expr += ", password = :p";
+              attrs[":p"] = passwordHash;
+            }
             dynamo.updateItem ({ TableName: tableName,
                                  Key: { name: name },
-                                 UpdateExpression: "SET bracery = :b",
-                                 ExpressionAttributeValues: {
-                                   ":b": body.bracery
-                                 },
+                                 UpdateExpression: expr,
+                                 ExpressionAttributeValues: attrs,
                                }, done);
           } else {
             let item = { name: name,
-                         bracery: body.bracery };
+                         bracery: body.bracery,
+                         visibility: config.defaultVisibility };
+            item.created = item.updated = Date.now();
             if (passwordHash)
               item.password = passwordHash;
             dynamo.putItem ({ TableName: tableName,
@@ -99,8 +107,11 @@ exports.handler = (event, context, callback) => {
     };
 
     // Hash the user-supplied password
+    if (!BRACERY_SALT)
+      return serverError();
+
     if (body && body.password)
-      crypto.pbkdf2 (body.password, salt, iterations, keylen, digest, (err, derivedKey) => {
+      crypto.pbkdf2 (body.password, BRACERY_SALT, iterations, keylen, digest, (err, derivedKey) => {
         if (err)
           return serverError();
         gotPassword (derivedKey.toString('hex'));

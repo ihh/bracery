@@ -9,6 +9,7 @@ function extend (dest) {
 
 function initBraceryView (config) {
   var name = config.name
+  var recent = config.recent
   var storePrefix = config.store
   var viewPrefix = config.view
   var expandPrefix = config.expand
@@ -28,9 +29,17 @@ function initBraceryView (config) {
   var sourceRevealElement = document.getElementById('sourcereveal')
   var sourceControlsElement = document.getElementById('sourcecontrols')
   var sourcePanelElement = document.getElementById('sourcepanel')
-  
-  urlElement.innerText = window.location.origin + viewPrefix
+
+  var recentElement = document.getElementById('recent')
+
+  var baseUrl = window.location.origin + viewPrefix
+  urlElement.innerText = baseUrl
   nameElement.value = name
+
+  if (recent && recent.length)
+    recentElement.innerHTML = 'Recently updated: ' + recent
+    .map (function (recentName) { return '<a href="' + baseUrl + recentName + '">' + recentName + '</a>' })
+    .join (", ")
   
   var config = { maxDepth: 100,
                  maxRecursion: 5,
@@ -89,7 +98,7 @@ function initBraceryView (config) {
   function storeBracery (symbolName, symbolDef, password, callback) {
     var req = new XMLHttpRequest();
     req.open("PUT", window.location.origin + storePrefix + symbolName);
-    req.setRequestHeader("Content-Type", "application/json");
+    req.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     req.onreadystatechange = function() {
       if (this.readyState === XMLHttpRequest.DONE) {
         if (this.status === 200)
@@ -106,7 +115,7 @@ function initBraceryView (config) {
 
   function reset() {
     function setEvalAndUpdate (newEvalText) {
-      evalElement.value = newEvalText
+      evalElement.innerText = newEvalText
       update()
     }
     // hack: pass text in URL via hash, to work around hosts (e.g. github HTML preview) that won't allow URI parameters
@@ -117,7 +126,7 @@ function initBraceryView (config) {
   }
   function link() {
     // hack: pass out text in URL via hash, to work around hosts (e.g. github HTML preview) that won't allow URI parameters
-    window.location.href = window.location.href.replace(/#.*/,'') + '#' + window.encodeURIComponent(evalElement.value)
+    window.location.href = window.location.href.replace(/#.*/,'') + '#' + window.encodeURIComponent(evalElement.innerText)
     var ta = document.createElement('textarea')
     ta.value = window.location.href
     document.body.appendChild(ta)
@@ -131,7 +140,7 @@ function initBraceryView (config) {
   }
   function save() {
     var name = nameElement.value.toLowerCase()
-    var text = evalElement.value
+    var text = evalElement.innerText
     var password = passwordElement.value
     if (!name)
       errorElement.innerText = 'Please enter a name.'
@@ -140,9 +149,7 @@ function initBraceryView (config) {
       storeBracery (name, text, password, function (err, result) {
         if (err) {
           if (err === 401)
-            errorElement.innerText = (password
-                                      ? 'Sorry, the name "' + name + '" is already in use and is not password-protected, so you cannot specify a password when saving it. If you want to password-protect your work, try saving it under another name. Or, clear the password field and try saving again without a password.'
-                                      : 'Sorry, the name "' + name + '" is already in use and is password-protected.' + " If you don't know the password, try saving as another name.")
+            errorElement.innerText = 'Sorry, the name "' + name + '" is already in use and is password-protected.' + " If you don't know the password, try saving as another name."
           else
             errorElement.innerText = 'Sorry, an error occurred (' + err + ').'
         } else {
@@ -166,7 +173,7 @@ function initBraceryView (config) {
   function update (evt) {
     cancelDelayedUpdate()
     try {
-      var text = evalElement.value.match(/\S/) ? evalElement.value : ''
+      var text = evalElement.innerText.match(/\S/) ? evalElement.innerText : ''
       errorElement.innerText = ''
 
       function expandSymbol (config) {
@@ -205,7 +212,7 @@ function initBraceryView (config) {
   }
   evalElement.addEventListener ('keyup', delayedUpdate)
   expElement.addEventListener ('click', update)
-  eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.value = ''; update() })
+  eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.innerText = ''; update() })
   resetElement.addEventListener ('click', function (evt) { evt.preventDefault(); reset() })
   rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); update() })
   saveElement.addEventListener ('click', function (evt) { evt.preventDefault(); save() })

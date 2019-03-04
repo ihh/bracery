@@ -1,26 +1,25 @@
 <html>
   <head>
     <title>%SYMBOL_NAME%</title>
-    <!-- Include a stylesheet with the name "%STYLE_FILE%" as follows...
-	 <link href="%STYLE_FILE%" rel="stylesheet">
-	 -->
+    <link href="%STYLE_FILE%" rel="stylesheet">
   </head>
-  <body style="display: flex; flex-direction: row; justify-content: space-around;">
-    <div style="width: 600px; background-color: #eee; padding: 4px;">
-      <h1>%SYMBOL_NAME%</h1>
+  <body>
+    <div class="main">
+      <h1 id="title">%SYMBOL_NAME%</h1>
       <p>
-	<div id="expansion" style="width: 100%; background-color: lightgray; min-height: 1em;">
+	<div id="expansion">
 	  <i>...randomizing...</i>
 	</div>
-	<br><p>
+	<p>
 	<a id="reroll" href="#">Re-roll</a> /
+	<a id="bookmark" href="#">Bookmark</a> /
 	<a href="#" id="sourcereveal">Source</a>
 	<span id="sourcecontrols" style="display: none;">
 	  Source text (<a href="#" id="erase">erase</a> / <a href="#" id="reset">reload</a> / <a href="https://github.com/ihh/bracery">docs</a>):
 	</span>
 	<div id="sourcepanel" style="display: none;">
 	  <div>
-	    <div contenteditable="true" id="eval" style="width: 100%; min-height: 10em; resize: vertical; background: white; border-width: 1px; border-style: solid; white-space: pre-wrap; word-break: break-all;">%ESCAPED_SYMBOL_DEFINITION%</div>
+	    <div contenteditable="true" id="eval">%ESCAPED_SYMBOL_DEFINITION%</div>
 	  </div>
 	  <br><p>
 	    <span id="urlprefix">%BASE_URL%%VIEW_PATH_PREFIX%</span>
@@ -30,14 +29,14 @@
 	    <label for="password">Password (optional):</label>
 	    <input type="password" id="password" name="password" size="20">
 	    <br><p>
-	    <div id="error" style="color:red;"></div>
+	    <div id="error"></div>
 	</div>
-	<br>
+	<hr>
 	<div id="recent"></div>
     </div>
     <script src="%JAVASCRIPT_FILE%"></script>
     <script>
-      initBraceryView ({ name: "%SYMBOL_NAME%", vars: %VARS%, recent: %RECENT_SYMBOLS%, store: "%STORE_PATH_PREFIX%", view: "%VIEW_PATH_PREFIX%", expand: "%EXPAND_PATH_PREFIX%" });
+      initBraceryView ({ name: "%SYMBOL_NAME%", init: %QUOTED_INIT_TEXT%, vars: %VARS%, recent: %RECENT_SYMBOLS%, store: "%STORE_PATH_PREFIX%", view: "%VIEW_PATH_PREFIX%", expand: "%EXPAND_PATH_PREFIX%" });
     </script>
   </body>
 </html>

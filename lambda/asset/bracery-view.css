@@ -1,2 +1,33 @@
-/* Styles go here
- */
+body {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+}
+
+.main {
+    width: 600px;
+    background-color: #eee;
+    padding: 4px;
+}
+
+#expansion {
+    width: 100%;
+    background-color: lightgray;
+    min-height: 1em;
+    word-break: break-word;
+}
+
+#eval {
+    width: 100%;
+    min-height: 10em;
+    resize: vertical;
+    background: white;
+    border-width: 1px;
+    border-style: solid;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+#error {
+    color: red;
+}

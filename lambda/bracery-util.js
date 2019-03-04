@@ -1,6 +1,6 @@
 var braceryWeb = require ('./bracery-web');
 var extend = braceryWeb.extend;
-var sanitize = braceryWeb.sanitize;
+var escapeHTML = braceryWeb.escapeHTML;
 
 function getBody (event) {
   return (event.body
@@ -24,7 +24,7 @@ function getVars (event) {
 
 module.exports = {
   extend: extend,
-  sanitize: sanitize,
+  escapeHTML: escapeHTML,
   getBody: getBody,
   getVars: getVars
 }

@@ -12,6 +12,7 @@ module.exports = {
   
   // DynamoDB
   tableName: 'BraceryTable',
+  revisionsTableName: 'BraceryRevisionsTable',
   defaultVisibility: 'public',
   updateIndexName: 'visibility-updated-index',
   recentlyUpdatedLimit: 5,

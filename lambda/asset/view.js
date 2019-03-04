@@ -9,8 +9,9 @@ function getUrlParams() {
 }
 
 function initBraceryView (config) {
-  var name = config.name
-  var vars = config.vars
+  function name() { return config.name }  // make this dynamic, as save() can change the name
+  function initText() { return config.init }  // make this dynamic, as initText is reset when user starts typing
+  var initVars = config.vars
   var recent = config.recent
   var storePrefix = config.store
   var viewPrefix = config.view
@@ -24,11 +25,14 @@ function initBraceryView (config) {
     if (urlParams[param])
       expandConfig[param] = urlParams[param]
   })
-  
+
+  var braceryServer = new bracery.Bracery()
+
   var evalElement = document.getElementById('eval')
   var eraseElement = document.getElementById('erase')
   var resetElement = document.getElementById('reset')
   var rerollElement = document.getElementById('reroll')
+  var bookmarkElement = document.getElementById('bookmark')
   var expElement = document.getElementById('expansion')
 
   var urlElement = document.getElementById('urlprefix')
@@ -42,10 +46,11 @@ function initBraceryView (config) {
   var sourcePanelElement = document.getElementById('sourcepanel')
 
   var recentElement = document.getElementById('recent')
+  var titleElement = document.getElementById('title')
 
   var baseUrl = window.location.origin + viewPrefix
   urlElement.innerText = baseUrl
-  nameElement.value = name
+  nameElement.value = name()
   evalElement.placeholder = 'Enter text, e.g. [something|other]'
 
   if (recent && recent.length)
@@ -53,26 +58,53 @@ function initBraceryView (config) {
     .map (function (recentName) { return '<a href="' + baseUrl + recentName + '">' + recentName + '</a>' })
     .join (", ")
   
-  var totalExpansions = 0, currentExpansion = 0   // use this to avoid async issues where earlier calls overwrite later results
-  var currentVars = {}
-  function show() {
+  var totalExpansions = 0, currentExpansionCount = 0   // use this to avoid async issues where earlier calls overwrite later results
+  var currentVars = {}, currentExpansionText
+  function show (text, vars, showConfig) {
     var expansionCount = ++totalExpansions
     return function (expansion) {
-      if (expansionCount > currentExpansion) {
-        expElement.innerHTML = marked (expansion.text)
-        currentExpansion = expansionCount
+      if (expansionCount > currentExpansionCount) {
+	currentExpansionText = expansion.text
+        expElement.innerHTML = marked (currentExpansionText)
+        currentExpansionCount = expansionCount
+	if (showConfig && showConfig.pushState)
+	  pushState ({ text: text, vars: vars, display: showConfig.quiet ? undefined : currentExpansionText })
         extend (currentVars = {}, expansion.vars)
       }
     }
   }
-
+  function render (expansionText) {
+    return show() ({ text: expansionText })
+  }
+  function pushState (pushStateConfig) {
+    var name = pushStateConfig.name || config.name,
+	text = pushStateConfig.text,
+	vars = pushStateConfig.vars,
+	display = pushStateConfig.display,
+	showEval = pushStateConfig.showEval
+    var newUrl = viewPrefix + name, params = []
+    var evalText = evalElement.innerText
+    if (text) params.push ('text=' + window.encodeURIComponent(text))
+    if (vars) { var v = JSON.stringify(vars); if (v !== '{}') params.push ('vars=' + window.encodeURIComponent(v)) }
+    if (showEval) params.push ('eval=' + window.encodeURIComponent(evalText))
+    if (display) params.push ('display=' + window.encodeURIComponent(display))
+    if (params.length) newUrl += '?' + params.join('&')
+    window.history.pushState ({ name: name, text: text, vars: vars, evalText: evalText }, '', newUrl)
+  }
+  function bookmark (wantDisplay) {
+    var state = { text: config.init, vars: initVars, showEval: true }
+    if (wantDisplay)
+      state.display = currentExpansionText || ''
+    pushState (state)
+  }
+  
   function makeLink (text, link) {
-    var safeLink = window.braceryWeb.sanitize (link.text)
+    var safeLink = window.braceryWeb.escapeHTML (link.text)
     return '<a href="#" onclick="handleBraceryLink(\'' + safeLink + '\')">' + text.text + '</a>'
   }
   function handleBraceryLink (newEvalText) {
     window.event.preventDefault();
-    return update (newEvalText, currentVars);
+    return update (newEvalText, currentVars, { pushState: true });
   }
 
   var braceryCache = {}, serviceCalls = 0
@@ -132,26 +164,11 @@ function initBraceryView (config) {
     req.send (JSON.stringify (body));
   }
   function reset() {
-    // hack: pass text in URL via hash, to work around hosts (e.g. github HTML preview) that won't allow URI parameters
-    if (window.location.hash)
-      setEvalAndUpdate (window.decodeURIComponent (window.location.hash.substr(1)))
-    else
-      getBracery (name, setEvalAndUpdate);
-  }
-  function setEvalAndUpdate (newEvalText) {
-    evalElement.innerText = newEvalText
-    update()
-  }
-  function link() {
-    // hack: pass out text in URL via hash, to work around hosts (e.g. github HTML preview) that won't allow URI parameters
-    window.location.href = window.location.href.replace(/#.*/,'') + '#' + window.encodeURIComponent(evalElement.innerText)
-    var ta = document.createElement('textarea')
-    ta.value = window.location.href
-    document.body.appendChild(ta)
-    ta.select()
-    document.execCommand('copy')
-    document.body.removeChild(ta)
-    // window.alert ("URL copied to clipboard")
+    getBracery (name(), function (reloadedEvalText) {
+      evalElement.innerText = reloadedEvalText
+      delete config.init
+      update (undefined, undefined, { pushState: true, quiet: true })  // push state without init text
+    })
   }
   function sanitizeName() {
     nameElement.value = nameElement.value.replace(/ /g,'_').replace(/[^A-Za-z_0-9]/g,'')
@@ -162,6 +179,8 @@ function initBraceryView (config) {
     var password = passwordElement.value
     if (!name)
       errorElement.innerText = 'Please enter a name.'
+    else if (!text)
+      errorElement.innerText = 'You cannot save an empty definition. Please enter some text.'
     else {
       errorElement.innerText = ''
       storeBracery (name, text, password, function (err, result) {
@@ -172,15 +191,30 @@ function initBraceryView (config) {
             errorElement.innerText = 'Sorry, an error occurred (' + err + ').'
         } else {
           errorElement.innerText = 'Saved.'
+	  setName (name)
+	  pushState ({ name: name, text: initText(), vars: initVars })
           delete braceryCache[name]
         }
       })
     }
   }
+  function setName (name) {
+    titleElement.innerText = name
+    document.title = name
+    config.name = name
+  }
+
   var delayedUpdateTimer = null, updateDelay = 400
-  function delayedUpdate (evt) {
+  function evalChanged (evt) {
     cancelDelayedUpdate()
     setTimeout (update, updateDelay)
+    // The user typing input on the page overrides whatever was in the URL (or the current game state),
+    // so clear the 'init' config parameter (corresponding to the '?text=' query URL parameter)
+    // and then push a clean URL
+    if (config.init) {
+      delete config.init
+      pushState ({ vars: initVars })
+    }
   }
   function cancelDelayedUpdate() {
     if (delayedUpdateTimer) {
@@ -188,44 +222,62 @@ function initBraceryView (config) {
       delayedUpdateTimer = null
     }
   }
-  function update (text, updateVars) {
+  function update (updateText, updateVars, showConfig) {
     cancelDelayedUpdate()
-    try {
-      errorElement.innerText = ''
+    return new Promise (function (resolve, reject) {
+      try {
+	errorElement.innerText = ''
 
-      if (typeof(text) === 'undefined')
-        text = evalElement.innerText.match(/\S/) ? evalElement.innerText : ''
+	// The text to be expanded is updateText, the first argument to the update() function (if defined),
+	// or whatever is currently specified by config.init (originally set by query URL, may change dynamically),
+	// or (if neither of those are defined) the current contents of evalElement.
+	const text = (typeof(updateText) === 'string'
+		      ? updateText
+		      : (typeof(initText()) === 'string'
+			 ? initText()
+			 : (evalElement.innerText.match(/\S/)
+			    ? evalElement.innerText
+			    : '')));
 
-      if (typeof(updateVars) === 'undefined')
-        updateVars = vars
-      
-      function expandSymbol (config) {
-        var symbolName = config.symbolName || config.node.name
-        return new Promise (function (resolve, reject) {
-          expandBracery (symbolName.toLowerCase(), resolve)
-        })
+	if (typeof(updateVars) === 'undefined')
+          updateVars = initVars
+	
+	function expandSymbol (config) {
+          var symbolName = config.symbolName || config.node.name
+          return new Promise (function (resolve, reject) {
+            expandBracery (symbolName.toLowerCase(), resolve)
+          })
+	}
+	function getSymbol (config) {
+          var symbolName = config.symbolName || config.node.name
+          return new Promise (function (resolve, reject) {
+            getBracery (symbolName.toLowerCase(), resolve)
+          })
+	}
+	function setSymbol() { return [] }
+
+	// The URL that gets pushed includes updateText & updateVars
+	var showExpansion = show (updateText, updateVars, showConfig)
+	function showAndResolve (expansion) {
+	  showExpansion (expansion)
+	  resolve (expansion)
+	}
+
+	var callbacks = { expand: expandSymbol,
+                          get: getSymbol,
+                          set: setSymbol,
+                          callback: showAndResolve,
+                          makeLink: makeLink }
+
+	var braceryServer = new bracery.Bracery()
+	braceryServer.expand (text, extend (callbacks,
+					    expandConfig,
+					    { vars: extend ({}, updateVars) }))
+      } catch (e) {
+	expElement.innerText = e
+	reject (e)
       }
-      function getSymbol (config) {
-        var symbolName = config.symbolName || config.node.name
-        return new Promise (function (resolve, reject) {
-          getBracery (symbolName.toLowerCase(), resolve)
-        })
-      }
-      function setSymbol() { return [] }
-
-      var callbacks = { expand: expandSymbol,
-                        get: getSymbol,
-                        set: setSymbol,
-                        callback: show(),
-                        makeLink: makeLink }
-
-      var b = new bracery.Bracery()
-      b.expand (text, extend (callbacks,
-                              expandConfig,
-                              { vars: extend ({}, updateVars) }))
-    } catch (e) {
-      expElement.innerText = e
-    }
+    })
   }
   function revealSource (evt) {
     evt.preventDefault()
@@ -233,16 +285,28 @@ function initBraceryView (config) {
     sourcePanelElement.style.display = ''
     sourceRevealElement.style.display = 'none'
   }
-  evalElement.addEventListener ('keyup', delayedUpdate)
-  eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.innerText = ''; update() })
+  evalElement.addEventListener ('keyup', evalChanged)
+  eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.innerText = ''; update().then(bookmark) })
   resetElement.addEventListener ('click', function (evt) { evt.preventDefault(); reset() })
   rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); update() })
+  bookmarkElement.addEventListener ('click', function (evt) { evt.preventDefault(); bookmark (true) })
   saveElement.addEventListener ('click', function (evt) { evt.preventDefault(); save() })
   nameElement.addEventListener ('keyup', function (evt) { evt.preventDefault(); sanitizeName() })
   sourceRevealElement.addEventListener ('click', revealSource)
 
   window.handleBraceryLink = handleBraceryLink  // make this globally available
-  
-  update()
+  window.onpopstate = function (evt) {
+    var state = evt.state || {}
+    if (state.name)
+      setName (state.name)
+    if (state.evalText)
+      evalElement.innerText = state.evalText
+    update (state.text, state.vars)
+  }
+
+  if (urlParams.display)
+    render (window.decodeURIComponent (urlParams.display))
+  else
+    update()
 }
 

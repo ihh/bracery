@@ -7,7 +7,9 @@ function extend (dest) {
   return dest;
 }
 
-function sanitize (str) {
+function escapeHTML (str) {
+  if (typeof(str) !== 'string')
+    return str;
   return str
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -18,5 +20,5 @@ function sanitize (str) {
 
 module.exports = {
   extend: extend,
-  sanitize: sanitize
+  escapeHTML: escapeHTML
 };

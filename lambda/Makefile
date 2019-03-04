@@ -26,7 +26,7 @@ MARKED = marked.min.js
 asset/bracery-view.js: $(WEB_BRACERY) asset/$(MARKED) asset/bracery-web.js asset/view.js
 	cat $^ >$@
 
-asset/bracery-web.js: asset/bracery-web-shim.js
+asset/bracery-web.js: asset/bracery-web-shim.js $(COMMON)
 	browserify $< >$@
 
 MARKED_DIR = ../node_modules/marked

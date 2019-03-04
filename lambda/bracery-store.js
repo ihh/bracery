@@ -8,6 +8,7 @@
 const util = require('./bracery-util');
 const config = require('./bracery-config');
 const tableName = config.tableName;
+const revisionsTableName = config.revisionsTableName;
 
 const BRACERY_SALT = process.env.BRACERY_SALT;  // must be defined from AWS Lambda
 
@@ -72,29 +73,40 @@ exports.handler = (event, context, callback) => {
         break;
       case 'PUT':
         {
+	  let item = { name: name,
+                       bracery: body.bracery,
+		       updated: Date.now() };
+          if (passwordHash)
+            item.password = passwordHash;
+	  var putRevisionItem = function (err) {
+	    if (err)
+	      done (err);
+	    else
+	      dynamo.putItem ({ TableName: revisionsTableName,
+				Item: item,
+			      }, done);
+	  };
           if (result) {
             let expr = "SET bracery = :b, updated = :t";
-            let attrs = { ":b": body.bracery,
-                          ":t": Date.now() };
+            let attrs = { ":b": item.bracery,
+                          ":t": item.updated };
             if (passwordHash) {
               expr += ", password = :p";
-              attrs[":p"] = passwordHash;
+              attrs[":p"] = item.password;
             }
             dynamo.updateItem ({ TableName: tableName,
-                                 Key: { name: name },
+                                 Key: { name: item.name },
                                  UpdateExpression: expr,
                                  ExpressionAttributeValues: attrs,
-                               }, done);
+                               },
+			       putRevisionItem);
           } else {
-            let item = { name: name,
-                         bracery: body.bracery,
-                         visibility: config.defaultVisibility };
-            item.created = item.updated = Date.now();
-            if (passwordHash)
-              item.password = passwordHash;
+            item.visibility = config.defaultVisibility;
+            item.created = item.updated;
             dynamo.putItem ({ TableName: tableName,
                               Item: item,
-                            }, done);
+                            },
+			    putRevisionItem);
           }
         }
         break;
@@ -112,7 +124,7 @@ exports.handler = (event, context, callback) => {
         if (err)
           return serverError();
         gotPassword (derivedKey.toString('hex'));
-      })
+      });
     else
       gotPassword();
   };

@@ -34,6 +34,7 @@ const templateVarValMap = { 'JAVASCRIPT_FILE': assetPrefix + viewAssetStub + '.j
                             'EXPAND_PATH_PREFIX': expandPrefix };
 const templateNameVar = 'SYMBOL_NAME';
 const templateDefVar = 'SYMBOL_DEFINITION';
+const templateInitVar = 'INIT_TEXT';
 const templateVarsVar = 'VARS';
 const templateRecentVar = 'RECENT_SYMBOLS';
 
@@ -44,13 +45,24 @@ exports.handler = (event, context, callback) => {
   // Get the symbol name
   const name = (event && event.pathParameters && event.pathParameters.name) || defaultName;
 
+  // Get symbol definition override from query parameters, if supplied
+  const initText = ((event && event.queryStringParameters && typeof(event.queryStringParameters['text']) === 'string')
+		    ? decodeURIComponent (event.queryStringParameters['text'])
+		    : undefined);
+  
+  // Get evaluation text override from query parameters, if supplied
+  const evalText = ((event && event.queryStringParameters && typeof(event.queryStringParameters['eval']) === 'string')
+		    ? decodeURIComponent (event.queryStringParameters['eval'])
+		    : undefined);
+
   // Get initial vars as query parameters, if supplied
   const vars = util.getVars (event);
 
   // Add the name & a dummy empty definition to the template var->val map
   let tmpMap = util.extend ({}, templateVarValMap);
   tmpMap[templateNameVar] = name;
-  tmpMap[templateDefVar] = '';
+  tmpMap[templateDefVar] = typeof(evalText) === 'string' ? evalText : '';
+  tmpMap[templateInitVar] = typeof(initText) === 'string' ? initText : false;
   tmpMap[templateRecentVar] = '[]';
   tmpMap[templateVarsVar] = JSON.stringify (vars);
 
@@ -65,24 +77,27 @@ exports.handler = (event, context, callback) => {
 
   const ok = (result) => done (null, result);
 
-  // Query the database for the given symbol definition
-  let symbolPromise = new Promise ((resolve, reject) => {
-    dynamo.query({ TableName: tableName,
-                   KeyConditionExpression: "#nkey = :nval",
-                   ExpressionAttributeNames:{
-                     "#nkey": "name"
-                   },
-                   ExpressionAttributeValues: {
-                     ":nval": name.toLowerCase()
-                   }}, (err, res) => {
-                     if (!err) {
-                       const result = res.Items && res.Items.length && res.Items[0];
-                       if (result && result.bracery)
-                         tmpMap[templateDefVar] = result.bracery;
-                     }
-                     resolve();
-                   });
-  });
+  // Query the database for the given symbol definition, or use evalText if supplied
+  let symbolPromise =
+      (typeof(evalText) === 'string'
+       ? Promise.resolve (evalText)
+       : new Promise ((resolve, reject) => {
+	 dynamo.query({ TableName: tableName,
+			KeyConditionExpression: "#nkey = :nval",
+			ExpressionAttributeNames:{
+			  "#nkey": "name"
+			},
+			ExpressionAttributeValues: {
+			  ":nval": name.toLowerCase()
+			}}, (err, res) => {
+			  if (!err) {
+			    const result = res.Items && res.Items.length && res.Items[0];
+			    if (result && result.bracery)
+                              tmpMap[templateDefVar] = result.bracery;
+			  }
+			  resolve();
+			});
+       }));
 
   // Query the database for recently-updated symbols
   let newsPromise = new Promise ((resolve, reject) => {
@@ -109,14 +124,14 @@ exports.handler = (event, context, callback) => {
       // Read the file, do the %VAR%->val template substitutions, and return
       fs.readFile (templateHtmlFilename, templateHtmlFileEncoding, (err, templateHtml) => {
         if (err)
-          done (err)
+          done (err);
         else
           ok (Object.keys (tmpMap).reduce ((text, templateVar) => {
             const templateVal = tmpMap[templateVar];
-            const escapedTemplateVal = util.sanitize (templateVal);
             return text
               .replace (new RegExp ('%' + templateVar + '%', 'g'), templateVal)
-              .replace (new RegExp ('%ESCAPED_' + templateVar + '%', 'g'), escapedTemplateVal);
+              .replace (new RegExp ('%ESCAPED_' + templateVar + '%', 'g'), util.escapeHTML (templateVal))
+              .replace (new RegExp ('%QUOTED_' + templateVar + '%', 'g'), JSON.stringify (templateVal));
           }, templateHtml));
       });
     });

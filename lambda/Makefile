@@ -22,11 +22,17 @@ bracery-asset.zip: bracery-asset.js $(COMMON) $(ASSETS)
 	rm index.js
 
 WEB_BRACERY = ../web/bracery.min.js
-asset/bracery-view.js: $(WEB_BRACERY) asset/view.js
+MARKED = marked.min.js
+asset/bracery-view.js: $(WEB_BRACERY) asset/$(MARKED) asset/view.js
 	cat $^ >$@
 
+MARKED_DIR = ../node_modules/marked
+asset/%.js: $(MARKED_DIR)/%.js expand-deps
+	cp $< $@
+
 BRACERY_SOURCES = bracery.js template.js parsetree.js chomsky.js validator.js rhs.js
-bracery-expand.zip: bracery-expand.js $(COMMON) expand-deps/compromise.es6.min.js $(addprefix expand-deps/,$(BRACERY_SOURCES))
+COMPROMISE = compromise.es6.min.js
+bracery-expand.zip: bracery-expand.js $(COMMON) expand-deps/$(COMPROMISE) $(addprefix expand-deps/,$(BRACERY_SOURCES))
 	cp $< index.js
 	$(ZIP) $@ index.js $(COMMON) expand-deps/*.js
 	rm index.js
@@ -37,7 +43,8 @@ expand-deps/node_modules:
 expand-deps/%.js: ../src/%.js expand-deps
 	cp $< $@
 
-expand-deps/%.js: ../node_modules/compromise/builds/%.js expand-deps
+COMPROMISE_DIR = ../node_modules/compromise/builds
+expand-deps/%.js: $(COMPROMISE_DIR)/%.js expand-deps
 	cp $< $@
 
 expand-deps:

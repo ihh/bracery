@@ -23,6 +23,12 @@ exports.handler = (event, context, callback) => {
   // Get symbol name
   const name = event.pathParameters.name;
 
+  // Get initial vars as query parameters, if supplied
+  let vars = {};
+  if (event.queryStringParameters)
+    Object.keys (event.queryStringParameters)
+    .forEach ((param) => { vars[param] = decodeURI (event.queryStringParameters[param]) });
+
   // Set up some returns
   const done = (err, res) => callback (null, {
     statusCode: err ? (err.statusCode || '400') : '200',
@@ -65,8 +71,9 @@ exports.handler = (event, context, callback) => {
                      getSymbol (config)
                      .then ((symbolDefinition) =>
                             bracery.expand (symbolDefinition,
-                                       util.extend ({ callback: resolve },
-                                                    braceryConfig))));
+                                            util.extend ({ callback: resolve },
+                                                         braceryConfig,
+                                                         { vars: vars }))));
 
   const expandSymbol = (config) => expandSymbolFull (config).then ((expansion) => expansion.tree);
 

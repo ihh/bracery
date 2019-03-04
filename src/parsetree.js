@@ -556,7 +556,7 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
         } else
           switch (funcType (tok.funcname)) {
           case 'link':
-            result = [funcChar, tok.funcname].concat ([tok.args[0], tok.args[1], tok.args[2].args[0]].map (function (arg) { return makeFuncArgTree (pt, [arg], makeSymbolName, nextIsAlpha) }))
+            result = [funcChar, tok.funcname].concat ([tok.args[0], tok.args[1].args[0]].map (function (arg) { return makeFuncArgTree (pt, [arg], makeSymbolName, nextIsAlpha) }))
             break
           case 'parse':
             result = [funcChar, tok.funcname].concat ([tok.args[0].args, [tok.args[1]]].map (function (args) { return makeFuncArgTree (pt, args, makeSymbolName, nextIsAlpha) }))
@@ -1568,21 +1568,17 @@ function makeExpansionPromise (config) {
                 })
             } else if (node.funcname === 'link') {
               promise = makeRhsExpansionPromiseFor ([node.args[0]])
-                .then (function (typeArg) {
+                .then (function (textArg) {
                   return makeRhsExpansionPromiseFor ([node.args[1]])
-                    .then (function (textArg) {
-                      return makeRhsExpansionPromiseFor ([node.args[2]])
-                        .then (function (linkArg) {
-                          expansion.nodes += typeArg.nodes + textArg.nodes + linkArg.nodes
-                          expansion.text = (config.makeLink
-                                            ? config.makeLink (typeArg, textArg, linkArg)
-                                            : (funcChar + node.funcname
-                                               + leftBraceChar + typeArg.text + rightBraceChar
-                                               + leftBraceChar + textArg.text + rightBraceChar
-                                               + leftBraceChar + linkArg.text + rightBraceChar))
-                          expansion.value = expansion.text
-                          return expansionPromise
-                        })
+                    .then (function (linkArg) {
+                      expansion.nodes += textArg.nodes + linkArg.nodes
+                      expansion.text = (config.makeLink
+                                        ? config.makeLink (textArg, linkArg)
+                                        : (funcChar + node.funcname
+                                           + leftBraceChar + textArg.text + rightBraceChar
+                                           + leftBraceChar + linkArg.text + rightBraceChar))
+                      expansion.value = expansion.text
+                      return expansionPromise
                     })
                 })
 	    } else {

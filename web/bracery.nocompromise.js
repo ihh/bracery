@@ -8,9 +8,7 @@ var extend = ParseTree.extend
 var nlp = ParseTree.nlp
 
 var Bracery = function (rules, config) {
-  extend (this,
-          { rules: {} },
-          config || {})
+  this.rules = {}
   if (rules)
     this.addRules (rules)
   return this
@@ -1248,7 +1246,7 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
         } else
           switch (funcType (tok.funcname)) {
           case 'link':
-            result = [funcChar, tok.funcname].concat ([tok.args[0], tok.args[1], tok.args[2].args[0]].map (function (arg) { return makeFuncArgTree (pt, [arg], makeSymbolName, nextIsAlpha) }))
+            result = [funcChar, tok.funcname].concat ([tok.args[0], tok.args[1].args[0]].map (function (arg) { return makeFuncArgTree (pt, [arg], makeSymbolName, nextIsAlpha) }))
             break
           case 'parse':
             result = [funcChar, tok.funcname].concat ([tok.args[0].args, [tok.args[1]]].map (function (args) { return makeFuncArgTree (pt, args, makeSymbolName, nextIsAlpha) }))
@@ -2260,21 +2258,17 @@ function makeExpansionPromise (config) {
                 })
             } else if (node.funcname === 'link') {
               promise = makeRhsExpansionPromiseFor ([node.args[0]])
-                .then (function (typeArg) {
+                .then (function (textArg) {
                   return makeRhsExpansionPromiseFor ([node.args[1]])
-                    .then (function (textArg) {
-                      return makeRhsExpansionPromiseFor ([node.args[2]])
-                        .then (function (linkArg) {
-                          expansion.nodes += typeArg.nodes + textArg.nodes + linkArg.nodes
-                          expansion.text = (config.makeLink
-                                            ? config.makeLink (typeArg, textArg, linkArg)
-                                            : (funcChar + node.funcname
-                                               + leftBraceChar + typeArg.text + rightBraceChar
-                                               + leftBraceChar + textArg.text + rightBraceChar
-                                               + leftBraceChar + linkArg.text + rightBraceChar))
-                          expansion.value = expansion.text
-                          return expansionPromise
-                        })
+                    .then (function (linkArg) {
+                      expansion.nodes += textArg.nodes + linkArg.nodes
+                      expansion.text = (config.makeLink
+                                        ? config.makeLink (textArg, linkArg)
+                                        : (funcChar + node.funcname
+                                           + leftBraceChar + textArg.text + rightBraceChar
+                                           + leftBraceChar + linkArg.text + rightBraceChar))
+                      expansion.value = expansion.text
+                      return expansionPromise
                     })
                 })
 	    } else {
@@ -3288,7 +3282,7 @@ function peg$parse(input, options) {
       peg$c159 = function() { return makeFunction ('math', []) },
       peg$c160 = "&link",
       peg$c161 = peg$literalExpectation("&link", false),
-      peg$c162 = function(type, text, link) { return makeFunction ('link', [wrapNodes(type), wrapNodes(text), makeQuote(link)]) },
+      peg$c162 = function(text, link) { return makeFunction ('link', [wrapNodes(text), makeQuote(link)]) },
       peg$c163 = "&parse",
       peg$c164 = peg$literalExpectation("&parse", false),
       peg$c165 = function(grammar, text) { return makeFunction ('parse', [wrapNodes(grammar), wrapNodes(text)]) },
@@ -6339,7 +6333,7 @@ function peg$parse(input, options) {
   }
 
   function peg$parseLinkFunction() {
-    var s0, s1, s2, s3, s4;
+    var s0, s1, s2, s3;
 
     s0 = peg$currPos;
     if (input.substr(peg$currPos, 5) === peg$c160) {
@@ -6354,15 +6348,9 @@ function peg$parse(input, options) {
       if (s2 !== peg$FAILED) {
         s3 = peg$parseFunctionArg();
         if (s3 !== peg$FAILED) {
-          s4 = peg$parseFunctionArg();
-          if (s4 !== peg$FAILED) {
-            peg$savedPos = s0;
-            s1 = peg$c162(s2, s3, s4);
-            s0 = s1;
-          } else {
-            peg$currPos = s0;
-            s0 = peg$FAILED;
-          }
+          peg$savedPos = s0;
+          s1 = peg$c162(s2, s3);
+          s0 = s1;
         } else {
           peg$currPos = s0;
           s0 = peg$FAILED;

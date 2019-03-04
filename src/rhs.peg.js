@@ -177,7 +177,7 @@ MathFunction
   / "&math{}" { return makeFunction ('math', []) }
 
 LinkFunction
-  = "&link" type:FunctionArg text:FunctionArg link:FunctionArg { return makeFunction ('link', [wrapNodes(type), wrapNodes(text), makeQuote(link)]) }
+  = "&link" text:FunctionArg link:FunctionArg { return makeFunction ('link', [wrapNodes(text), makeQuote(link)]) }
 
 ParseFunction
   = "&parse" grammar:QuotedFunctionArg text:FunctionArg { return makeFunction ('parse', [wrapNodes(grammar), wrapNodes(text)]) }

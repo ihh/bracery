@@ -7,9 +7,7 @@ var extend = ParseTree.extend
 var nlp = ParseTree.nlp
 
 var Bracery = function (rules, config) {
-  extend (this,
-          { rules: {} },
-          config || {})
+  this.rules = {}
   if (rules)
     this.addRules (rules)
   return this

@@ -50,7 +50,7 @@ function initBraceryView (config) {
     var expansionCount = ++totalExpansions
     return function (expansion) {
       if (expansionCount > currentExpansion) {
-        expElement.innerText = expansion.text
+        expElement.innerHTML = marked (expansion.text)
         currentExpansion = expansionCount
       }
     }
@@ -211,7 +211,6 @@ function initBraceryView (config) {
     sourceRevealElement.style.display = 'none'
   }
   evalElement.addEventListener ('keyup', delayedUpdate)
-  expElement.addEventListener ('click', update)
   eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.innerText = ''; update() })
   resetElement.addEventListener ('click', function (evt) { evt.preventDefault(); reset() })
   rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); update() })

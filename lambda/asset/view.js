@@ -54,12 +54,14 @@ function initBraceryView (config) {
     .join (", ")
   
   var totalExpansions = 0, currentExpansion = 0   // use this to avoid async issues where earlier calls overwrite later results
+  var currentVars = {}
   function show() {
     var expansionCount = ++totalExpansions
     return function (expansion) {
       if (expansionCount > currentExpansion) {
         expElement.innerHTML = marked (expansion.text)
         currentExpansion = expansionCount
+        extend (currentVars = {}, expansion.vars)
       }
     }
   }
@@ -70,7 +72,7 @@ function initBraceryView (config) {
   }
   function handleBraceryLink (newEvalText) {
     window.event.preventDefault();
-    return update (newEvalText);
+    return update (newEvalText, currentVars);
   }
 
   var braceryCache = {}, serviceCalls = 0
@@ -186,7 +188,7 @@ function initBraceryView (config) {
       delayedUpdateTimer = null
     }
   }
-  function update (text) {
+  function update (text, updateVars) {
     cancelDelayedUpdate()
     try {
       errorElement.innerText = ''
@@ -194,6 +196,9 @@ function initBraceryView (config) {
       if (typeof(text) === 'undefined')
         text = evalElement.innerText.match(/\S/) ? evalElement.innerText : ''
 
+      if (typeof(updateVars) === 'undefined')
+        updateVars = vars
+      
       function expandSymbol (config) {
         var symbolName = config.symbolName || config.node.name
         return new Promise (function (resolve, reject) {
@@ -217,7 +222,7 @@ function initBraceryView (config) {
       var b = new bracery.Bracery()
       b.expand (text, extend (callbacks,
                               expandConfig,
-                              { vars: vars }))
+                              { vars: extend ({}, updateVars) }))
     } catch (e) {
       expElement.innerText = e
     }
@@ -235,7 +240,9 @@ function initBraceryView (config) {
   saveElement.addEventListener ('click', function (evt) { evt.preventDefault(); save() })
   nameElement.addEventListener ('keyup', function (evt) { evt.preventDefault(); sanitizeName() })
   sourceRevealElement.addEventListener ('click', revealSource)
+
   window.handleBraceryLink = handleBraceryLink  // make this globally available
+  
   update()
 }
 

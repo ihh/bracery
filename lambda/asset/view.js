@@ -42,6 +42,7 @@ function initBraceryView (config) {
   var errorElement = document.getElementById('error')
 
   var sourceRevealElement = document.getElementById('sourcereveal')
+  var sourceHideElement = document.getElementById('sourcehide')
   var sourceControlsElement = document.getElementById('sourcecontrols')
   var sourcePanelElement = document.getElementById('sourcepanel')
 
@@ -285,6 +286,12 @@ function initBraceryView (config) {
     sourcePanelElement.style.display = ''
     sourceRevealElement.style.display = 'none'
   }
+  function hideSource (evt) {
+    evt.preventDefault()
+    sourceControlsElement.style.display = 'none'
+    sourcePanelElement.style.display = 'none'
+    sourceRevealElement.style.display = ''
+  }
   evalElement.addEventListener ('keyup', evalChanged)
   eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.innerText = ''; update().then(bookmark) })
   resetElement.addEventListener ('click', function (evt) { evt.preventDefault(); reset() })
@@ -293,6 +300,7 @@ function initBraceryView (config) {
   saveElement.addEventListener ('click', function (evt) { evt.preventDefault(); save() })
   nameElement.addEventListener ('keyup', function (evt) { evt.preventDefault(); sanitizeName() })
   sourceRevealElement.addEventListener ('click', revealSource)
+  sourceHideElement.addEventListener ('click', hideSource)
 
   window.handleBraceryLink = handleBraceryLink  // make this globally available
   window.onpopstate = function (evt) {

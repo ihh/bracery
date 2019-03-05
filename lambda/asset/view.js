@@ -309,7 +309,10 @@ function initBraceryView (config) {
       setName (state.name)
     if (state.evalText)
       evalElement.innerText = state.evalText
-    update (state.text, state.vars)
+    if (state.display)
+      render (window.decodeURIComponent (state.display))
+    else
+      update (state.text, state.vars)
   }
 
   if (urlParams.display)

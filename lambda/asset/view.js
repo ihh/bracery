@@ -307,9 +307,9 @@ function initBraceryView (config) {
     var state = evt.state || {}
     if (state.name)
       setName (state.name)
-    if (state.evalText)
+    if (typeof(state.evalText) === 'string')
       evalElement.innerText = state.evalText
-    if (state.display)
+    if (typeof(state.display) === 'string')
       render (window.decodeURIComponent (state.display))
     else
       update (state.text, state.vars)

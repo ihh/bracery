@@ -60,7 +60,7 @@ function initBraceryView (config) {
     .join (", ")
   
   var totalExpansions = 0, currentExpansionCount = 0   // use this to avoid async issues where earlier calls overwrite later results
-  var currentVars = {}, currentExpansionText
+  var varsAfterCurrentExpansion = {}, currentExpansionText
   function show (text, vars, showConfig) {
     var expansionCount = ++totalExpansions
     return function (expansion) {
@@ -69,33 +69,33 @@ function initBraceryView (config) {
         expElement.innerHTML = marked (currentExpansionText)
         currentExpansionCount = expansionCount
 	if (showConfig && showConfig.pushState)
-	  pushState ({ text: text, vars: vars, display: showConfig.quiet ? undefined : currentExpansionText })
-        extend (currentVars = {}, expansion.vars)
+	  pushState ({ text: text, vars: vars, expansion: showConfig.quiet ? undefined : { text: expansion.text, vars: expansion.vars } })
+        extend (varsAfterCurrentExpansion = {}, expansion.vars)
       }
     }
   }
-  function render (expansionText) {
-    return show() ({ text: expansionText })
+  function render (expansion) {
+    return show() (expansion)
   }
   function pushState (pushStateConfig) {
     var name = pushStateConfig.name || config.name,
 	text = pushStateConfig.text,
 	vars = pushStateConfig.vars,
-	display = pushStateConfig.display,
+	expansion = pushStateConfig.expansion,
 	showEval = pushStateConfig.showEval
     var newUrl = viewPrefix + name, params = []
     var evalText = evalElement.innerText
     if (text) params.push ('text=' + window.encodeURIComponent(text))
     if (vars) { var v = JSON.stringify(vars); if (v !== '{}') params.push ('vars=' + window.encodeURIComponent(v)) }
     if (showEval) params.push ('eval=' + window.encodeURIComponent(evalText))
-    if (display) params.push ('display=' + window.encodeURIComponent(display))
+    if (expansion) params.push ('exp=' + window.encodeURIComponent(JSON.stringify(expansion)))
     if (params.length) newUrl += '?' + params.join('&')
     window.history.pushState ({ name: name, text: text, vars: vars, evalText: evalText }, '', newUrl)
   }
-  function bookmark (wantDisplay) {
+  function bookmark (showExp) {
     var state = { text: config.init, vars: initVars, showEval: true }
-    if (wantDisplay)
-      state.display = currentExpansionText || ''
+    if (showExp)
+      state.expansion = { text: currentExpansionText, vars: varsAfterCurrentExpansion } || ''
     pushState (state)
   }
   
@@ -105,7 +105,7 @@ function initBraceryView (config) {
   }
   function handleBraceryLink (newEvalText) {
     window.event.preventDefault();
-    return update (newEvalText, currentVars, { pushState: true });
+    return update (newEvalText, varsAfterCurrentExpansion, { pushState: true });
   }
 
   var braceryCache = {}, serviceCalls = 0
@@ -307,16 +307,16 @@ function initBraceryView (config) {
     var state = evt.state || {}
     if (state.name)
       setName (state.name)
-    if (typeof(state.evalText) === 'string')
+    if (typeof(state.evalText) !== 'undefined')
       evalElement.innerText = state.evalText
-    if (typeof(state.display) === 'string')
-      render (window.decodeURIComponent (state.display))
+    if (typeof(state.expansion) !== 'undefined')
+      render (state.expansion)
     else
       update (state.text, state.vars)
   }
 
-  if (urlParams.display)
-    render (window.decodeURIComponent (urlParams.display))
+  if (urlParams.exp)
+    render (JSON.parse (window.decodeURIComponent (urlParams.exp)))
   else
     update()
 }

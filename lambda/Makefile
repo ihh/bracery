@@ -16,10 +16,14 @@ bracery-view.zip: bracery-view.js $(COMMON) $(TEMPLATES)
 	rm index.js
 
 ASSETS = asset/bracery-view.js asset/bracery-view.css
+GZIPPED_ASSETS = $(addsuffix .gz,$(ASSETS))
 bracery-asset.zip: bracery-asset.js $(COMMON) $(ASSETS)
 	cp $< index.js
 	$(ZIP) $@ index.js $(COMMON) $(ASSETS)
 	rm index.js
+
+asset/%.gz: asset/%
+	gzip -ck $< >$@
 
 WEB_BRACERY = ../web/bracery.min.js
 MARKED = marked.min.js

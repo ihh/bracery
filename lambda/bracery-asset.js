@@ -23,22 +23,27 @@ exports.handler = (event, context, callback) => {
 
   // Get filename parameter
   const filename = event.pathParameters.filename;
+
+  // MIME type
   let mimeType = 'text/plain';
   const suffixRegex = new RegExp ('(\.[^\.]+)$');
   const match = suffixRegex.exec (filename);
   if (match)
     mimeType = suffixMimeType[match[1]];
+
+  // Response headers
+  let headers = {
+    'Content-Type': mimeType + '; charset=' + stringEncoding
+  };
   
-  // Set up some returns
+  // Set up response callback
   const done = (err, res) => callback (null, {
     statusCode: err ? (err.statusCode || '404') : '200',
     body: err ? `File "${filename}" not found`  : res,
-    headers: {
-      'Content-Type': mimeType + '; charset=' + stringEncoding,
-    },
+    headers: headers
   });
 
   // Handle the request by serving up the file
-  const staticFilePath = staticFileDir + '/' + filename;
-  fs.readFile (staticFilePath, stringEncoding, done);
+  let filePath = staticFileDir + '/' + filename;
+  fs.readFile (filePath, stringEncoding, done);
 };

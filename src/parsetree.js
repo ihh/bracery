@@ -169,7 +169,7 @@ function sampleParseTree (rhs, config) {
   var pt = this
   var rng = (config ? config.rng : null) || Math.random
   if (typeof(rhs.map) !== 'function')
-    console.error (typeof(rhs) + ' rhs=' + JSON.stringify(rhs))
+    console.error ('sampleParseTree type error: rhs (' + typeof(rhs) + ') = ' + JSON.stringify(rhs))
   return rhs.map (function (node, n) {
     var result, index
     if (typeof(node) === 'string')

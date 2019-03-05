@@ -522,11 +522,17 @@ function doTests (testRunner) {
   expectExpand ('&math{.5}', '0.5')
   expectExpand ('&math{0.5}', '0.5')
 
-  // link
+  // links
   expectExpand ('$x=3 &link{test$x}{$x}', '&link{test3}{$x}')
   expectExpand ('&quote&link{test}{$x}', '&link{test}$x')
   expectExpand ('$x=3 &link{test}{$x}', 'test==>$x', {makeLink:function(text,link){return text.text+'==>'+link.text}})
-  
+
+  expectExpand ('[[]]', '[[]]')
+  expectExpand ('[[ ]]', '[[ ]]')
+  expectExpand ('[[x]]', '&link{x}{~x}')
+  expectExpand ('[[xYz]]', '&link{xYz}{~xyz}')
+  expectExpand ('[[ X! ... ]]', '&link{ X! ... }{~x}')
+
   // charclass, alt
   expectExpand ('&charclass{abc}', '[a|b|c]')
   expectExpand ('&charclass{a-e}', '[a|b|c|d|e]')

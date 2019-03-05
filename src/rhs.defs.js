@@ -35,6 +35,13 @@ function makeSymbol (name, args) { return makeSymbolMethod (name, 'expand', args
 function makeGetSymbol (name) { return makeSymbolMethod (name, 'get') }
 function makeSetSymbol (name, args) { return makeSymbolMethod (name, 'set', args) }
 
+function makeLinkShortcut (text) {
+  var symName = text.toLowerCase().replace(/[^a-z0-9_]+/g,'')
+  return (symName.length
+	  ? makeFunction ('link', [text, makeQuote ([makeSymbol (symName)])])
+	  : ('[[' + text + ']]'))
+}
+
 var defaultListVarName = '_'
 var defaultJoinText = ' '
 var defaultSplitPattern = '[ \\t\\r\\n]+'

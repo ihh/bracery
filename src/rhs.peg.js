@@ -13,6 +13,7 @@ Node
   / VarAssignment
   / VarLookup
   / Alternation
+  / LinkShortcut
   / args:DummyBrackets { return wrapNodes (args) }
   / char:[\~\#&\$\+\-] { return char }
 
@@ -178,6 +179,9 @@ MathFunction
 
 LinkFunction
   = "&link" text:FunctionArg link:FunctionArg { return makeFunction ('link', [wrapNodes(text), makeQuote(link)]) }
+
+LinkShortcut
+  = "[[" text:Text "]]" { return makeLinkShortcut (text) }
 
 ParseFunction
   = "&parse" grammar:QuotedFunctionArg text:FunctionArg { return makeFunction ('parse', [wrapNodes(grammar), wrapNodes(text)]) }

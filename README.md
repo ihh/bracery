@@ -4,7 +4,7 @@
 
 # Bracery
 
-Bracery is a small language for procedural text generation.
+Bracery ([bracery.org](https://bracery.org/)) is a small language for procedural text generation.
 Its purpose is to enable quick and fluid writing of text with random elements,
 allowing for user extensions that may include calls to a server (e.g. for synonyms, rhymes, or other functions).
 
@@ -27,7 +27,7 @@ and lists from [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_langua
 
 ## Procedural text repository
 
-A writable repository of Bracery scripts is available at https://bracery.org/
+A writable repository of Bracery scripts is available at [bracery.org](https://bracery.org/).
 Edit Bracery in the web browser, save and share immediately.
 
 The micro-wiki repository is serverless, built using AWS Lambda functions available in the [lambda/](lambda/README.md) directory.

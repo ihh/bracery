@@ -33,6 +33,23 @@ Edit Bracery in the web browser, save and share immediately.
 The micro-wiki repository is serverless, built using AWS Lambda functions available in the [lambda/](lambda/README.md) directory.
 Bracery can also be run from the command line, in the browser, etc.
 
+### Programmer's tl;dr
+
+If you're a programmer, or not, you may want the summary:
+Bracery is a text markup language
+oriented around [probabilistic context-free grammars](https://en.wikipedia.org/wiki/Probabilistic_context-free_grammar)
+that uses dollars signs `$` for variables (as in `$x`),
+equals for assignment (`$x=value`),
+curly-brace delimiters (`$x={longer value}`),
+square-bracket alternations (`[first option|another option|third option]`),
+ampersands for built-in function names (`&add`, `&subtract`, `&plural`, etc.),
+conditionals (`&if`),
+lists (`&map`, `&join`, `&reduce`),
+access to several parsers (`&eval`, `&quote`, `&syntax`, `&parse`),
+and other language-oriented features;
+with an engine that runs asynchronously and can (optionally) connect to an online [wiki](https://bracery.org/) for procedural content,
+where each page is its own symbol in the grammar.
+
 # Usage
 
 The following Bracery code generates lines like

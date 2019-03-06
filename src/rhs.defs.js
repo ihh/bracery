@@ -36,7 +36,10 @@ function makeGetSymbol (name) { return makeSymbolMethod (name, 'get') }
 function makeSetSymbol (name, args) { return makeSymbolMethod (name, 'set', args) }
 
 function makeLinkShortcut (text) {
-  var symName = text.toLowerCase().replace(/[^a-z0-9_]+/g,'')
+  var symName = text.toLowerCase()
+      .replace(/^[^a-z0-9_]*/,'')
+      .replace(/[^a-z0-9_]*$/,'')
+      .replace(/[^a-z0-9_]+/g,'_')
   return (symName.length
 	  ? makeFunction ('link', [text, makeQuote ([makeSymbol (symName)])])
 	  : ('[[' + text + ']]'))

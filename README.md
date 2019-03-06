@@ -348,6 +348,17 @@ so heavily recursive Bracery code can quickly max out the JavaScript stack.
 The main constraints that Bracery enforces are maximum parse tree depth, parse tree node count, recursion depth, and output length.
 For the `&parse` function, constraints on the parsed sequence and subsequence lengths are also enforced.
 
+## Comparison with Twine
+
+The syntax `&link{link text}{link destination}` will be rendered in an implementation-determined way
+(the default implementation just passes it through unchanged).
+At [bracery.org](https://bracery.org/), `link destination` is treated as text that replaces the current Bracery source text when the link is clicked,
+so that an interactive fiction-style pattern is `&link{Doorway description}{~next_room}`
+where the tilde-prefixed symbol `~next_room` plays a similar role to a Twine [passage](https://twinery.org/wiki/passage).
+
+The Twine-inspired syntax `[[Next room.]]` is a shortcut for `&link{Next room.}{~next_room}`.
+(The symbol name is derived from the link text by lower-casing and replacing all invalid interior characters with underscores.)
+
 ## Comparison with Tracery
 
 In Tracery, variables and symbols share the same namespace, as part of the design.

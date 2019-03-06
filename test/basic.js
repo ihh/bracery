@@ -532,6 +532,7 @@ function doTests (testRunner) {
   expectExpand ('[[x]]', '&link{x}{~x}')
   expectExpand ('[[xYz]]', '&link{xYz}{~xyz}')
   expectExpand ('[[ X! ... ]]', '&link{ X! ... }{~x}')
+  expectExpand ('[[Next room.]]', '&link{Next room.}{~next_room}')
 
   // charclass, alt
   expectExpand ('&charclass{abc}', '[a|b|c]')

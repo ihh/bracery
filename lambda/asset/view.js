@@ -1,5 +1,11 @@
 var extend = window.braceryWeb.extend;
 
+var viewConfig = { bookmark: { link: false,
+			       reset: false,
+			       save: false,
+			       firstEdit: false },
+		   alwaysShowEvalInBookmarks: true };
+
 function getUrlParams() {
     var params = {};
     var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
@@ -58,25 +64,35 @@ function initBraceryView (config) {
     recentElement.innerHTML = 'Recently updated: ' + recent
     .map (function (recentName) { return '<a href="' + baseUrl + recentName + '">' + recentName + '</a>' })
     .join (", ")
-  
-  var totalExpansions = 0, currentExpansionCount = 0   // use this to avoid async issues where earlier calls overwrite later results
-  var varsAfterCurrentExpansion = {}, currentExpansionText
+
+  // Application state
+  var evalTextEdited = false  // indicates evalElement.innerText is "as loaded" from initText() = config.init; set by change event on evalElement, cleared by reload
+  var totalExpansions = 0, currentExpansionCount = 0   // used to avoid async issues where HTTP response callbacks from earlier clicks overwrite (what should be) later results
+  var varsBeforeCurrentExpansion, varsAfterCurrentExpansion, currentSourceText, currentExpansionText  // the current state of the internal Bracery expansion at the core of the app
   function show (text, vars, showConfig) {
     var expansionCount = ++totalExpansions
     return function (expansion) {
       if (expansionCount > currentExpansionCount) {
+	currentSourceText = text
 	currentExpansionText = expansion.text
-        expElement.innerHTML = marked (currentExpansionText)
-        currentExpansionCount = expansionCount
-	if (showConfig && showConfig.pushState)
-	  pushState ({ text: text, vars: vars, expansion: showConfig.quiet ? undefined : { text: expansion.text, vars: expansion.vars } })
+	extend (varsBeforeCurrentExpansion = {}, vars)
         extend (varsAfterCurrentExpansion = {}, expansion.vars)
+        currentExpansionCount = expansionCount
+        expElement.innerHTML = marked (currentExpansionText)  // Markdown expansion
+	if (showConfig && showConfig.pushState)
+	  pushState ({ text: currentSourceText,
+		       vars: varsBeforeCurrentExpansion,
+		       expansion: (showConfig.quiet
+				   ? undefined
+				   : { text: currentExpansionText,
+				       vars: varsAfterCurrentExpansion }) })
       }
     }
   }
   function render (expansion) {
     return show() (expansion)
   }
+
   function pushState (pushStateConfig) {
     var name = pushStateConfig.name || config.name,
 	text = pushStateConfig.text,
@@ -87,15 +103,18 @@ function initBraceryView (config) {
     var evalText = evalElement.innerText
     if (text) params.push ('text=' + window.encodeURIComponent(text))
     if (vars) { var v = JSON.stringify(vars); if (v !== '{}') params.push ('vars=' + window.encodeURIComponent(v)) }
-    if (showEval) params.push ('eval=' + window.encodeURIComponent(evalText))
+    if (showEval && (config.init || evalTextEdited || viewConfig.alwaysShowEvalInBookmarks)) params.push ('eval=' + window.encodeURIComponent(evalText))
     if (expansion) params.push ('exp=' + window.encodeURIComponent(JSON.stringify(expansion)))
     if (params.length) newUrl += '?' + params.join('&')
     window.history.pushState ({ name: name, text: text, vars: vars, evalText: evalText }, '', newUrl)
   }
   function bookmark (showExp) {
-    var state = { text: config.init, vars: initVars, showEval: true }
+    var state = { text: currentSourceText,
+		  vars: varsBeforeCurrentExpansion,
+		  showEval: true }
     if (showExp)
-      state.expansion = { text: currentExpansionText, vars: varsAfterCurrentExpansion } || ''
+      state.expansion = { text: currentExpansionText || '',
+			  vars: varsAfterCurrentExpansion || {} }
     pushState (state)
   }
   
@@ -105,7 +124,7 @@ function initBraceryView (config) {
   }
   function handleBraceryLink (newEvalText) {
     window.event.preventDefault();
-    return update (newEvalText, varsAfterCurrentExpansion, { pushState: true });
+    return update (newEvalText, varsAfterCurrentExpansion, { pushState: viewConfig.bookmark.link });
   }
 
   var braceryCache = {}, serviceCalls = 0
@@ -168,7 +187,9 @@ function initBraceryView (config) {
     getBracery (name(), function (reloadedEvalText) {
       evalElement.innerText = reloadedEvalText
       delete config.init
-      update (undefined, undefined, { pushState: true, quiet: true })  // push state without init text
+      evalTextEdited = false
+      update (undefined, undefined, { pushState: viewConfig.bookmark.reset,
+				      quiet: true })  // push state without init text
     })
   }
   function sanitizeName() {
@@ -193,7 +214,8 @@ function initBraceryView (config) {
         } else {
           errorElement.innerText = 'Saved.'
 	  setName (name)
-	  pushState ({ name: name, text: initText(), vars: initVars })
+	  if (viewConfig.bookmark.save)
+	    pushState ({ name: name, text: initText(), vars: initVars })
           delete braceryCache[name]
         }
       })
@@ -209,12 +231,14 @@ function initBraceryView (config) {
   function evalChanged (evt) {
     cancelDelayedUpdate()
     setTimeout (update, updateDelay)
+    evalTextEdited = true
     // The user typing input on the page overrides whatever was in the URL (or the current game state),
     // so clear the 'init' config parameter (corresponding to the '?text=' query URL parameter)
     // and then push a clean URL
     if (config.init) {
       delete config.init
-      pushState ({ vars: initVars })
+      if (viewConfig.bookmark.firstEdit)
+	pushState ({ vars: initVars })
     }
   }
   function cancelDelayedUpdate() {
@@ -293,7 +317,7 @@ function initBraceryView (config) {
     sourceRevealElement.style.display = ''
   }
   evalElement.addEventListener ('keyup', evalChanged)
-  eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.innerText = ''; update().then(bookmark) })
+  eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.innerText = ''; update().then (viewConfig.bookmark.erase ? bookmark : undefined) })
   resetElement.addEventListener ('click', function (evt) { evt.preventDefault(); reset() })
   rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); update() })
   bookmarkElement.addEventListener ('click', function (evt) { evt.preventDefault(); bookmark (true) })

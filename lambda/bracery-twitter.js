@@ -67,45 +67,50 @@ exports.handler = (event, context, callback) => {
   // Handle the HTTP methods
   switch (event.httpMethod) {
   case 'POST':
-    oauth.getOAuthRequestToken ((err, OAuthToken, OAuthTokenSecret, results) => {
-
-      dynamo.putItem ({ TableName: twitterTableName,
-			Item: { requestToken: OAuthToken,
-                                requestTokenSecret: OAuthTokenSecret,
-                                requestTime: Date.now(),
-                                name: name,
-                                type: 'request',
-                              },
-		      }, (err, result) => {
-                        if (err)
-                          return serverError (err);
-                        redirectPost ('https://api.twitter.com/oauth/authenticate?oauth_token=' + OAuthToken);
-                      });
-    });
+    try {
+      oauth.getOAuthRequestToken ((err, OAuthToken, OAuthTokenSecret, results) => {
+        
+        dynamo.putItem ({ TableName: twitterTableName,
+			  Item: { requestToken: OAuthToken,
+                                  requestTokenSecret: OAuthTokenSecret,
+                                  requestTime: Date.now(),
+                                  name: name,
+                                  type: 'request',
+                                },
+		        }, (err, result) => {
+                          if (err)
+                            return serverError (err);
+                          redirectPost ('https://api.twitter.com/oauth/authenticate?oauth_token=' + OAuthToken);
+                        });
+      });
+    } catch (e) {
+      return serverError();
+    };
     break;
   case 'GET':
     {
       const requestToken = event.query.oauth_token;
       const requestVerifier = event.query.oauth_verifier;
-      
-      dynamo.query
-      ({ TableName: twitterTableName,
-         KeyConditionExpression: "#rtkey = :rtval",
-         ExpressionAttributeNames:{
-           "#rtkey": "requestToken"
-         },
-         ExpressionAttributeValues: {
-           ":rtval": requestToken
-         },
-         ScanIndexForward: false,
-         Limit: 1,
-       }, (err, res) => {
-         if (err)
-           return serverError();
-         const result = res.Items && res.Items.length && res.Items[0];
-         if (!result)
-           return serverError();
-         oauth.getOAuthAccessToken
+
+      try {
+        dynamo.query
+        ({ TableName: twitterTableName,
+           KeyConditionExpression: "#rtkey = :rtval",
+           ExpressionAttributeNames:{
+             "#rtkey": "requestToken"
+           },
+           ExpressionAttributeValues: {
+             ":rtval": requestToken
+           },
+           ScanIndexForward: false,
+           Limit: 1,
+         }, (err, res) => {
+           if (err)
+             return serverError();
+           const result = res.Items && res.Items.length && res.Items[0];
+           if (!result)
+             return serverError();
+           oauth.getOAuthAccessToken
            (requestToken,
             result.requestTokenSecret,
             requestVerifier,
@@ -115,8 +120,8 @@ exports.handler = (event, context, callback) => {
                                    Key: { requestToken: requestToken },
                                    UpdateExpression: 'SET accessToken = :a, accessTokenSecret = :s, accessTime = :d, type = :t',
                                    ExpressionAttributeValues: {
-                                     ':a': OAuthToken,
-                                     ':s': OAuthTokenSecret,
+                                     ':a': oAuthAccessToken,
+                                     ':s': oAuthAccessTokenSecret,
                                      ':d': Date.now(),
                                      ':t': 'access'
                                    }
@@ -127,7 +132,10 @@ exports.handler = (event, context, callback) => {
                                    redirectFound (config.baseUrl + config.viewPrefix + name);
                                  });
             });
-       });
+         });
+      } catch (e) {
+        return serverError();
+      };
       break;
     }
   }

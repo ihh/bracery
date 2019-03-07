@@ -7,7 +7,7 @@
 
 const OAuth = require('oauth');
 
-const util = require('./bracery-util');
+// const util = require('./bracery-util');
 const config = require('./bracery-config');
 const tableName = config.tableName;
 const twitterTableName = config.twitterTableName;
@@ -62,7 +62,6 @@ exports.handler = (event, context, callback) => {
   });
   
   const serverError = (msg) => done ({ statusCode: '500', message: msg || "Server error" });
-  const ok = (result) => done (null, result);
   
   // Handle the HTTP methods
   switch (event.httpMethod) {
@@ -88,7 +87,7 @@ exports.handler = (event, context, callback) => {
       });
     } catch (e) {
       return serverError (e);
-    };
+    }
     break;
   case 'GET':
     {
@@ -141,7 +140,7 @@ exports.handler = (event, context, callback) => {
          });
       } catch (e) {
         return serverError (e);
-      };
+      }
       break;
     }
   }

@@ -20,7 +20,7 @@ const oauth = new OAuth.OAuth(
   TWITTER_CONSUMER_KEY,
   TWITTER_CONSUMER_SECRET,
   '1.0',
-  config.baseUrl + config.twitterPrefix,  // API endpoint for redirect from Twitter
+  config.baseUrl + config.twitterLogin,  // API endpoint for redirect from Twitter
   'HMAC-SHA1'
 );
 
@@ -131,7 +131,7 @@ exports.handler = (event, context, callback) => {
                                  (err, result) => {
                                    if (err)
                                      return serverError (err);
-                                   redirectFound (config.baseUrl + config.viewPrefix + name);
+                                   redirectFound (config.baseUrl + config.viewPrefix + result.name);
                                  });
             });
          });

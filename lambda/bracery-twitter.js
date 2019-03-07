@@ -9,7 +9,7 @@ const OAuth = require('oauth');
 
 // const util = require('./bracery-util');
 const config = require('./bracery-config');
-const tableName = config.tableName;
+// const tableName = config.tableName;
 const twitterTableName = config.twitterTableName;
 
 const TWITTER_CONSUMER_KEY = process.env.TWITTER_CONSUMER_KEY;  // must be defined from AWS Lambda

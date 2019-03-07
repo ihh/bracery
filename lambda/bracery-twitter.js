@@ -84,7 +84,7 @@ exports.handler = (event, context, callback) => {
                         });
       });
     } catch (e) {
-      return serverError();
+      return serverError (e);
     };
     break;
   case 'GET':
@@ -116,6 +116,9 @@ exports.handler = (event, context, callback) => {
             requestVerifier,
             (err, oAuthAccessToken, oAuthAccessTokenSecret, results) => {
 
+              if (err)
+                return serverError (err);
+
               dynamo.updateItem ({ TableName: twitterTableName,
                                    Key: { requestToken: requestToken },
                                    UpdateExpression: 'SET accessToken = :a, accessTokenSecret = :s, accessTime = :d, type = :t',
@@ -134,7 +137,7 @@ exports.handler = (event, context, callback) => {
             });
          });
       } catch (e) {
-        return serverError();
+        return serverError (e);
       };
       break;
     }

@@ -7,21 +7,20 @@
 
 const OAuth = require('oauth');
 
-// const util = require('./bracery-util');
+const util = require('./bracery-util');
 const config = require('./bracery-config');
-// const tableName = config.tableName;
 const twitterTableName = config.twitterTableName;
 
 const TWITTER_CONSUMER_KEY = process.env.TWITTER_CONSUMER_KEY;  // must be defined from AWS Lambda
 const TWITTER_CONSUMER_SECRET = process.env.TWITTER_CONSUMER_SECRET;  // must be defined from AWS Lambda
 
-const newOAuth = (name) => new OAuth.OAuth(
+const oauth = new OAuth.OAuth(
   'https://api.twitter.com/oauth/request_token',
   'https://api.twitter.com/oauth/access_token',
   TWITTER_CONSUMER_KEY,
   TWITTER_CONSUMER_SECRET,
   '1.0',
-  config.baseUrl + config.twitterPrefix + name,  // API endpoint for redirect from Twitter
+  config.baseUrl + config.twitterPrefix,  // API endpoint for redirect from Twitter
   'HMAC-SHA1'
 );
 
@@ -33,10 +32,8 @@ exports.handler = (event, context, callback) => {
   //console.log('Received event:', JSON.stringify(event, null, 2));
 
   // Get symbol name
-  const name = event.pathParameters.name;
-
-  // Create OAuth context
-  const oauth = newOAuth (name);
+  const body = util.getBody (event);
+  const name = body.name || undefined;
   
   // Set up some returns
   const done = (err, res) => callback (null, {

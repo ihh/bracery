@@ -88,8 +88,8 @@ exports.handler = (event, context, callback) => {
     break;
   case 'GET':
     {
-      const requestToken = event.queryParameters.oauth_token;
-      const requestVerifier = event.queryParameters.oauth_verifier;
+      const requestToken = event.queryStringParameters.oauth_token;
+      const requestVerifier = event.queryStringParameters.oauth_verifier;
 
       try {
         dynamo.query

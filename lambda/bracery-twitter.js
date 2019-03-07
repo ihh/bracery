@@ -145,5 +145,5 @@ exports.handler = (event, context, callback) => {
       }
   }
 
-  return serverError();
+  return;
 };

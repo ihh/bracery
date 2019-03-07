@@ -1,10 +1,15 @@
 
 ZIP = zip
 
-all: bracery-store.zip bracery-view.zip bracery-asset.zip bracery-expand.zip
+all: bracery-store.zip bracery-view.zip bracery-asset.zip bracery-expand.zip bracery-twitter.zip
 
 COMMON = bracery-config.js bracery-web.js bracery-util.js
 bracery-store.zip: bracery-store.js $(COMMON)
+	cp $< index.js
+	$(ZIP) $@ index.js $(COMMON)
+	rm index.js
+
+bracery-twitter.zip: bracery-twitter.js $(COMMON)
 	cp $< index.js
 	$(ZIP) $@ index.js $(COMMON)
 	rm index.js

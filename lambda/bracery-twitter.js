@@ -70,6 +70,9 @@ exports.handler = (event, context, callback) => {
     try {
       oauth.getOAuthRequestToken ((err, OAuthToken, OAuthTokenSecret, results) => {
         
+        if (err)
+          return serverError (err);
+
         dynamo.putItem ({ TableName: twitterTableName,
 			  Item: { requestToken: OAuthToken,
                                   requestTokenSecret: OAuthTokenSecret,

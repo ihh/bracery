@@ -4,6 +4,7 @@ module.exports = {
   storePrefix: '/store/',
   assetPrefix: '/asset/',
   expandPrefix: '/expand/',
+  twitterPrefix: '/twitter/',
   viewPrefix: '/',
 
   // Files

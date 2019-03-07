@@ -5,7 +5,7 @@ module.exports = {
   storePrefix: '/store/',
   assetPrefix: '/asset/',
   expandPrefix: '/expand/',
-  twitterPrefix: '/twitter/login/',
+  twitterPrefix: '/auth/twitter/',
 
   // Files
   templateHtmlFilename: 'index.html',

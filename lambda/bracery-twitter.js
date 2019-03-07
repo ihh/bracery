@@ -55,15 +55,19 @@ exports.handler = (event, context, callback) => {
   });
   
   const serverError = (msg) => done ({ statusCode: '500', message: { stack: new Error().stack, msg: msg || "Server error" } });
-  const badMethod = () => done ({ statusCode: '405', message: `Unsupported method "${event.httpMethod}"` });
-  
-  // Handle the HTTP methods
-  switch (event.httpMethod) {
-  case 'POST':
+
+  // Get symbol name (request stage)
+  const name = event.queryStringParameters.name;
+
+  // Get request token & verifier (callback stage)
+  const requestToken = event.queryStringParameters.oauth_token;
+  const requestVerifier = event.queryStringParameters.oauth_verifier;
+
+  // What stage is this?
+  const isRequest = !requestVerifier;
+  if (isRequest) {
     try {
-      // Get symbol name
-      const name = event.pathParameters.name;
-  
+
       oauth.getOAuthRequestToken ((err, OAuthToken, OAuthTokenSecret, results) => {
         
         if (err)
@@ -85,12 +89,7 @@ exports.handler = (event, context, callback) => {
     } catch (e) {
       return serverError (e);
     }
-    break;
-  case 'GET':
-    {
-      const requestToken = event.queryStringParameters.oauth_token;
-      const requestVerifier = event.queryStringParameters.oauth_verifier;
-
+  } else {  // !isRequest
       try {
         dynamo.query
         ({ TableName: twitterTableName,
@@ -144,9 +143,7 @@ exports.handler = (event, context, callback) => {
       } catch (e) {
         return serverError (e);
       }
-    }
-    break;
-  default:
-    return badMethod();
   }
+
+  return serverError();
 };

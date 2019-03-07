@@ -1,11 +1,11 @@
 module.exports = {
   // Routes
   baseUrl: 'https://bracery.org',
+  viewPrefix: '/',
   storePrefix: '/store/',
   assetPrefix: '/asset/',
   expandPrefix: '/expand/',
-  viewPrefix: '/',
-  twitterLogin: '/twitter/login',
+  twitterPrefix: '/twitter/login/',
 
   // Files
   templateHtmlFilename: 'index.html',

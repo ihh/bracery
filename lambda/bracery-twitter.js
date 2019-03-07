@@ -7,7 +7,7 @@
 
 const OAuth = require('oauth');
 
-const util = require('./bracery-util');
+// const util = require('./bracery-util');
 const config = require('./bracery-config');
 const twitterTableName = config.twitterTableName;
 
@@ -20,7 +20,7 @@ const oauth = new OAuth.OAuth(
   TWITTER_CONSUMER_KEY,
   TWITTER_CONSUMER_SECRET,
   '1.0',
-  config.baseUrl + config.twitterLogin,  // API endpoint for redirect from Twitter
+  config.baseUrl + config.twitterPrefix,  // API endpoint for redirect from Twitter
   'HMAC-SHA1'
 );
 
@@ -31,10 +31,6 @@ const dynamo = new doc.DynamoDB();
 exports.handler = (event, context, callback) => {
   //console.log('Received event:', JSON.stringify(event, null, 2));
 
-  // Get symbol name
-  const body = util.getBody (event);
-  const name = body.name || undefined;
-  
   // Set up some returns
   const done = (err, res) => callback (null, {
     statusCode: err ? (err.statusCode || '400') : '200',
@@ -59,11 +55,15 @@ exports.handler = (event, context, callback) => {
   });
   
   const serverError = (msg) => done ({ statusCode: '500', message: msg || "Server error" });
+  const badMethod = () => done ({ statusCode: '405', message: `Unsupported method "${event.httpMethod}"` });
   
   // Handle the HTTP methods
   switch (event.httpMethod) {
   case 'POST':
     try {
+      // Get symbol name
+      const name = event.pathParameters.name;
+  
       oauth.getOAuthRequestToken ((err, OAuthToken, OAuthTokenSecret, results) => {
         
         if (err)
@@ -105,10 +105,10 @@ exports.handler = (event, context, callback) => {
            Limit: 1,
          }, (err, res) => {
            if (err)
-             return serverError();
+             return serverError (err);
            const result = res.Items && res.Items.length && res.Items[0];
            if (!result)
-             return serverError();
+             return serverError (`Name ${name} not found`);
            oauth.getOAuthAccessToken
            (requestToken,
             result.requestTokenSecret,
@@ -138,7 +138,9 @@ exports.handler = (event, context, callback) => {
       } catch (e) {
         return serverError (e);
       }
-      break;
     }
+    break;
+  default:
+    return badMethod();
   }
 };

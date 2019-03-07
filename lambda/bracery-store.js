@@ -38,7 +38,7 @@ exports.handler = (event, context, callback) => {
   });
 
   const notFound = () => done ({ statusCode: '404', message: `Name not found "${name}"` });
-  const badMethod = () => done (new Error(`Unsupported method "${event.httpMethod}"`));
+  const badMethod = () => done ({ statusCode: '405', message: `Unsupported method "${event.httpMethod}"` });
   const wrongPassword = () => done ({ statusCode: '401', message: "Incorrect password" });
   const serverError = (msg) => done ({ statusCode: '500', message: msg || "Server error" });
   const ok = (result) => done (null, result);

@@ -13,10 +13,12 @@ module.exports = {
   
   // DynamoDB
   tableName: 'BraceryTable',
-  revisionsTableName: 'BraceryRevisionsTable',
-  defaultVisibility: 'public',
   updateIndexName: 'visibility-updated-index',
+  defaultVisibility: 'public',
   recentlyUpdatedLimit: 5,
+
+  revisionsTableName: 'BraceryRevisionsTable',
+  twitterTableName: 'BraceryTwitterTable',
   
   // Encoding
   stringEncoding: 'utf-8',

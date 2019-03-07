@@ -54,7 +54,7 @@ exports.handler = (event, context, callback) => {
     },
   });
   
-  const serverError = (msg) => done ({ statusCode: '500', message: msg || "Server error" });
+  const serverError = (msg) => done ({ statusCode: '500', message: { stack: new Error().stack, msg: msg || "Server error" } });
   const badMethod = () => done ({ statusCode: '405', message: `Unsupported method "${event.httpMethod}"` });
   
   // Handle the HTTP methods
@@ -88,8 +88,8 @@ exports.handler = (event, context, callback) => {
     break;
   case 'GET':
     {
-      const requestToken = event.query.oauth_token;
-      const requestVerifier = event.query.oauth_verifier;
+      const requestToken = event.queryParameters.oauth_token;
+      const requestVerifier = event.queryParameters.oauth_verifier;
 
       try {
         dynamo.query
@@ -120,7 +120,13 @@ exports.handler = (event, context, callback) => {
 
               dynamo.updateItem ({ TableName: twitterTableName,
                                    Key: { requestToken: requestToken },
-                                   UpdateExpression: 'SET accessToken = :a, accessTokenSecret = :s, accessTime = :d, type = :t',
+                                   UpdateExpression: 'SET #a = :a, #s = :s, #d = :d, #t = :t',
+                                   ExpressionAttributeNames: {
+                                     '#a': 'accessToken',
+                                     '#s': 'accessTokenSecret',
+                                     '#d': 'accessTime',
+                                     '#t': 'type'
+                                   },
                                    ExpressionAttributeValues: {
                                      ':a': oAuthAccessToken,
                                      ':s': oAuthAccessTokenSecret,
@@ -128,7 +134,7 @@ exports.handler = (event, context, callback) => {
                                      ':t': 'access'
                                    }
                                  },
-                                 (err, result) => {
+                                 (err, updateResult) => {
                                    if (err)
                                      return serverError (err);
                                    redirectFound (config.baseUrl + config.viewPrefix + result.name);

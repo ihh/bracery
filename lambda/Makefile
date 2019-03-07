@@ -9,10 +9,15 @@ bracery-store.zip: bracery-store.js $(COMMON)
 	$(ZIP) $@ index.js $(COMMON)
 	rm index.js
 
+STAGING_DIR = bracery-twitter-staging-dir
+TWITTER_DEPS = oauth
 bracery-twitter.zip: bracery-twitter.js $(COMMON)
-	cp $< index.js
-	$(ZIP) $@ index.js $(COMMON)
-	rm index.js
+	(test -e $(STAGING_DIR) && rm -rf $(STAGING_DIR)) || true
+	mkdir -p $(STAGING_DIR)/node_modules
+	cp $^ $(STAGING_DIR)
+	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
+	cd $(STAGING_DIR); npm install $(TWITTER_DEPS)
+	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
 TEMPLATES = index.html
 bracery-view.zip: bracery-view.js $(COMMON) $(TEMPLATES)

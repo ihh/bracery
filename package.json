@@ -32,6 +32,7 @@
     "keypress": "~0.2.1",
     "mersenne-twister": "^1.1.0",
     "node-getopt": "^0.3.2",
+    "oauth": "^0.9.15",
     "request": "^2.85.0",
     "request-promise": "^4.2.2",
     "tmp": "0.0.33"

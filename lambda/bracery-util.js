@@ -22,9 +22,25 @@ function getVars (event) {
   return vars;
 }
 
+function expandTemplate (template, tmpMap) {
+  return Object.keys (tmpMap).reduce ((text, templateVar) => {
+    const templateVal = tmpMap[templateVar];
+    return text
+      .replace (new RegExp ('%' + templateVar + '%', 'g'), templateVal)
+      .replace (new RegExp ('%ESCAPED_' + templateVar + '%', 'g'), escapeHTML (templateVal))
+      .replace (new RegExp ('%QUOTED_' + templateVar + '%', 'g'), JSON.stringify (templateVal));
+  }, template);
+}
+
+function generateCookie() {
+  return Date.now().toString(16) + Math.random().toString().substr(2)
+}
+
 module.exports = {
   extend: extend,
   escapeHTML: escapeHTML,
   getBody: getBody,
-  getVars: getVars
+  getVars: getVars,
+  expandTemplate: expandTemplate,
+  generateCookie: generateCookie,
 }

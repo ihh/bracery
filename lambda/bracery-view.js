@@ -4,6 +4,7 @@
 //console.log('Loading function');
 
 const fs = require('fs');
+const https = require('https');
 const doc = require('dynamodb-doc');
 const dynamo = new doc.DynamoDB();
 
@@ -12,6 +13,11 @@ const config = require('./bracery-config');
 const tableName = config.tableName;
 const updateIndexName = config.updateIndexName;
 const defaultName = config.defaultSymbolName;
+const sessionTableName = config.sessionTableName;
+
+const COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID;  // must be defined from AWS Lambda
+const COGNITO_APP_CLIENT_ID = process.env.COGNITO_APP_CLIENT_ID;  // must be defined from AWS Lambda
+const COGNITO_APP_SECRET = process.env.COGNITO_APP_SECRET;  // must be defined from AWS Lambda
 
 // The template file should be uploaded with the AWS lambda zip archive for this function.
 const templateHtmlFilename = config.templateHtmlFilename;
@@ -31,12 +37,17 @@ const templateVarValMap = { 'JAVASCRIPT_FILE': assetPrefix + viewAssetStub + '.j
                             'BASE_URL': baseUrl,
                             'STORE_PATH_PREFIX': storePrefix,
                             'VIEW_PATH_PREFIX': viewPrefix,
-                            'EXPAND_PATH_PREFIX': expandPrefix };
+                            'EXPAND_PATH_PREFIX': expandPrefix,
+			    'COGNITO_DOMAIN': config.cognitoDomain,
+			    'COGNITO_APP_ID': COGNITO_APP_CLIENT_ID };
 const templateNameVar = 'SYMBOL_NAME';
 const templateDefVar = 'SYMBOL_DEFINITION';
 const templateInitVar = 'INIT_TEXT';
 const templateVarsVar = 'VARS';
 const templateRecentVar = 'RECENT_SYMBOLS';
+const templateUserVar = 'USER';
+
+const cookieName = 'bracery_session';
 
 // The Lambda function
 exports.handler = (event, context, callback) => {
@@ -57,7 +68,7 @@ exports.handler = (event, context, callback) => {
 
   // Get initial vars as query parameters, if supplied
   const vars = util.getVars (event);
-
+  
   // Add the name & a dummy empty definition to the template var->val map
   let tmpMap = util.extend ({}, templateVarValMap);
   tmpMap[templateNameVar] = name;
@@ -65,15 +76,116 @@ exports.handler = (event, context, callback) => {
   tmpMap[templateInitVar] = typeof(initText) === 'string' ? initText : false;
   tmpMap[templateRecentVar] = '[]';
   tmpMap[templateVarsVar] = JSON.stringify (vars);
-
-  // Set up some returns
-  const done = (err, res) => callback (null, {
-    statusCode: err ? (err.statusCode || '500') : '200',
-    body: err ? err.message : res,
-    headers: {
-      'Content-Type': 'text/html; charset=' + templateHtmlFileEncoding,
-    },
+  tmpMap[templateUserVar] = null;
+  
+  // If we were given an authorization code (as a redirect from Cognito login),
+  // then retrieve the access token, use that to get the email address,
+  // and store all this info in the session database with a newly-generated cookie.
+  // Otherwise, look for a cookie in the headers, and try to retrieve the session info.
+  const authorizationCode = event && event.queryStringParameters && event.queryStringParameters.code;
+  let cookie = null;
+  const cookiePromise = new Promise ((resolve, reject) => {
+    if (authorizationCode) {
+      const urlEncodedTokenData = 'grant_type=authorization_code'
+	    + '&client_id=' + encodeURIComponent(COGNITO_APP_CLIENT_ID)
+	    + '&redirect_uri=' + baseUrl + viewPrefix
+	    + '&code=' + authorizationCode;
+      const tokenReqOpts = {
+	hostname: config.cognitoDomain,
+	port: 443,
+	path: '/oauth2/token',
+	method: 'POST',
+	headers: {
+	  'Content-Type': 'application/x-www-form-urlencoded',
+	  'Authorization': 'Basic ' + (COGNITO_APP_CLIENT_ID + ':' + COGNITO_APP_SECRET).toString('base64'),
+	  'Content-Length': urlEncodedTokenData.length,
+	},
+      };
+      const tokenReq = https.request (tokenReqOpts, (res) => {
+	if (res.statusCode != 200)
+	  return resolve();
+	let data = '';
+	res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+	  const tokenResBody = JSON.parse (data);
+	  const accessToken = tokenResBody.access_token, refreshToken = tokenResBody.refresh_token;
+          const infoReqOpts = {
+	    hostname: config.cognitoDomain,
+	    port: 443,
+	    path: '/oauth2/userinfo',
+	    method: 'GET',
+	    headers: {
+	      'Authorization': 'Bearer ' + accessToken,
+	    },
+	  };
+	  const infoReq = https.request (infoReqOpts, (res) => {
+	    if (res.statusCode != 200)
+	      return resolve();
+	    let data = '';
+	    res.on('data', (chunk) => { data += chunk; });
+            res.on('end', () => {
+	      const infoResBody = JSON.parse (data);
+	      const email = infoResBody.email;
+	      tmpMap[templateUserVar] = email;
+	      const newCookie = util.generateCookie();
+	      dynamo.putItem ({ TableName: sessionTableName,
+				Item: { cookie: newCookie,
+					email: email,
+					accessToken: accessToken,
+					refreshToken: refreshToken,
+					issued: Date.now() },
+			      }, (err, res) => {
+				if (!err)
+				  cookie = newCookie;
+				resolve();
+			      });
+	    });
+	  });
+	  infoReq.end();
+	});
+      });
+      tokenReq.write (urlEncodedTokenData);
+      tokenReq.end();
+    } else {  // !authorizationCode
+      const regex = new RegExp (cookieName + '=(\w+)');
+      const match = event.headers && event.headers.cookie && regex.exec (event.headers.cookie);
+      if (match) {
+	cookie = match[1];
+	dynamo.query({ TableName: sessionTableName,
+                       KeyConditionExpression: "#ckey = :cval",
+                       ExpressionAttributeNames:{
+			 "#ckey": "cookie"
+                       },
+                       ExpressionAttributeValues: {
+			 ":cval": cookie
+                       }}, (err, res) => {
+			 if (!err) {
+			   const result = res.Items && res.Items.length && res.Items[0];
+			   if (result)
+			     tmpMap[templateUserVar] = result.email;
+			 }
+			 resolve();
+		       });
+      } else
+	resolve();
+    }
   });
+  
+  // Set up some returns
+  const done = (err, res) => {
+    let headers = {
+      'Content-Type': 'text/html; charset=' + templateHtmlFileEncoding,
+    };
+    if (cookie)
+      headers['Set-Cookie'] = cookieName + '=' + cookie;
+    callback (null, {
+      statusCode: err ? (err.statusCode || '500') : '200',
+      body: err ? err.message : res,
+      headers: {
+	'Content-Type': 'text/html; charset=' + templateHtmlFileEncoding,
+      },
+    });
+  };
 
   const ok = (result) => done (null, result);
 
@@ -118,7 +230,8 @@ exports.handler = (event, context, callback) => {
                    });
   });
 
-  symbolPromise
+  cookiePromise
+    .then (() => symbolPromise)
     .then (() => newsPromise)
     .then (() => {
       // Read the file, do the %VAR%->val template substitutions, and return
@@ -126,13 +239,7 @@ exports.handler = (event, context, callback) => {
         if (err)
           done (err);
         else
-          ok (Object.keys (tmpMap).reduce ((text, templateVar) => {
-            const templateVal = tmpMap[templateVar];
-            return text
-              .replace (new RegExp ('%' + templateVar + '%', 'g'), templateVal)
-              .replace (new RegExp ('%ESCAPED_' + templateVar + '%', 'g'), util.escapeHTML (templateVal))
-              .replace (new RegExp ('%QUOTED_' + templateVar + '%', 'g'), JSON.stringify (templateVal));
-          }, templateHtml));
+          ok (util.expandTemplate (templateHtml, tmpMap));
       });
     });
 

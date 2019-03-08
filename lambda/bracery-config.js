@@ -1,15 +1,11 @@
 module.exports = {
-  // Routes
+  // API Gateway
   baseUrl: 'https://bracery.org',
   viewPrefix: '/',
   storePrefix: '/store/',
   assetPrefix: '/asset/',
   expandPrefix: '/expand/',
   twitterPrefix: '/auth/twitter/',
-
-  // Files
-  templateHtmlFilename: 'index.html',
-  viewAssetStub: 'bracery-view',
   
   // DynamoDB
   tableName: 'BraceryTable',
@@ -19,6 +15,14 @@ module.exports = {
 
   revisionsTableName: 'BraceryRevisionsTable',
   twitterTableName: 'BraceryTwitterTable',
+  sessionTableName: 'BracerySessionTable',
+
+  // AWS Cognito
+  cognitoDomain: 'auth.bracery.org',
+
+  // Filenames and virtual paths
+  templateHtmlFilename: 'index.html',
+  viewAssetStub: 'bracery-view',
   
   // Encoding
   stringEncoding: 'utf-8',

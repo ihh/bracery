@@ -9,7 +9,7 @@ bracery-store.zip: bracery-store.js $(COMMON)
 	$(ZIP) $@ index.js $(COMMON)
 	rm index.js
 
-STAGING_DIR = bracery-twitter-staging-dir
+STAGING_DIR = stage
 TWITTER_DEPS = oauth
 bracery-twitter.zip: bracery-twitter.js $(COMMON)
 	(test -e $(STAGING_DIR) && rm -rf $(STAGING_DIR)) || true
@@ -21,9 +21,11 @@ bracery-twitter.zip: bracery-twitter.js $(COMMON)
 
 TEMPLATES = index.html
 bracery-view.zip: bracery-view.js $(COMMON) $(TEMPLATES)
-	cp $< index.js
-	$(ZIP) $@ index.js $(COMMON) $(TEMPLATES)
-	rm index.js
+	(test -e $(STAGING_DIR) && rm -rf $(STAGING_DIR)) || true
+	mkdir -p $(STAGING_DIR)/node_modules
+	cp $^ $(STAGING_DIR)
+	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
+	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
 ASSETS = asset/bracery-view.js asset/bracery-view.css
 GZIPPED_ASSETS = $(addsuffix .gz,$(ASSETS))

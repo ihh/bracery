@@ -22,6 +22,7 @@ function initBraceryView (config) {
   var storePrefix = config.store
   var viewPrefix = config.view
   var expandPrefix = config.expand
+  var user = config.user
 
   var urlParams = getUrlParams()
   var expandConfig = { maxDepth: 100,
@@ -54,6 +55,9 @@ function initBraceryView (config) {
 
   var recentElement = document.getElementById('recent')
   var titleElement = document.getElementById('title')
+
+  var loginElement = document.getElementById('login')
+  var logoutElement = document.getElementById('logout')
 
   var baseUrl = window.location.origin + viewPrefix
   urlElement.innerText = baseUrl
@@ -326,6 +330,11 @@ function initBraceryView (config) {
   sourceRevealElement.addEventListener ('click', revealSource)
   sourceHideElement.addEventListener ('click', hideSource)
 
+  if (user)
+    logoutElement.style.display = ''
+  else
+    loginElement.style.display = ''
+  
   window.handleBraceryLink = handleBraceryLink  // make this globally available
   window.onpopstate = function (evt) {
     var state = evt.state || {}

@@ -44,7 +44,6 @@ function initBraceryView (config) {
 
   var urlElement = document.getElementById('urlprefix')
   var nameElement = document.getElementById('name')
-  var passwordElement = document.getElementById('password')
   var saveElement = document.getElementById('save')
   var errorElement = document.getElementById('error')
 
@@ -170,7 +169,7 @@ function initBraceryView (config) {
     req.send();
   }
 
-  function storeBracery (symbolName, symbolDef, password, callback) {
+  function storeBracery (symbolName, symbolDef, callback) {
     var req = new XMLHttpRequest();
     req.open("PUT", window.location.origin + storePrefix + symbolName);
     req.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
@@ -183,8 +182,6 @@ function initBraceryView (config) {
       }
     }
     var body = { bracery: symbolDef }
-    if (password)
-      body.password = password
     req.send (JSON.stringify (body));
   }
   function reset() {
@@ -202,17 +199,16 @@ function initBraceryView (config) {
   function save() {
     var name = nameElement.value.toLowerCase()
     var text = evalElement.innerText
-    var password = passwordElement.value
     if (!name)
       errorElement.innerText = 'Please enter a name.'
     else if (!text)
       errorElement.innerText = 'You cannot save an empty definition. Please enter some text.'
     else {
       errorElement.innerText = ''
-      storeBracery (name, text, password, function (err, result) {
+      storeBracery (name, text, function (err, result) {
         if (err) {
           if (err === 401)
-            errorElement.innerText = 'Sorry, the name "' + name + '" is already in use and is password-protected.' + " If you don't know the password, try saving as another name."
+            errorElement.innerText = 'Sorry, the name "' + name + '" is already in use. Try saving as another name.'
           else
             errorElement.innerText = 'Sorry, an error occurred (' + err + ').'
         } else {

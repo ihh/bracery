@@ -11,8 +11,7 @@ const config = require('./bracery-config');
 const tableName = config.tableName;
 
 const doc = require('dynamodb-doc');
-const dynamo = new doc.DynamoDB();
-const dynamoPromise = (method) => promisify (dynamo[method].bind (dynamo));
+const dynamoPromise = util.dynamoPromise (new doc.DynamoDB());
 
 // The Lambda function
 exports.handler = async (event, context, callback) => {

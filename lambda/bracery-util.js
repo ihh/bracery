@@ -1,6 +1,7 @@
-var braceryWeb = require ('./bracery-web');
-var extend = braceryWeb.extend;
-var escapeHTML = braceryWeb.escapeHTML;
+const promisify = require('util').promisify;
+const braceryWeb = require ('./bracery-web');
+const extend = braceryWeb.extend;
+const escapeHTML = braceryWeb.escapeHTML;
 
 function getBody (event) {
   return (event.body
@@ -36,11 +37,17 @@ function generateCookie() {
   return Date.now().toString(16) + Math.random().toString().substr(2)
 }
 
-module.exports = {
-  extend: extend,
-  escapeHTML: escapeHTML,
-  getBody: getBody,
-  getVars: getVars,
-  expandTemplate: expandTemplate,
-  generateCookie: generateCookie,
+function dynamoPromise (dynamo) {
+  return (method) => promisify (dynamo[method].bind (dynamo));
 }
+
+module.exports = {
+  extend,
+  escapeHTML,
+  promisify,
+  getBody,
+  getVars,
+  expandTemplate,
+  generateCookie,
+  dynamoPromise,
+};

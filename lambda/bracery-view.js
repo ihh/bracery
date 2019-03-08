@@ -5,8 +5,6 @@
 
 const fs = require('fs');
 const https = require('https');
-const doc = require('dynamodb-doc');
-const dynamo = new doc.DynamoDB();
 
 const util = require('./bracery-util');
 const config = require('./bracery-config');
@@ -14,6 +12,9 @@ const tableName = config.tableName;
 const updateIndexName = config.updateIndexName;
 const defaultName = config.defaultSymbolName;
 const sessionTableName = config.sessionTableName;
+
+const doc = require('dynamodb-doc');
+const dynamoPromise = util.dynamoPromise (new doc.DynamoDB());
 
 const COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID;  // must be defined from AWS Lambda
 const COGNITO_APP_CLIENT_ID = process.env.COGNITO_APP_CLIENT_ID;  // must be defined from AWS Lambda
@@ -49,8 +50,23 @@ const templateUserVar = 'USER';
 
 const cookieName = 'bracery_session';
 
+// async https.request
+const httpsRequest = async (opts, formData) => new Promise
+((resolve, reject) => {
+  let req = https.request (opts, (res) => {
+    let data = '';
+    res.on('data', (chunk) => { data += chunk; });
+    res.on('end', () => {
+      resolve ([res, data]);
+    });
+  });
+  if (formData)
+    req.write (formData);
+  req.end();
+});
+ 
 // The Lambda function
-exports.handler = (event, context, callback) => {
+exports.handler = async (event, context, callback) => {
   //console.log('Received event:', JSON.stringify(event, null, 2));
 
   // Get the symbol name
@@ -83,108 +99,9 @@ exports.handler = (event, context, callback) => {
   function log() {
     logText += Array.prototype.map.call (arguments, (arg) => JSON.stringify (arg)).join(' ') + '\n';
   }
-  
-  // If we were given an authorization code (as a redirect from Cognito login),
-  // then retrieve the access token, use that to get the email address,
-  // and store all this info in the session database with a newly-generated cookie.
-  // Otherwise, look for a cookie in the headers, and try to retrieve the session info.
-  const authorizationCode = event && event.queryStringParameters && event.queryStringParameters.code;
-  let cookie = null;
-  const cookiePromise = new Promise ((resolve, reject) => {
-    if (authorizationCode) {
-      const urlEncodedTokenData = 'grant_type=authorization_code'
-	    + '&client_id=' + encodeURIComponent(COGNITO_APP_CLIENT_ID)
-	    + '&redirect_uri=' + encodeURIComponent(baseUrl + viewPrefix)
-	    + '&code=' + authorizationCode;
-      const tokenReqOpts = {
-	hostname: config.cognitoDomain,
-	port: 443,
-	path: '/oauth2/token',
-	method: 'POST',
-	headers: {
-	  'Content-Type': 'application/x-www-form-urlencoded',
-	  'Authorization': 'Basic ' + Buffer.from(COGNITO_APP_CLIENT_ID + ':' + COGNITO_APP_SECRET).toString('base64'),
-	  'Content-Length': urlEncodedTokenData.length,
-	},
-      };
-      const tokenReq = https.request (tokenReqOpts, (res) => {
-	log('tokenReq response status',res.statusCode);
-	let data = '';
-	res.on('data', (chunk) => { data += chunk; });
-        res.on('end', () => {
-	  // log('tokenReq response body',data);  // insecure
-	  if (res.statusCode != 200)
-	    return resolve();
-	  const tokenResBody = JSON.parse (data);
-	  // log({tokenResBody});  // insecure
-	  const accessToken = tokenResBody.access_token, refreshToken = tokenResBody.refresh_token;
-	  const infoReqOpts = {
-	    hostname: config.cognitoDomain,
-	    port: 443,
-	    path: '/oauth2/userInfo',
-	    method: 'GET',
-	    headers: {
-	      'Authorization': 'Bearer ' + accessToken,
-	    },
-	  };
-	  const infoReq = https.request (infoReqOpts, (res) => {
-	    log('infoReq response status',res.statusCode);
-	    let data = '';
-	    res.on('data', (chunk) => { data += chunk; });
-	    res.on('end', () => {
-              // log('infoRes response body',data);  // insecure
-	      if (res.statusCode != 200)
-		return resolve();
-	      const infoResBody = JSON.parse (data);
-	      // log({infoResBody});  // insecure
-	      const email = infoResBody.email;
-	      tmpMap[templateUserVar] = email;
-	      const newCookie = util.generateCookie();
-	      dynamo.putItem ({ TableName: sessionTableName,
-				Item: { cookie: newCookie,
-					email: email,
-					accessToken: accessToken,
-					refreshToken: refreshToken,
-					issued: Date.now() },
-			      }, (err, res) => {
-				if (!err)
-				  cookie = newCookie;
-				resolve();
-			      });
-	    });
-	  });
-	  infoReq.end();
-	});
-      });
-      tokenReq.write (urlEncodedTokenData);
-      tokenReq.end();
-    } else {  // !authorizationCode
-      log(event.headers);
-      const regex = new RegExp (cookieName + '=(\\w+)');
-      const match = event.headers && event.headers.cookie && regex.exec (event.headers.cookie);
-      if (match) {
-	cookie = match[1];
-	dynamo.query({ TableName: sessionTableName,
-                       KeyConditionExpression: "#ckey = :cval",
-                       ExpressionAttributeNames:{
-			 "#ckey": "cookie"
-                       },
-                       ExpressionAttributeValues: {
-			 ":cval": cookie
-                       }}, (err, res) => {
-			 if (!err) {
-			   const result = res.Items && res.Items.length && res.Items[0];
-			   if (result)
-			     tmpMap[templateUserVar] = result.email;
-			 }
-			 resolve();
-		       });
-      } else
-	resolve();
-    }
-  });
-  
+
   // Set up some returns
+  let cookie = null;
   const done = (err, res) => {
     let headers = {
       'Content-Type': 'text/html; charset=' + templateHtmlFileEncoding,
@@ -199,61 +116,132 @@ exports.handler = (event, context, callback) => {
   };
 
   const ok = (result) => done (null, result);
+  const serverError = (msg) => done ({ statusCode: '500', message: msg || "Server error" });
 
-  // Query the database for the given symbol definition, or use evalText if supplied
-  let symbolPromise =
-      (typeof(evalText) === 'string'
-       ? Promise.resolve (evalText)
-       : new Promise ((resolve, reject) => {
-	 dynamo.query({ TableName: tableName,
-			KeyConditionExpression: "#nkey = :nval",
-			ExpressionAttributeNames:{
-			  "#nkey": "name"
-			},
-			ExpressionAttributeValues: {
-			  ":nval": name.toLowerCase()
-			}}, (err, res) => {
-			  if (!err) {
-			    const result = res.Items && res.Items.length && res.Items[0];
-			    if (result && result.bracery)
-                              tmpMap[templateDefVar] = result.bracery;
-			  }
-			  resolve();
-			});
-       }));
+  // Wrap all downstream calls (to dynamo etc) in try...catch
+  try {
 
-  // Query the database for recently-updated symbols
-  let newsPromise = new Promise ((resolve, reject) => {
-    dynamo.query({ TableName: tableName,
-                   IndexName: updateIndexName,
-                   ScanIndexForward: false,
-                   Limit: config.recentlyUpdatedLimit,
-                   KeyConditionExpression: "#viskey = :visval",
-                   ExpressionAttributeNames:{
-                     "#viskey": "visibility"
-                   },
-                   ExpressionAttributeValues: {
-                     ":visval": config.defaultVisibility
-                   }}, (err, res) => {
-                     if (!err && res.Items)
-                       tmpMap[templateRecentVar] = JSON.stringify (res.Items.map ((item) => item.name));
-                     resolve();
-                   });
-  });
-
-  cookiePromise
-    .then (() => symbolPromise)
-    .then (() => newsPromise)
-    .then (() => {
-      // Add log to template map
-      tmpMap.LOG = logText;
-      // Read the file, do the %VAR%->val template substitutions, and return
-      fs.readFile (templateHtmlFilename, templateHtmlFileEncoding, (err, templateHtml) => {
-        if (err)
-          done (err);
-        else
-          ok (util.expandTemplate (templateHtml, tmpMap));
+    // Query the database for recently-updated symbols
+    let newsPromise = dynamoPromise('query')
+    ({ TableName: tableName,
+       IndexName: updateIndexName,
+       ScanIndexForward: false,
+       Limit: config.recentlyUpdatedLimit,
+       KeyConditionExpression: "#viskey = :visval",
+       ExpressionAttributeNames:{
+         "#viskey": "visibility"
+       },
+       ExpressionAttributeValues: {
+         ":visval": config.defaultVisibility
+       }})
+      .then ((res) => {
+        if (res.Items)
+          tmpMap[templateRecentVar] = JSON.stringify (res.Items.map ((item) => item.name));
       });
-    });
+    
+    // Query the database for the given symbol definition, or use evalText if supplied
+    let symbolPromise =
+        (typeof(evalText) === 'string'
+         ? Promise.resolve()
+         : (dynamoPromise('query')
+            ({ TableName: tableName,
+	       KeyConditionExpression: "#nkey = :nval",
+	       ExpressionAttributeNames:{
+		 "#nkey": "name"
+	       },
+	       ExpressionAttributeValues: {
+		 ":nval": name.toLowerCase()
+	       }})
+            .then ((res) => {
+              const result = res.Items && res.Items.length && res.Items[0];
+              if (result && result.bracery)
+                tmpMap[templateDefVar] = result.bracery;
+            })));
 
+    // If we were given an authorization code (as a redirect from Cognito login),
+    // then retrieve the access token, use that to get the email address,
+    // and store all this info in the session database with a newly-generated cookie.
+    // Otherwise, look for a cookie in the headers, and try to retrieve the session info.
+    const authorizationCode = event && event.queryStringParameters && event.queryStringParameters.code;
+    if (authorizationCode) {
+      const urlEncodedTokenData = 'grant_type=authorization_code'
+	    + '&client_id=' + encodeURIComponent(COGNITO_APP_CLIENT_ID)
+	    + '&redirect_uri=' + encodeURIComponent(baseUrl + viewPrefix)
+	    + '&code=' + authorizationCode;
+      const tokenReqOpts = {
+        hostname: config.cognitoDomain,
+        port: 443,
+        path: '/oauth2/token',
+        method: 'POST',
+        headers: {
+	  'Content-Type': 'application/x-www-form-urlencoded',
+	  'Authorization': 'Basic ' + Buffer.from(COGNITO_APP_CLIENT_ID + ':' + COGNITO_APP_SECRET).toString('base64'),
+	  'Content-Length': urlEncodedTokenData.length,
+        },
+      };
+      let [tokenRes, tokenData] = await httpsRequest (tokenReqOpts, urlEncodedTokenData);
+      if (tokenRes.statusCode == 200) {
+        const tokenResBody = JSON.parse (tokenData);
+        const accessToken = tokenResBody.access_token, refreshToken = tokenResBody.refresh_token;
+        const infoReqOpts = {
+	  hostname: config.cognitoDomain,
+	  port: 443,
+	  path: '/oauth2/userInfo',
+	  method: 'GET',
+	  headers: {
+	    'Authorization': 'Bearer ' + accessToken,
+	  },
+        };
+        let [infoRes, infoData] = await httpsRequest (infoReqOpts);
+        if (infoRes.statusCode == 200) {
+          const infoResBody = JSON.parse (infoData);
+          const email = infoResBody.email;
+          tmpMap[templateUserVar] = email;
+          const newCookie = util.generateCookie();
+          await dynamoPromise('putItem')
+          ({ TableName: sessionTableName,
+	     Item: { cookie: newCookie,
+		     email: email,
+		     accessToken: accessToken,
+		     refreshToken: refreshToken,
+		     issued: Date.now() },
+           });
+          cookie = newCookie;
+        }
+      }
+    } else {  // !authorizationCode
+      log(event.headers);
+      const regex = new RegExp (cookieName + '=(\\w+)');
+      const match = event.headers && event.headers.cookie && regex.exec (event.headers.cookie);
+      if (match) {
+        cookie = match[1];
+        let res = await dynamoPromise('query')
+        ({ TableName: sessionTableName,
+           KeyConditionExpression: "#ckey = :cval",
+           ExpressionAttributeNames:{
+	     "#ckey": "cookie"
+           },
+           ExpressionAttributeValues: {
+	     ":cval": cookie
+           }});
+        const result = res.Items && res.Items.length && res.Items[0];
+        if (result)
+	  tmpMap[templateUserVar] = result.email;
+      }
+    }
+
+    // wait for promises
+    await newsPromise;
+    await symbolPromise;
+    
+    // Add log to template map
+    tmpMap.LOG = logText;
+
+    // Read the file, do the %VAR%->val template substitutions, and return
+    let templateHtml = await util.promisify (fs.readFile) (templateHtmlFilename, templateHtmlFileEncoding);
+    ok (util.expandTemplate (templateHtml, tmpMap));
+
+  } catch (e) {
+    serverError (e);
+  }
 };

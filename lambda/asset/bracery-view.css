@@ -10,7 +10,7 @@ body {
     padding: 4px;
 }
 
-#login {
+#login, #logout {
     float: right;
 }
 

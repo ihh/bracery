@@ -27,15 +27,7 @@ exports.handler = (event, context, callback) => {
   const vars = util.getVars (event);
 
   // Set up some returns
-  const done = (err, res) => callback (null, {
-    statusCode: err ? (err.statusCode || '400') : '200',
-    body: err ? err.message : JSON.stringify(res),
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  const ok = (result) => done (null, result);
+  const respond = util.respond (event, callback);
 
   // Set up Bracery
   let bracery = new Bracery(), braceryConfig;
@@ -84,5 +76,5 @@ exports.handler = (event, context, callback) => {
   bracery = new Bracery (null, );
 
   // Call expandSymbol and return
-  expandSymbolFull ({ symbolName: name }).then (ok);
+  expandSymbolFull ({ symbolName: name }).then (respond.ok);
 };

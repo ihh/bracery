@@ -1,3 +1,4 @@
+const https = require('https');
 const doc = require('dynamodb-doc');
 const promisify = require('util').promisify;
 
@@ -47,29 +48,128 @@ function dynamoPromise() {
 }
 
 async function getSession (event, dynamoPromise) {
-  const regex = new RegExp (config.cookieName + '=(\\w+)');
-  const match = event.headers && event.headers.cookie && regex.exec (event.headers.cookie);
-  if (match) {
-    cookie = match[1];
-    let queryRes = await dynamoPromise('query')
+  try {
+    const regex = new RegExp (config.cookieName + '=(\\w+)');
+    const match = event.headers && event.headers.cookie && regex.exec (event.headers.cookie);
+    if (match) {
+      cookie = match[1];
+      let queryRes = await dynamoPromise('query')
+      ({ TableName: config.sessionTableName,
+	 KeyConditionExpression: "#ckey = :cval",
+	 ExpressionAttributeNames:{
+	   "#ckey": "cookie"
+	 },
+	 ExpressionAttributeValues: {
+	   ":cval": cookie
+	 }});
+      if (queryRes.Items && queryRes.Items.length)
+	return queryRes.Items[0];
+    }
+    const newCookie = generateCookie();
+    const newSession = { cookie: newCookie };
+    await dynamoPromise('putItem')
     ({ TableName: config.sessionTableName,
-       KeyConditionExpression: "#ckey = :cval",
-       ExpressionAttributeNames:{
-	 "#ckey": "cookie"
-       },
-       ExpressionAttributeValues: {
-	 ":cval": cookie
-       }});
-    if (queryRes.Items && queryRes.Items.length)
-      return queryRes.Items[0];
+       Item: newSession,
+     });
+    return newSession;
+  } catch (e) {
+    return null;
   }
-  const newCookie = generateCookie();
-  const newSession = { cookie: newCookie };
-  await dynamoPromise('putItem')
-  ({ TableName: config.sessionTableName,
-     Item: newSession,
-   });
-  return newSession;
+}
+
+// async https.request
+async function httpsRequest (opts, formData) {
+  return new Promise
+  ((resolve, reject) => {
+    let req = https.request (opts, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+	resolve ([res, data]);
+      });
+    });
+    if (formData)
+      req.write (formData);
+    req.end();
+  });
+}
+
+function withCookie (callback, session) {
+  return (res) => {
+    let headers = {
+      'Content-Type': 'text/html; charset=' + config.templateHtmlFileEncoding,
+    };
+    if (session && session.cookie)
+      headers['Set-Cookie'] = config.cookieName + '=' + session.cookie;
+    callback (null, {
+      statusCode: '200',
+      body: res,
+      headers: headers,
+    });
+  };
+}
+
+function ok (callback) {
+  return (res) => callback (null, {
+    statusCode: '200',
+    body: JSON.stringify (res),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });			       
+}
+
+function serverError (callback) {
+  return (msg) => callback (null, { statusCode: '500', body: msg || "Server error" });
+}
+
+function notFound (callback) {
+  return () => callback (null, { statusCode: '404', body: `Name not found "${name}"` });
+}
+
+function badMethod (callback, event) {
+  return () => done ({ statusCode: '405', body: `Unsupported method "${event.httpMethod}"` });
+}
+
+function redirectFound (callback) {
+  return (url) => callback (null, {
+    statusCode: '302',
+    headers: {
+      'Location': url,
+    },
+  });
+}
+
+function redirectPost (callback) {
+  return (url) => callback (null, {
+    statusCode: '303',
+    headers: {
+      'Location': url,
+    },
+  });
+}
+
+function redirectWithCookie (callback, session) {
+  return (url) => callback (null, {
+    statusCode: '302',
+    headers: {
+      'Location': url,
+      'Set-Cookie': config.cookieName + '=' + session.cookie,
+    },
+  });
+}
+
+function respond (callback, event, session) {
+  return {
+    withCookie: withCookie (callback, session),
+    ok: ok (callback),
+    serverError: serverError (callback),
+    notFound: notFound (callback),
+    badMethod: badMethod (callback, event),
+    redirectFound: redirectFound (callback),
+    redirectPost: redirectPost (callback),
+    redirectWithCookie: redirectWithCookie (callback, session),
+  };
 }
 
 module.exports = {
@@ -82,4 +182,6 @@ module.exports = {
   generateCookie,
   dynamoPromise,
   getSession,
+  httpsRequest,
+  respond,
 };

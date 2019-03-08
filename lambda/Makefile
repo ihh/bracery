@@ -1,7 +1,7 @@
 
 ZIP = zip
 
-all: bracery-store.zip bracery-view.zip bracery-asset.zip bracery-expand.zip bracery-twitter.zip
+all: bracery-store.zip bracery-view.zip bracery-asset.zip bracery-expand.zip bracery-login.zip bracery-twitter.zip
 
 COMMON = bracery-config.js bracery-web.js bracery-util.js
 bracery-store.zip: bracery-store.js $(COMMON)
@@ -17,6 +17,13 @@ bracery-twitter.zip: bracery-twitter.js $(COMMON)
 	cp $^ $(STAGING_DIR)
 	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
 	cd $(STAGING_DIR); npm install $(TWITTER_DEPS)
+	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
+
+bracery-login.zip: bracery-login.js $(COMMON)
+	(test -e $(STAGING_DIR) && rm -rf $(STAGING_DIR)) || true
+	mkdir -p $(STAGING_DIR)/node_modules
+	cp $^ $(STAGING_DIR)
+	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
 TEMPLATES = index.html

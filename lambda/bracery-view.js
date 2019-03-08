@@ -4,41 +4,26 @@
 //console.log('Loading function');
 
 const fs = require('fs');
-const https = require('https');
 
 const util = require('./bracery-util');
 const config = require('./bracery-config');
 const tableName = config.tableName;
 const updateIndexName = config.updateIndexName;
 const defaultName = config.defaultSymbolName;
-const sessionTableName = config.sessionTableName;
-const cookieName = config.cookieName;
 
 const dynamoPromise = util.dynamoPromise();
 
-const COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID;  // must be defined from AWS Lambda
 const COGNITO_APP_CLIENT_ID = process.env.COGNITO_APP_CLIENT_ID;  // must be defined from AWS Lambda
-const COGNITO_APP_SECRET = process.env.COGNITO_APP_SECRET;  // must be defined from AWS Lambda
-
-// The template file should be uploaded with the AWS lambda zip archive for this function.
-const templateHtmlFilename = config.templateHtmlFilename;
-const templateHtmlFileEncoding = config.stringEncoding;
-
-const baseUrl = config.baseUrl;
-const storePrefix = config.storePrefix;
-const assetPrefix = config.assetPrefix;
-const expandPrefix = config.expandPrefix;
-const viewAssetStub = config.viewAssetStub;
-const viewPrefix = config.viewPrefix;
 
 // The static assets pointed to by these template substitutions
 // should be uploaded in the Lambda zip of bracery-asset.js (or to S3, or wherever)
-const templateVarValMap = { 'JAVASCRIPT_FILE': assetPrefix + viewAssetStub + '.js',
-                            'STYLE_FILE': assetPrefix + viewAssetStub + '.css',
-                            'BASE_URL': baseUrl,
-                            'STORE_PATH_PREFIX': storePrefix,
-                            'VIEW_PATH_PREFIX': viewPrefix,
-                            'EXPAND_PATH_PREFIX': expandPrefix,
+const templateVarValMap = { 'JAVASCRIPT_FILE': config.assetPrefix + config.viewAssetStub + '.js',
+                            'STYLE_FILE': config.assetPrefix + config.viewAssetStub + '.css',
+                            'BASE_URL': config.baseUrl,
+                            'STORE_PATH_PREFIX': config.storePrefix,
+                            'VIEW_PATH_PREFIX': config.viewPrefix,
+                            'EXPAND_PATH_PREFIX': config.expandPrefix,
+			    'LOGIN_PATH_PREFIX': config.loginPrefix,
 			    'COGNITO_DOMAIN': config.cognitoDomain,
 			    'COGNITO_APP_ID': COGNITO_APP_CLIENT_ID };
 const templateNameVar = 'SYMBOL_NAME';
@@ -47,21 +32,6 @@ const templateInitVar = 'INIT_TEXT';
 const templateVarsVar = 'VARS';
 const templateRecentVar = 'RECENT_SYMBOLS';
 const templateUserVar = 'USER';
-
-// async https.request
-const httpsRequest = async (opts, formData) => new Promise
-((resolve, reject) => {
-  let req = https.request (opts, (res) => {
-    let data = '';
-    res.on('data', (chunk) => { data += chunk; });
-    res.on('end', () => {
-      resolve ([res, data]);
-    });
-  });
-  if (formData)
-    req.write (formData);
-  req.end();
-});
 
 // Function to get parameters
 function getParams (event) {
@@ -90,29 +60,11 @@ exports.handler = async (event, context, callback) => {
   //console.log('Received event:', JSON.stringify(event, null, 2));
 
   // Set up some returns
-  let session = null;
-  const done = (err, res) => {
-    let headers = {
-      'Content-Type': 'text/html; charset=' + templateHtmlFileEncoding,
-    };
-    if (session && session.cookie)
-      headers['Set-Cookie'] = cookieName + '=' + session.cookie;
-    callback (null, {
-      statusCode: err ? (err.statusCode || '500') : '200',
-      body: err ? err.message : res,
-      headers: headers,
-    });
-  };
-
-  const ok = (result) => done (null, result);
-  const serverError = (msg) => done ({ statusCode: '500', message: msg || "Server error" });
+  let session = await util.getSession (event, dynamoPromise);
+  const respond = util.respond (callback, event, session);
 
   // Wrap all downstream calls (to dynamo etc) in try...catch
   try {
-
-    // Get the session
-    session = await util.getSession (event, dynamoPromise);
-
     // Get parameters
     const { name, initText, evalText, vars } = getParams (event);
     
@@ -127,9 +79,9 @@ exports.handler = async (event, context, callback) => {
 
     // Keep a log, so we can debug "live" by inserting %LOG% into index.html (very unsafe...)
     let logText = '';
-    function log() {
+    const log = () => {
       logText += Array.prototype.map.call (arguments, (arg) => JSON.stringify (arg)).join(' ') + '\n';
-    }
+    };
     
     // Query the database for recently-updated symbols
     let newsPromise = dynamoPromise('query')
@@ -167,85 +119,26 @@ exports.handler = async (event, context, callback) => {
               if (result && result.bracery)
                 tmpMap[templateDefVar] = result.bracery;
             })));
-
-    // If we were given an authorization code (as a redirect from Cognito login),
-    // then retrieve the access token, use that to get the email address,
-    // and store all this info in the session database with a newly-generated cookie.
-    // Otherwise, look for a cookie in the headers, and try to retrieve the session info.
-    const authorizationCode = event && event.queryStringParameters && event.queryStringParameters.code;
-    if (authorizationCode) {
-      const urlEncodedTokenData = 'grant_type=authorization_code'
-	    + '&client_id=' + encodeURIComponent(COGNITO_APP_CLIENT_ID)
-	    + '&redirect_uri=' + encodeURIComponent(baseUrl + viewPrefix)
-	    + '&code=' + authorizationCode;
-      const tokenReqOpts = {
-        hostname: config.cognitoDomain,
-        port: 443,
-        path: '/oauth2/token',
-        method: 'POST',
-        headers: {
-	  'Content-Type': 'application/x-www-form-urlencoded',
-	  'Authorization': 'Basic ' + Buffer.from(COGNITO_APP_CLIENT_ID + ':' + COGNITO_APP_SECRET).toString('base64'),
-	  'Content-Length': urlEncodedTokenData.length,
-        },
-      };
-      let [tokenRes, tokenData] = await httpsRequest (tokenReqOpts, urlEncodedTokenData);
-      if (tokenRes.statusCode == 200) {
-        const tokenResBody = JSON.parse (tokenData);
-        const accessToken = tokenResBody.access_token, refreshToken = tokenResBody.refresh_token;
-        const infoReqOpts = {
-	  hostname: config.cognitoDomain,
-	  port: 443,
-	  path: '/oauth2/userInfo',
-	  method: 'GET',
-	  headers: {
-	    'Authorization': 'Bearer ' + accessToken,
-	  },
-        };
-        let [infoRes, infoData] = await httpsRequest (infoReqOpts);
-        if (infoRes.statusCode == 200) {
-          const infoResBody = JSON.parse (infoData);
-          const email = infoResBody.email;
-          tmpMap[templateUserVar] = email;
-          // TODO: Move redirect handler to separate Lambda function & API Gateway route, redirect back here, avoid '?code=' in URL
-          await dynamoPromise('updateItem')
-          ({ TableName: sessionTableName,
-             Key: { cookie: session.cookie },
-             UpdateExpression: 'SET #e = :e, #a = :a, #r = :r, #g = :g',
-             ExpressionAttributeNames: {
-               '#e': 'email',
-               '#a': 'accessToken',
-               '#r': 'refreshToken',
-               '#g': 'accessGranted',
-             },
-             ExpressionAttributeValues: {
-               ':e': email,
-               ':a': accessToken,
-               ':r': refreshToken,
-               ':g': Date.now()
-             } });
-        }
-      }
-    } else {  // !authorizationCode
-      if (session)
-	tmpMap[templateUserVar] = session.email;
-    }
+    
 
     // Read the file
-    const templateHtml = await util.promisify (fs.readFile) (templateHtmlFilename, templateHtmlFileEncoding);
+    const templateHtmlBuf = await util.promisify (fs.readFile) (config.templateHtmlFilename, config.templateHtmlFileEncoding);
 
     // Wait for promises
     await newsPromise;
     await symbolPromise;
     
     // Do the %VAR%->val template substitutions
+    if (session)
+      tmpMap[templateUserVar] = session.email.replace(/(\w)\w+([@\.])/g,(m,c,s)=>c+'**'+s);  // obfuscate email
     tmpMap.LOG = logText;  // add log to template map
-    const finalHtml = util.expandTemplate (templateHtml, tmpMap);
+    const finalHtml = util.expandTemplate (templateHtmlBuf.toString(), tmpMap);
 
     // And return
-    ok (finalHtml);
+    respond.withCookie (finalHtml);
 
   } catch (e) {
-    serverError (e);
+    console.warn(e);
+    respond.serverError (e);
   }
 };

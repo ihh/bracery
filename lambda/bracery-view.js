@@ -230,16 +230,19 @@ exports.handler = async (event, context, callback) => {
       }
     }
 
-    // wait for promises
+    // Read the file
+    const templateHtml = await util.promisify (fs.readFile) (templateHtmlFilename, templateHtmlFileEncoding);
+
+    // Wait for promises
     await newsPromise;
     await symbolPromise;
     
-    // Add log to template map
-    tmpMap.LOG = logText;
+    // Do the %VAR%->val template substitutions
+    tmpMap.LOG = logText;  // add log to template map
+    const finalHtml = util.expandTemplate (templateHtml, tmpMap);
 
-    // Read the file, do the %VAR%->val template substitutions, and return
-    let templateHtml = await util.promisify (fs.readFile) (templateHtmlFilename, templateHtmlFileEncoding);
-    ok (util.expandTemplate (templateHtml, tmpMap));
+    // And return
+    ok (finalHtml);
 
   } catch (e) {
     serverError (e);

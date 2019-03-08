@@ -22,6 +22,8 @@ function initBraceryView (config) {
   var storePrefix = config.store
   var viewPrefix = config.view
   var expandPrefix = config.expand
+  var loginPrefix = config.login
+  var logoutPrefix = config.logout
   var user = config.user
 
   var urlParams = getUrlParams()
@@ -56,16 +58,18 @@ function initBraceryView (config) {
   var titleElement = document.getElementById('title')
 
   var loginElement = document.getElementById('login')
+  var loginLinkElement = document.getElementById('loginlink')
   var logoutElement = document.getElementById('logout')
 
-  var baseUrl = window.location.origin + viewPrefix
-  urlElement.innerText = baseUrl
+  var baseUrl = window.location.origin
+  var baseViewUrl = baseUrl + viewPrefix
+  urlElement.innerText = baseViewUrl
   nameElement.value = name()
   evalElement.placeholder = 'Enter text, e.g. [something|other]'
 
   if (recent && recent.length)
     recentElement.innerHTML = 'Recently updated: ' + recent
-    .map (function (recentName) { return '<a href="' + baseUrl + recentName + '">' + recentName + '</a>' })
+    .map (function (recentName) { return '<a href="' + baseViewUrl + recentName + '">' + recentName + '</a>' })
     .join (", ")
 
   // Application state
@@ -96,29 +100,41 @@ function initBraceryView (config) {
     return show() (expansion)
   }
 
-  function pushState (pushStateConfig) {
+  function doLogin() {
+    window.location.href = loginPrefix + stateQueryArgs (currentState())
+  }
+  function stateQueryArgs (pushStateConfig) {
     var name = pushStateConfig.name || config.name,
 	text = pushStateConfig.text,
 	vars = pushStateConfig.vars,
 	expansion = pushStateConfig.expansion,
 	showEval = pushStateConfig.showEval
-    var newUrl = viewPrefix + name, params = []
     var evalText = evalElement.innerText
+    var params = []
     if (text) params.push ('text=' + window.encodeURIComponent(text))
     if (vars) { var v = JSON.stringify(vars); if (v !== '{}') params.push ('vars=' + window.encodeURIComponent(v)) }
     if (showEval && (config.init || evalTextEdited || viewConfig.alwaysShowEvalInBookmarks)) params.push ('eval=' + window.encodeURIComponent(evalText))
     if (expansion) params.push ('exp=' + window.encodeURIComponent(JSON.stringify(expansion)))
-    if (params.length) newUrl += '?' + params.join('&')
-    window.history.pushState ({ name: name, text: text, vars: vars, evalText: evalText }, '', newUrl)
+    return (params.length ? ('?' + params.join('&')) : '')
   }
-  function bookmark (showExp) {
+  function pushState (pushStateConfig) {
+    var name = pushStateConfig.name || config.name,
+	text = pushStateConfig.text,
+	vars = pushStateConfig.vars
+    var evalText = evalElement.innerText
+    window.history.pushState ({ name: name, text: text, vars: vars, evalText: evalText }, '', viewPrefix + name + statePath (pushStateConfig))
+  }
+  function currentState (showExp) {
     var state = { text: currentSourceText,
 		  vars: varsBeforeCurrentExpansion,
 		  showEval: true }
     if (showExp)
       state.expansion = { text: currentExpansionText || '',
 			  vars: varsAfterCurrentExpansion || {} }
-    pushState (state)
+    return state
+  }
+  function bookmark (showExp) {
+    pushState (currentState (showExp))
   }
   
   function makeLink (text, link) {
@@ -325,7 +341,8 @@ function initBraceryView (config) {
   nameElement.addEventListener ('keyup', function (evt) { evt.preventDefault(); sanitizeName() })
   sourceRevealElement.addEventListener ('click', revealSource)
   sourceHideElement.addEventListener ('click', hideSource)
-
+  
+  loginLinkElement.addEventListener ('click', function (evt) { evt.preventDefault(); doLogin() })
   if (user)
     logoutElement.style.display = ''
   else

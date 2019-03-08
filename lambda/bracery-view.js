@@ -9,7 +9,6 @@ const util = require('./bracery-util');
 const config = require('./bracery-config');
 const tableName = config.tableName;
 const updateIndexName = config.updateIndexName;
-const defaultName = config.defaultSymbolName;
 
 const dynamoPromise = util.dynamoPromise();
 
@@ -24,6 +23,7 @@ const templateVarValMap = { 'JAVASCRIPT_FILE': config.assetPrefix + config.viewA
                             'VIEW_PATH_PREFIX': config.viewPrefix,
                             'EXPAND_PATH_PREFIX': config.expandPrefix,
 			    'LOGIN_PATH_PREFIX': config.loginPrefix,
+			    'LOGOUT_PATH_PREFIX': config.logoutPrefix,
 			    'COGNITO_DOMAIN': config.cognitoDomain,
 			    'COGNITO_APP_ID': COGNITO_APP_CLIENT_ID };
 const templateNameVar = 'SYMBOL_NAME';
@@ -32,28 +32,6 @@ const templateInitVar = 'INIT_TEXT';
 const templateVarsVar = 'VARS';
 const templateRecentVar = 'RECENT_SYMBOLS';
 const templateUserVar = 'USER';
-
-// Function to get parameters
-function getParams (event) {
-  // Get the symbol name
-  const name = (event && event.pathParameters && event.pathParameters.name) || defaultName;
-
-  // Get symbol definition override from query parameters, if supplied
-  const initText = ((event && event.queryStringParameters && typeof(event.queryStringParameters['text']) === 'string')
-		    ? decodeURIComponent (event.queryStringParameters['text'])
-		    : undefined);
-  
-  // Get evaluation text override from query parameters, if supplied
-  const evalText = ((event && event.queryStringParameters && typeof(event.queryStringParameters['eval']) === 'string')
-		    ? decodeURIComponent (event.queryStringParameters['eval'])
-		    : undefined);
-
-  // Get initial vars as query parameters, if supplied
-  const vars = util.getVars (event);
-
-  // Return
-  return { name, initText, evalText, vars };
-}
 
 // The Lambda function
 exports.handler = async (event, context, callback) => {
@@ -66,8 +44,11 @@ exports.handler = async (event, context, callback) => {
   // Wrap all downstream calls (to dynamo etc) in try...catch
   try {
     // Get parameters
-    const { name, initText, evalText, vars } = getParams (event);
-    
+    const { name, initText, evalText, vars } =
+	  (event && event.queryStringParameters && event.queryStringParameters.redirect && session && session.state
+	   ? JSON.parse (session.state)
+	   : util.getParams (event));
+
     // Add the name & a dummy empty definition to the template var->val map
     let tmpMap = util.extend ({}, templateVarValMap);
     tmpMap[templateNameVar] = name;
@@ -129,7 +110,7 @@ exports.handler = async (event, context, callback) => {
     await symbolPromise;
     
     // Do the %VAR%->val template substitutions
-    if (session)
+    if (session && session.email)
       tmpMap[templateUserVar] = session.email.replace(/(\w)\w+([@\.])/g,(m,c,s)=>c+'**'+s);  // obfuscate email
     tmpMap.LOG = logText;  // add log to template map
     const finalHtml = util.expandTemplate (templateHtmlBuf.toString(), tmpMap);

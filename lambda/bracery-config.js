@@ -6,6 +6,7 @@ module.exports = {
   assetPrefix: '/asset/',
   expandPrefix: '/expand/',
   loginPrefix: '/auth/login/',
+  logoutPrefix: '/auth/logout/',
   twitterPrefix: '/auth/twitter/',
   
   // DynamoDB

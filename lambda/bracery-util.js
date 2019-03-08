@@ -49,10 +49,15 @@ function dynamoPromise() {
 
 async function getSession (event, dynamoPromise) {
   try {
-    const regex = new RegExp (config.cookieName + '=(\\w+)');
-    const match = event.headers && event.headers.cookie && regex.exec (event.headers.cookie);
+    const regex = new RegExp (config.cookieName + '=(\\w+)', 'g');
+    let match;
+    if (event.headers && event.headers.cookie) {
+      let m;
+      while (m = regex.exec (event.headers.cookie))  // get last (& presumably most recent) cookie, in case document.cookie has got multiple cookies
+	match = m;
+    }
     if (match) {
-      cookie = match[1];
+      let cookie = match[1];
       let queryRes = await dynamoPromise('query')
       ({ TableName: config.sessionTableName,
 	 KeyConditionExpression: "#ckey = :cval",
@@ -92,6 +97,27 @@ async function httpsRequest (opts, formData) {
       req.write (formData);
     req.end();
   });
+}
+
+function getParams (event) {
+  // Get the symbol name
+  const name = (event && event.pathParameters && event.pathParameters.name) || config.defaultSymbolName;
+
+  // Get symbol definition override from query parameters, if supplied
+  const initText = ((event && event.queryStringParameters && typeof(event.queryStringParameters['text']) === 'string')
+		    ? decodeURIComponent (event.queryStringParameters['text'])
+		    : undefined);
+  
+  // Get evaluation text override from query parameters, if supplied
+  const evalText = ((event && event.queryStringParameters && typeof(event.queryStringParameters['eval']) === 'string')
+		    ? decodeURIComponent (event.queryStringParameters['eval'])
+		    : undefined);
+
+  // Get initial vars as query parameters, if supplied
+  const vars = getVars (event);
+
+  // Return
+  return { name, initText, evalText, vars };
 }
 
 function withCookie (callback, session) {
@@ -182,6 +208,7 @@ module.exports = {
   generateCookie,
   dynamoPromise,
   getSession,
+  getParams,
   httpsRequest,
   respond,
 };

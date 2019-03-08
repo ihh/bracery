@@ -14,6 +14,9 @@ const COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID;  // must be defin
 const COGNITO_APP_CLIENT_ID = process.env.COGNITO_APP_CLIENT_ID;  // must be defined from AWS Lambda
 const COGNITO_APP_SECRET = process.env.COGNITO_APP_SECRET;  // must be defined from AWS Lambda
 
+const callbackUrl = config.baseUrl + config.loginPrefix;
+const calloutUrl = 'https://' + config.cognitoDomain + '/login?response_type=code&client_id=' + COGNITO_APP_CLIENT_ID + '&redirect_uri=' + encodeURIComponent(callbackUrl);
+
 // The Lambda function
 exports.handler = async (event, context, callback) => {
   //console.log('Received event:', JSON.stringify(event, null, 2));
@@ -23,16 +26,28 @@ exports.handler = async (event, context, callback) => {
   const respond = util.respond (callback, event, session);
 
   try {
-    // Login callback:
+    // Did we get an authorization code (i.e. is this the post-login callback)?
+    const authorizationCode = event && event.queryStringParameters && event.queryStringParameters.code;
+    if (!authorizationCode) {
+      // No auth code, so save state in session & redirect to Cognito
+      await dynamoPromise('updateItem')
+      ({ TableName: config.sessionTableName,
+         Key: { cookie: session.cookie },
+         UpdateExpression: 'SET #s = :s',
+         ExpressionAttributeNames: {
+           '#s': 'state',
+         },
+         ExpressionAttributeValues: {
+           ':s': JSON.stringify (util.getParams (event)),
+         } });
+      return respond.redirectWithCookie (calloutUrl);
+    }
+    
     // Retrieve the access token, use that to get user info,
     // store that info in the session database, and redirect.
-    const authorizationCode = event && event.queryStringParameters && event.queryStringParameters.code;
-    if (!authorizationCode)
-      throw new Error ("No authorization code");
-    
     const urlEncodedTokenData = 'grant_type=authorization_code'
 	  + '&client_id=' + encodeURIComponent(COGNITO_APP_CLIENT_ID)
-	  + '&redirect_uri=' + encodeURIComponent(config.baseUrl + config.loginPrefix)
+	  + '&redirect_uri=' + encodeURIComponent(callbackUrl)
 	  + '&code=' + authorizationCode;
     const tokenReqOpts = {
       hostname: config.cognitoDomain,

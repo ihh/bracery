@@ -1,5 +1,5 @@
 /* This is a small AWS lambda function for presenting a page associated with a (named) Bracery symbol.
-*/
+ */
 
 //console.log('Loading function');
 
@@ -77,6 +77,12 @@ exports.handler = (event, context, callback) => {
   tmpMap[templateRecentVar] = '[]';
   tmpMap[templateVarsVar] = JSON.stringify (vars);
   tmpMap[templateUserVar] = null;
+
+  // Keep a log, so we can debug "live" by inserting %LOG% into index.html (very unsafe...)
+  let logText = '';
+  function log() {
+    logText += Array.prototype.map.call (arguments, (arg) => JSON.stringify (arg)).join(' ') + '\n';
+  }
   
   // If we were given an authorization code (as a redirect from Cognito login),
   // then retrieve the access token, use that to get the email address,
@@ -88,7 +94,7 @@ exports.handler = (event, context, callback) => {
     if (authorizationCode) {
       const urlEncodedTokenData = 'grant_type=authorization_code'
 	    + '&client_id=' + encodeURIComponent(COGNITO_APP_CLIENT_ID)
-	    + '&redirect_uri=' + baseUrl + viewPrefix
+	    + '&redirect_uri=' + encodeURIComponent(baseUrl + viewPrefix)
 	    + '&code=' + authorizationCode;
       const tokenReqOpts = {
 	hostname: config.cognitoDomain,
@@ -97,34 +103,40 @@ exports.handler = (event, context, callback) => {
 	method: 'POST',
 	headers: {
 	  'Content-Type': 'application/x-www-form-urlencoded',
-	  'Authorization': 'Basic ' + (COGNITO_APP_CLIENT_ID + ':' + COGNITO_APP_SECRET).toString('base64'),
+	  'Authorization': 'Basic ' + Buffer.from(COGNITO_APP_CLIENT_ID + ':' + COGNITO_APP_SECRET).toString('base64'),
 	  'Content-Length': urlEncodedTokenData.length,
 	},
       };
       const tokenReq = https.request (tokenReqOpts, (res) => {
-	if (res.statusCode != 200)
-	  return resolve();
+	log('tokenReq response status',res.statusCode);
 	let data = '';
 	res.on('data', (chunk) => { data += chunk; });
         res.on('end', () => {
+	  // log('tokenReq response body',data);  // insecure
+	  if (res.statusCode != 200)
+	    return resolve();
 	  const tokenResBody = JSON.parse (data);
+	  // log({tokenResBody});  // insecure
 	  const accessToken = tokenResBody.access_token, refreshToken = tokenResBody.refresh_token;
-          const infoReqOpts = {
+	  const infoReqOpts = {
 	    hostname: config.cognitoDomain,
 	    port: 443,
-	    path: '/oauth2/userinfo',
+	    path: '/oauth2/userInfo',
 	    method: 'GET',
 	    headers: {
 	      'Authorization': 'Bearer ' + accessToken,
 	    },
 	  };
 	  const infoReq = https.request (infoReqOpts, (res) => {
-	    if (res.statusCode != 200)
-	      return resolve();
+	    log('infoReq response status',res.statusCode);
 	    let data = '';
 	    res.on('data', (chunk) => { data += chunk; });
-            res.on('end', () => {
+	    res.on('end', () => {
+              // log('infoRes response body',data);  // insecure
+	      if (res.statusCode != 200)
+		return resolve();
 	      const infoResBody = JSON.parse (data);
+	      // log({infoResBody});  // insecure
 	      const email = infoResBody.email;
 	      tmpMap[templateUserVar] = email;
 	      const newCookie = util.generateCookie();
@@ -147,7 +159,8 @@ exports.handler = (event, context, callback) => {
       tokenReq.write (urlEncodedTokenData);
       tokenReq.end();
     } else {  // !authorizationCode
-      const regex = new RegExp (cookieName + '=(\w+)');
+      log(event.headers);
+      const regex = new RegExp (cookieName + '=(\\w+)');
       const match = event.headers && event.headers.cookie && regex.exec (event.headers.cookie);
       if (match) {
 	cookie = match[1];
@@ -181,9 +194,7 @@ exports.handler = (event, context, callback) => {
     callback (null, {
       statusCode: err ? (err.statusCode || '500') : '200',
       body: err ? err.message : res,
-      headers: {
-	'Content-Type': 'text/html; charset=' + templateHtmlFileEncoding,
-      },
+      headers: headers,
     });
   };
 
@@ -234,6 +245,8 @@ exports.handler = (event, context, callback) => {
     .then (() => symbolPromise)
     .then (() => newsPromise)
     .then (() => {
+      // Add log to template map
+      tmpMap.LOG = logText;
       // Read the file, do the %VAR%->val template substitutions, and return
       fs.readFile (templateHtmlFilename, templateHtmlFileEncoding, (err, templateHtml) => {
         if (err)

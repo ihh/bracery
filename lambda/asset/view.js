@@ -58,8 +58,9 @@ function initBraceryView (config) {
   var titleElement = document.getElementById('title')
 
   var loginElement = document.getElementById('login')
-  var loginLinkElement = document.getElementById('loginlink')
   var logoutElement = document.getElementById('logout')
+  var loginLinkElement = document.getElementById('loginlink')
+  var logoutLinkElement = document.getElementById('logoutlink')
 
   var baseUrl = window.location.origin
   var baseViewUrl = baseUrl + viewPrefix
@@ -101,9 +102,12 @@ function initBraceryView (config) {
   }
 
   function doLogin() {
-    window.location.href = loginPrefix + stateQueryArgs (currentState())
+    window.location.href = loginPrefix + stateQueryArgs (currentState(), { login: 'true' })
   }
-  function stateQueryArgs (pushStateConfig) {
+  function doLogout() {
+    window.location.href = loginPrefix + stateQueryArgs (currentState(), { logout: 'true' })
+  }
+  function stateQueryArgs (pushStateConfig, miscArgs) {
     var name = pushStateConfig.name || config.name,
 	text = pushStateConfig.text,
 	vars = pushStateConfig.vars,
@@ -115,6 +119,8 @@ function initBraceryView (config) {
     if (vars) { var v = JSON.stringify(vars); if (v !== '{}') params.push ('vars=' + window.encodeURIComponent(v)) }
     if (showEval && (config.init || evalTextEdited || viewConfig.alwaysShowEvalInBookmarks)) params.push ('eval=' + window.encodeURIComponent(evalText))
     if (expansion) params.push ('exp=' + window.encodeURIComponent(JSON.stringify(expansion)))
+    if (miscArgs)
+      params = params.concat (Object.keys (miscArgs).map (function (arg) { return arg + '=' + miscArgs[arg] }))
     return (params.length ? ('?' + params.join('&')) : '')
   }
   function pushState (pushStateConfig) {
@@ -343,6 +349,7 @@ function initBraceryView (config) {
   sourceHideElement.addEventListener ('click', hideSource)
   
   loginLinkElement.addEventListener ('click', function (evt) { evt.preventDefault(); doLogin() })
+  logoutLinkElement.addEventListener ('click', function (evt) { evt.preventDefault(); doLogout() })
   if (user)
     logoutElement.style.display = ''
   else

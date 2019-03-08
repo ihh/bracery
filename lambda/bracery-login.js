@@ -15,7 +15,8 @@ const COGNITO_APP_CLIENT_ID = process.env.COGNITO_APP_CLIENT_ID;  // must be def
 const COGNITO_APP_SECRET = process.env.COGNITO_APP_SECRET;  // must be defined from AWS Lambda
 
 const callbackUrl = config.baseUrl + config.loginPrefix;
-const calloutUrl = 'https://' + config.cognitoDomain + '/login?response_type=code&client_id=' + COGNITO_APP_CLIENT_ID + '&redirect_uri=' + encodeURIComponent(callbackUrl);
+const loginCalloutUrl = 'https://' + config.cognitoDomain + '/login?response_type=code&client_id=' + COGNITO_APP_CLIENT_ID + '&redirect_uri=' + encodeURIComponent(callbackUrl);
+const logoutCalloutUrl = 'https://' + config.cognitoDomain + '/logout?client_id=' + COGNITO_APP_CLIENT_ID + '&logout_uri=' + encodeURIComponent(callbackUrl);
 
 // The Lambda function
 exports.handler = async (event, context, callback) => {
@@ -24,23 +25,35 @@ exports.handler = async (event, context, callback) => {
   // Set up some returns
   let session = await util.getSession (event, dynamoPromise);
   const respond = util.respond (callback, event, session);
-
+  const backToApp = () => respond.redirectWithCookie (config.baseUrl + config.viewPrefix + ((session.state && session.state.name) || '') + '?redirect=true');
+  
   try {
-    // Did we get an authorization code (i.e. is this the post-login callback)?
+    // Figure out from query params whether this is login, logout, callout, or callback
     const authorizationCode = event && event.queryStringParameters && event.queryStringParameters.code;
+    const isLogin = event && event.queryStringParameters && event.queryStringParameters.login;
+    const isLogout = event && event.queryStringParameters && event.queryStringParameters.logout;
     if (!authorizationCode) {
-      // No auth code, so save state in session & redirect to Cognito
+      // No auth code, so not a login callback
+      if (!isLogin && !isLogout)  // is it a logout callback?
+	return backToApp();
+      // Update session with state (and clear access tokens) & redirect to Cognito
       await dynamoPromise('updateItem')
       ({ TableName: config.sessionTableName,
          Key: { cookie: session.cookie },
-         UpdateExpression: 'SET #s = :s',
+         UpdateExpression: 'SET #s = :s, #l = :l, #a = :a, #r = :r',
          ExpressionAttributeNames: {
            '#s': 'state',
+           '#l': 'loggedIn',
+           '#a': 'accessToken',
+           '#r': 'refreshToken',
          },
          ExpressionAttributeValues: {
            ':s': JSON.stringify (util.getParams (event)),
+	   ':l': false,
+	   ':a': 'none',  // DynamoDB doesn't like empty strings
+	   ':r': 'none',  // DynamoDB doesn't like empty strings
          } });
-      return respond.redirectWithCookie (calloutUrl);
+      return respond.redirectWithCookie (isLogin ? loginCalloutUrl : logoutCalloutUrl);
     }
     
     // Retrieve the access token, use that to get user info,
@@ -80,20 +93,20 @@ exports.handler = async (event, context, callback) => {
         await dynamoPromise('updateItem')
         ({ TableName: config.sessionTableName,
            Key: { cookie: session.cookie },
-           UpdateExpression: 'SET #e = :e, #a = :a, #r = :r, #g = :g',
+           UpdateExpression: 'SET #l = :l, #e = :e, #a = :a, #r = :r',
            ExpressionAttributeNames: {
+             '#l': 'loggedIn',
              '#e': 'email',
-               '#a': 'accessToken',
-               '#r': 'refreshToken',
-               '#g': 'accessGranted',
-             },
-             ExpressionAttributeValues: {
-               ':e': email,
-               ':a': accessToken,
-               ':r': refreshToken,
-               ':g': Date.now()
-             } });
-	respond.redirectWithCookie (config.baseUrl + config.viewPrefix + ((session.state && session.state.name) || '') + '?redirect=true');
+             '#a': 'accessToken',
+             '#r': 'refreshToken'
+           },
+           ExpressionAttributeValues: {
+	     ':l': true,
+             ':e': email,
+             ':a': accessToken,
+             ':r': refreshToken
+           } });
+	backToApp();
       }
     }
   } catch (e) {

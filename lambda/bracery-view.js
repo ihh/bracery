@@ -12,8 +12,6 @@ const updateIndexName = config.updateIndexName;
 
 const dynamoPromise = util.dynamoPromise();
 
-const COGNITO_APP_CLIENT_ID = process.env.COGNITO_APP_CLIENT_ID;  // must be defined from AWS Lambda
-
 // The static assets pointed to by these template substitutions
 // should be uploaded in the Lambda zip of bracery-asset.js (or to S3, or wherever)
 const templateVarValMap = { 'JAVASCRIPT_FILE': config.assetPrefix + config.viewAssetStub + '.js',
@@ -22,10 +20,7 @@ const templateVarValMap = { 'JAVASCRIPT_FILE': config.assetPrefix + config.viewA
                             'STORE_PATH_PREFIX': config.storePrefix,
                             'VIEW_PATH_PREFIX': config.viewPrefix,
                             'EXPAND_PATH_PREFIX': config.expandPrefix,
-			    'LOGIN_PATH_PREFIX': config.loginPrefix,
-			    'LOGOUT_PATH_PREFIX': config.logoutPrefix,
-			    'COGNITO_DOMAIN': config.cognitoDomain,
-			    'COGNITO_APP_ID': COGNITO_APP_CLIENT_ID };
+			    'LOGIN_PATH_PREFIX': config.loginPrefix };
 const templateNameVar = 'SYMBOL_NAME';
 const templateDefVar = 'SYMBOL_DEFINITION';
 const templateInitVar = 'INIT_TEXT';
@@ -110,7 +105,7 @@ exports.handler = async (event, context, callback) => {
     await symbolPromise;
     
     // Do the %VAR%->val template substitutions
-    if (session && session.email)
+    if (session && session.loggedIn && session.email)
       tmpMap[templateUserVar] = session.email.replace(/(\w)\w+([@\.])/g,(m,c,s)=>c+'**'+s);  // obfuscate email
     tmpMap.LOG = logText;  // add log to template map
     const finalHtml = util.expandTemplate (templateHtmlBuf.toString(), tmpMap);

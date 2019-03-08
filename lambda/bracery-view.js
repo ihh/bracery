@@ -196,6 +196,9 @@ exports.handler = async (event, context, callback) => {
           const infoResBody = JSON.parse (infoData);
           const email = infoResBody.email;
           tmpMap[templateUserVar] = email;
+          // TODO: re-use old cookie if it exists, do updateItem instead of putItem
+          // Create cookie earlier, put more into the session e.g. preserve app state through login
+          // Move redirect code to separate Lambda function
           const newCookie = util.generateCookie();
           await dynamoPromise('putItem')
           ({ TableName: sessionTableName,

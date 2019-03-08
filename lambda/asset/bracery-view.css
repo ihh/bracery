@@ -18,7 +18,7 @@ body {
     width: 100%;
     background-color: lightgray;
     min-height: 1em;
-    word-break: break-word;
+    word-break: break-all;
 }
 
 #eval {

@@ -102,10 +102,10 @@ function initBraceryView (config) {
   }
 
   function doLogin() {
-    window.location.href = loginPrefix + stateQueryArgs (currentState(), { login: 'true' })
+    window.location.href = loginPrefix + stateQueryArgs (currentState(), { name: config.name, login: 'true' })
   }
   function doLogout() {
-    window.location.href = loginPrefix + stateQueryArgs (currentState(), { logout: 'true' })
+    window.location.href = loginPrefix + stateQueryArgs (currentState(), { name: config.name, logout: 'true' })
   }
   function stateQueryArgs (pushStateConfig, miscArgs) {
     var name = pushStateConfig.name || config.name,

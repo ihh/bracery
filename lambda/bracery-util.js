@@ -101,7 +101,9 @@ async function httpsRequest (opts, formData) {
 
 function getParams (event) {
   // Get the symbol name
-  const name = (event && event.pathParameters && event.pathParameters.name) || config.defaultSymbolName;
+  const name = ((event && event.pathParameters && event.pathParameters.name)
+		|| (event && event.queryStringParameters && event.queryStringParameters.name)
+		|| config.defaultSymbolName);
 
   // Get symbol definition override from query parameters, if supplied
   const initText = ((event && event.queryStringParameters && typeof(event.queryStringParameters['text']) === 'string')

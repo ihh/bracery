@@ -25,7 +25,12 @@ exports.handler = async (event, context, callback) => {
   // Set up some returns
   let session = await util.getSession (event, dynamoPromise);
   const respond = util.respond (callback, event, session);
-  const backToApp = () => respond.redirectWithCookie (config.baseUrl + config.viewPrefix + ((session.state && session.state.name) || '') + '?redirect=true');
+  const backToApp = () => {
+    let name = '';
+    if (session.state)
+      name = JSON.parse(session.state).name || '';
+    respond.redirectWithCookie (config.baseUrl + config.viewPrefix + name + '?redirect=true');
+  };
   
   try {
     // Figure out from query params whether this is login, logout, callout, or callback

@@ -14,8 +14,7 @@ const defaultName = config.defaultSymbolName;
 const sessionTableName = config.sessionTableName;
 const cookieName = config.cookieName;
 
-const doc = require('dynamodb-doc');
-const dynamoPromise = util.dynamoPromise (new doc.DynamoDB());
+const dynamoPromise = util.dynamoPromise();
 
 const COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID;  // must be defined from AWS Lambda
 const COGNITO_APP_CLIENT_ID = process.env.COGNITO_APP_CLIENT_ID;  // must be defined from AWS Lambda
@@ -63,11 +62,9 @@ const httpsRequest = async (opts, formData) => new Promise
     req.write (formData);
   req.end();
 });
- 
-// The Lambda function
-exports.handler = async (event, context, callback) => {
-  //console.log('Received event:', JSON.stringify(event, null, 2));
 
+// Function to get parameters
+function getParams (event) {
   // Get the symbol name
   const name = (event && event.pathParameters && event.pathParameters.name) || defaultName;
 
@@ -83,30 +80,23 @@ exports.handler = async (event, context, callback) => {
 
   // Get initial vars as query parameters, if supplied
   const vars = util.getVars (event);
-  
-  // Add the name & a dummy empty definition to the template var->val map
-  let tmpMap = util.extend ({}, templateVarValMap);
-  tmpMap[templateNameVar] = name;
-  tmpMap[templateDefVar] = typeof(evalText) === 'string' ? evalText : '';
-  tmpMap[templateInitVar] = typeof(initText) === 'string' ? initText : false;
-  tmpMap[templateRecentVar] = '[]';
-  tmpMap[templateVarsVar] = JSON.stringify (vars);
-  tmpMap[templateUserVar] = null;
 
-  // Keep a log, so we can debug "live" by inserting %LOG% into index.html (very unsafe...)
-  let logText = '';
-  function log() {
-    logText += Array.prototype.map.call (arguments, (arg) => JSON.stringify (arg)).join(' ') + '\n';
-  }
+  // Return
+  return { name, initText, evalText, vars };
+}
+
+// The Lambda function
+exports.handler = async (event, context, callback) => {
+  //console.log('Received event:', JSON.stringify(event, null, 2));
 
   // Set up some returns
-  let cookie = null;
+  let session = null;
   const done = (err, res) => {
     let headers = {
       'Content-Type': 'text/html; charset=' + templateHtmlFileEncoding,
     };
-    if (cookie)
-      headers['Set-Cookie'] = cookieName + '=' + cookie;
+    if (session && session.cookie)
+      headers['Set-Cookie'] = cookieName + '=' + session.cookie;
     callback (null, {
       statusCode: err ? (err.statusCode || '500') : '200',
       body: err ? err.message : res,
@@ -120,6 +110,27 @@ exports.handler = async (event, context, callback) => {
   // Wrap all downstream calls (to dynamo etc) in try...catch
   try {
 
+    // Get the session
+    session = await util.getSession (event, dynamoPromise);
+
+    // Get parameters
+    const { name, initText, evalText, vars } = getParams (event);
+    
+    // Add the name & a dummy empty definition to the template var->val map
+    let tmpMap = util.extend ({}, templateVarValMap);
+    tmpMap[templateNameVar] = name;
+    tmpMap[templateDefVar] = typeof(evalText) === 'string' ? evalText : '';
+    tmpMap[templateInitVar] = typeof(initText) === 'string' ? initText : false;
+    tmpMap[templateRecentVar] = '[]';
+    tmpMap[templateVarsVar] = JSON.stringify (vars);
+    tmpMap[templateUserVar] = null;
+
+    // Keep a log, so we can debug "live" by inserting %LOG% into index.html (very unsafe...)
+    let logText = '';
+    function log() {
+      logText += Array.prototype.map.call (arguments, (arg) => JSON.stringify (arg)).join(' ') + '\n';
+    }
+    
     // Query the database for recently-updated symbols
     let newsPromise = dynamoPromise('query')
     ({ TableName: tableName,
@@ -137,7 +148,7 @@ exports.handler = async (event, context, callback) => {
         if (res.Items)
           tmpMap[templateRecentVar] = JSON.stringify (res.Items.map ((item) => item.name));
       });
-    
+
     // Query the database for the given symbol definition, or use evalText if supplied
     let symbolPromise =
         (typeof(evalText) === 'string'
@@ -196,19 +207,23 @@ exports.handler = async (event, context, callback) => {
           const infoResBody = JSON.parse (infoData);
           const email = infoResBody.email;
           tmpMap[templateUserVar] = email;
-          // TODO: re-use old cookie if it exists, do updateItem instead of putItem
-          // Create cookie earlier, put more into the session e.g. preserve app state through login
-          // Move redirect code to separate Lambda function
-          const newCookie = util.generateCookie();
-          await dynamoPromise('putItem')
+          // TODO: Move redirect handler to separate Lambda function & API Gateway route, redirect back here, avoid '?code=' in URL
+          await dynamoPromise('updateItem')
           ({ TableName: sessionTableName,
-	     Item: { cookie: newCookie,
-		     email: email,
-		     accessToken: accessToken,
-		     refreshToken: refreshToken,
-		     issued: Date.now() },
-           });
-          cookie = newCookie;
+             Key: { cookie: session.cookie },
+             UpdateExpression: 'SET #e = :e, #a = :a, #r = :r, #g = :g',
+             ExpressionAttributeNames: {
+               '#e': 'email',
+               '#a': 'accessToken',
+               '#r': 'refreshToken',
+               '#g': 'accessGranted',
+             },
+             ExpressionAttributeValues: {
+               ':e': email,
+               ':a': accessToken,
+               ':r': refreshToken,
+               ':g': Date.now()
+             } });
         }
       }
     } else {  // !authorizationCode

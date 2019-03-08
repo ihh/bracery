@@ -1,4 +1,6 @@
+const doc = require('dynamodb-doc');
 const promisify = require('util').promisify;
+
 const braceryWeb = require ('./bracery-web');
 const extend = braceryWeb.extend;
 const escapeHTML = braceryWeb.escapeHTML;
@@ -39,7 +41,8 @@ function generateCookie() {
   return Date.now().toString(16) + Math.random().toString().substr(2)
 }
 
-function dynamoPromise (dynamo) {
+function dynamoPromise() {
+  let dynamo = new doc.DynamoDB();
   return (method) => promisify (dynamo[method].bind (dynamo));
 }
 
@@ -48,7 +51,7 @@ async function getSession (event, dynamoPromise) {
   const match = event.headers && event.headers.cookie && regex.exec (event.headers.cookie);
   if (match) {
     cookie = match[1];
-    let res = await dynamoPromise('query')
+    let queryRes = await dynamoPromise('query')
     ({ TableName: config.sessionTableName,
        KeyConditionExpression: "#ckey = :cval",
        ExpressionAttributeNames:{
@@ -57,11 +60,16 @@ async function getSession (event, dynamoPromise) {
        ExpressionAttributeValues: {
 	 ":cval": cookie
        }});
-    const result = res.Items && res.Items.length && res.Items[0];
-    if (result)
-      return result;
+    if (queryRes.Items && queryRes.Items.length)
+      return queryRes.Items[0];
   }
-  return null;
+  const newCookie = generateCookie();
+  const newSession = { cookie: newCookie };
+  await dynamoPromise('putItem')
+  ({ TableName: config.sessionTableName,
+     Item: newSession,
+   });
+  return newSession;
 }
 
 module.exports = {

@@ -128,7 +128,7 @@ function initBraceryView (config) {
 	text = pushStateConfig.text,
 	vars = pushStateConfig.vars
     var evalText = evalElement.innerText
-    window.history.pushState ({ name: name, text: text, vars: vars, evalText: evalText }, '', viewPrefix + name + statePath (pushStateConfig))
+    window.history.pushState ({ name: name, text: text, vars: vars, evalText: evalText }, '', viewPrefix + name + stateQueryArgs (pushStateConfig))
   }
   function currentState (showExp) {
     var state = { text: currentSourceText,

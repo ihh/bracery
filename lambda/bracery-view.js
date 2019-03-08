@@ -227,8 +227,6 @@ exports.handler = async (event, context, callback) => {
         }
       }
     } else {  // !authorizationCode
-      log(event.headers);
-      let session = await util.getSession (event, dynamoPromise);
       if (session)
 	tmpMap[templateUserVar] = session.email;
     }

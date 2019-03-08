@@ -12,6 +12,7 @@ const tableName = config.tableName;
 const updateIndexName = config.updateIndexName;
 const defaultName = config.defaultSymbolName;
 const sessionTableName = config.sessionTableName;
+const cookieName = config.cookieName;
 
 const doc = require('dynamodb-doc');
 const dynamoPromise = util.dynamoPromise (new doc.DynamoDB());
@@ -47,8 +48,6 @@ const templateInitVar = 'INIT_TEXT';
 const templateVarsVar = 'VARS';
 const templateRecentVar = 'RECENT_SYMBOLS';
 const templateUserVar = 'USER';
-
-const cookieName = 'bracery_session';
 
 // async https.request
 const httpsRequest = async (opts, formData) => new Promise
@@ -211,23 +210,9 @@ exports.handler = async (event, context, callback) => {
       }
     } else {  // !authorizationCode
       log(event.headers);
-      const regex = new RegExp (cookieName + '=(\\w+)');
-      const match = event.headers && event.headers.cookie && regex.exec (event.headers.cookie);
-      if (match) {
-        cookie = match[1];
-        let res = await dynamoPromise('query')
-        ({ TableName: sessionTableName,
-           KeyConditionExpression: "#ckey = :cval",
-           ExpressionAttributeNames:{
-	     "#ckey": "cookie"
-           },
-           ExpressionAttributeValues: {
-	     ":cval": cookie
-           }});
-        const result = res.Items && res.Items.length && res.Items[0];
-        if (result)
-	  tmpMap[templateUserVar] = result.email;
-      }
+      let session = await util.getSession (event, dynamoPromise);
+      if (session)
+	tmpMap[templateUserVar] = session.email;
     }
 
     // Read the file

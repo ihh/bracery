@@ -16,7 +16,8 @@ module.exports = {
   revisionsTableName: 'BraceryRevisionsTable',
   twitterTableName: 'BraceryTwitterTable',
   sessionTableName: 'BracerySessionTable',
-
+  cookieName: 'bracery_session',
+  
   // AWS Cognito
   cognitoDomain: 'auth.bracery.org',
 

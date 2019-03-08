@@ -3,6 +3,8 @@ const braceryWeb = require ('./bracery-web');
 const extend = braceryWeb.extend;
 const escapeHTML = braceryWeb.escapeHTML;
 
+const config = require ('./bracery-config');
+
 function getBody (event) {
   return (event.body
           ? (typeof(event.body) === 'string'
@@ -41,6 +43,27 @@ function dynamoPromise (dynamo) {
   return (method) => promisify (dynamo[method].bind (dynamo));
 }
 
+async function getSession (event, dynamoPromise) {
+  const regex = new RegExp (config.cookieName + '=(\\w+)');
+  const match = event.headers && event.headers.cookie && regex.exec (event.headers.cookie);
+  if (match) {
+    cookie = match[1];
+    let res = await dynamoPromise('query')
+    ({ TableName: config.sessionTableName,
+       KeyConditionExpression: "#ckey = :cval",
+       ExpressionAttributeNames:{
+	 "#ckey": "cookie"
+       },
+       ExpressionAttributeValues: {
+	 ":cval": cookie
+       }});
+    const result = res.Items && res.Items.length && res.Items[0];
+    if (result)
+      return result;
+  }
+  return null;
+}
+
 module.exports = {
   extend,
   escapeHTML,
@@ -50,4 +73,5 @@ module.exports = {
   expandTemplate,
   generateCookie,
   dynamoPromise,
+  getSession,
 };

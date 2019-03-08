@@ -115,11 +115,16 @@ function getParams (event) {
 		    ? decodeURIComponent (event.queryStringParameters['eval'])
 		    : undefined);
 
+  // Get the expansion, if supplied
+  const expansion = ((event && event.queryStringParameters && typeof(event.queryStringParameters['exp']) === 'string')
+		    ? decodeURIComponent (event.queryStringParameters['exp'])
+		    : undefined);
+
   // Get initial vars as query parameters, if supplied
   const vars = getVars (event);
-
+  
   // Return
-  return { name, initText, evalText, vars };
+  return { name, initText, evalText, vars, expansion };
 }
 
 function withCookie (callback, session) {

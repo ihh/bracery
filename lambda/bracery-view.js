@@ -27,6 +27,7 @@ const templateInitVar = 'INIT_TEXT';
 const templateVarsVar = 'VARS';
 const templateRecentVar = 'RECENT_SYMBOLS';
 const templateUserVar = 'USER';
+const templateExpVar = 'EXPANSION';
 
 // The Lambda function
 exports.handler = async (event, context, callback) => {
@@ -39,7 +40,7 @@ exports.handler = async (event, context, callback) => {
   // Wrap all downstream calls (to dynamo etc) in try...catch
   try {
     // Get parameters
-    const { name, initText, evalText, vars } =
+    const { name, initText, evalText, vars, expansion } =
 	  (event && event.queryStringParameters && event.queryStringParameters.redirect && session && session.state
 	   ? JSON.parse (session.state)
 	   : util.getParams (event));
@@ -52,6 +53,7 @@ exports.handler = async (event, context, callback) => {
     tmpMap[templateRecentVar] = '[]';
     tmpMap[templateVarsVar] = JSON.stringify (vars);
     tmpMap[templateUserVar] = null;
+    tmpMap[templateExpVar] = expansion;
 
     // Keep a log, so we can debug "live" by inserting %LOG% into index.html (very unsafe...)
     let logText = '';

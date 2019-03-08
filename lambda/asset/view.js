@@ -368,8 +368,14 @@ function initBraceryView (config) {
       update (state.text, state.vars)
   }
 
+  if (urlParams.redirect)
+    pushState({})  // get rid of the '?redirect=true'
+
+  var expansion = urlParams.exp || config.exp
   if (urlParams.exp)
     render (JSON.parse (window.decodeURIComponent (urlParams.exp)))
+  else if (config.exp)
+    render (config.exp)
   else
     update()
 }

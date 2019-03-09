@@ -95,13 +95,12 @@ exports.handler = async (event, context, callback) => {
       const result = res.Items && res.Items.length && res.Items[0];
       if (!result)
         return respond.notFound();
-      let { oAuthAccessToken, oAuthAccessTokenSecret }
+      let { accToken, accSecret }
           = await getOAuthAccessToken (requestToken,
                                        result.requestTokenSecret,
                                        requestVerifier);
-      await dynamoPromise('updateItem')
-      ({ TableName: twitterTableName,
-         Key: { requestToken: requestToken },
+      let params = { TableName: twitterTableName,
+         Key: { 'requestToken': requestToken },
          UpdateExpression: 'SET #a = :a, #s = :s, #d = :d, #t = :t',
          ExpressionAttributeNames: {
            '#a': 'accessToken',
@@ -110,12 +109,14 @@ exports.handler = async (event, context, callback) => {
            '#t': 'type'
          },
          ExpressionAttributeValues: {
-           ':a': oAuthAccessToken,
-           ':s': oAuthAccessTokenSecret,
+           ':a': accToken,
+           ':s': accSecret,
            ':d': Date.now(),
            ':t': 'access'
          }
-       });
+                   };
+      await dynamoPromise('updateItem')
+      (params);
       respond.redirectFound (config.baseUrl + config.viewPrefix + result.name);
     }
   } catch (e) {

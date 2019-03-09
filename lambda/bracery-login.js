@@ -81,40 +81,41 @@ exports.handler = async (event, context, callback) => {
     let [tokenRes, tokenData] = await util.httpsRequest (tokenReqOpts, urlEncodedTokenData);
     if (tokenRes.statusCode == 200) {
       const tokenResBody = JSON.parse (tokenData);
-      const accessToken = tokenResBody.access_token, refreshToken = tokenResBody.refresh_token;
       const infoReqOpts = {
 	hostname: config.cognitoDomain,
 	port: 443,
 	path: '/oauth2/userInfo',
 	method: 'GET',
 	headers: {
-	  'Authorization': 'Bearer ' + accessToken,
+	  'Authorization': 'Bearer ' + tokenResBody.access_token,
 	},
       };
       let [infoRes, infoData] = await util.httpsRequest (infoReqOpts);
       if (infoRes.statusCode == 200) {
         const infoResBody = JSON.parse (infoData);
-        const email = infoResBody.email;
         await dynamoPromise('updateItem')
         ({ TableName: config.sessionTableName,
            Key: { cookie: session.cookie },
-           UpdateExpression: 'SET #l = :l, #e = :e, #a = :a, #r = :r',
+           UpdateExpression: 'SET #l = :l, #e = :e, #s = :s, #a = :a, #r = :r',
            ExpressionAttributeNames: {
              '#l': 'loggedIn',
              '#e': 'email',
+             '#s': 'sub',
              '#a': 'accessToken',
              '#r': 'refreshToken'
            },
            ExpressionAttributeValues: {
 	     ':l': true,
-             ':e': email,
-             ':a': accessToken,
-             ':r': refreshToken
+             ':e': infoResBody.email,
+             ':s': infoResBody.sub,
+             ':a': tokenResBody.access_token,
+             ':r': tokenResBody.refresh_token
            } });
 	backToApp();
       }
     }
   } catch (e) {
+    console.warn (e);  // to CloudWatch
     respond.serverError (e);
   }
 };

@@ -37,7 +37,7 @@ function expandTemplate (template, tmpMap) {
       .replace (new RegExp ('%QUOTED_' + templateVar + '%', 'g'), JSON.stringify (templateVal));
   }, template);
 }
-
+                       
 function generateCookie() {
   return Date.now().toString(16) + Math.random().toString().substr(2)
 }
@@ -152,30 +152,9 @@ function ok (callback) {
   });			       
 }
 
-function serverError (callback) {
-  return (msg) => callback (null, { statusCode: '500', body: msg || "Server error" });
-}
-
-function notFound (callback) {
-  return () => callback (null, { statusCode: '404', body: `Name not found "${name}"` });
-}
-
-function badMethod (callback, event) {
-  return () => done ({ statusCode: '405', body: `Unsupported method "${event.httpMethod}"` });
-}
-
 function redirectFound (callback) {
   return (url) => callback (null, {
     statusCode: '302',
-    headers: {
-      'Location': url,
-    },
-  });
-}
-
-function redirectPost (callback) {
-  return (url) => callback (null, {
-    statusCode: '303',
     headers: {
       'Location': url,
     },
@@ -192,16 +171,42 @@ function redirectWithCookie (callback, session) {
   });
 }
 
+function redirectPost (callback) {
+  return (url) => callback (null, {
+    statusCode: '303',
+    headers: {
+      'Location': url,
+    },
+  });
+}
+
+function forbidden (callback) {
+  return (msg) => callback (null, { statusCode: '403', body: msg || "Forbidden" });
+}
+
+function notFound (callback) {
+  return () => callback (null, { statusCode: '404', body: `Name not found "${name}"` });
+}
+
+function badMethod (callback, event) {
+  return () => done ({ statusCode: '405', body: `Unsupported method "${event.httpMethod}"` });
+}
+
+function serverError (callback) {
+  return (msg) => callback (null, { statusCode: '500', body: msg || "Server error" });
+}
+
 function respond (callback, event, session) {
   return {
     withCookie: withCookie (callback, session),
     ok: ok (callback),
-    serverError: serverError (callback),
-    notFound: notFound (callback),
-    badMethod: badMethod (callback, event),
     redirectFound: redirectFound (callback),
     redirectPost: redirectPost (callback),
     redirectWithCookie: redirectWithCookie (callback, session),
+    forbidden: forbidden (callback),
+    notFound: notFound (callback),
+    badMethod: badMethod (callback, event),
+    serverError: serverError (callback),
   };
 }
 

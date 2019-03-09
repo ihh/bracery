@@ -2,7 +2,7 @@ var extend = window.braceryWeb.extend;
 
 var viewConfig = { bookmark: { link: false,
 			       reset: false,
-			       save: false,
+			       save: true,
 			       firstEdit: false },
 		   alwaysShowEvalInBookmarks: true };
 
@@ -46,6 +46,7 @@ function initBraceryView (config) {
 
   var urlElement = document.getElementById('urlprefix')
   var nameElement = document.getElementById('name')
+  var lockElement = document.getElementById('lock')
   var saveElement = document.getElementById('save')
   var errorElement = document.getElementById('error')
 
@@ -53,6 +54,7 @@ function initBraceryView (config) {
   var sourceHideElement = document.getElementById('sourcehide')
   var sourceControlsElement = document.getElementById('sourcecontrols')
   var sourcePanelElement = document.getElementById('sourcepanel')
+  var lockPanelElement = document.getElementById('lockpanel')
 
   var recentElement = document.getElementById('recent')
   var titleElement = document.getElementById('title')
@@ -86,7 +88,8 @@ function initBraceryView (config) {
 	extend (varsBeforeCurrentExpansion = {}, vars)
         extend (varsAfterCurrentExpansion = {}, expansion.vars)
         currentExpansionCount = expansionCount
-        expElement.innerHTML = marked (currentExpansionText)  // Markdown expansion
+        var expansionHTML = marked (currentExpansionText)  // Markdown expansion
+        expElement.innerHTML = expansionHTML
 	if (showConfig && showConfig.pushState)
 	  pushState ({ text: currentSourceText,
 		       vars: varsBeforeCurrentExpansion,
@@ -191,7 +194,11 @@ function initBraceryView (config) {
     req.send();
   }
 
-  function storeBracery (symbolName, symbolDef, callback) {
+  function storeBracery (config) {
+    var symbolName = config.name
+    var symbolDef = config.def
+    var callback = config.callback
+    var locked = config.locked
     var req = new XMLHttpRequest();
     req.open("PUT", window.location.origin + storePrefix + symbolName);
     req.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
@@ -203,7 +210,8 @@ function initBraceryView (config) {
           callback (this.status)
       }
     }
-    var body = { bracery: symbolDef }
+    var body = { bracery: symbolDef,
+                 locked: !!locked }
     req.send (JSON.stringify (body));
   }
   function reset() {
@@ -221,26 +229,34 @@ function initBraceryView (config) {
   function save() {
     var name = nameElement.value.toLowerCase()
     var text = evalElement.innerText
+    var locked = !!lockElement.checked
     if (!name)
       errorElement.innerText = 'Please enter a name.'
     else if (!text)
       errorElement.innerText = 'You cannot save an empty definition. Please enter some text.'
     else {
       errorElement.innerText = ''
-      storeBracery (name, text, function (err, result) {
-        if (err) {
-          if (err === 401)
-            errorElement.innerText = 'Sorry, the name "' + name + '" is already in use. Try saving as another name.'
-          else
-            errorElement.innerText = 'Sorry, an error occurred (' + err + ').'
-        } else {
-          errorElement.innerText = 'Saved.'
-	  setName (name)
-	  if (viewConfig.bookmark.save)
-	    pushState ({ name: name, text: initText(), vars: initVars })
-          delete braceryCache[name]
-        }
-      })
+      storeBracery
+      ({ name: name,
+         def: text,
+         locked: locked,
+         callback: function (err, result) {
+           if (err) {
+             if (err === 403)
+               errorElement.innerText = 'Sorry, the name "' + name + '" is reserved. Try saving as another name.'
+             else
+               errorElement.innerText = 'Sorry, an error occurred (' + err + ').'
+           } else {
+             errorElement.innerText = 'Saved.'
+	     setName (name)
+	     if (viewConfig.bookmark.save)
+	       pushState ({ name: name,
+                            text: initText(),
+                            vars: initVars })
+             delete braceryCache[name]
+           }
+         }
+       })
     }
   }
   function setName (name) {
@@ -350,9 +366,11 @@ function initBraceryView (config) {
   
   loginLinkElement.addEventListener ('click', function (evt) { evt.preventDefault(); doLogin() })
   logoutLinkElement.addEventListener ('click', function (evt) { evt.preventDefault(); doLogout() })
-  if (user)
+  lockElement.addEventListener ('input', function (evt) { errorElement.innerText = 'Changes will not be final until saved.' })
+  if (user) {
     logoutElement.style.display = ''
-  else
+    lockPanelElement.style.display = ''
+  } else
     loginElement.style.display = ''
   
   window.handleBraceryLink = handleBraceryLink  // make this globally available

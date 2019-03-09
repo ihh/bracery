@@ -27,7 +27,7 @@ exports.handler = (event, context, callback) => {
   const vars = util.getVars (event);
 
   // Set up some returns
-  const respond = util.respond (event, callback);
+  const respond = util.respond (callback, event);
 
   // Set up Bracery
   let bracery = new Bracery(), braceryConfig;

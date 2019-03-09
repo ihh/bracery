@@ -23,6 +23,7 @@ const templateVarValMap = { 'JAVASCRIPT_FILE': config.assetPrefix + config.viewA
 			    'LOGIN_PATH_PREFIX': config.loginPrefix };
 const templateNameVar = 'SYMBOL_NAME';
 const templateDefVar = 'SYMBOL_DEFINITION';
+const templateLockedVar = 'LOCKED_BY_USER';
 const templateInitVar = 'INIT_TEXT';
 const templateVarsVar = 'VARS';
 const templateRecentVar = 'RECENT_SYMBOLS';
@@ -49,6 +50,7 @@ exports.handler = async (event, context, callback) => {
     let tmpMap = util.extend ({}, templateVarValMap);
     tmpMap[templateNameVar] = name;
     tmpMap[templateDefVar] = typeof(evalText) === 'string' ? evalText : '';
+    tmpMap[templateLockedVar] = '';
     tmpMap[templateInitVar] = typeof(initText) === 'string' ? initText : false;
     tmpMap[templateRecentVar] = '[]';
     tmpMap[templateVarsVar] = JSON.stringify (vars);
@@ -94,8 +96,11 @@ exports.handler = async (event, context, callback) => {
 	       }})
             .then ((res) => {
               const result = res.Items && res.Items.length && res.Items[0];
-              if (result && result.bracery)
+              if (result && result.bracery) {
                 tmpMap[templateDefVar] = result.bracery;
+                if (result.locked && result.owner === session.sub)
+                  tmpMap[templateLockedVar] = ' checked';
+              }
             })));
     
 
@@ -108,7 +113,7 @@ exports.handler = async (event, context, callback) => {
     
     // Do the %VAR%->val template substitutions
     if (session && session.loggedIn && session.email)
-      tmpMap[templateUserVar] = session.email.replace(/(\w)\w+([@\.])/g,(m,c,s)=>c+'**'+s);  // obfuscate email
+      tmpMap[templateUserVar] = session.email.replace(/(\w)[^@\.]+([@\.])/g,(m,c,s)=>c+'**'+s);  // obfuscate email for username in view
     tmpMap.LOG = logText;  // add log to template map
     const finalHtml = util.expandTemplate (templateHtmlBuf.toString(), tmpMap);
 
@@ -116,7 +121,7 @@ exports.handler = async (event, context, callback) => {
     respond.withCookie (finalHtml);
 
   } catch (e) {
-    console.warn(e);
+    console.warn (e);  // to CloudWatch
     respond.serverError (e);
   }
 };

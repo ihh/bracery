@@ -19,11 +19,12 @@ exports.handler = async (event, context, callback) => {
   const name = event.pathParameters.name;
   const body = util.getBody (event);
 
-  // Set up some returns
-  const respond = util.respond (callback, event);
-
   // Query the database for the given name
   try {
+    // Set up some returns
+    let session = await util.getSession (event, dynamoPromise);
+    const respond = util.respond (callback, event, session);
+
     let res = await dynamoPromise('query')
     ({ TableName: tableName,
        KeyConditionExpression: "#n = :n",
@@ -34,9 +35,12 @@ exports.handler = async (event, context, callback) => {
          ":n": name
        }});
     const result = res.Items && res.Items.length && res.Items[0];
+    const resultLocked = (result && result.locked && (!session || !session.loggedIn || (result.owner !== session.sub)));
     // Handle the HTTP methods
     switch (event.httpMethod) {
     case 'DELETE':
+      if (resultLocked)
+        return respond.forbidden();
       if (result) {
         await dynamoPromise('deleteItem')
         ({ TableName: tableName,
@@ -47,22 +51,42 @@ exports.handler = async (event, context, callback) => {
         respond.notFound();
       break;
     case 'GET':
-      if (result && result.bracery)
-        respond.ok ({ bracery: result.bracery });
-      else
+      if (result && result.bracery) {
+        let ret = { bracery: result.bracery };
+        if (result.locked) {
+          ret.locked = true;
+          ret.owned = (result.owner === session.sub);
+        }
+        respond.ok (ret);
+      } else
         respond.notFound();
       break;
     case 'PUT':
       {
+        if (resultLocked)
+          return respond.forbidden();
 	let item = { name: name,
                      bracery: body.bracery,
 		     updated: Date.now() };
+        if (session.loggedIn)
+          util.extend (item,
+                       { locked: body.locked,
+                         owner: session.sub } );
         if (result) {
-          let expr = "SET #b = :b, #u = :t";
+          let expr = "SET #b = :b, #u = :u";
           let keys = { "#b": "bracery",
                        "#u": "updated" };
           let attrs = { ":b": item.bracery,
-                        ":t": item.updated };
+                        ":u": item.updated };
+          if (session.loggedIn) {
+            expr = expr + ", #l = :l, #o = :o";
+            util.extend (keys,
+                         { "#l": "locked",
+                           "#o": "owner" } );
+            util.extend (attrs,
+                         { ":l": item.locked,
+                           ":o": item.owner });
+          }
           await dynamoPromise('updateItem')
           ({ TableName: tableName,
              Key: { name: item.name },
@@ -89,7 +113,7 @@ exports.handler = async (event, context, callback) => {
       respond.badMethod();
     }
   } catch (e) {
-    console.warn (e);
+    console.warn (e);  // to CloudWatch
     respond.serverError (e);
   }
 };

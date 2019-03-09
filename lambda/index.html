@@ -31,8 +31,12 @@
 	    <span id="urlprefix">%BASE_URL%%VIEW_PATH_PREFIX%</span>
 	    <input type="text" id="name" name="name" size="20" value="%SYMBOL_NAME%">
 	    <button id="save" type="button">Save</button>
-	    <br><p>
-	    <div id="error"></div>
+	    <div id="lockpanel" style="display: none;">
+	      <input type="checkbox" id="lock" name="lock" %LOCKED_BY_USER%>
+	      <label for="lock">Prevent other users from editing</label>
+	    </div>
+	    <p>
+	      <div id="error"></div>
 	</div>
 	<hr>
 	<div id="recent"></div>

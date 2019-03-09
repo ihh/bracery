@@ -68,55 +68,65 @@ exports.handler = async (event, context, callback) => {
     if (isRequest) {
       let { OAuthToken, OAuthTokenSecret }
           = await getOAuthRequestToken();
-      await dynamoPromise('putItem')
+      await dynamoPromise('updateItem')
       ({ TableName: twitterTableName,
-	 Item: { requestToken: OAuthToken,
-                 requestTokenSecret: OAuthTokenSecret,
-                 requestTime: Date.now(),
-                 name: name,
-                 type: 'request',
-                 subscribe: subscribe,
-               },
+         Key: { user: session.user },
+         UpdateExpression: 'SET #r = :r, #s = :s, #t = :t, #n = :n, #subscribe = :subscribe, #status = :status',
+         ExpressionAttributeNames: {
+           '#r': 'requestToken',
+           '#s': 'requestTokenSecret',
+           '#t': 'requestTime',
+           '#n': 'name',
+           '#subscribe': 'subscribe',
+           '#status': 'status',
+         },
+         ExpressionAttributeValues: {
+           ':r': OAuthToken,
+           ':s': OAuthTokenSecret,
+           ':t': Date.now(),
+           ':n': name,
+           ':subscribe': subscribe,
+           ':status': 'request',
+         }
        });
       respond.redirectPost ('https://api.twitter.com/oauth/authenticate?oauth_token=' + OAuthToken);
     } else {  // !isRequest
       let res = await dynamoPromise('query')
       ({ TableName: twitterTableName,
-         KeyConditionExpression: "#rtkey = :rtval",
+         KeyConditionExpression: "#u = :u",
          ExpressionAttributeNames:{
-           "#rtkey": "requestToken"
+           "#u": "user"
          },
          ExpressionAttributeValues: {
-           ":rtval": requestToken
+           ":u": session.user
          },
          ScanIndexForward: false,
          Limit: 1,
        });
       const result = res.Items && res.Items.length && res.Items[0];
-      if (!result)
+      if (!(result && result.requestToken === requestToken))
         return respond.notFound();
       let { accToken, accSecret }
           = await getOAuthAccessToken (requestToken,
                                        result.requestTokenSecret,
                                        requestVerifier);
-      let params = { TableName: twitterTableName,
-         Key: { 'requestToken': requestToken },
-         UpdateExpression: 'SET #a = :a, #s = :s, #d = :d, #t = :t',
+      await dynamoPromise('updateItem')
+      ({ TableName: twitterTableName,
+         Key: { user: session.user },
+         UpdateExpression: 'SET #a = :a, #s = :s, #t = :t, #status = :status',
          ExpressionAttributeNames: {
            '#a': 'accessToken',
            '#s': 'accessTokenSecret',
-           '#d': 'accessTime',
-           '#t': 'type'
+           '#t': 'accessTime',
+           '#status': 'status'
          },
          ExpressionAttributeValues: {
            ':a': accToken,
            ':s': accSecret,
-           ':d': Date.now(),
-           ':t': 'access'
+           ':t': Date.now(),
+           ':status': (subscribe ? 'subscribe' : 'unsubscribe'),
          }
-                   };
-      await dynamoPromise('updateItem')
-      (params);
+       });
       respond.redirectFound (config.baseUrl + config.viewPrefix + result.name);
     }
   } catch (e) {

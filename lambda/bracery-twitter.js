@@ -6,6 +6,7 @@
 //console.log('Loading function');
 
 const OAuth = require('oauth');
+const Twit = require('twit');
 
 const util = require('./bracery-util');
 const config = require('./bracery-config');
@@ -50,10 +51,10 @@ exports.handler = async (event, context, callback) => {
   let session = await util.getSession (event, dynamoPromise);
   const respond = util.respond (callback, event, session);
 
-  // Get symbol name & subscribe/unsubscribe state (request stage)
-  const name = event.queryStringParameters.name;
-  const subscribe = !event.queryStringParameters.unsubscribe;
-
+  // This function is called twice, once on the request stage of 3-legged auth
+  // (redirected from app to Twitter), then again on the callback (redirected from Twitter to app).
+  // To find out which stage we're at, we check to see if oauth_verifier is present as a query param.
+  
   // Get request token & verifier (callback stage)
   const requestToken = event.queryStringParameters.oauth_token;
   const requestVerifier = event.queryStringParameters.oauth_verifier;
@@ -66,68 +67,115 @@ exports.handler = async (event, context, callback) => {
       return respond.forbidden();
     
     if (isRequest) {
+      // Get symbol name & subscribe/unsubscribe state (request stage)
+      const name = event.queryStringParameters.name;
+      const subscribe = !event.queryStringParameters.unsubscribe;
+
+      if (subscribe && !name)
+        return respond.badRequest();
+    
       let { OAuthToken, OAuthTokenSecret }
           = await getOAuthRequestToken();
-      await dynamoPromise('updateItem')
+      let item = { user: session.user,
+                   requestToken: OAuthToken,
+                   requestTokenSecret: OAuthTokenSecret,
+                   requestTime: Date.now(),
+                   subscribe: subscribe,
+                   granted: false };
+      if (name)
+        item.name = name;
+      await dynamoPromise('putItem')
       ({ TableName: twitterTableName,
-         Key: { user: session.user },
-         UpdateExpression: 'SET #r = :r, #s = :s, #t = :t, #n = :n, #subscribe = :subscribe, #status = :status',
-         ExpressionAttributeNames: {
-           '#r': 'requestToken',
-           '#s': 'requestTokenSecret',
-           '#t': 'requestTime',
-           '#n': 'name',
-           '#subscribe': 'subscribe',
-           '#status': 'status',
-         },
-         ExpressionAttributeValues: {
-           ':r': OAuthToken,
-           ':s': OAuthTokenSecret,
-           ':t': Date.now(),
-           ':n': name,
-           ':subscribe': subscribe,
-           ':status': 'request',
-         }
-       });
+         Item: item });
       respond.redirectPost ('https://api.twitter.com/oauth/authenticate?oauth_token=' + OAuthToken);
     } else {  // !isRequest
       let res = await dynamoPromise('query')
       ({ TableName: twitterTableName,
-         KeyConditionExpression: "#u = :u",
+         KeyConditionExpression: "#u = :u AND #t = :t",
          ExpressionAttributeNames:{
-           "#u": "user"
+           '#u': 'user',
+           '#t': 'requestToken'
          },
          ExpressionAttributeValues: {
-           ":u": session.user
-         },
-         ScanIndexForward: false,
-         Limit: 1,
+           ':u': session.user,
+           ':t': requestToken
+         }
        });
-      const result = res.Items && res.Items.length && res.Items[0];
-      if (!(result && result.requestToken === requestToken))
+      const queryResult = res.Items && res.Items.length && res.Items[0];
+      if (!(queryResult && queryResult.requestToken === requestToken))
         return respond.notFound();
       let { accToken, accSecret }
           = await getOAuthAccessToken (requestToken,
-                                       result.requestTokenSecret,
+                                       queryResult.requestTokenSecret,
                                        requestVerifier);
-      await dynamoPromise('updateItem')
+      // Set up params for update
+      let params = { TableName: twitterTableName,
+                     Key: { user: session.user,
+                            requestToken: requestToken },
+                     UpdateExpression: 'SET #a = :a, #s = :s, #t = :t, #g = :g',
+                     ExpressionAttributeNames: {
+                       '#a': 'accessToken',
+                       '#s': 'accessTokenSecret',
+                       '#t': 'accessTime',
+                       '#g': 'granted'
+                     },
+                     ExpressionAttributeValues: {
+                       ':a': accToken,
+                       ':s': accSecret,
+                       ':t': Date.now(),
+                       ':g': true
+                     }
+                   };
+      // Find out who the user is
+      let twit = new Twit({
+        consumer_key: TWITTER_CONSUMER_KEY,
+        consumer_secret: TWITTER_CONSUMER_SECRET,
+        access_token: accToken,
+        access_token_secret: accSecret
+      });
+      let credResult = await twit.get('account/verify_credentials',
+                                      { skip_status: true });
+      let twitterIdStr;
+      if (credResult.resp.statusCode == 200 && credResult.data) {
+        params.UpdateExpression += ', #n = :n, #id = :id';
+        util.extend (params.ExpressionAttributeNames,
+                     { '#n': 'twitterScreenName',
+                       '#id': 'twitterIdStr' });
+        util.extend (params.ExpressionAttributeValues,
+                     { ':n': credResult.data.screen_name,
+                       ':id': (twitterIdStr = credResult.data.id_str) });
+      }
+      // Delete all earlier entries in this table associated with this user & symbol name
+      // (or, if unsubscribing & no symbol name was specified, delete all entries associated with this twitter ID)
+      // Also delete old ungranted requests; and if unsubscribing, delete this entry too
+      let allRes = await dynamoPromise('query')
       ({ TableName: twitterTableName,
-         Key: { user: session.user },
-         UpdateExpression: 'SET #a = :a, #s = :s, #t = :t, #status = :status',
-         ExpressionAttributeNames: {
-           '#a': 'accessToken',
-           '#s': 'accessTokenSecret',
-           '#t': 'accessTime',
-           '#status': 'status'
+         KeyConditionExpression: "#u = :u",
+         ExpressionAttributeNames:{
+           '#u': 'user'
          },
          ExpressionAttributeValues: {
-           ':a': accToken,
-           ':s': accSecret,
-           ':t': Date.now(),
-           ':status': (subscribe ? 'subscribe' : 'unsubscribe'),
+           ':u': session.user
          }
        });
-      respond.redirectFound (config.baseUrl + config.viewPrefix + result.name);
+      if (allRes && allRes.Items) {
+        const itemsToDelete = allRes.Items.filter ((item) => {
+          return ((item.requestTime < queryResult.requestTime
+                   || (item.requestTime === queryResult.requestTime && !queryResult.subscribe))
+                  && (!item.granted
+                      || (queryResult.name
+                          ? (item.name === queryResult.name)
+                          : (item.twitterIdStr === twitterIdStr))));
+        });
+        await Promise.all
+        (itemsToDelete.map ((item) => dynamoPromise('deleteItem')
+                            ({ TableName: twitterTableName,
+                               Key: { user: session.user,
+                                      requestToken: item.requestToken } })));
+      }
+      if (queryResult.subscribe)
+        await dynamoPromise('updateItem') (params);
+      respond.redirectFound (config.baseUrl + config.viewPrefix + (queryResult.name || ''));
     }
   } catch (e) {
     console.warn (e);  // to CloudWatch

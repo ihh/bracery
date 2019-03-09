@@ -10,7 +10,7 @@ bracery-store.zip: bracery-store.js $(COMMON)
 	rm index.js
 
 STAGING_DIR = stage
-TWITTER_DEPS = oauth
+TWITTER_DEPS = oauth twit
 bracery-twitter.zip: bracery-twitter.js $(COMMON)
 	(test -e $(STAGING_DIR) && rm -rf $(STAGING_DIR)) || true
 	mkdir -p $(STAGING_DIR)/node_modules

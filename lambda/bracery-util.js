@@ -180,6 +180,10 @@ function redirectPost (callback) {
   });
 }
 
+function badRequest (callback) {
+  return (msg) => callback (null, { statusCode: '400', body: msg || "Bad request" });
+}
+
 function forbidden (callback) {
   return (msg) => callback (null, { statusCode: '403', body: msg || "Forbidden" });
 }
@@ -189,7 +193,7 @@ function notFound (callback) {
 }
 
 function badMethod (callback, event) {
-  return () => done ({ statusCode: '405', body: `Unsupported method "${event.httpMethod}"` });
+  return () => callback ({ statusCode: '405', body: `Unsupported method "${event.httpMethod}"` });
 }
 
 function serverError (callback) {
@@ -203,6 +207,7 @@ function respond (callback, event, session) {
     redirectFound: redirectFound (callback),
     redirectPost: redirectPost (callback),
     redirectWithCookie: redirectWithCookie (callback, session),
+    badRequest: badRequest (callback),
     forbidden: forbidden (callback),
     notFound: notFound (callback),
     badMethod: badMethod (callback, event),

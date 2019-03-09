@@ -185,7 +185,7 @@ function forbidden (callback) {
 }
 
 function notFound (callback) {
-  return () => callback (null, { statusCode: '404', body: `Name not found "${name}"` });
+  return (msg) => callback (null, { statusCode: '404', body: msg || "Not found" });
 }
 
 function badMethod (callback, event) {

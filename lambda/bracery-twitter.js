@@ -7,9 +7,11 @@
 
 const OAuth = require('oauth');
 
-// const util = require('./bracery-util');
+const util = require('./bracery-util');
 const config = require('./bracery-config');
 const twitterTableName = config.twitterTableName;
+
+const dynamoPromise = util.dynamoPromise();
 
 const TWITTER_CONSUMER_KEY = process.env.TWITTER_CONSUMER_KEY;  // must be defined from AWS Lambda
 const TWITTER_CONSUMER_SECRET = process.env.TWITTER_CONSUMER_SECRET;  // must be defined from AWS Lambda
@@ -24,126 +26,102 @@ const oauth = new OAuth.OAuth(
   'HMAC-SHA1'
 );
 
-const doc = require('dynamodb-doc');
-const dynamo = new doc.DynamoDB();
+const getOAuthRequestToken = () => new Promise
+((resolve) => oauth.getOAuthRequestToken
+ ((err, OAuthToken, OAuthTokenSecret) => {
+   if (err)
+     throw new Error (err);
+   resolve ({ OAuthToken, OAuthTokenSecret });
+ }));
+ 
+const getOAuthAccessToken = (reqToken, reqSecret, reqVerifier) => new Promise
+((resolve) => oauth.getOAuthAccessToken
+ (reqToken, reqSecret, reqVerifier,
+  (err, accToken, accSecret) => {
+    if (err)
+      throw new Error (err);
+    resolve ({ accToken, accSecret });
+  }));
 
 // The Lambda function
-exports.handler = (event, context, callback) => {
+exports.handler = async (event, context, callback) => {
   //console.log('Received event:', JSON.stringify(event, null, 2));
 
-  // Set up some returns
-  const done = (err, res) => callback (null, {
-    statusCode: err ? (err.statusCode || '400') : '200',
-    body: err ? err.message : JSON.stringify(res),
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+  let session = await util.getSession (event, dynamoPromise);
+  const respond = util.respond (callback, event, session);
 
-  const redirectFound = (url) => callback (null, {
-    statusCode: '302',
-    headers: {
-      'Location': url,
-    },
-  });
-
-  const redirectPost = (url) => callback (null, {
-    statusCode: '303',
-    headers: {
-      'Location': url,
-    },
-  });
-  
-  const serverError = (msg) => done ({ statusCode: '500', message: { stack: new Error().stack, msg: msg || "Server error" } });
-
-  // Get symbol name (request stage)
+  // Get symbol name & subscribe/unsubscribe state (request stage)
   const name = event.queryStringParameters.name;
+  const subscribe = !event.queryStringParameters.unsubscribe;
 
   // Get request token & verifier (callback stage)
   const requestToken = event.queryStringParameters.oauth_token;
   const requestVerifier = event.queryStringParameters.oauth_verifier;
 
-  // What stage is this?
+  // Which stage is this, request or callback?
   const isRequest = !requestVerifier;
-  if (isRequest) {
-    try {
+  try {
 
-      oauth.getOAuthRequestToken ((err, OAuthToken, OAuthTokenSecret, results) => {
-        
-        if (err)
-          return serverError (err);
-
-        dynamo.putItem ({ TableName: twitterTableName,
-			  Item: { requestToken: OAuthToken,
-                                  requestTokenSecret: OAuthTokenSecret,
-                                  requestTime: Date.now(),
-                                  name: name,
-                                  type: 'request',
-                                },
-		        }, (err, result) => {
-                          if (err)
-                            return serverError (err);
-                          redirectPost ('https://api.twitter.com/oauth/authenticate?oauth_token=' + OAuthToken);
-                        });
-      });
-    } catch (e) {
-      return serverError (e);
+    if (!(session && session.loggedIn))
+      return respond.forbidden();
+    
+    if (isRequest) {
+      let { OAuthToken, OAuthTokenSecret }
+          = await getOAuthRequestToken();
+      await dynamoPromise('putItem')
+      ({ TableName: twitterTableName,
+	 Item: { requestToken: OAuthToken,
+                 requestTokenSecret: OAuthTokenSecret,
+                 requestTime: Date.now(),
+                 name: name,
+                 type: 'request',
+                 subscribe: subscribe,
+               },
+       });
+      respond.redirectPost ('https://api.twitter.com/oauth/authenticate?oauth_token=' + OAuthToken);
+    } else {  // !isRequest
+      let res = await dynamoPromise('query')
+      ({ TableName: twitterTableName,
+         KeyConditionExpression: "#rtkey = :rtval",
+         ExpressionAttributeNames:{
+           "#rtkey": "requestToken"
+         },
+         ExpressionAttributeValues: {
+           ":rtval": requestToken
+         },
+         ScanIndexForward: false,
+         Limit: 1,
+       });
+      const result = res.Items && res.Items.length && res.Items[0];
+      if (!result)
+        return respond.notFound();
+      let { oAuthAccessToken, oAuthAccessTokenSecret }
+          = await getOAuthAccessToken (requestToken,
+                                       result.requestTokenSecret,
+                                       requestVerifier);
+      await dynamoPromise('updateItem')
+      ({ TableName: twitterTableName,
+         Key: { requestToken: requestToken },
+         UpdateExpression: 'SET #a = :a, #s = :s, #d = :d, #t = :t',
+         ExpressionAttributeNames: {
+           '#a': 'accessToken',
+           '#s': 'accessTokenSecret',
+           '#d': 'accessTime',
+           '#t': 'type'
+         },
+         ExpressionAttributeValues: {
+           ':a': oAuthAccessToken,
+           ':s': oAuthAccessTokenSecret,
+           ':d': Date.now(),
+           ':t': 'access'
+         }
+       });
+      respond.redirectFound (config.baseUrl + config.viewPrefix + result.name);
     }
-  } else {  // !isRequest
-      try {
-        dynamo.query
-        ({ TableName: twitterTableName,
-           KeyConditionExpression: "#rtkey = :rtval",
-           ExpressionAttributeNames:{
-             "#rtkey": "requestToken"
-           },
-           ExpressionAttributeValues: {
-             ":rtval": requestToken
-           },
-           ScanIndexForward: false,
-           Limit: 1,
-         }, (err, res) => {
-           if (err)
-             return serverError (err);
-           const result = res.Items && res.Items.length && res.Items[0];
-           if (!result)
-             return serverError (`Name ${name} not found`);
-           oauth.getOAuthAccessToken
-           (requestToken,
-            result.requestTokenSecret,
-            requestVerifier,
-            (err, oAuthAccessToken, oAuthAccessTokenSecret, results) => {
-
-              if (err)
-                return serverError (err);
-
-              dynamo.updateItem ({ TableName: twitterTableName,
-                                   Key: { requestToken: requestToken },
-                                   UpdateExpression: 'SET #a = :a, #s = :s, #d = :d, #t = :t',
-                                   ExpressionAttributeNames: {
-                                     '#a': 'accessToken',
-                                     '#s': 'accessTokenSecret',
-                                     '#d': 'accessTime',
-                                     '#t': 'type'
-                                   },
-                                   ExpressionAttributeValues: {
-                                     ':a': oAuthAccessToken,
-                                     ':s': oAuthAccessTokenSecret,
-                                     ':d': Date.now(),
-                                     ':t': 'access'
-                                   }
-                                 },
-                                 (err, updateResult) => {
-                                   if (err)
-                                     return serverError (err);
-                                   redirectFound (config.baseUrl + config.viewPrefix + result.name);
-                                 });
-            });
-         });
-      } catch (e) {
-        return serverError (e);
-      }
+  } catch (e) {
+    console.warn (e);  // to CloudWatch
+    return respond.serverError (e);
   }
-
+  
   return;
 };

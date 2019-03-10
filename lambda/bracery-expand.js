@@ -1,6 +1,4 @@
-/* This is a small AWS lambda function for storing/retrieving Bracery in DynamoDB.
-   It implements a super-simple RESTful-ish store, mapping (symbol) names to Bracery strings.
-   Each name's definition is (optionally) protected by a password.
+/* This is a small AWS lambda function for expanding Bracery in DynamoDB.
 */
 
 //console.log('Loading function');
@@ -8,8 +6,8 @@
 // const config = require('./bracery-config');
 const util = require('./bracery-util');
 
-global.nlp = require('./expand-deps/compromise.es6.min');  // hack/workaround so Bracery can see nlp. Not very satisfactory.
-const Bracery = require('./expand-deps/bracery').Bracery;
+global.nlp = require('./compromise.es6.min');  // hack/workaround so Bracery can see nlp. Not very satisfactory.
+const Bracery = require('./bracery').Bracery;
 
 // The Lambda function
 exports.handler = async (event, context, callback) => {
@@ -26,7 +24,7 @@ exports.handler = async (event, context, callback) => {
 
   // Set up Bracery
   let bracery = new Bracery();
-  let braceryConfig = util.braceryExpandConfig (bracery, vars);
+  let braceryConfig = util.braceryExpandConfig (bracery, vars, util.dynamoPromise());
 
   // Call expandSymbol
   let expansion = await braceryConfig.expandFull ({ symbolName: name });

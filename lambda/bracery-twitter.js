@@ -1,6 +1,4 @@
-/* This is a small AWS lambda function for storing/retrieving Bracery in DynamoDB.
-   It implements a super-simple RESTful-ish store, mapping (symbol) names to Bracery strings.
-   Each name's definition is (optionally) protected by a password.
+/* This is a small AWS lambda function for authorizing through Twitter 3-legged OAuth.
 */
 
 //console.log('Loading function');

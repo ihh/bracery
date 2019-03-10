@@ -1,7 +1,7 @@
 
 ZIP = zip
 
-all: bracery-store.zip bracery-view.zip bracery-asset.zip bracery-expand.zip bracery-login.zip bracery-twitter.zip
+all: bracery-store.zip bracery-view.zip bracery-asset.zip bracery-expand.zip bracery-login.zip bracery-twitter.zip bracery-bot.zip
 
 COMMON = bracery-config.js bracery-web.js bracery-util.js
 bracery-store.zip: bracery-store.js $(COMMON)
@@ -10,13 +10,14 @@ bracery-store.zip: bracery-store.js $(COMMON)
 	rm index.js
 
 STAGING_DIR = stage
-TWITTER_DEPS = oauth twit
+OAUTH_DEPS = oauth
+TWITTER_DEPS = twit
 bracery-twitter.zip: bracery-twitter.js $(COMMON)
 	(test -e $(STAGING_DIR) && rm -rf $(STAGING_DIR)) || true
 	mkdir -p $(STAGING_DIR)/node_modules
 	cp $^ $(STAGING_DIR)
 	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
-	cd $(STAGING_DIR); npm install $(TWITTER_DEPS)
+	cd $(STAGING_DIR); npm install $(OAUTH_DEPS) $(TWITTER_DEPS)
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
 bracery-login.zip: bracery-login.js $(COMMON)
@@ -53,25 +54,28 @@ asset/bracery-web.js: asset/bracery-web-shim.js $(COMMON)
 	browserify $< >$@
 
 MARKED_DIR = ../node_modules/marked
-asset/%.js: $(MARKED_DIR)/%.js expand-deps
+asset/%.js: $(MARKED_DIR)/%.js
 	cp $< $@
 
 BRACERY_SOURCES = bracery.js template.js parsetree.js chomsky.js validator.js rhs.js
 COMPROMISE = compromise.es6.min.js
-bracery-expand.zip: bracery-expand.js $(COMMON) expand-deps/$(COMPROMISE) $(addprefix expand-deps/,$(BRACERY_SOURCES))
-	cp $< index.js
-	$(ZIP) $@ index.js $(COMMON) expand-deps/*.js
-	rm index.js
-
-expand-deps/node_modules:
-	cd expand-deps; npm install
-
-expand-deps/%.js: ../src/%.js expand-deps
-	cp $< $@
-
 COMPROMISE_DIR = ../node_modules/compromise/builds
-expand-deps/%.js: $(COMPROMISE_DIR)/%.js expand-deps
-	cp $< $@
+BRACERY_SOURCE_DIR = ../src
+bracery-expand.zip: bracery-expand.js $(COMMON) $(COMPROMISE_DIR)/$(COMPROMISE) $(addprefix $(BRACERY_SOURCE_DIR)/,$(BRACERY_SOURCES))
+	(test -e $(STAGING_DIR) && rm -rf $(STAGING_DIR)) || true
+	mkdir -p $(STAGING_DIR)/node_modules
+	cp $^ $(STAGING_DIR)
+	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
+	cp $(COMPROMISE_DIR)/$(COMPROMISE) $(STAGING_DIR)
+	cp $(addprefix $(BRACERY_SOURCE_DIR)/,$(BRACERY_SOURCES)) $(STAGING_DIR)
+	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
-expand-deps:
-	mkdir $@
+bracery-bot.zip: bracery-bot.js $(COMMON) $(COMPROMISE_DIR)/$(COMPROMISE) $(addprefix $(BRACERY_SOURCE_DIR)/,$(BRACERY_SOURCES))
+	(test -e $(STAGING_DIR) && rm -rf $(STAGING_DIR)) || true
+	mkdir -p $(STAGING_DIR)/node_modules
+	cp $^ $(STAGING_DIR)
+	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
+	cp $(COMPROMISE_DIR)/$(COMPROMISE) $(STAGING_DIR)
+	cp $(addprefix $(BRACERY_SOURCE_DIR)/,$(BRACERY_SOURCES)) $(STAGING_DIR)
+	cd $(STAGING_DIR); npm install $(TWITTER_DEPS)
+	cd $(STAGING_DIR); $(ZIP) -r ../$@ *

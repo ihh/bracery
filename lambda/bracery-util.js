@@ -215,8 +215,7 @@ function respond (callback, event, session) {
   };
 }
 
-function braceryExpandConfig (bracery, vars) {
-  const dp = dynamoPromise();
+function braceryExpandConfig (bracery, vars, dp) {
   let braceryConfig = { vars };
   
   // Create a getSymbol function that queries the database for the given name

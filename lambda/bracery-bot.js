@@ -11,6 +11,8 @@ const Twit = require('twit');
 const TWITTER_CONSUMER_KEY = process.env.TWITTER_CONSUMER_KEY;  // must be defined from AWS Lambda
 const TWITTER_CONSUMER_SECRET = process.env.TWITTER_CONSUMER_SECRET;  // must be defined from AWS Lambda
 
+const millisecsBetweenTweets = 15*60*1000 / 300;   // Twitter allows 300 tweets per 15-minute window
+
 const dynamoPromise = util.dynamoPromise();
 
 global.nlp = require('./compromise.es6.min');  // hack/workaround so Bracery can see nlp. Not very satisfactory.
@@ -31,8 +33,19 @@ exports.handler = async (event, context, callback) => {
      ExpressionAttributeValues: { ':g': true },
    });
 
-  if (scanResult)
-    await Promise.all (scanResult.Items.map (async (item) => {
+  if (scanResult) {
+    // One tweet per screen name
+    let byScreenName = {};
+    scanResult.Items.forEach ((item) => {
+      const sn = item.twitterScreenName;
+      byScreenName[sn] = byScreenName[sn] || [];
+      byScreenName[sn].push (item);
+    });
+    const screenNames = Object.keys (byScreenName);
+    for (let i = 0; i < screenNames.length; ++i) {
+      const items = byScreenName[screenNames[i]];
+      const item = items[Math.floor (Math.random() * items.length)];
+      let rateLimitPromise = util.promiseDelay (millisecsBetweenTweets);
       let twit = new Twit({
         consumer_key: TWITTER_CONSUMER_KEY,
         consumer_secret: TWITTER_CONSUMER_SECRET,
@@ -43,6 +56,8 @@ exports.handler = async (event, context, callback) => {
       let expansion = await braceryConfig.expandFull ({ symbolName: item.name });
       console.warn('Tweeting as @' + item.twitterScreenName + ': ' + expansion.text);
       await twit.post('statuses/update', { status: expansion.text });
-    }));
+      await rateLimitPromise;
+    }
+  }
 
 };

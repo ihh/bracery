@@ -8,6 +8,15 @@ const escapeHTML = braceryWeb.escapeHTML;
 
 const config = require ('./bracery-config');
 
+function promiseDelay (delay) {
+  return new Promise ((resolve) => setTimeout (resolve, delay));
+}
+
+function dynamoPromise() {
+  let dynamo = new doc.DynamoDB();
+  return (method) => promisify (dynamo[method].bind (dynamo));
+}
+
 function getBody (event) {
   return (event.body
           ? (typeof(event.body) === 'string'
@@ -40,11 +49,6 @@ function expandTemplate (template, tmpMap) {
                        
 function generateCookie() {
   return Date.now().toString(16) + Math.random().toString().substr(2)
-}
-
-function dynamoPromise() {
-  let dynamo = new doc.DynamoDB();
-  return (method) => promisify (dynamo[method].bind (dynamo));
 }
 
 async function getSession (event, dynamoPromise) {
@@ -262,11 +266,12 @@ module.exports = {
   extend,
   escapeHTML,
   promisify,
+  promiseDelay,
+  dynamoPromise,
   getBody,
   getVars,
   expandTemplate,
   generateCookie,
-  dynamoPromise,
   getSession,
   getParams,
   httpsRequest,

@@ -22,7 +22,7 @@ module.exports = {
   
   // AWS Cognito
   cognitoDomain: 'auth.bracery.org',
-
+  
   // Filenames and virtual paths
   templateHtmlFilename: 'index.html',
   viewAssetStub: 'bracery-view',

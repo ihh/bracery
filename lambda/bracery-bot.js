@@ -52,8 +52,7 @@ exports.handler = async (event, context, callback) => {
         access_token: item.accessToken,
         access_token_secret: item.accessTokenSecret
       });
-      if (item.vars)
-        vars = JSON.parse (item.vars);
+      vars = item.vars ? JSON.parse (item.vars) : {};
       let expansion = await braceryConfig.expandFull ({ symbolName: item.name });
       console.warn('Tweeting as @' + item.twitterScreenName + ': ' + expansion.text);
       await twit.post('statuses/update', { status: expansion.text });
@@ -63,7 +62,7 @@ exports.handler = async (event, context, callback) => {
                 requestToken: item.requestToken },
          FilterExpression: 'SET #v = :v',
          ExpressionAttributeNames: { '#v': 'vars' },
-         ExpressionAttributeValues: { ':v': expansion.vars },
+         ExpressionAttributeValues: { ':v': JSON.stringify (expansion.vars) },
        });
       await rateLimitPromise;
     }

@@ -38,12 +38,14 @@
 	    <p>
 	      <div id="error"></div>
 	</div>
+	<div id="bots"></div>
+	<div id="auto"></div>
 	<hr>
 	<div id="recent"></div>
     </div>
     <script src="%JAVASCRIPT_FILE%"></script>
     <script>
-      initBraceryView ({ name: "%SYMBOL_NAME%", user: %QUOTED_USER%, init: %QUOTED_INIT_TEXT%, vars: %VARS%, exp: %EXPANSION%, recent: %RECENT_SYMBOLS%, store: "%STORE_PATH_PREFIX%", view: "%VIEW_PATH_PREFIX%", expand: "%EXPAND_PATH_PREFIX%", login: "%LOGIN_PATH_PREFIX%" });
+      initBraceryView ({ name: "%SYMBOL_NAME%", user: %JSON_USER%, init: %JSON_INIT_TEXT%, vars: %JSON_VARS%, exp: %EXPANSION%, bots: %JSON_BOTS%, recent: %JSON_RECENT_SYMBOLS%, store: "%STORE_PATH_PREFIX%", view: "%VIEW_PATH_PREFIX%", expand: "%EXPAND_PATH_PREFIX%", login: "%LOGIN_PATH_PREFIX%", twitter: "%TWITTER_PATH_PREFIX%" });
     </script>
   </body>
 </html>

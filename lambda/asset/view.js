@@ -19,11 +19,12 @@ function initBraceryView (config) {
   function initText() { return config.init }  // make this dynamic, as initText is reset when user starts typing
   var initVars = config.vars
   var recent = config.recent
+  var bots = config.bots
   var storePrefix = config.store
   var viewPrefix = config.view
   var expandPrefix = config.expand
   var loginPrefix = config.login
-  var logoutPrefix = config.logout
+  var twitterPrefix = config.twitter
   var user = config.user
 
   var urlParams = getUrlParams()
@@ -64,12 +65,34 @@ function initBraceryView (config) {
   var loginLinkElement = document.getElementById('loginlink')
   var logoutLinkElement = document.getElementById('logoutlink')
 
+  var autoElement = document.getElementById('auto')
+  var botsElement = document.getElementById('bots')
+
   var baseUrl = window.location.origin
   var baseViewUrl = baseUrl + viewPrefix
   urlElement.innerText = baseViewUrl
   nameElement.value = name()
   evalElement.placeholder = 'Enter text, e.g. [something|other]'
 
+  if (user) {
+    botsElement.innerHTML = '<hr>'
+      + (Object.keys(bots).length
+         ? ('Current auto-tweets:<ul>'
+            + Object.keys (bots).map (function (botName) {
+              return '<li>'
+                + 'As @<a href="https://twitter.com/' + botName + '">' + botName + '</a>'
+                + ' (' + makeExternalLink ('revoke all', twitterPrefix, { unsubscribe: true }) + ')'
+                + '<ul>'
+                + bots[botName].map (function (sym) {
+                  return '<li>' + makeExternalLink (sym, viewPrefix + sym)
+                    + ' (' + makeExternalLink ('revoke', twitterPrefix, { name: sym, unsubscribe: true }) + ')'
+                }).join('')
+                + '</ul></li>'
+            }).join('') + '</ul>')
+         : '')
+    setupAutoLink()
+  }
+  
   if (recent && recent.length)
     recentElement.innerHTML = 'Recently updated: ' + recent
     .map (function (recentName) { return '<a href="' + baseViewUrl + recentName + '">' + recentName + '</a>' })
@@ -102,6 +125,19 @@ function initBraceryView (config) {
   }
   function render (expansion) {
     return show() (expansion)
+  }
+  
+  function setupAutoLink() {
+    autoElement.innerHTML = makeExternalLink ('Add this page', twitterPrefix, { name: name() })
+      + ' to auto-tweets'
+  }
+  function makeExternalLink (text, link, params) {
+    var url = link
+    if (params && Object.keys(params).length)
+      url += '?' + Object.keys(params).map (function (p) {
+        return p + '=' + encodeURIComponent (params[p])
+      }).join('&')
+    return '<a href="' + url + '">' + text + '</a>'
   }
 
   function doLogin() {
@@ -263,6 +299,7 @@ function initBraceryView (config) {
     titleElement.innerText = name
     document.title = name
     config.name = name
+    setupAutoLink()
   }
 
   var delayedUpdateTimer = null, updateDelay = 400

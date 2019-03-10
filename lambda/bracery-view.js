@@ -20,7 +20,8 @@ const templateVarValMap = { 'JAVASCRIPT_FILE': config.assetPrefix + config.viewA
                             'STORE_PATH_PREFIX': config.storePrefix,
                             'VIEW_PATH_PREFIX': config.viewPrefix,
                             'EXPAND_PATH_PREFIX': config.expandPrefix,
-			    'LOGIN_PATH_PREFIX': config.loginPrefix };
+			    'LOGIN_PATH_PREFIX': config.loginPrefix,
+                            'TWITTER_PATH_PREFIX': config.twitterPrefix };
 const templateNameVar = 'SYMBOL_NAME';
 const templateDefVar = 'SYMBOL_DEFINITION';
 const templateLockedVar = 'LOCKED_BY_USER';
@@ -29,6 +30,7 @@ const templateVarsVar = 'VARS';
 const templateRecentVar = 'RECENT_SYMBOLS';
 const templateUserVar = 'USER';
 const templateExpVar = 'EXPANSION';
+const templateBotsVar = 'BOTS';
 
 // The Lambda function
 exports.handler = async (event, context, callback) => {
@@ -48,12 +50,14 @@ exports.handler = async (event, context, callback) => {
 
     // Add the name & a dummy empty definition to the template var->val map
     let tmpMap = util.extend ({}, templateVarValMap);
+    let bots = {};
     tmpMap[templateNameVar] = name;
     tmpMap[templateDefVar] = typeof(evalText) === 'string' ? evalText : '';
     tmpMap[templateLockedVar] = '';
     tmpMap[templateInitVar] = typeof(initText) === 'string' ? initText : false;
-    tmpMap[templateRecentVar] = '[]';
-    tmpMap[templateVarsVar] = JSON.stringify (vars);
+    tmpMap[templateRecentVar] = [];
+    tmpMap[templateBotsVar] = bots;
+    tmpMap[templateVarsVar] = vars;
     tmpMap[templateUserVar] = null;
     tmpMap[templateExpVar] = expansion;
 
@@ -78,7 +82,7 @@ exports.handler = async (event, context, callback) => {
        }})
       .then ((res) => {
         if (res.Items)
-          tmpMap[templateRecentVar] = JSON.stringify (res.Items.map ((item) => item.name));
+          tmpMap[templateRecentVar] = res.Items.map ((item) => item.name);
       });
 
     // Query the database for the given symbol definition, or use evalText if supplied
@@ -102,14 +106,37 @@ exports.handler = async (event, context, callback) => {
                   tmpMap[templateLockedVar] = ' checked';
               }
             })));
-    
 
-    // Read the file
+    // Query the database for any bots we're operating
+    let botPromise =
+        (session && session.loggedIn
+         ? (dynamoPromise('query')
+            ({ TableName: config.twitterTableName,
+               KeyConditionExpression: "#u = :u",
+               ExpressionAttributeNames: {
+                 '#u': 'user'
+               },
+               ExpressionAttributeValues: {
+                 ':u': session.user
+               }})
+            .then ((res) => {
+              if (res && res.Items)
+                res.Items.forEach ((item) => {
+                  const tweep = item.twitterScreenName;
+                  if (!bots[tweep])
+                    bots[tweep] = [];
+                  bots[tweep].push (item.name);
+                });
+            }))
+         : Promise.resolve());
+    
+    // Read the template HTML file
     const templateHtmlBuf = await util.promisify (fs.readFile) (config.templateHtmlFilename, config.templateHtmlFileEncoding);
 
     // Wait for promises
     await newsPromise;
     await symbolPromise;
+    await botPromise;
     
     // Do the %VAR%->val template substitutions
     if (session && session.loggedIn && session.email)

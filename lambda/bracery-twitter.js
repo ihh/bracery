@@ -92,7 +92,7 @@ exports.handler = async (event, context, callback) => {
       let res = await dynamoPromise('query')
       ({ TableName: twitterTableName,
          KeyConditionExpression: "#u = :u AND #t = :t",
-         ExpressionAttributeNames:{
+         ExpressionAttributeNames: {
            '#u': 'user',
            '#t': 'requestToken'
          },
@@ -151,7 +151,7 @@ exports.handler = async (event, context, callback) => {
       let allRes = await dynamoPromise('query')
       ({ TableName: twitterTableName,
          KeyConditionExpression: "#u = :u",
-         ExpressionAttributeNames:{
+         ExpressionAttributeNames: {
            '#u': 'user'
          },
          ExpressionAttributeValues: {

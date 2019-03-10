@@ -5,19 +5,14 @@
 
 //console.log('Loading function');
 
-const config = require('./bracery-config');
-const tableName = config.tableName;
-
+// const config = require('./bracery-config');
 const util = require('./bracery-util');
 
-const doc = require('dynamodb-doc');
-const dynamo = new doc.DynamoDB();
-
-global.nlp = require('./expand-deps/compromise.es6.min');  // hack/workaround
+global.nlp = require('./expand-deps/compromise.es6.min');  // hack/workaround so Bracery can see nlp. Not very satisfactory.
 const Bracery = require('./expand-deps/bracery').Bracery;
 
 // The Lambda function
-exports.handler = (event, context, callback) => {
+exports.handler = async (event, context, callback) => {
   //console.log('Received event:', JSON.stringify(event, null, 2));
 
   // Get symbol name
@@ -30,51 +25,12 @@ exports.handler = (event, context, callback) => {
   const respond = util.respond (callback, event);
 
   // Set up Bracery
-  let bracery = new Bracery(), braceryConfig;
+  let bracery = new Bracery();
+  let braceryConfig = util.braceryExpandConfig (bracery, vars);
 
-  // Create a getSymbol function that queries the database for the given name
-  const getSymbol = (config) => {
-    const symbolName = config.symbolName || config.node.name;
-    return new Promise ((resolve, reject) => {
-      dynamo.query({ TableName: tableName,
-                     KeyConditionExpression: "#nkey = :nval",
-                     ExpressionAttributeNames:{
-                       "#nkey": "name"
-                     },
-                     ExpressionAttributeValues: {
-                       ":nval": symbolName.toLowerCase()
-                     }}, (err, res) => {
-                       if (!err) {
-                         const result = res.Items && res.Items.length && res.Items[0];
-                         if (result && result.bracery)
-                           resolve (result.bracery);
-                       }
-                       resolve ('');
-                     });
-    });
-  };
+  // Call expandSymbol
+  let expansion = await braceryConfig.expandFull ({ symbolName: name });
 
-  // Create an expandSymbol function that queries the database for the given name, and expands it as Bracery
-  const expandSymbolFull = (config) =>
-        new Promise ((resolve, reject) =>
-                     getSymbol (config)
-                     .then ((symbolDefinition) =>
-                            bracery.expand (symbolDefinition,
-                                            util.extend ({ callback: resolve },
-                                                         braceryConfig,
-                                                         { vars: vars }))));
-
-  const expandSymbol = (config) => expandSymbolFull (config).then ((expansion) => expansion.tree);
-
-  // create a dummy setSymbol function
-  const setSymbol = () => [];
-
-  // Pass the symbol accessors into Bracery's config
-  braceryConfig = { expand: expandSymbol,
-                    get: getSymbol,
-                    set: setSymbol };
-  bracery = new Bracery (null, );
-
-  // Call expandSymbol and return
-  expandSymbolFull ({ symbolName: name }).then (respond.ok);
+  // And return
+  respond.ok (expansion);
 };

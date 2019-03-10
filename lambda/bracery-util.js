@@ -34,7 +34,7 @@ function expandTemplate (template, tmpMap) {
     return text
       .replace (new RegExp ('%' + templateVar + '%', 'g'), templateVal)
       .replace (new RegExp ('%ESCAPED_' + templateVar + '%', 'g'), escapeHTML (templateVal))
-      .replace (new RegExp ('%QUOTED_' + templateVar + '%', 'g'), JSON.stringify (templateVal));
+      .replace (new RegExp ('%JSON_' + templateVar + '%', 'g'), JSON.stringify (templateVal));
   }, template);
 }
                        
@@ -215,6 +215,50 @@ function respond (callback, event, session) {
   };
 }
 
+function braceryExpandConfig (bracery, vars) {
+  const dp = dynamoPromise();
+  let braceryConfig = { vars };
+  
+  // Create a getSymbol function that queries the database for the given name
+  const getSymbol = async (getConfig) => {
+    const symbolName = getConfig.symbolName || getConfig.node.name;
+    const res = await dp('query')
+    ({ TableName: config.tableName,
+       KeyConditionExpression: "#nkey = :nval",
+       ExpressionAttributeNames:{
+         "#nkey": "name"
+       },
+       ExpressionAttributeValues: {
+         ":nval": symbolName.toLowerCase()
+       }});
+    const result = res.Items && res.Items.length && res.Items[0];
+    return (result && result.bracery) || '';
+  };
+
+  // Create an expandSymbol function that queries the database for the given name, and expands it as Bracery
+  const expandSymbolFull = async (expandConfig) => {
+    const symbolDefinition = await getSymbol (expandConfig);
+    return await bracery.expand (symbolDefinition, braceryConfig);
+  };
+
+  const expandSymbol = async (config) => {
+    const expansion = await expandSymbolFull (config);
+    return expansion.tree;
+  };
+
+  // create a dummy setSymbol function
+  const setSymbol = () => [];
+
+  // Return
+  extend (braceryConfig,
+          { expandFull: expandSymbolFull,
+            expand: expandSymbol,
+            get: getSymbol,
+            set: setSymbol });
+
+  return braceryConfig;
+}
+
 module.exports = {
   extend,
   escapeHTML,
@@ -228,4 +272,5 @@ module.exports = {
   getParams,
   httpsRequest,
   respond,
+  braceryExpandConfig,
 };

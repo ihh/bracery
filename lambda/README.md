@@ -9,3 +9,15 @@ This directory contains several AWS Lambda functions for implementing the Bracer
 - [bracery-login.js](bracery-login.js) redirects to/from Amazon Cognito for login & logout, handles session
 - [bracery-twitter.js](bracery-twitter.js) redirects to/from Twitter for 3-legged OAuth
 - [bracery-bot.js](bracery-bot.js) triggered by a CloudWatch alarm; posts Bracery-generated tweets
+
+The API Gateway is organized as follows
+
+| Path | Method | Function |
+| ---- | ------ | -------- |
+| `/` | `GET` | [bracery-view.js](bracery-view.js) |
+| `/{name}` | `GET` | [bracery-view.js](bracery-view.js) |
+| `/asset/{filename}` | `GET` | [bracery-asset.js](bracery-asset.js) |
+| `/auth/login` | `GET` | [bracery-login.js](bracery-login.js) |
+| `/auth/twitter` | `GET` | [bracery-twitter.js](bracery-twitter.js) |
+| `/expand/{name}` | `GET` | [bracery-expand.js](bracery-expand.js) |
+| `/store/{name}` | `ANY` | [bracery-store.js](bracery-store.js) |

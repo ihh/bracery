@@ -271,7 +271,7 @@ function initBraceryView (config) {
     else if (!text)
       errorElement.innerText = 'You cannot save an empty definition. Please enter some text.'
     else {
-      errorElement.innerText = ''
+      errorElement.innerText = 'Saving...'
       storeBracery
       ({ name: name,
          def: text,

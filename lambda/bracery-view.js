@@ -102,7 +102,7 @@ exports.handler = async (event, context, callback) => {
               const result = res.Items && res.Items.length && res.Items[0];
               if (result && result.bracery) {
                 tmpMap[templateDefVar] = result.bracery;
-                if (result.locked && result.owner === session.sub)
+                if (result.locked && result.owner === session.user)
                   tmpMap[templateLockedVar] = ' checked';
               }
             })));

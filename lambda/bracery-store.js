@@ -19,12 +19,12 @@ exports.handler = async (event, context, callback) => {
   const name = event.pathParameters.name;
   const body = util.getBody (event);
 
+  // Set up some returns
+  let session = await util.getSession (event, dynamoPromise);
+  const respond = util.respond (callback, event, session);
+
   // Query the database for the given name
   try {
-    // Set up some returns
-    let session = await util.getSession (event, dynamoPromise);
-    const respond = util.respond (callback, event, session);
-
     let res = await dynamoPromise('query')
     ({ TableName: tableName,
        KeyConditionExpression: "#n = :n",
@@ -35,7 +35,7 @@ exports.handler = async (event, context, callback) => {
          ":n": name
        }});
     const result = res.Items && res.Items.length && res.Items[0];
-    const resultLocked = (result && result.locked && (!session || !session.loggedIn || (result.owner !== session.sub)));
+    const resultLocked = (result && result.locked && (!session || !session.loggedIn || (result.owner !== session.user)));
     // Handle the HTTP methods
     switch (event.httpMethod) {
     case 'DELETE':
@@ -55,7 +55,7 @@ exports.handler = async (event, context, callback) => {
         let ret = { bracery: result.bracery };
         if (result.locked) {
           ret.locked = true;
-          ret.owned = (result.owner === session.sub);
+          ret.owned = (result.owner === session.user);
         }
         respond.ok (ret);
       } else
@@ -71,7 +71,7 @@ exports.handler = async (event, context, callback) => {
         if (session.loggedIn)
           util.extend (item,
                        { locked: body.locked,
-                         owner: session.sub } );
+                         owner: session.user } );
         if (result) {
           let expr = "SET #b = :b, #u = :u";
           let keys = { "#b": "bracery",

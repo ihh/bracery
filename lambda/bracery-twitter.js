@@ -66,12 +66,25 @@ exports.handler = async (event, context, callback) => {
     
     if (isRequest) {
       // Get symbol name & subscribe/unsubscribe state (request stage)
-      const name = event.queryStringParameters.name;
+      const name = event.queryStringParameters.source;
       const subscribe = !event.queryStringParameters.unsubscribe;
 
       if (subscribe && !name)
         return respond.badRequest();
-    
+
+      // Update session with state
+      await dynamoPromise('updateItem')
+      ({ TableName: config.sessionTableName,
+         Key: { cookie: session.cookie },
+         UpdateExpression: 'SET #s = :s',
+         ExpressionAttributeNames: {
+           '#s': 'state',
+         },
+         ExpressionAttributeValues: {
+           ':s': JSON.stringify (util.getParams (event)),
+         } });
+
+      // Add a new entry to the Twitter table
       let { OAuthToken, OAuthTokenSecret }
           = await getOAuthRequestToken();
       let item = { user: session.user,
@@ -87,6 +100,7 @@ exports.handler = async (event, context, callback) => {
          Item: item });
       respond.redirectPost ('https://api.twitter.com/oauth/authenticate?oauth_token=' + OAuthToken);
     } else {  // !isRequest
+      // Query the Twitter table to find the requestTokenSecret
       let res = await dynamoPromise('query')
       ({ TableName: twitterTableName,
          KeyConditionExpression: "#u = :u AND #t = :t",
@@ -143,7 +157,7 @@ exports.handler = async (event, context, callback) => {
                      { ':n': credResult.data.screen_name,
                        ':id': (twitterIdStr = credResult.data.id_str) });
       }
-      // Delete all earlier entries in this table associated with this user & symbol name
+      // Delete all earlier entries in the Twitter table associated with this user & symbol name
       // (or, if unsubscribing & no symbol name was specified, delete all entries associated with this twitter ID)
       // Also delete old ungranted requests; and if unsubscribing, delete this entry too
       let allRes = await dynamoPromise('query')
@@ -173,7 +187,7 @@ exports.handler = async (event, context, callback) => {
       }
       if (queryResult.subscribe)
         await dynamoPromise('updateItem') (params);
-      respond.redirectFound (config.baseUrl + config.viewPrefix + (queryResult.name || ''));
+      respond.redirectFound (config.baseUrl + config.viewPrefix + (queryResult.name || '') + '?redirect=true');
     }
   } catch (e) {
     console.warn (e);  // to CloudWatch

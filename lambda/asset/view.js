@@ -74,6 +74,31 @@ function initBraceryView (config) {
   nameElement.value = name()
   evalElement.placeholder = 'Enter text, e.g. [something|other]'
 
+  // Little wrapper for external links that adds current application state as query parameters in the URL,
+  // so it can be recorded in the session before callout/callback.
+  var addStateToLink = 'addStateToLink';
+  window['addStateToLink'] = function() {
+    window.event.preventDefault()
+    var href = window.event.target.href.split('?'), params = {}
+    href.slice(1).join('').split('&').forEach (function (p) {
+      var pv = p.split('=')
+      params[pv[0]] = window.decodeURIComponent (pv[1])
+    })
+    params.name = name()
+    window.location.href = href[0] + stateQueryArgs (currentState(true), params)
+  }
+  
+  // Internal link. Looks like an external link, but just rewrites text in evalElement
+  function makeInternalLink (text, link) {
+    var safeLink = window.braceryWeb.escapeHTML (link.text)
+    return '<a href="#" onclick="handleBraceryLink(\'' + safeLink + '\')">' + text.text + '</a>'
+  }
+  window.handleBraceryLink = function (newEvalText) {
+    window.event.preventDefault();
+    return update (newEvalText, varsAfterCurrentExpansion, { pushState: viewConfig.bookmark.link });
+  }
+
+  // List of bots
   if (user) {
     botsElement.innerHTML = '<hr>'
       + (Object.keys(bots).length
@@ -81,18 +106,23 @@ function initBraceryView (config) {
             + Object.keys (bots).map (function (botName) {
               return '<li>'
                 + 'As @<a href="https://twitter.com/' + botName + '">' + botName + '</a>'
-                + ' (' + makeExternalLink ('revoke all', twitterPrefix, { unsubscribe: true }) + ')'
+                + ' (' + makeExternalLink ('revoke all', twitterPrefix, { unsubscribe: true }, addStateToLink) + ')'
                 + '<ul>'
                 + bots[botName].map (function (sym) {
-                  return '<li>' + makeExternalLink (sym, viewPrefix + sym)
-                    + ' (' + makeExternalLink ('revoke', twitterPrefix, { name: sym, unsubscribe: true }) + ')'
+                  return '<li>' + makeExternalLink (sym, viewPrefix + sym, null, addStateToLink)
+                    + ' (' + makeExternalLink ('revoke', twitterPrefix, { source: sym, unsubscribe: true }, addStateToLink) + ')'
                 }).join('')
                 + '</ul></li>'
             }).join('') + '</ul>')
          : '')
     setupAutoLink()
   }
-  
+  function setupAutoLink() {
+    autoElement.innerHTML = makeExternalLink ('Add this page', twitterPrefix, { source: name() }, addStateToLink)
+      + ' to auto-tweets'
+  }
+
+  // Recently-updated pages
   if (recent && recent.length)
     recentElement.innerHTML = 'Recently updated: ' + recent
     .map (function (recentName) { return '<a href="' + baseViewUrl + recentName + '">' + recentName + '</a>' })
@@ -127,17 +157,13 @@ function initBraceryView (config) {
     return show() (expansion)
   }
   
-  function setupAutoLink() {
-    autoElement.innerHTML = makeExternalLink ('Add this page', twitterPrefix, { name: name() })
-      + ' to auto-tweets'
-  }
-  function makeExternalLink (text, link, params) {
+  function makeExternalLink (text, link, params, onclick) {
     var url = link
     if (params && Object.keys(params).length)
       url += '?' + Object.keys(params).map (function (p) {
-        return p + '=' + encodeURIComponent (params[p])
+        return p + '=' + window.encodeURIComponent (params[p])
       }).join('&')
-    return '<a href="' + url + '">' + text + '</a>'
+    return '<a href="' + url + '"' + (onclick ? (' onclick="' + onclick + '()"') : '') + '>' + text + '</a>'
   }
 
   function doLogin() {
@@ -182,15 +208,6 @@ function initBraceryView (config) {
     pushState (currentState (showExp))
   }
   
-  function makeLink (text, link) {
-    var safeLink = window.braceryWeb.escapeHTML (link.text)
-    return '<a href="#" onclick="handleBraceryLink(\'' + safeLink + '\')">' + text.text + '</a>'
-  }
-  function handleBraceryLink (newEvalText) {
-    window.event.preventDefault();
-    return update (newEvalText, varsAfterCurrentExpansion, { pushState: viewConfig.bookmark.link });
-  }
-
   var braceryCache = {}, serviceCalls = 0
   function getBracery (symbolName, callback) {
     if (braceryCache[symbolName])
@@ -367,7 +384,7 @@ function initBraceryView (config) {
                           get: getSymbol,
                           set: setSymbol,
                           callback: showAndResolve,
-                          makeLink: makeLink }
+                          makeLink: makeInternalLink }
 
 	var braceryServer = new bracery.Bracery()
 	braceryServer.expand (text, extend (callbacks,
@@ -410,7 +427,6 @@ function initBraceryView (config) {
   } else
     loginElement.style.display = ''
   
-  window.handleBraceryLink = handleBraceryLink  // make this globally available
   window.onpopstate = function (evt) {
     var state = evt.state || {}
     if (state.name)

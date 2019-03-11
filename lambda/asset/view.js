@@ -141,7 +141,9 @@ function initBraceryView (config) {
 	extend (varsBeforeCurrentExpansion = {}, vars)
         extend (varsAfterCurrentExpansion = {}, expansion.vars)
         currentExpansionCount = expansionCount
-        var expansionHTML = marked (currentExpansionText)  // Markdown expansion
+        // Prevent inclusion of <script> tags or arbitrary HTML
+        var safeExpansionText = currentExpansionText.replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        var expansionHTML = marked (safeExpansionText)  // Markdown expansion
         expElement.innerHTML = expansionHTML
 	if (showConfig && showConfig.pushState)
 	  pushState ({ text: currentSourceText,

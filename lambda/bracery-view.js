@@ -53,8 +53,8 @@ exports.handler = async (event, context, callback) => {
 
     // Intercept POST and other non-GET requests
     if (event.httpMethod === 'POST') {
-      const id = await util.createBookmark (appState, session, dynamoPromise);
-      return respond.ok ({ id });
+      const bookmark = await util.createBookmark (appState, session, dynamoPromise);
+      return respond.ok (bookmark);
     } else if (event.httpMethod !== 'GET')
       return respond.badMethod();
     

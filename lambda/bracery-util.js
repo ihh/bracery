@@ -64,7 +64,6 @@ async function makeUniqueId (tableName, idAttr, initialIdChars, dynamoPromise) {
         ":id": id,
       },
     };
-    console.warn ('uniqueIdPromiser: Trying ' + id, params);
     const res = await dynamoPromise('query') (params);
     return (res && res.Items && res.Items.length
             ? await uniqueIdPromiser (id + randomChar())
@@ -129,21 +128,21 @@ async function httpsRequest (opts, formData) {
 
 async function createBookmark (params, session, dynamoPromise) {
   const id = await makeUniqueId (config.bookmarkTableName, 'id', 4, dynamoPromise);
-  const bookmark = { id: id,
-                     created: Date.now(),
-                     accessed: Date.now(),
-                     accessCount: 0 };
+  let bookmark = { id: id,
+                   created: Date.now(),
+                   accessed: Date.now(),
+                   accessCount: 0 };
   if (session && session.loggedIn)
     bookmark.user = session.user;
   Object.keys(params).forEach ((p) => {
     if (params[p])
       bookmark[p] = params[p];
   });
-  console.warn ('createBookmark', extend (params, { id }));
   await dynamoPromise('putItem')
   ({ TableName: config.bookmarkTableName,
      Item: bookmark });
-  return id;
+  const url = config.baseUrl + config.viewPrefix + '?id=' + id;
+  return { id, url };
 }
 
 async function getBookmarkedParams (event, dynamoPromise) {

@@ -24,6 +24,8 @@ body {
     width: 100%;
     font-size: small;
     min-height: 1em;
+    float: right;
+    text-align: right;
 }
 
 #eval {

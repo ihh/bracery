@@ -27,18 +27,6 @@ function getBody (event) {
           : {});
 }
 
-function getVars (event) {
-  let vars = {};
-  if (event.queryStringParameters && event.queryStringParameters.vars)
-    extend (vars, JSON.parse (decodeURI (event.queryStringParameters.vars)));
-  if (event.body) {
-    const body = getBody (event);
-    if (body.vars)
-      extend (vars, body.vars);
-  }
-  return vars;
-}
-
 function expandTemplate (template, tmpMap) {
   return Object.keys (tmpMap).reduce ((text, templateVar) => {
     const templateVal = tmpMap[templateVar];
@@ -184,31 +172,44 @@ async function getBookmarkedParams (event, dynamoPromise) {
 }
 
 function getParams (event) {
+  const body = getBody (event);
+  
   // Get the symbol name
   const name = ((event && event.pathParameters && event.pathParameters.name)
 		|| (event && event.queryStringParameters && event.queryStringParameters.name)
+		|| body.name
 		|| config.defaultSymbolName);
 
   // Get symbol definition override from query parameters, if supplied
   const initText = ((event && event.queryStringParameters && typeof(event.queryStringParameters['text']) === 'string')
 		    ? decodeURIComponent (event.queryStringParameters['text'])
-		    : undefined);
+		    : (body.text || undefined));
   
   // Get evaluation text override from query parameters, if supplied
   const evalText = ((event && event.queryStringParameters && typeof(event.queryStringParameters['eval']) === 'string')
 		    ? decodeURIComponent (event.queryStringParameters['eval'])
-		    : undefined);
+		    : (body.eval || undefined));
 
   // Get the expansion, if supplied
   const expansion = ((event && event.queryStringParameters && typeof(event.queryStringParameters['exp']) === 'string')
-		    ? decodeURIComponent (event.queryStringParameters['exp'])
-		    : undefined);
+		     ? JSON.parse (decodeURIComponent (event.queryStringParameters['exp']))
+		     : (body.expansion || undefined));
 
   // Get initial vars as query parameters, if supplied
-  const vars = getVars (event);
+  const vars = getVars (event, body);
   
   // Return
   return { name, initText, evalText, vars, expansion };
+}
+
+function getVars (event, body) {
+  body = body || getBody (event);
+  let vars = {};
+  if (event.queryStringParameters && event.queryStringParameters.vars)
+    extend (vars, JSON.parse (decodeURI (event.queryStringParameters.vars)));
+  if (body.vars)
+    extend (vars, body.vars);
+  return vars;
 }
 
 function withCookie (callback, session) {

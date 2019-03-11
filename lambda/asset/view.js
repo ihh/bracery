@@ -47,7 +47,6 @@ function initBraceryView (config) {
   var eraseElement = document.getElementById('erase')
   var resetElement = document.getElementById('reset')
   var rerollElement = document.getElementById('reroll')
-  var bookmarkElement = document.getElementById('bookmark')
   var expElement = document.getElementById('expansion')
   var digestElement = document.getElementById('digest')
 
@@ -151,10 +150,13 @@ function initBraceryView (config) {
         currentExpansionCount = expansionCount
         var html = expandMarkdown (currentExpansionText, marked)  // Markdown expansion
         expElement.innerHTML = html
-        var digest = digestHTML (html, domParser, maxTweetLen,
-                                 (baseViewUrl + '?id=0123456789').replace(/./g,' '))
-        digestElement.innerHTML = '<a href="#">Preview tweet</a>'
-        digestElement.firstChild.addEventListener ('click', function (evt) { evt.preventDefault(); digestElement.innerText = digest })
+        digestElement.innerHTML = '<a href="#">Preview</a>'
+        digestElement.firstChild.addEventListener ('click', function (evt) {
+          evt.preventDefault()
+          digestElement.innerText = digestHTML (html, domParser, maxTweetLen,
+                                                (baseViewUrl + '?id=0123456789').replace(/./g,' '))
+          digestElement.innerHTML += '<p><a href="#" onclick="twitterWebIntent()">Tweet</a>'
+        })
 	if (showConfig && showConfig.pushState)
 	  pushState ({ text: currentSourceText,
 		       vars: varsBeforeCurrentExpansion,
@@ -192,13 +194,30 @@ function initBraceryView (config) {
 	showEval = pushStateConfig.showEval
     var evalText = evalElement.innerText
     var params = []
-    if (text) params.push ('text=' + window.encodeURIComponent(text))
-    if (vars) { var v = JSON.stringify(vars); if (v !== '{}') params.push ('vars=' + window.encodeURIComponent(v)) }
-    if (showEval && (config.init || evalTextEdited || viewConfig.alwaysShowEvalInBookmarks)) params.push ('eval=' + window.encodeURIComponent(evalText))
-    if (expansion) params.push ('exp=' + window.encodeURIComponent(JSON.stringify(expansion)))
+    if (text)
+      params.push (['text', window.encodeURIComponent(text)])
+    if (vars) {
+      var v = JSON.stringify(vars);
+      if (v !== '{}')
+        params.push (['vars', window.encodeURIComponent(v)])
+    }
+    if (showEval && (config.init || evalTextEdited || viewConfig.alwaysShowEvalInBookmarks))
+      params.push (['eval', window.encodeURIComponent(evalText)])
+    if (expansion)
+      params.push (['exp', window.encodeURIComponent(JSON.stringify(expansion))])
     if (miscArgs)
-      params = params.concat (Object.keys (miscArgs).map (function (arg) { return arg + '=' + miscArgs[arg] }))
-    return (params.length ? ('?' + params.join('&')) : '')
+      params = params.concat (Object.keys (miscArgs).map (function (arg) { return [arg, miscArgs[arg]] }))
+    return (params.length ? ('?' + params.map(function(pv){return pv[0]+'='+pv[1]}).join('&')) : '')
+  }
+  function stateBody (pushStateConfig, miscArgs) {
+    return extend ({ name: pushStateConfig.name || config.name,
+                     text: pushStateConfig.text,
+                     vars: pushStateConfig.vars,
+                     expansion: pushStateConfig.expansion },
+                   miscArgs,
+                   pushStateConfig.showEval
+                   ? { eval: evalElement.innerText }
+                   : {})
   }
   function pushState (pushStateConfig) {
     var name = pushStateConfig.name || config.name,
@@ -279,6 +298,55 @@ function initBraceryView (config) {
                  locked: !!locked }
     req.send (JSON.stringify (body));
   }
+
+  function createBookmark() {
+    return new Promise ((resolve) => {
+      var callback = function (err, result) {
+        if (err) {
+          errorElement.innerText = 'Sorry, an error occurred (' + err + ').'
+          throw new Error (err)
+        } else {
+          errorElement.innerHTML = 'Bookmarked: <a href="' + result.url + '">' + result.id + '</a>.'
+          resolve (result)
+        }
+      }
+      errorElement.innerText = 'Bookmarking...'
+      var req = new XMLHttpRequest();
+      req.open("POST", window.location.origin + viewPrefix);
+      req.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+      var reqBody = stateBody (currentState(true), { name: config.name })
+      req.onreadystatechange = function() {
+        if (this.readyState === XMLHttpRequest.DONE) {
+          if (this.status === 200)
+            callback (null, JSON.parse (this.responseText))
+          else
+            callback (this.status)
+        }
+      }
+      req.send (JSON.stringify (reqBody));
+    })
+  }
+
+  var awaitingBookmark = false  // guard against double-clicks
+  window.twitterWebIntent = function() {
+    window.event.preventDefault()
+    if (!awaitingBookmark) {
+      awaitingBookmark = true
+      var html = expandMarkdown (currentExpansionText, marked)  // Markdown expansion
+      return createBookmark()
+        .then (function (bookmark) {
+          var tweet = digestHTML (html, domParser, maxTweetLen - (bookmark.url.length + 1))
+          var webIntentUrl = 'https://twitter.com/intent/tweet'
+              + '?text=' + encodeURIComponent(tweet)
+              + '&url=' + encodeURI(bookmark.url)
+          window.open(webIntentUrl, '_blank')
+          awaitingBookmark = false
+        }).catch (function() {
+          awaitingBookmark = false
+        })
+    }
+  }
+
   function reset() {
     getBracery (name(), function (reloadedEvalText) {
       evalElement.innerText = reloadedEvalText
@@ -324,9 +392,12 @@ function initBraceryView (config) {
        })
     }
   }
+
+  
   function warnUnsaved() {
     errorElement.innerText = 'Changes will not be final until saved.'
   }
+
   function setName (name) {
     titleElement.innerText = name
     document.title = name
@@ -426,7 +497,6 @@ function initBraceryView (config) {
   eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.innerText = ''; update().then (viewConfig.bookmark.erase ? bookmark : undefined) })
   resetElement.addEventListener ('click', function (evt) { evt.preventDefault(); reset() })
   rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); update() })
-  bookmarkElement.addEventListener ('click', function (evt) { evt.preventDefault(); bookmark (true) })
   saveElement.addEventListener ('click', function (evt) { evt.preventDefault(); save() })
   nameElement.addEventListener ('input', function (evt) { evt.preventDefault(); sanitizeName() })
   sourceRevealElement.addEventListener ('click', revealSource)

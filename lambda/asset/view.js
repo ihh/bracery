@@ -1,4 +1,6 @@
 var extend = window.braceryWeb.extend;
+var escapeHTML = window.braceryWeb.escapeHTML;
+var expandMarkdown = window.braceryWeb.expandMarkdown;
 
 var viewConfig = { bookmark: { link: false,
 			       reset: false,
@@ -90,7 +92,7 @@ function initBraceryView (config) {
   
   // Internal link. Looks like an external link, but just rewrites text in evalElement
   function makeInternalLink (text, link) {
-    var safeLink = window.braceryWeb.escapeHTML (link.text)
+    var safeLink = escapeHTML (link.text)
     return '<a href="#" onclick="handleBraceryLink(\'' + safeLink + '\')">' + text.text + '</a>'
   }
   window.handleBraceryLink = function (newEvalText) {
@@ -141,10 +143,7 @@ function initBraceryView (config) {
 	extend (varsBeforeCurrentExpansion = {}, vars)
         extend (varsAfterCurrentExpansion = {}, expansion.vars)
         currentExpansionCount = expansionCount
-        // Prevent inclusion of <script> tags or arbitrary HTML
-        var safeExpansionText = currentExpansionText.replace(/</g,'&lt;').replace(/>/g,'&gt;')
-        var expansionHTML = marked (safeExpansionText)  // Markdown expansion
-        expElement.innerHTML = expansionHTML
+        expElement.innerHTML = expandMarkdown (currentExpansionText, marked)  // Markdown expansion
 	if (showConfig && showConfig.pushState)
 	  pushState ({ text: currentSourceText,
 		       vars: varsBeforeCurrentExpansion,

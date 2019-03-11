@@ -18,7 +18,15 @@ function escapeHTML (str) {
     .replace(/'/g, "&#039;");
 }
 
+function expandMarkdown (text, marked) {
+  // Prevent inclusion of <script> tags or arbitrary HTML
+  var safeText = text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  var html = marked (safeText);  // Markdown expansion
+  return html;
+}
+
 module.exports = {
   extend: extend,
-  escapeHTML: escapeHTML
+  escapeHTML: escapeHTML,
+  expandMarkdown: expandMarkdown,
 };

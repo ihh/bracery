@@ -312,6 +312,9 @@ function initBraceryView (config) {
        })
     }
   }
+  function warnUnsaved() {
+    errorElement.innerText = 'Changes will not be final until saved.'
+  }
   function setName (name) {
     titleElement.innerText = name
     document.title = name
@@ -324,6 +327,7 @@ function initBraceryView (config) {
     cancelDelayedUpdate()
     setTimeout (update, updateDelay)
     evalTextEdited = true
+    warnUnsaved()
     // The user typing input on the page overrides whatever was in the URL (or the current game state),
     // so clear the 'init' config parameter (corresponding to the '?text=' query URL parameter)
     // and then push a clean URL
@@ -343,8 +347,6 @@ function initBraceryView (config) {
     cancelDelayedUpdate()
     return new Promise (function (resolve, reject) {
       try {
-	errorElement.innerText = ''
-
 	// The text to be expanded is updateText, the first argument to the update() function (if defined),
 	// or whatever is currently specified by config.init (originally set by query URL, may change dynamically),
 	// or (if neither of those are defined) the current contents of evalElement.
@@ -408,19 +410,20 @@ function initBraceryView (config) {
     sourcePanelElement.style.display = 'none'
     sourceRevealElement.style.display = ''
   }
-  evalElement.addEventListener ('keyup', evalChanged)
+  evalElement.addEventListener ('input', evalChanged)
   eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.innerText = ''; update().then (viewConfig.bookmark.erase ? bookmark : undefined) })
   resetElement.addEventListener ('click', function (evt) { evt.preventDefault(); reset() })
   rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); update() })
   bookmarkElement.addEventListener ('click', function (evt) { evt.preventDefault(); bookmark (true) })
   saveElement.addEventListener ('click', function (evt) { evt.preventDefault(); save() })
-  nameElement.addEventListener ('keyup', function (evt) { evt.preventDefault(); sanitizeName() })
+  nameElement.addEventListener ('input', function (evt) { evt.preventDefault(); sanitizeName() })
   sourceRevealElement.addEventListener ('click', revealSource)
   sourceHideElement.addEventListener ('click', hideSource)
   
   loginLinkElement.addEventListener ('click', function (evt) { evt.preventDefault(); doLogin() })
   logoutLinkElement.addEventListener ('click', function (evt) { evt.preventDefault(); doLogout() })
-  lockElement.addEventListener ('input', function (evt) { errorElement.innerText = 'Changes will not be final until saved.' })
+  lockElement.addEventListener ('input', warnUnsaved)
+  
   if (user) {
     logoutElement.style.display = ''
     lockPanelElement.style.display = ''

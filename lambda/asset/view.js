@@ -48,7 +48,7 @@ function initBraceryView (config) {
   var resetElement = document.getElementById('reset')
   var rerollElement = document.getElementById('reroll')
   var expElement = document.getElementById('expansion')
-  var digestElement = document.getElementById('digest')
+  var tweetElement = document.getElementById('tweet')
 
   var urlElement = document.getElementById('urlprefix')
   var nameElement = document.getElementById('name')
@@ -150,13 +150,6 @@ function initBraceryView (config) {
         currentExpansionCount = expansionCount
         var html = expandMarkdown (currentExpansionText, marked)  // Markdown expansion
         expElement.innerHTML = html
-        digestElement.innerHTML = '<a href="#">Preview</a>'
-        digestElement.firstChild.addEventListener ('click', function (evt) {
-          evt.preventDefault()
-          digestElement.innerText = digestHTML (html, domParser, maxTweetLen,
-                                                (baseViewUrl + '?id=0123456789').replace(/./g,' '))
-          digestElement.innerHTML += '<p><a href="#" onclick="twitterWebIntent()">Tweet</a>'
-        })
 	if (showConfig && showConfig.pushState)
 	  pushState ({ text: currentSourceText,
 		       vars: varsBeforeCurrentExpansion,
@@ -328,8 +321,8 @@ function initBraceryView (config) {
   }
 
   var awaitingBookmark = false  // guard against double-clicks
-  window.twitterWebIntent = function() {
-    window.event.preventDefault()
+  function twitterWebIntent (evt) {
+    evt.preventDefault()
     if (!awaitingBookmark) {
       awaitingBookmark = true
       var html = expandMarkdown (currentExpansionText, marked)  // Markdown expansion
@@ -497,6 +490,7 @@ function initBraceryView (config) {
   eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.innerText = ''; update().then (viewConfig.bookmark.erase ? bookmark : undefined) })
   resetElement.addEventListener ('click', function (evt) { evt.preventDefault(); reset() })
   rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); update() })
+  tweetElement.addEventListener ('click', twitterWebIntent)
   saveElement.addEventListener ('click', function (evt) { evt.preventDefault(); save() })
   nameElement.addEventListener ('input', function (evt) { evt.preventDefault(); sanitizeName() })
   sourceRevealElement.addEventListener ('click', revealSource)

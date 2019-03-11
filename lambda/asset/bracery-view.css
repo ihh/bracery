@@ -20,10 +20,7 @@ body {
     min-height: 1em;
 }
 
-#digest {
-    width: 100%;
-    font-size: small;
-    min-height: 1em;
+#tweet {
     float: right;
     text-align: right;
 }

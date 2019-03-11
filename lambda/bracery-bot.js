@@ -54,7 +54,9 @@ exports.handler = async (event, context, callback) => {
       });
       vars = item.vars ? JSON.parse (item.vars) : {};
       let expansion = await braceryConfig.expandFull ({ symbolName: item.name });
-      console.warn('Tweeting as @' + item.twitterScreenName + ': ' + expansion.text);
+      let html = util.expandMarkdown (expansion.text);
+      let digest = util.digestHTML (html);
+      console.warn('Tweeting as @' + item.twitterScreenName + ': ' + digest);
       await twit.post('statuses/update', { status: expansion.text });
       await dynamoPromise('update')
       ({ TableName: config.twitterTableName,

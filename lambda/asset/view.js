@@ -1,12 +1,15 @@
 var extend = window.braceryWeb.extend;
 var escapeHTML = window.braceryWeb.escapeHTML;
 var expandMarkdown = window.braceryWeb.expandMarkdown;
+var digestHTML = window.braceryWeb.digestHTML;
 
 var viewConfig = { bookmark: { link: false,
 			       reset: false,
 			       save: true,
 			       firstEdit: false },
 		   alwaysShowEvalInBookmarks: true };
+
+var maxTweetLen = 280;
 
 function getUrlParams() {
     var params = {};
@@ -46,6 +49,7 @@ function initBraceryView (config) {
   var rerollElement = document.getElementById('reroll')
   var bookmarkElement = document.getElementById('bookmark')
   var expElement = document.getElementById('expansion')
+  var digestElement = document.getElementById('digest')
 
   var urlElement = document.getElementById('urlprefix')
   var nameElement = document.getElementById('name')
@@ -75,6 +79,8 @@ function initBraceryView (config) {
   urlElement.innerText = baseViewUrl
   nameElement.value = name()
   evalElement.placeholder = 'Enter text, e.g. [something|other]'
+
+  var domParser = new DOMParser()  // for digests
 
   // Little wrapper for external links that adds current application state as query parameters in the URL,
   // so it can be recorded in the session before callout/callback.
@@ -143,7 +149,12 @@ function initBraceryView (config) {
 	extend (varsBeforeCurrentExpansion = {}, vars)
         extend (varsAfterCurrentExpansion = {}, expansion.vars)
         currentExpansionCount = expansionCount
-        expElement.innerHTML = expandMarkdown (currentExpansionText, marked)  // Markdown expansion
+        var html = expandMarkdown (currentExpansionText, marked)  // Markdown expansion
+        expElement.innerHTML = html
+        var digest = digestHTML (html, domParser, maxTweetLen,
+                                 (baseViewUrl + '?id=0123456789').replace(/./g,' '))
+        digestElement.innerHTML = '<a href="#">Preview tweet</a>'
+        digestElement.firstChild.addEventListener ('click', function (evt) { evt.preventDefault(); digestElement.innerText = digest })
 	if (showConfig && showConfig.pushState)
 	  pushState ({ text: currentSourceText,
 		       vars: varsBeforeCurrentExpansion,

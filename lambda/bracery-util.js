@@ -5,6 +5,8 @@ const promisify = require('util').promisify;
 const braceryWeb = require ('./bracery-web');
 const extend = braceryWeb.extend;
 const escapeHTML = braceryWeb.escapeHTML;
+const expandMarkdown = braceryWeb.expandMarkdown;
+const digestHTML = braceryWeb.digestHTML;
 
 const config = require ('./bracery-config');
 
@@ -343,6 +345,8 @@ function braceryExpandConfig (bracery, vars, dp) {
 module.exports = {
   extend,
   escapeHTML,
+  expandMarkdown,
+  digestHTML,
   promisify,
   promiseDelay,
   dynamoPromise,

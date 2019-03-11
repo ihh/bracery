@@ -20,6 +20,12 @@ body {
     min-height: 1em;
 }
 
+#digest {
+    width: 100%;
+    font-size: small;
+    min-height: 1em;
+}
+
 #eval {
     width: 100%;
     min-height: 10em;

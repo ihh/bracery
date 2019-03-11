@@ -15,6 +15,7 @@ module.exports = {
   defaultVisibility: 'public',
   recentlyUpdatedLimit: 5,
 
+  bookmarkTableName: 'BraceryBookmarkTable',
   revisionsTableName: 'BraceryRevisionsTable',
   twitterTableName: 'BraceryTwitterTable',
   sessionTableName: 'BracerySessionTable',

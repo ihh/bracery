@@ -42,12 +42,22 @@ exports.handler = async (event, context, callback) => {
 
   // Wrap all downstream calls (to dynamo etc) in try...catch
   try {
-    // Get parameters
-    const { name, initText, evalText, vars, expansion } =
+    // Get app state parameters
+    const appState =
 	  (event && event.queryStringParameters && event.queryStringParameters.redirect && session && session.state
 	   ? JSON.parse (session.state)
-	   : util.getParams (event));
+	   : (event && event.queryStringParameters && event.queryStringParameters.id
+              ? await util.getBookmarkedParams (event, dynamoPromise)
+              : util.getParams (event)));
+    const { name, initText, evalText, vars, expansion } = appState;
 
+    // Intercept POST and other non-GET requests
+    if (event.httpMethod === 'POST') {
+      const id = await util.createBookmark (appState, session, dynamoPromise);
+      return respond.ok ({ id });
+    } else if (event.httpMethod !== 'GET')
+      return respond.badMethod();
+    
     // Add the name & a dummy empty definition to the template var->val map
     let tmpMap = util.extend ({}, templateVarValMap);
     let bots = {};

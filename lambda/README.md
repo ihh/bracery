@@ -6,7 +6,7 @@ This directory contains several AWS Lambda functions for implementing the Bracer
 
 - [bracery-store.js](bracery-store.js) is a tiny RESTful microservice for storing & retrieving Bracery code in DynamoDB
 - [bracery-expand.js](bracery-expand.js) pulls code from DynamoDB, expands it in AWS Lambda (possibly involving more calls to DynamoDB), and returns
-- [bracery-view.js](bracery-view.js) presents a single-page app for storing/retrieving/editing/expanding a Bracery expression
+- [bracery-view.js](bracery-view.js) presents a single-page app for storing/retrieving/editing/expanding a Bracery expression. POSTing to this script creates a URL-shortened bookmark
 - [bracery-asset.js](bracery-asset.js) serves up some of the static assets for the view
 - [bracery-login.js](bracery-login.js) redirects to/from Amazon Cognito for login & logout, handles session
    - uses environment variables `COGNITO_APP_CLIENT_ID`, `COGNITO_APP_SECRET`, `COGNITO_USER_POOL_ID`
@@ -33,6 +33,7 @@ The API Gateway is organized as follows
 | Path | Method | Function |
 | ---- | ------ | -------- |
 | `/` | `GET` | [bracery-view.js](bracery-view.js) |
+| `/` | `POST` | [bracery-view.js](bracery-view.js) |
 | `/{name}` | `GET` | [bracery-view.js](bracery-view.js) |
 | `/asset/{filename}` | `GET` | [bracery-asset.js](bracery-asset.js) |
 | `/auth/login` | `GET` | [bracery-login.js](bracery-login.js) |
@@ -50,6 +51,7 @@ The following tables are used
 | `BraceryRevisionsTable` | `name` | `updated` | n/a | n/a | n/a | Symbol revisions table, multiple entries per symbol, same attributes as `BraceryTable` |
 | `BracerySessionTable` | `cookie` | n/a | n/a | n/a | n/a | Stores information about the session, e.g. whether user has logged on |
 | `BraceryTwitterTable` | `user` | `requestToken` | n/a | n/a | n/a | Stores information about pending & granted Twitter authorization requests, and their associated user accounts & symbols |
+| `BraceryBookmarkTable` | `id` | n/a | n/a | n/a | n/a | A table for saving application state (current source & expanded text) for URL-shortening purposes |
 
 
 ## Cognito

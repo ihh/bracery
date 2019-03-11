@@ -46,9 +46,32 @@ function expandTemplate (template, tmpMap) {
       .replace (new RegExp ('%JSON_' + templateVar + '%', 'g'), JSON.stringify (templateVal));
   }, template);
 }
-                       
-function generateCookie() {
-  return Date.now().toString(16) + Math.random().toString().substr(2)
+
+function randomChar() {
+  const r = Math.floor (36 * Math.random());
+  return r.toString (36);
+}
+
+async function makeUniqueId (tableName, idAttr, initialIdChars, dynamoPromise) {
+  const uniqueIdPromiser = async (id) => {
+    let params = {
+      TableName: tableName,
+      KeyConditionExpression: "#id = :id",
+      ExpressionAttributeNames: {
+        "#id": idAttr,
+      },
+      ExpressionAttributeValues: {
+        ":id": id,
+      },
+    };
+    console.warn ('uniqueIdPromiser: Trying ' + id, params);
+    const res = await dynamoPromise('query') (params);
+    return (res && res.Items && res.Items.length
+            ? await uniqueIdPromiser (id + randomChar())
+            : id);
+    
+  };
+  return await uniqueIdPromiser (new Array(initialIdChars).fill(0).map (randomChar).join(''));
 }
 
 async function getSession (event, dynamoPromise) {
@@ -57,7 +80,7 @@ async function getSession (event, dynamoPromise) {
     let match;
     if (event.headers && event.headers.cookie) {
       let m;
-      while (m = regex.exec (event.headers.cookie))  // get last (& presumably most recent) cookie, in case document.cookie has got multiple cookies
+      while ((m = regex.exec (event.headers.cookie)))  // get last (& presumably most recent) cookie, in case document.cookie has got multiple cookies
 	match = m;
     }
     if (match) {
@@ -65,7 +88,7 @@ async function getSession (event, dynamoPromise) {
       let queryRes = await dynamoPromise('query')
       ({ TableName: config.sessionTableName,
 	 KeyConditionExpression: "#ckey = :cval",
-	 ExpressionAttributeNames:{
+	 ExpressionAttributeNames: {
 	   "#ckey": "cookie"
 	 },
 	 ExpressionAttributeValues: {
@@ -74,7 +97,7 @@ async function getSession (event, dynamoPromise) {
       if (queryRes.Items && queryRes.Items.length)
 	return queryRes.Items[0];
     }
-    const newCookie = generateCookie();
+    const newCookie = await makeUniqueId (config.sessionTableName, 'cookie', 16, dynamoPromise);
     const newSession = { cookie: newCookie };
     await dynamoPromise('putItem')
     ({ TableName: config.sessionTableName,
@@ -82,6 +105,7 @@ async function getSession (event, dynamoPromise) {
      });
     return newSession;
   } catch (e) {
+    console.warn (e);  // to CloudWatch
     return null;
   }
 }
@@ -101,6 +125,61 @@ async function httpsRequest (opts, formData) {
       req.write (formData);
     req.end();
   });
+}
+
+async function createBookmark (params, session, dynamoPromise) {
+  const id = await makeUniqueId (config.bookmarkTableName, 'id', 4, dynamoPromise);
+  const bookmark = { id: id,
+                     created: Date.now(),
+                     accessed: Date.now(),
+                     accessCount: 0 };
+  if (session && session.loggedIn)
+    bookmark.user = session.user;
+  Object.keys(params).forEach ((p) => {
+    if (params[p])
+      bookmark[p] = params[p];
+  });
+  console.warn ('createBookmark', extend (params, { id }));
+  await dynamoPromise('putItem')
+  ({ TableName: config.bookmarkTableName,
+     Item: bookmark });
+  return id;
+}
+
+async function getBookmarkedParams (event, dynamoPromise) {
+  const id = event.queryStringParameters.id;
+  let params = getParams (event);
+  const res = await dynamoPromise('query')
+  ({ TableName: config.bookmarkTableName,
+     KeyConditionExpression: "#id = :id",
+     ExpressionAttributeNames: {
+       "#id": "id"
+     },
+     ExpressionAttributeValues: {
+       ":id": id
+     }});
+  if (res && res.Items && res.Items.length) {
+    const bookmark = res.Items[0];
+    ['name','initText','evalText','vars','expansion']
+      .forEach ((p) => {
+        if (bookmark[p])
+          params[p] = bookmark[p];
+      });
+    await dynamoPromise('updateItem')
+    ({ TableName: config.bookmarkTableName,
+       Key: { id: id },
+       UpdateExpression: 'SET #a = :a, #c = #c + :n',
+       ExpressionAttributeNames: {
+         '#a': 'accessed',
+         '#c': 'accessCount'
+       },
+       ExpressionAttributeValues: {
+         ':a': Date.now(),
+         ':n': 1
+       },
+     });
+  }
+  return params;
 }
 
 function getParams (event) {
@@ -228,7 +307,7 @@ function braceryExpandConfig (bracery, vars, dp) {
     const res = await dp('query')
     ({ TableName: config.tableName,
        KeyConditionExpression: "#nkey = :nval",
-       ExpressionAttributeNames:{
+       ExpressionAttributeNames: {
          "#nkey": "name"
        },
        ExpressionAttributeValues: {
@@ -271,9 +350,12 @@ module.exports = {
   getBody,
   getVars,
   expandTemplate,
-  generateCookie,
+  randomChar,
+  makeUniqueId,
   getSession,
   getParams,
+  getBookmarkedParams,
+  createBookmark,
   httpsRequest,
   respond,
   braceryExpandConfig,

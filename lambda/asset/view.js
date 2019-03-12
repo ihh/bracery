@@ -2,6 +2,8 @@ var extend = window.braceryWeb.extend;
 var escapeHTML = window.braceryWeb.escapeHTML;
 var expandMarkdown = window.braceryWeb.expandMarkdown;
 var digestHTML = window.braceryWeb.digestHTML;
+var clickHandlerName = window.braceryWeb.clickHandlerName;
+var makeInternalLink = window.braceryWeb.makeInternalLink;
 
 var viewConfig = { bookmark: { link: false,
 			       reset: false,
@@ -96,11 +98,7 @@ function initBraceryView (config) {
   }
   
   // Internal link. Looks like an external link, but just rewrites text in evalElement
-  function makeInternalLink (text, link) {
-    var safeLink = escapeHTML (link.text)
-    return '<a href="#" onclick="handleBraceryLink(\'' + safeLink + '\')">' + text.text + '</a>'
-  }
-  window.handleBraceryLink = function (newEvalText) {
+  window[clickHandlerName] = function (newEvalText) {
     window.event.preventDefault();
     return update (newEvalText, varsAfterCurrentExpansion, { pushState: viewConfig.bookmark.link });
   }

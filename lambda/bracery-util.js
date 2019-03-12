@@ -338,7 +338,8 @@ function braceryExpandConfig (bracery, vars, dp) {
           { expandFull: expandSymbolFull,
             expand: expandSymbol,
             get: getSymbol,
-            set: setSymbol });
+            set: setSymbol,
+            makeLink: braceryWeb.makeInternalLink });
 
   return braceryConfig;
 }

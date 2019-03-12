@@ -18,11 +18,31 @@ function escapeHTML (str) {
     .replace(/'/g, "&#039;");
 }
 
+function makeInternalLink (text, link) {
+  var safeLink = escapeHTML (link.text)
+  return '&LINK_BEGIN;' + safeLink + '&LINK_TEXT;' + text.text + '&LINK_END;'
+}
+
+var clickHandlerName = 'handleBraceryLink'
+function expandInternalLinks (text) {
+  var regex = /^([\s\S]*)&LINK_BEGIN;([\s\S]*)&LINK_TEXT;([\s\S]*)&LINK_END;([\s\S]*)$/;
+  do {
+    var replaced = false;
+    text = text.replace
+    (regex,
+     function (_m, before, safeLink, text, after) {
+       replaced = true;
+       return before + '<a href="#" onclick="' + clickHandlerName + '(\'' + safeLink + '\')">' + text + '</a>' + after;
+     });
+  } while (replaced);
+  return text;
+}
+
 function expandMarkdown (text, marked) {
   // Prevent inclusion of <script> tags or arbitrary HTML
   var safeText = text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
   var html = marked (safeText);  // Markdown expansion
-  return html;
+  return expandInternalLinks (html);
 }
 
 function digestHTML (html, domParser, maxDigestChars, link) {
@@ -41,4 +61,6 @@ module.exports = {
   escapeHTML: escapeHTML,
   expandMarkdown: expandMarkdown,
   digestHTML: digestHTML,
+  clickHandlerName: clickHandlerName,
+  makeInternalLink: makeInternalLink,
 };

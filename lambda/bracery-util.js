@@ -1,5 +1,4 @@
 const https = require('https');
-const doc = require('dynamodb-doc');
 const promisify = require('util').promisify;
 
 const braceryWeb = require ('./bracery-web');
@@ -15,6 +14,7 @@ function promiseDelay (delay) {
 }
 
 function dynamoPromise() {
+  const doc = require('dynamodb-doc');
   let dynamo = new doc.DynamoDB();
   return (method) => promisify (dynamo[method].bind (dynamo));
 }

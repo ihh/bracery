@@ -6,7 +6,11 @@
 const config = require('./bracery-config');
 const util = require('./bracery-util');
 
+const DomParser = require('dom-parser');
+let parser = new DomParser();
+
 const Twit = require('twit');
+const maxTweetLen = 280;
 
 const TWITTER_CONSUMER_KEY = process.env.TWITTER_CONSUMER_KEY;  // must be defined from AWS Lambda
 const TWITTER_CONSUMER_SECRET = process.env.TWITTER_CONSUMER_SECRET;  // must be defined from AWS Lambda
@@ -55,9 +59,9 @@ exports.handler = async (event, context, callback) => {
       vars = item.vars ? JSON.parse (item.vars) : {};
       let expansion = await braceryConfig.expandFull ({ symbolName: item.name });
       let html = util.expandMarkdown (expansion.text);
-      let digest = util.digestHTML (html);
+      let digest = util.digestHTML (html, parser, maxTweetLen);
       console.warn('Tweeting as @' + item.twitterScreenName + ': ' + digest);
-      await twit.post('statuses/update', { status: expansion.text });
+      await twit.post('statuses/update', { status: digest });
       await dynamoPromise('update')
       ({ TableName: config.twitterTableName,
          Key: { user: item.user,

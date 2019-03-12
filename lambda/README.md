@@ -24,6 +24,7 @@ This directory contains several AWS Lambda functions for implementing the Bracer
 - [asset/view.js](asset/view.js) contains JavaScript for the single-page client
 - [asset/bracery-view.css](asset/bracery-view.css) contains CSS for the single-page client
 - [Makefile](Makefile) bundles up zipfiles for AWS Lambda
+- [upload.js](upload.js) uploads corpora files of the form found in [../import](../import)
 
 
 ## API Gateway

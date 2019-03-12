@@ -39,3 +39,7 @@ body {
 #error {
     color: red;
 }
+
+#recent {
+    font-size: small;
+}

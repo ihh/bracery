@@ -56,6 +56,22 @@ function digestHTML (html, domParser, maxDigestChars, link) {
           : digested) + linkWithSpace;
 }
 
+// So-called "countWords" actually just flags which "words" we have seen
+// Words are things that don't look like concatenated expressions
+function countWords (text, isWord) {
+  isWord = isWord || {};
+  var words = text.toLowerCase()
+      .replace(/[^a-zA-Z0-9_&~%@]/g,'')  // these are the characters we keep
+      .replace(/\s+/g,' ').replace(/^ /,'').replace(/ $/,'')  // collapse all runs of space & remove start/end space
+      .split(' ');
+  words.forEach (function (word) { isWord[word] = true; });
+  return isWord;
+}
+
+function getWords (text) {
+  return Object.keys (countWords (text, {})).sort();
+}
+
 module.exports = {
   extend: extend,
   escapeHTML: escapeHTML,
@@ -63,4 +79,5 @@ module.exports = {
   digestHTML: digestHTML,
   clickHandlerName: clickHandlerName,
   makeInternalLink: makeInternalLink,
+  countWords: countWords,
 };

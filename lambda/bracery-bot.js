@@ -16,7 +16,7 @@ const TWITTER_CONSUMER_KEY = process.env.TWITTER_CONSUMER_KEY;  // must be defin
 const TWITTER_CONSUMER_SECRET = process.env.TWITTER_CONSUMER_SECRET;  // must be defined from AWS Lambda
 
 const maxTweetsPerCall = 300;   // Twitter allows 300 tweets per 15-minute window
-const callsPerDay = 4 * 24;  // On average we want each account to tweet once per day
+const callsPerDay = 1;  // On average we want each account to tweet once per day
 
 const dynamoPromise = util.dynamoPromise();
 

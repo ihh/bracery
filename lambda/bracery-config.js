@@ -9,18 +9,21 @@ module.exports = {
   logoutPrefix: '/auth/logout/',
   twitterPrefix: '/auth/twitter/',
   
-  // DynamoDB
+  // DynamoDB tables
   tableName: 'BraceryTable',
-  updateIndexName: 'visibility-updated-index',
-  defaultVisibility: 'public',
-  recentlyUpdatedLimit: 5,
-
   bookmarkTableName: 'BraceryBookmarkTable',
   revisionsTableName: 'BraceryRevisionsTable',
   twitterTableName: 'BraceryTwitterTable',
   sessionTableName: 'BracerySessionTable',
+
+  // DynamoDB attributes & default values
+  // BraceryTable
+  updateIndexName: 'visibility-updated-index',
+  defaultVisibility: 'public',
+  recentlyUpdatedLimit: 5,
+  // BracerySessionTable
   cookieName: 'bracery_session',
-  
+
   // AWS Cognito
   cognitoDomain: 'auth.bracery.org',
   

@@ -15,9 +15,12 @@ body {
 }
 
 #expansion {
-    width: 100%;
     background-color: lightgray;
     min-height: 1em;
+    margin-left: 4px;
+    margin-right: 4px;
+    padding-left: 4px;
+    padding-right: 4px;
 }
 
 #tweet {
@@ -26,7 +29,6 @@ body {
 }
 
 #eval {
-    width: 100%;
     min-height: 10em;
     resize: vertical;
     background: white;

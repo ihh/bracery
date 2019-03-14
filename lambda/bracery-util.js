@@ -335,6 +335,7 @@ function braceryExpandConfig (bracery, vars, dp) {
 
   // Return
   extend (braceryConfig,
+          braceryWeb.braceryLimits,
           { expandFull: expandSymbolFull,
             expand: expandSymbol,
             get: getSymbol,

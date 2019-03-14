@@ -6,7 +6,7 @@ var RhsParser = ParseTree.RhsParser
 var extend = ParseTree.extend
 var nlp = ParseTree.nlp
 
-var Bracery = function (rules, config) {
+var Bracery = function (rules) {
   this.rules = {}
   if (rules)
     this.addRules (rules)

@@ -80,4 +80,14 @@ module.exports = {
   clickHandlerName: clickHandlerName,
   makeInternalLink: makeInternalLink,
   countWords: countWords,
+
+  // Bracery expansion limits
+  braceryLimits: {
+    maxDepth: 100,
+    maxRecursion: 3,
+    maxReps: 10,
+    maxNodes: 1000,
+    maxLength: 16384,
+    enableParse: false,
+  },
 };

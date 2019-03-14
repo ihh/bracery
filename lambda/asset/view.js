@@ -4,6 +4,7 @@ var expandMarkdown = window.braceryWeb.expandMarkdown;
 var digestHTML = window.braceryWeb.digestHTML;
 var clickHandlerName = window.braceryWeb.clickHandlerName;
 var makeInternalLink = window.braceryWeb.makeInternalLink;
+var braceryLimits = window.braceryWeb.braceryLimits;
 
 var viewConfig = { bookmark: { link: false,
 			       reset: false,
@@ -35,9 +36,7 @@ function initBraceryView (config) {
   var user = config.user
 
   var urlParams = getUrlParams()
-  var expandConfig = { maxDepth: 100,
-                       maxRecursion: 5,
-                       enableParse: false }
+  var expandConfig = extend ({}, braceryLimits)
   Object.keys (expandConfig).forEach (function (param) {
     if (urlParams[param])
       expandConfig[param] = urlParams[param]
@@ -473,13 +472,15 @@ function initBraceryView (config) {
     })
   }
   function revealSource (evt) {
-    evt.preventDefault()
+    if (evt)
+      evt.preventDefault()
     sourceControlsElement.style.display = ''
     sourcePanelElement.style.display = ''
     sourceRevealElement.style.display = 'none'
   }
   function hideSource (evt) {
-    evt.preventDefault()
+    if (evt)
+      evt.preventDefault()
     sourceControlsElement.style.display = 'none'
     sourcePanelElement.style.display = 'none'
     sourceRevealElement.style.display = ''
@@ -518,6 +519,9 @@ function initBraceryView (config) {
 
   if (urlParams.redirect)
     pushState({})  // get rid of the '?redirect=true'
+
+  if (urlParams.edit)
+    revealSource()
 
   var expansion = urlParams.exp || config.exp
   if (urlParams.exp)

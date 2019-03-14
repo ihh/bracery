@@ -256,9 +256,10 @@ function processFile (target, text) {
   }
   if (!array)
     throw new Error ('Error autodetecting key for ' + target.path)
-  console.warn ('~' + target.name + ' <-- ' + target.path)
+  var summary = target.summary || json.description || target.path
+  console.warn ('~' + target.name + ' <-- ' + target.path + ' (' + summary + ')')
   var result = { name: target.name,
-                 summary: target.summary,
+                 summary: summary,
                  rules: array.map (function (text) {
                    return target.rhs ? target.rhs(text) : [text]
                  })

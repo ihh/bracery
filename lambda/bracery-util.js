@@ -67,9 +67,10 @@ async function getSession (event, dynamoPromise) {
   try {
     const regex = new RegExp (config.cookieName + '=(\\w+)', 'g');
     let match;
-    if (event.headers && event.headers.cookie) {
+    let cookie = event.headers && (event.headers.cookie || event.headers.Cookie);
+    if (cookie) {
       let m;
-      while ((m = regex.exec (event.headers.cookie)))  // get last (& presumably most recent) cookie, in case document.cookie has got multiple cookies
+      while ((m = regex.exec (cookie)))  // get last (& presumably most recent) cookie, in case document.cookie has got multiple cookies
 	match = m;
     }
     if (match) {

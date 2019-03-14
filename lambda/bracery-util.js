@@ -323,7 +323,8 @@ function braceryExpandConfig (bracery, vars, dp) {
   // Create an expandSymbol function that queries the database for the given name, and expands it as Bracery
   const expandSymbolFull = async (expandConfig) => {
     const symbolDefinition = await getSymbol (expandConfig);
-    return await bracery.expand (symbolDefinition, braceryConfig);
+    const result = await bracery.expand (symbolDefinition, braceryConfig);
+    return result;
   };
 
   const expandSymbol = async (config) => {
@@ -341,6 +342,7 @@ function braceryExpandConfig (bracery, vars, dp) {
             expand: expandSymbol,
             get: getSymbol,
             set: setSymbol,
+            callback: true,
             makeLink: braceryWeb.makeInternalLink });
 
   return braceryConfig;

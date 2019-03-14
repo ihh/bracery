@@ -70,7 +70,7 @@ bracery-expand.zip: bracery-expand.js $(COMMON) $(COMPROMISE_DIR)/$(COMPROMISE) 
 	cp $(addprefix $(BRACERY_SOURCE_DIR)/,$(BRACERY_SOURCES)) $(STAGING_DIR)
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
-BOT_DEPS = dom-parser
+BOT_DEPS = marked textversionjs html-entities
 bracery-bot.zip: bracery-bot.js $(COMMON) $(COMPROMISE_DIR)/$(COMPROMISE) $(addprefix $(BRACERY_SOURCE_DIR)/,$(BRACERY_SOURCES))
 	(test -e $(STAGING_DIR) && rm -rf $(STAGING_DIR)) || true
 	mkdir -p $(STAGING_DIR)/node_modules

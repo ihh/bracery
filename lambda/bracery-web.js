@@ -45,12 +45,11 @@ function expandMarkdown (text, marked) {
   return expandInternalLinks (html);
 }
 
-function digestHTML (html, domParser, maxDigestChars, link) {
+function digestHTML (html, getTextContent, maxDigestChars, link) {
   var linkWithSpace = link ? (' ' + link) : '';
   var truncationIndicator = '...';
   var maxTruncatedChars = maxDigestChars - truncationIndicator.length - linkWithSpace.length;
-  var digested = domParser.parseFromString(html,'text/html').documentElement.textContent
-      .replace(/^\s*/,'').replace(/\s*$/,'');
+  var digested = getTextContent(html).replace(/^\s*/,'').replace(/\s*$/,'');
   return (maxDigestChars && (digested.length > maxTruncatedChars)
           ? (digested.substr (0, maxTruncatedChars) + truncationIndicator)
           : digested) + linkWithSpace;

@@ -3,11 +3,13 @@
 
 //console.log('Loading function');
 
+const marked = require('marked');
+const textversionjs = require('textversionjs');
+const decodeHtmlEntities = require('html-entities').AllHtmlEntities.decode;
+const html2plaintext = (html) => decodeHtmlEntities (textversionjs (html)).replace (/\n$/,'');
+
 const config = require('./bracery-config');
 const util = require('./bracery-util');
-
-const DomParser = require('dom-parser');
-let parser = new DomParser();
 
 const Twit = require('twit');
 const maxTweetLen = 280;
@@ -15,8 +17,7 @@ const maxTweetLen = 280;
 const TWITTER_CONSUMER_KEY = process.env.TWITTER_CONSUMER_KEY;  // must be defined from AWS Lambda
 const TWITTER_CONSUMER_SECRET = process.env.TWITTER_CONSUMER_SECRET;  // must be defined from AWS Lambda
 
-const maxTweetsPerCall = 300;   // Twitter allows 300 tweets per 15-minute window
-const callsPerDay = 1;  // On average we want each account to tweet once per day
+const callsPerHour = 1;  // On average we want each account to tweet once per hour
 
 const dynamoPromise = util.dynamoPromise();
 
@@ -47,20 +48,20 @@ exports.handler = async (event, context, callback) => {
       byScreenName[sn].push (item);
     });
     const screenNames = Object.keys (byScreenName);
-    for (let i = 0, tweets = 0; i < screenNames.length && tweets < maxTweetsPerCall; ++i) {
+    for (let i = 0; i < screenNames.length; ++i) {
       // Fisher-Yates shuffle
       const j = i + Math.floor (Math.random() * (screenNames.length - i));
       const items = byScreenName[screenNames[j]];
       screenNames[j] = screenNames[i];
-      // This function is called many times per day, so tweet with a probability that (on average) yields one tweet per day
-      if (Math.random() >= 1 / callsPerDay)
+      // This function is called many times per hour, so tweet with a probability that (on average) yields one tweet per hour
+      if (Math.random() >= 1 / callsPerHour)
         continue;
       // Pick a random bracery word to expand
       const item = items[Math.floor (Math.random() * items.length)];
       vars = item.vars ? JSON.parse (item.vars) : {};
       let expansion = await braceryConfig.expandFull ({ symbolName: item.name });
-      let html = util.expandMarkdown (expansion.text);
-      let digest = util.digestHTML (html, parser, maxTweetLen);
+      let html = util.expandMarkdown (expansion.text, marked);
+      let digest = util.digestHTML (html, html2plaintext, maxTweetLen);
       let twit = new Twit({
         consumer_key: TWITTER_CONSUMER_KEY,
         consumer_secret: TWITTER_CONSUMER_SECRET,
@@ -69,15 +70,14 @@ exports.handler = async (event, context, callback) => {
       });
       console.warn('Tweeting as @' + item.twitterScreenName + ': ' + digest);
       await twit.post('statuses/update', { status: digest });
-      await dynamoPromise('update')
+      await dynamoPromise('updateItem')
       ({ TableName: config.twitterTableName,
          Key: { user: item.user,
                 requestToken: item.requestToken },
-         FilterExpression: 'SET #v = :v',
+         UpdateExpression: 'SET #v = :v',
          ExpressionAttributeNames: { '#v': 'vars' },
          ExpressionAttributeValues: { ':v': JSON.stringify (expansion.vars) },
        });
-      ++tweets;
     }
   }
 

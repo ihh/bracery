@@ -81,7 +81,10 @@ function initBraceryView (config) {
   evalElement.placeholder = 'Enter text, e.g. [something|other]'
 
   var domParser = new DOMParser()  // for digests
-
+  var getTextContent = function (html) {
+    return domParser.parseFromString(html,'text/html').documentElement.textContent
+  }
+  
   // Little wrapper for external links that adds current application state as query parameters in the URL,
   // so it can be recorded in the session before callout/callback.
   var addStateToLink = 'addStateToLink';
@@ -325,7 +328,7 @@ function initBraceryView (config) {
       var html = expandMarkdown (currentExpansionText, marked)  // Markdown expansion
       return createBookmark()
         .then (function (bookmark) {
-          var tweet = digestHTML (html, domParser, maxTweetLen - (bookmark.url.length + 1))
+          var tweet = digestHTML (html, getTextContent, maxTweetLen - (bookmark.url.length + 1))
           var webIntentUrl = 'https://twitter.com/intent/tweet'
               + '?text=' + encodeURIComponent(tweet)
               + '&url=' + encodeURI(bookmark.url)

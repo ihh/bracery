@@ -38,6 +38,10 @@ body {
     word-break: break-all;
 }
 
+#eval pre {
+    white-space: pre-wrap;
+}
+
 #error {
     color: red;
 }

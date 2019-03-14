@@ -11,10 +11,11 @@ var config = require('./bracery-config')
 // parse command-line options
 var opt = getopt.create([
   ['d' , 'data=PATH+'       , 'upload data file(s) with format [{"name":"symbol1","rules":["option1","option2"...]},{"name":"symbol2","rules":[...]},...]'],
-  ['s' , 'symbols=NAME+'    , 'include only named symbols'],
+  ['n' , 'name=NAME+'       , 'include only named symbols'],
   ['b' , 'begin=NAME'       , 'begin at named symbol'],
   ['c' , 'cookie=COOKIE'    , 'use session cookie'],
   ['l' , 'lock'             , 'set lock flag (requires session cookie to establish identity)'],
+  ['s' , 'summary'          , 'don\'t upload anything; instead, just output a summary in Markdown'],
   ['v' , 'verbose'          , 'make lots of noise'],
   ['h' , 'help'             , 'display this help message'],
 ])              // create Getopt instance
@@ -29,9 +30,9 @@ try {
   }
 
   let symbolAllowed = null, firstSymbol = null, begun = false;
-  if (opt.options.symbols) {
+  if (opt.options.name) {
     symbolAllowed = {};
-    opt.options.symbols.forEach ((sym) => (symbolAllowed[sym] = true));
+    opt.options.name.forEach ((sym) => (symbolAllowed[sym] = true));
   }
   if (opt.options.begin)
     firstSymbol = opt.options.begin;
@@ -58,6 +59,12 @@ try {
           return;
         }
       }
+
+      if (opt.options.summary) {
+        console.log ("- ~[" + def.name + "](/" + def.name + ") " + def.summary);
+        return;
+      }
+
       const putOpts = {
         hostname: 'bracery.org',
         port: 443,

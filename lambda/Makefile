@@ -1,7 +1,17 @@
 
 ZIP = zip
 
-all: bracery-store.zip bracery-view.zip bracery-asset.zip bracery-expand.zip bracery-login.zip bracery-twitter.zip bracery-bot.zip
+FUNCTIONS = bracery-store bracery-view bracery-asset bracery-expand bracery-login bracery-twitter bracery-bot
+ZIPFILES = $(addsuffix .zip,$(FUNCTIONS))
+PUBLISH_PSEUDOTARGETS = $(addsuffix .publish,$(FUNCTIONS))
+
+all: $(ZIPFILES)
+
+publish: $(PUBLISH_PSEUDOTARGETS)
+
+%.publish: %.zip
+	echo region=$(AWS_DEFAULT_REGION)
+	aws lambda update-function-code --region $(AWS_DEFAULT_REGION) --publish --zip-file fileb://$< --function-name $*
 
 COMMON = bracery-config.js bracery-web.js bracery-util.js
 bracery-store.zip: bracery-store.js $(COMMON)

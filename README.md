@@ -535,6 +535,7 @@ Language features include
    - The special constructs `&cycle` and `&queue` are useful for deterministically (vs stochastically) iterating through a range of options each time the code is called:
       - `&cycle$x{list}` sets `$x` to `list` the first time it's called, then rotates `$x` thereafter
       - `&queue$x{list}` sets `$x` to `list` the first time it's called, then shifts elements off `$x` thereafter
+      - unlike `&cycle`, `&queue` does not repeat; when all elements have been shifted off, `$x` is the empty list, which is a non-truthy value
       - both `&cycle$x{list}` and `&queue$x{list}` always return `&eval{&first{$x}}` for the new value of `$x`
       - these are useful with `&makelist` and `&quotelist`, e.g. `[tick=>You feel &cycle$mood&makelist{happy}{sad}{bored}.] #tick# #tick# #tick# #tick#` expands to `You feel happy. You feel sad. You feel bored. You feel happy.`
 - functions, alternations, repetitions, variable assignments, and conditionals can be arbitrarily nested

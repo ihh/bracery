@@ -28,10 +28,16 @@ and lists from [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_langua
 ## Procedural text repository
 
 A writable repository of Bracery scripts is available at [bracery.org](https://bracery.org/).
-Edit Bracery in the web browser, save and share immediately.
+Edit Bracery in the web browser; save and share immediately; easily convert into a Twitter bot.
 
 The micro-wiki repository is serverless, built using AWS Lambda functions available in the [lambda/](lambda/README.md) directory.
 Bracery can also be run from the command line, in the browser, etc.
+
+The Bracery command-line client will use the bracery.org server to resolve symbol definitions if the `-w` switch is specified from the command line, e.g.
+
+~~~~
+bin/bracery -w -e '~common_animal'
+~~~~
 
 ### Programmer's tl;dr
 
@@ -254,6 +260,13 @@ You can run the tool in client/server mode (NB this is a very light implementati
 ~~~~
 bracery -d travel.json -S 8000 &
 bracery -C http://localhost:8000/ -e '#origin#'
+~~~~
+
+You can also connect directly to the repository at https://bracery.org/
+
+~~~~
+bin/bracery -w -e '~common_animal'
+bin/bracery -w -e '&xget~common_animal'
 ~~~~
 
 To get a list of available options

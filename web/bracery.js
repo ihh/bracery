@@ -14353,7 +14353,7 @@ Bracery.prototype.expand = function (braceryText, config) {
   if (config && config.rules)
     return new Bracery (config.rules).expand (braceryText, extend ({}, config, {rules:null}))
   var defaultSymbolName = this.getDefaultSymbol()
-  if (defaultSymbolName && !braceryText)
+  if (defaultSymbolName && typeof(braceryText) === 'undefined')
     braceryText = ParseTree.symChar + defaultSymbolName
   if (typeof(braceryText) !== 'string')
     throw new Error ('the text to be expanded must be a string')

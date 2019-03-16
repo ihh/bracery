@@ -260,14 +260,14 @@ function initBraceryView (config) {
     }
   }
 
-  function expandBracery (symbolName, callback) {
+  function expandBracery (symbolName, vars, callback) {
     function reqListener () {
       var responseBody = JSON.parse (this.responseText);
       callback (responseBody.tree || []);
     }
     var req = new XMLHttpRequest();
     req.addEventListener("load", reqListener);
-    req.open("GET", window.location.origin + expandPrefix + symbolName);
+    req.open("GET", window.location.origin + expandPrefix + symbolName + "?vars=" + encodeURIComponent (JSON.stringify (vars)));
     req.send();
   }
 
@@ -440,7 +440,7 @@ function initBraceryView (config) {
 	function expandSymbol (config) {
           var symbolName = config.symbolName || config.node.name
           return new Promise (function (resolve, reject) {
-            expandBracery (symbolName.toLowerCase(), resolve)
+            expandBracery (symbolName.toLowerCase(), config.vars, resolve)
           })
 	}
 	function getSymbol (config) {

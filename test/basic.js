@@ -43,7 +43,8 @@ function doTests (testRunner) {
   expectExpand ('~test2', 'TESTING')
 
   // default is to expand ~abc (to 'def'), as that is the alphabetically earliest symbol
-  expectExpand ('', 'def')
+  expectExpand (undefined, 'def')
+  expectExpand ('', '')
 
   // look out! recursion
   expectExpand ('~test3', 'xxx')

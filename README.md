@@ -536,8 +536,8 @@ Language features include
       - `&cycle$x{list}` sets `$x` to `list` the first time it's called, then rotates `$x` thereafter
       - `&queue$x{list}` sets `$x` to `list` the first time it's called, then shifts elements off `$x` thereafter
       - unlike `&cycle`, `&queue` does not repeat; when all elements have been shifted off, `$x` is the empty list, which is a non-truthy value
-      - both `&cycle$x{list}` and `&queue$x{list}` always return `&eval{&first{$x}}` for the new value of `$x`
-      - these are useful with `&makelist` and `&quotelist`, e.g. `[tick=>You feel &cycle$mood&makelist{happy}{sad}{bored}.] #tick# #tick# #tick# #tick#` expands to `You feel happy. You feel sad. You feel bored. You feel happy.`
+      - the return value of both `&cycle$x{list}` and `&queue$x{list}` is not the new value of `$x`, but rather `&eval{&first{$x}}`; `$x` itself represents the series of options to be iterated through, and you generally only want to display the first of these at any given time
+      - these constructs are useful with `&makelist` and `&quotelist`, e.g. `[tick=>You feel &cycle$mood&makelist{happy}{sad}{bored}.] #tick# #tick# #tick# #tick#` expands to `You feel happy. You feel sad. You feel bored. You feel happy.`
 - functions, alternations, repetitions, variable assignments, and conditionals can be arbitrarily nested
 - everything can occur asynchronously, so symbols can be resolved and expanded from a remote store
    - but if you have a synchronously resolvable store (i.e. a local Tracery object), everything can work synchronously too

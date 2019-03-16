@@ -515,7 +515,7 @@ Language features include
    - `&list{...}` or just `&{...}` creates an explicit nested list context, vs the default concatenation context
       - `&{}` is the empty list, equivalent to `&list{}`
       - beginning a concatenation context with `{}` (or any other list) makes it a list context
-      - beginning a concatenation context with a string, or wrapping it in `&string{...}` makes it a string context
+      - beginning a concatenation context with a string, or wrapping it in `&quote{...}` makes it a string context
    - `&islist{x}` returns true if, and only if, `x` is a list
    - list-coercing functions:
       - `&prepend{item}{list}`, `&append{list}{item}` return lists
@@ -526,10 +526,17 @@ Language features include
       - `&join{list}{item}` returns a string
       - `&map$varname:{list}{expr}` and `&filter$varname:{list}{expr}` return lists
       - `&reduce$varname:{list}$result={init}{expr}` can return list or string
-      - `&shuffle{list}` returns a list
+      - `&shuffle{list}` returns a shuffled list, `&rotate{list}` returns a rotated list (first element moved to back)
+      - `&makelist{a}{b}{c}{d}{etc}` returns a list and is equivalent to `&list{&value{a}&value{b}&value{c}&value{d}&value{etc}}`
+      - `&quotelist{$a}{$b}{$c}{$d}{etc}` returns a list and is equivalent to `&list{&quote{$a}&quote{$b}&quote{$c}&quote{$d}&quote{etc}}`
       - `&numsort$varname{list}{weightExpr}` and `&lexsort$varname{list}{tagExpr}` return lists, numerically- or lexically-sorted (respectively) by the corresponding mapped expression
    - when coerced into a list context by one of the above functions, the empty string becomes the empty list and any nonempty string becomes a single-element list
    - when coerced into a string context (i.e. most contexts), a list is invisibly joined/flattened as if by `&join{list}{}`
+   - The special constructs `&cycle` and `&queue` are useful for deterministically (vs stochastically) iterating through a range of options each time the code is called:
+      - `&cycle$x{list}` sets `$x` to `list` the first time it's called, then rotates `$x` thereafter
+      - `&queue$x{list}` sets `$x` to `list` the first time it's called, then shifts elements off `$x` thereafter
+      - both `&cycle$x{list}` and `&queue$x{list}` always return `&eval{&first{$x}}` for the new value of `$x`
+      - these are useful with `&makelist` and `&quotelist`, e.g. `[tick=>You feel &cycle$mood&makelist{happy}{sad}{bored}.] #tick# #tick# #tick# #tick#` expands to `You feel happy. You feel sad. You feel bored. You feel happy.`
 - functions, alternations, repetitions, variable assignments, and conditionals can be arbitrarily nested
 - everything can occur asynchronously, so symbols can be resolved and expanded from a remote store
    - but if you have a synchronously resolvable store (i.e. a local Tracery object), everything can work synchronously too

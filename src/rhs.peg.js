@@ -151,6 +151,7 @@ BinaryFunction
 
 UnaryFunction
   = "&" func:UnaryFunctionName args:FunctionArg { return makeFunction (func, args) }
+  / "&rotate" arg:FunctionArg _ { return makeRotate (arg) }
 
 ShortUnaryFunction
   = "&" func:ShortUnaryFunctionName args:FunctionArg { return makeFunction (func, args) }
@@ -163,15 +164,17 @@ BinaryVarFunction
   / "&" func:PushOrUnshift right:FunctionArg _ { return makeFunction (func, [makeStrictQuote ([makeLookup (defaultListVarName)]), wrapNodes (right)]) }
   / "&meter" icon:FunctionArg expr:MathExpr status:QuotedFunctionArg _ { return makeMeter (icon, expr, status) }
   / "&meter" icon:FunctionArg expr:MathExpr _ { return makeMeter (icon, expr) }
+  / "&cycle" v:VarFunctionArg list:FunctionArg _ { return makeCycle (v, list) }
+  / "&queue" v:VarFunctionArg list:FunctionArg _ { return makeQueue (v, list) }
 
 UnaryVarFunction
   = "&" func:ShiftOrPop v:VarFunctionArg { return makeFunction (func, v) }
   / "&" func:ShiftOrPop { return makeFunction (func, [makeStrictQuote ([makeLookup (defaultListVarName)])] ) }
   / "&" func:IncOrDec v:VarFunctionArg _ { return makeFunction (func, v) }
-  / "++" v:VarFunctionArg { return wrapNodes (v[0].args.concat ([makeFunction ('inc', v)])) }
-  / "--" v:VarFunctionArg { return wrapNodes (v[0].args.concat ([makeFunction ('dec', v)])) }
-  / v:VarFunctionArg "++" { return wrapNodes ([makeFunction ('inc', v)].concat (v[0].args)) }
-  / v:VarFunctionArg "--" { return wrapNodes ([makeFunction ('dec', v)].concat (v[0].args)) }
+  / "++" v:VarFunctionArg { return wrapNodes ([makeFunction ('inc', v)].concat (v[0].args)) }
+  / "--" v:VarFunctionArg { return wrapNodes ([makeFunction ('dec', v)].concat (v[0].args)) }
+  / v:VarFunctionArg "++" { return wrapNodes (v[0].args.concat ([makeFunction ('inc', v)])) }
+  / v:VarFunctionArg "--" { return wrapNodes (v[0].args.concat ([makeFunction ('dec', v)])) }
 
 MathFunction
   = "&math{" _ math:MathExpr _ "}" { return makeFunction ('math', [math]) }
@@ -189,6 +192,8 @@ ParseFunction
 
 ListConstructor
   = "&{" args:NodeList "}" { return makeFunction ('list', args) }
+  / "&makelist" args:ArgList { return makeFunction ('list', args.map (makeValue)) }
+  / "&quotelist" args:ArgList { return makeFunction ('list', args.map (makeStrictQuote)) }
 
 BinaryFunctionName
   = "add" / "subtract" / "multiply" / "divide" / "pow"

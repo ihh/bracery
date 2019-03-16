@@ -98,7 +98,11 @@ function makeTraceryExpr (sym, mods) {
 }
 
 function makeProbExpr (probArg, trueArg, falseArg) {
-  return makeConditional ([makeFunction ('lt', [makeFunction ('random', ['1']), wrapNodes (probArg)])], trueArg, falseArg)
+  return makeConditional ([makeFunction ('lt',
+                                         [makeFunction ('random', ['1']),
+                                          wrapNodes (probArg)])],
+                          trueArg,
+                          falseArg)
 }
 
 function validRange (min, max) {
@@ -110,4 +114,29 @@ function makeMeter (icon, expr, status) {
                                 wrapNodes (makeArgList ([makeArgList ([icon,
                                                                        [makeStrictQuote ([makeFunction ('math', [expr])])]]
                                                                       .concat (status ? [status] : []))]))])
+}
+
+function makeRotate (arg) {
+  return makeFunction ('append', [makeFunction ('notfirst', arg),
+                                  makeFunction ('first', arg)])
+}
+
+function makeCycle (v, list) {
+  var vLookup = v[0].args, varname = v[0].args[0].varname
+  return makeFunction ('eval',
+                       [makeFunction ('first', [makeAssign (varname,
+                                                            [makeConditional (v[0].args,
+                                                                              [makeRotate (vLookup)],
+                                                                              list)],
+                                                            true)])])
+}
+
+function makeQueue (v, list) {
+  var vLookup = v[0].args, varname = v[0].args[0].varname
+  return makeFunction ('eval',
+                       [makeConditional ([makeFunction ('islist',
+                                                        wrapNodes ([vLookup]))],
+                                         [],
+                                         [makeAssign (varname, list)]),
+                        makeFunction ('shift', v)])
 }

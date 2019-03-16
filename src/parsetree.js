@@ -568,7 +568,7 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
             result = [funcChar, tok.funcname, varChar, tok.args[0].args[0].varname].concat (tok.args.length > 1 ? [makeFuncArgTree (pt, tok.args.slice(1), makeSymbolName, nextIsAlpha)] : (nextIsAlpha ? [' '] : []))
             break
           case 'match':
-            result = [funcChar, tok.funcname, '/', pt.makeRhsTree ([tok.args[0]], makeSymbolName), '/', pt.makeRhsTree ([tok.args[1]], makeSymbolName, nextIsAlpha)]
+            result = [funcChar, tok.funcname, '/', tok.args[0], '/', pt.makeRhsTree ([tok.args[1]], makeSymbolName, nextIsAlpha)]
               .concat (tok.args.slice(2).map (function (arg, n) { return makeFuncArgTree (pt, n>0 ? arg.args : [arg], makeSymbolName, nextIsAlpha) }))
             break
           case 'map':
@@ -1286,42 +1286,38 @@ function makeQuasiquoteExpansionPromise (config) {
   })
 }
 
-function makeEvalPromise (config, makeSymbolName, evalNode, evalNodeRhs, argsNodeRhs) {
+function makeEvalPromise (config, makeSymbolName, evalNode, evalText, argsNodeRhs) {
   var pt = this
   var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
   var makeRhsExpansionPromiseFor = makeRhsExpansionReducer (pt, config, textReducer, {})
-  return makeRhsExpansionPromiseFor (evalNodeRhs)
-    .then (function (evalExpansion) {
-      var evalText = evalExpansion.text
-      if (typeof(evalNode.evaltext) === 'undefined') {
-        evalNode.evaltext = evalText
-        evalNode.evaltree = parseRhs (evalText)
-        evalNode.value = pt.sampleParseTree (evalNode.evaltree, config)
-      } else if (config.validateEvalText) {
-        var storedEvalText = pt.makeRhsText (evalNode.evaltree, makeSymbolName)
-        if (storedEvalText !== evalText) {
-          if (config.invalidEvalTextCallback)
-	    config.invalidEvalTextCallback (evalNode, storedEvalText, evalText)
-          else
-            throw new Error ('evaltext mismatch')
-        }
-      }
-      return (argsNodeRhs
-              ? (makeRhsExpansionPromiseFor (argsNodeRhs)
-                 .then (function (argsExpansion) {
-                   return argsExpansion.value
-                 }))
-              : resolve ([]))
-        .then (function (args) {
-          args = makeArray (args || [])
-          return makeAssignmentPromise.call (pt,
-                                             config,
-                                             [[makeGroupVarName(0), null, args]]
-                                             .concat (args.map (function (arg, n) {
-                                               return [makeGroupVarName(n+1), null, arg]
-                                             })),
-                                             evalNode.value)
-        })
+  if (typeof(evalNode.evaltext) === 'undefined') {
+    evalNode.evaltext = evalText
+    evalNode.evaltree = parseRhs (evalText)
+    evalNode.value = pt.sampleParseTree (evalNode.evaltree, config)
+  } else if (config.validateEvalText) {
+    var storedEvalText = pt.makeRhsText (evalNode.evaltree, makeSymbolName)
+    if (storedEvalText !== evalText) {
+      if (config.invalidEvalTextCallback)
+	config.invalidEvalTextCallback (evalNode, storedEvalText, evalText)
+      else
+        throw new Error ('evaltext mismatch')
+    }
+  }
+  return (argsNodeRhs
+          ? (makeRhsExpansionPromiseFor (argsNodeRhs)
+             .then (function (argsExpansion) {
+               return argsExpansion.value
+             }))
+          : resolve ([]))
+    .then (function (args) {
+      args = makeArray (args || [])
+      return makeAssignmentPromise.call (pt,
+                                         config,
+                                         [[makeGroupVarName(0), null, args]]
+                                         .concat (args.map (function (arg, n) {
+                                           return [makeGroupVarName(n+1), null, arg]
+                                         })),
+                                         evalNode.value)
     })
 }
 
@@ -1535,15 +1531,20 @@ function makeExpansionPromise (config) {
             } else if (varFunction[node.funcname]) {
               // variable-modifying functions. first argument is &strictquote{$VAR}
               var name = node.args[0].args[0].varname, func = varFunction[node.funcname]
-              promise = makeRhsExpansionPromiseFor ([node.args[0].args[0]])
-                .then (function (varExpansion) {
-                  expansion.nodes += varExpansion.nodes
-                  return (node.args.length === 1   // unary or binary?
-                          ? func.call (pt, name, varVal, varExpansion.text, varExpansion.value, config)
-                          : (makeRhsExpansionPromiseFor ([node.args[1]])
-                             .then (function (argExpansion) {
-                               return func.call (pt, name, varVal, varExpansion.text, argExpansion.text, varExpansion.value, argExpansion.value, config)
-                             })))
+              var isUnary = node.args.length === 1
+              var argPromise = (isUnary
+                                ? syncPromiseResolve()
+                                : makeRhsExpansionPromiseFor ([node.args[1]]))
+              promise = argPromise
+                .then (function (argExpansion) {
+                  return makeRhsExpansionPromiseFor ([node.args[0].args[0]])
+                    .then (function (varExpansion) {
+                      expansion.nodes += varExpansion.nodes
+                      if (isUnary)
+                        return func.call (pt, name, varVal, varExpansion.text, varExpansion.value, config)
+                      expansion.nodes += argExpansion.nodes
+                      return func.call (pt, name, varVal, varExpansion.text, argExpansion.text, varExpansion.value, argExpansion.value, config)
+                    })
                 }).then (function (funcResult) {
                   if (typeof(funcResult) !== 'undefined') {
                     expansion.value = funcResult
@@ -1583,7 +1584,14 @@ function makeExpansionPromise (config) {
                 })
 	    } else {
               // unary functions
-              promise = makeRhsExpansionPromiseFor (node.args)
+              if (node.funcname === 'call' || node.funcname === 'apply')
+                promise = makeRhsExpansionPromiseFor ([node.args[0]])
+                .then (function (evalExpansion) {
+                  return makeEvalPromise.call (pt, config, makeSymbolName, node, evalExpansion.text, [node.args[1]])
+                    .then (addExpansionNodes)
+                })
+              else
+                promise = makeRhsExpansionPromiseFor (node.args)
                 .then (function (argExpansion) {
                   var arg = argExpansion.text
                   expansion.nodes += argExpansion.nodes
@@ -1591,14 +1599,7 @@ function makeExpansionPromise (config) {
 
                     // eval
                   case 'eval':
-                    return makeEvalPromise.call (pt, config, makeSymbolName, node, node.args, null)
-                      .then (addExpansionNodes)
-                    break
-
-                    // call, apply
-                  case 'call':
-                  case 'apply':
-                    return makeEvalPromise.call (pt, config, makeSymbolName, node, [node.args[0]], [node.args[1]])
+                    return makeEvalPromise.call (pt, config, makeSymbolName, node, argExpansion.text, null)
                       .then (addExpansionNodes)
                     break
 

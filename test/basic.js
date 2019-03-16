@@ -305,8 +305,9 @@ function doTests (testRunner) {
 
   expectExpand ('&push$x{a}&push$x{b}&uc&push$x{c}&push$x{...}&join$x{,} &shift$x $dots:={&pop$x} $quirk:=uh, &shift$x $dots &unshift$x&cat{x}{t} &uc&join$x$dots',
                 'a,b,c,... a ... uh,b ... X...T...C')  // a lot going on in this one. Spaces must be exactly correct (of course)
+  expectExpand ('$x=&split{1 2 3}&eval&shift$x', '1')  // check &shift$x is only called once within &eval
   expectExpand ('$x=5 &inc$x x=$x $x=10 &dec$x x=$x', 'x=6 x=9')  // note exact spaces
-  expectExpand ('$a=10 $b=20 $c=30 $d=40 ++$a --$b $c++ $d-- a=$a b=$b c=$c d=$d', '10 20 31 39 a=11 b=19 c=31 d=39')  // note exact spaces
+  expectExpand ('$a=10 $b=20 $c=30 $d=40 ++$a --$b $c++ $d-- a=$a b=$b c=$c d=$d', '11 19 30 40 a=11 b=19 c=31 d=39')  // note exact spaces
 
   expectExpand ('$a=ten $a $a+=3 $a $a-=5 $a $a*=2 $a $a/=4 $a $a.=2 $a', 'ten thirteen eight 16 4 42')
 
@@ -325,6 +326,24 @@ function doTests (testRunner) {
   expectExpand ('&reverse&split//{abcde}', 'edcba')  // empty regex in &split
   expectExpand ('&reverse&split/b/{abcde}', 'cdea')
 
+  // &quotelist, &rotate, &cycle, &queue
+  expectExpand ('$x=&split{1 2 3} &rotate$x', '231')
+
+  expectExpand ('[y=>&cycle$x&split{1 2 3}] #y# #y# #y# #y# #y# #y# #y#', '1 2 3 1 2 3 1')
+
+  expectExpand ('[y=>&queue$x&split{1 2 3}] #y# #y#', '1 2')
+  expectExpand ('[y=>&queue$x&split{1 2 3}] #y# #y# #y# #y#', '1 2 3 ')
+
+  expectExpand ('[y=>&cycle$x&list{&quote{++$a}&quote{++$b}&quote{++$c}}] $a=$b:=$c:=0 $a$b$c #y# $a$b$c #y# $a$b$c #y# $a$b$c #y# $a$b$c #y# $a$b$c #y# $a$b$c #y# $a$b$c', '000 1 100 1 110 1 111 2 211 2 221 2 222 3 322')
+
+  expectExpand ('[y=>&queue$x&list{&quote{++$a}&quote{++$b}&quote{++$c}}] $a=$b:=$c:=0 $a$b$c #y# $a$b$c #y# $a$b$c #y# $a$b$c #y# $a$b$c #y# $a$b$c #y# $a$b$c #y# $a$b$c', '000 1 100 1 110 1 111  111  111  111  111')
+
+  expectExpand ('&rotate&makelist{1}{2}{3}', '231')
+  expectExpand ('&rotate&quotelist{$x}{$y}{$z}', '$y$z$x')
+
+  expectExpand ('[tick=>You feel &cycle$mood&makelist{happy}{sad}{bored}.] #tick# #tick# #tick# #tick#',
+                'You feel happy. You feel sad. You feel bored. You feel happy.')  // example from README.md
+  
   // these used to be tests of &strip, now obsoleted by &replace (and thus &strip has been stripped and replaced by &replace)
   expectExpand ('&replace/hello/g{hello world hello}{}', ' world ')
   expectExpand ('&replace/(hell)(o)/g{hello world hello}{$$2 well $$1}', 'o well hell world o well hell')

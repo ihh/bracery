@@ -30,14 +30,19 @@ and lists from [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_langua
 A writable repository of Bracery scripts is available at [bracery.org](https://bracery.org/).
 Edit Bracery in the web browser; save and share immediately; easily convert into a Twitter bot.
 
-The micro-wiki repository is serverless, built using AWS Lambda functions available in the [lambda/](lambda/README.md) directory.
 Bracery can also be run from the command line, in the browser, etc.
-
 The Bracery command-line client will use the bracery.org server to resolve symbol definitions if the `-w` switch is specified from the command line, e.g.
 
 ~~~~
 bin/bracery -w -e '~common_animal'
 ~~~~
+
+will generate a sample from [this page](https://bracery.org/common_animal).
+You can also type `bin/bracery -wr` to enter text interactively from the command-line
+and have expansions returned by the server
+(or, alternatively, just point your web browser at bracery.org, click "Edit", and type into the box).
+
+The micro-wiki repository is serverless, built using AWS Lambda functions available in the [lambda/](lambda/README.md) directory.
 
 ### Programmer's tl;dr
 

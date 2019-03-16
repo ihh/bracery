@@ -326,7 +326,7 @@ function doTests (testRunner) {
   expectExpand ('&reverse&split//{abcde}', 'edcba')  // empty regex in &split
   expectExpand ('&reverse&split/b/{abcde}', 'cdea')
 
-  // &quotelist, &rotate, &cycle, &queue
+  // &makelist, &quotelist, &rotate, &cycle, &queue, &shuffle, &bump, &playlist
   expectExpand ('$x=&split{1 2 3} &rotate$x', '231')
 
   expectExpand ('[y=>&cycle$x&split{1 2 3}] #y# #y# #y# #y# #y# #y# #y#', '1 2 3 1 2 3 1')
@@ -343,7 +343,24 @@ function doTests (testRunner) {
 
   expectExpand ('[tick=>You feel &cycle$mood&makelist{happy}{sad}{bored}.] #tick# #tick# #tick# #tick#',
                 'You feel happy. You feel sad. You feel bored. You feel happy.')  // example from README.md
-  
+
+  expectExpand ('&shuffle&split{1 2 3}', '321', {maxTries:maxTries})
+  expectExpand ('&shuffle&split{1 2 3}', '213', {maxTries:maxTries})
+  expectExpand ('&shuffle&split{1 2 3}', '132', {maxTries:maxTries})
+
+  expectExpand ('&bump&split{1 2 3}', '231', {maxTries:maxTries})
+  expectExpand ('&bump&split{1 2 3}', '213', {maxTries:maxTries,fail:true})
+
+  expectExpand ('&bump&split{1 2 3 4}', '2314', {maxTries:maxTries})
+  expectExpand ('&bump&split{1 2 3 4}', '2341', {maxTries:maxTries})
+  expectExpand ('&bump&split{1 2 3 4}', '2134', {maxTries:maxTries,fail:true})
+
+  expectExpand ('[y=>&playlist$x{&split{1 2 3 4}}] &$y &$y', '1 2', {maxTries:maxTries})
+  expectExpand ('[y=>&playlist$x{&split{1 2 3 4}}] &$y &$y', '2 1', {maxTries:maxTries})
+  expectExpand ('[y=>&playlist$x{&split{1 2 3 4}}] &$y &$y', '4 2', {maxTries:maxTries})
+  expectExpand ('[y=>&playlist$x{&split{1 2 3 4}}] &$y &$y', '1 1', {maxTries:maxTries,fail:true})
+  expectExpand ('[y=>&playlist$x{&split{1 2 3 4}}] &$y &$y', '2 2', {maxTries:maxTries,fail:true})
+
   // these used to be tests of &strip, now obsoleted by &replace (and thus &strip has been stripped and replaced by &replace)
   expectExpand ('&replace/hello/g{hello world hello}{}', ' world ')
   expectExpand ('&replace/(hell)(o)/g{hello world hello}{$$2 well $$1}', 'o well hell world o well hell')

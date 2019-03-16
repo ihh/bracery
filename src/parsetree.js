@@ -971,12 +971,20 @@ function makeQuoted (item, prev) {
 
 function shuffleArray (a, rng) {
   for (var n = 0; n < a.length - 1; ++n) {
-    var m = Math.floor (rng() * (a.length - n))
+    var m = n + Math.floor (rng() * (a.length - n))
     var tmp = a[n]
     a[n] = a[m]
     a[m] = tmp
   }
   return a
+}
+
+// pseudoRotateArray moves first item to somewhere in the back half
+function pseudoRotateArray (a, rng) {
+  var halfLen = a.length / 2, insertAfter = Math.ceil(halfLen) + Math.floor (rng() * Math.floor(halfLen))
+  var result = a.slice(1)
+  result.splice (insertAfter, 0, a[0])
+  return result
 }
 
 function makeAlternation (item) {
@@ -1714,6 +1722,13 @@ function makeExpansionPromise (config) {
                     // shuffle
                   case 'shuffle':
                     expansion.value = shuffleArray (makeArray (argExpansion.value), rngSaver)
+                    expansion.text = makeString (expansion.value)
+                    break
+
+                    // bump (pseudo-rotate)
+                  case 'bump':
+                    expansion.value = pseudoRotateArray (makeArray (argExpansion.value), rngSaver)
+                    expansion.text = makeString (expansion.value)
                     break
 
                     // value, unquote, math: identity functions

@@ -164,7 +164,8 @@ BinaryVarFunction
   / "&" func:PushOrUnshift right:FunctionArg _ { return makeFunction (func, [makeStrictQuote ([makeLookup (defaultListVarName)]), wrapNodes (right)]) }
   / "&meter" icon:FunctionArg expr:MathExpr status:QuotedFunctionArg _ { return makeMeter (icon, expr, status) }
   / "&meter" icon:FunctionArg expr:MathExpr _ { return makeMeter (icon, expr) }
-  / "&cycle" v:VarFunctionArg list:FunctionArg _ { return makeCycle (v, list) }
+  / "&cycle" v:VarFunctionArg list:FunctionArg _ { return makeCycle (v, list, false) }
+  / "&playlist" v:VarFunctionArg list:FunctionArg _ { return makeCycle (v, list, true) }
   / "&queue" v:VarFunctionArg list:FunctionArg _ { return makeQueue (v, list) }
 
 UnaryVarFunction
@@ -213,7 +214,7 @@ UnaryFunctionName
   / "plural" / "singular" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive"
   / "json" / "parsejson"
   / "list" / "value" / "islist" / "first" / "last" / "notfirst" / "notlast"
-  / "strlen" / "length" / "shuffle" / "reverse" / "revstr"
+  / "strlen" / "length" / "shuffle" / "bump" / "reverse" / "revstr"
   / "not"
   / "comment"
   / "charclass"

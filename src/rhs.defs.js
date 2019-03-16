@@ -121,13 +121,19 @@ function makeRotate (arg) {
                                   makeFunction ('first', arg)])
 }
 
-function makeCycle (v, list) {
+function makeCycle (v, list, bump) {
   var vLookup = v[0].args, varname = v[0].args[0].varname
   return makeFunction ('eval',
                        [makeFunction ('first', [makeAssign (varname,
                                                             [makeConditional (v[0].args,
-                                                                              [makeRotate (vLookup)],
-                                                                              list)],
+                                                                              [bump
+                                                                               ? makeFunction ('bump',
+                                                                                               wrapNodes ([vLookup]))
+                                                                               : makeRotate (vLookup)],
+                                                                              bump
+                                                                              ? [makeFunction ('shuffle',
+                                                                                               list)]
+                                                                              : list)],
                                                             true)])])
 }
 

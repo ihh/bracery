@@ -526,7 +526,9 @@ Language features include
       - `&join{list}{item}` returns a string
       - `&map$varname:{list}{expr}` and `&filter$varname:{list}{expr}` return lists
       - `&reduce$varname:{list}$result={init}{expr}` can return list or string
-      - `&shuffle{list}` returns a shuffled list, `&rotate{list}` returns a rotated list (first element moved to back)
+      - `&shuffle{list}` returns a shuffled list
+          - `&rotate{list}` returns a rotated list (first element moved to back)
+          - `&bump{list}` returns a pseudo-rotated list (first element moved to random place in back half)
       - `&makelist{a}{b}{c}{d}{etc}` returns a list and is equivalent to `&list{&value{a}&value{b}&value{c}&value{d}&value{etc}}`
       - `&quotelist{$a}{$b}{$c}{$d}{etc}` returns a list and is equivalent to `&list{&quote{$a}&quote{$b}&quote{$c}&quote{$d}&quote{etc}}`
       - `&numsort$varname{list}{weightExpr}` and `&lexsort$varname{list}{tagExpr}` return lists, numerically- or lexically-sorted (respectively) by the corresponding mapped expression
@@ -538,6 +540,7 @@ Language features include
       - unlike `&cycle`, `&queue` does not repeat; when all elements have been shifted off, `$x` is the empty list, which is a non-truthy value
       - the return value of both `&cycle$x{list}` and `&queue$x{list}` is not the new value of `$x`, but rather `&eval{&first{$x}}`; `$x` itself represents the series of options to be iterated through, and you generally only want to display the first of these at any given time
       - these constructs are useful with `&makelist` and `&quotelist`, e.g. `[tick=>You feel &cycle$mood&makelist{happy}{sad}{bored}.] #tick# #tick# #tick# #tick#` expands to `You feel happy. You feel sad. You feel bored. You feel happy.`
+   - Similarly, `&playlist$x{list}` cycles through `list` in a non-repeating random order, using `&shuffle` and `&bump`
 - functions, alternations, repetitions, variable assignments, and conditionals can be arbitrarily nested
 - everything can occur asynchronously, so symbols can be resolved and expanded from a remote store
    - but if you have a synchronously resolvable store (i.e. a local Tracery object), everything can work synchronously too

@@ -4,6 +4,8 @@ This directory contains several AWS Lambda functions for implementing the Bracer
 
 ## AWS Lambda functions
 
+Via API Gateway
+
 - [bracery-store.js](bracery-store.js) is a tiny RESTful microservice for storing & retrieving Bracery code in DynamoDB
 - [bracery-expand.js](bracery-expand.js) pulls code from DynamoDB, expands it in AWS Lambda (possibly involving more calls to DynamoDB), and returns
 - [bracery-view.js](bracery-view.js) presents a single-page app for storing/retrieving/editing/expanding a Bracery expression. POSTing to this script creates a URL-shortened bookmark
@@ -12,6 +14,9 @@ This directory contains several AWS Lambda functions for implementing the Bracer
    - uses environment variables `COGNITO_APP_CLIENT_ID`, `COGNITO_APP_SECRET`, `COGNITO_USER_POOL_ID`
 - [bracery-twitter.js](bracery-twitter.js) redirects to/from Twitter for 3-legged OAuth
    - uses environment variables `TWITTER_CONSUMER_KEY`, `TWITTER_CONSUMER_SECRET`
+
+Via CloudWatch Alarms
+
 - [bracery-bot.js](bracery-bot.js) triggered by a CloudWatch alarm; posts Bracery-generated tweets
    - uses environment variables `TWITTER_CONSUMER_KEY`, `TWITTER_CONSUMER_SECRET`
 - [bracery-news.js](bracery-news.js) triggered by a CloudWatch alarm; polls [NewsAPI.org](https://newsapi.org/) and writes to ~[news_story](https://bracery.org/news_story)

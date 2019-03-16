@@ -11,6 +11,7 @@ var config = require('./bracery-config')
 // parse command-line options
 var opt = getopt.create([
   ['d' , 'data=PATH+'       , 'upload data file(s) with format [{"name":"symbol1","rules":["option1","option2"...]},{"name":"symbol2","rules":[...]},...]'],
+  ['D' ,  'delete'          , 'DELETE instead of PUT'],
   ['n' , 'name=NAME+'       , 'include only named symbols'],
   ['b' , 'begin=NAME'       , 'begin at named symbol'],
   ['c' , 'cookie=COOKIE'    , 'use session cookie'],
@@ -65,22 +66,28 @@ try {
         return;
       }
 
-      const putOpts = {
+      const reqOpts = {
         hostname: 'bracery.org',
         port: 443,
         path: '/store/' + def.name,
-        method: 'PUT',
         headers: {
           'Content-Type': 'application/json;charset=UTF-8'
         },
       };
-      if (opt.options.cookie)
-        putOpts.headers['Cookie'] = config.cookieName + '=' + opt.options.cookie;
-      const body = { bracery: '[' + def.rules.join('|') + ']' };
-      if (opt.options.lock)
-        body.locked = true;
-      console.warn (putOpts.method + ' ' + putOpts.path + ' (' + def.rules.length + ')');
-      let [res, data] = await util.httpsRequest (putOpts, JSON.stringify (body));
+      let content = '';
+      if (opt.options['delete']) {
+        reqOpts.method = 'DELETE'
+      } else {
+        reqOpts.method = 'PUT'
+        if (opt.options.cookie)
+          reqOpts.headers['Cookie'] = config.cookieName + '=' + opt.options.cookie;
+        const body = { bracery: '[' + def.rules.join('|') + ']' };
+        if (opt.options.lock)
+          body.locked = true;
+        content = JSON.stringify (body);
+      }
+      console.warn (reqOpts.method + ' ' + reqOpts.path + ' (' + def.rules.length + ')');
+      let [res, data] = await util.httpsRequest (reqOpts, content);
       if (res.statusCode != 200)
         console.warn ('Error ' + res.statusCode + ' (' + def.name + ') ' + (data || ''));
     }, Promise.resolve());

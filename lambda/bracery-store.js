@@ -46,9 +46,9 @@ exports.handler = async (event, context, callback) => {
         ({ TableName: tableName,
            Key: { name: name },
          });
-        respond.done();
+        return respond.ok();
       } else
-        respond.notFound();
+        return respond.notFound();
       break;
     case 'GET':
       if (result && result.bracery) {

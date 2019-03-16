@@ -14,6 +14,8 @@ This directory contains several AWS Lambda functions for implementing the Bracer
    - uses environment variables `TWITTER_CONSUMER_KEY`, `TWITTER_CONSUMER_SECRET`
 - [bracery-bot.js](bracery-bot.js) triggered by a CloudWatch alarm; posts Bracery-generated tweets
    - uses environment variables `TWITTER_CONSUMER_KEY`, `TWITTER_CONSUMER_SECRET`
+- [bracery-news.js](bracery-news.js) triggered by a CloudWatch alarm; polls [NewsAPI.org](https://newsapi.org/) and writes to ~[news_story](https://bracery.org/news_story)
+   - uses environment variable `NEWS_API_KEY`
 
 ## Other files
 

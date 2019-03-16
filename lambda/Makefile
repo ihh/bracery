@@ -1,4 +1,7 @@
 
+# set AWS keys
+include Makefile.keys
+
 ZIP = zip
 
 FUNCTIONS = bracery-store bracery-view bracery-asset bracery-expand bracery-login bracery-twitter bracery-bot
@@ -10,8 +13,8 @@ all: $(ZIPFILES)
 publish: $(PUBLISH_PSEUDOTARGETS)
 
 %.publish: %.zip
-	echo region=$(AWS_DEFAULT_REGION)
-	aws lambda update-function-code --region $(AWS_DEFAULT_REGION) --publish --zip-file fileb://$< --function-name $*
+	@echo Publishing $* '('`stat -f %z $<` 'bytes)'
+	@AWS_ACCESS_KEY_ID=$(AWS_ACCESS_KEY_ID) AWS_SECRET_ACCESS_KEY=$(AWS_SECRET_ACCESS_KEY) aws lambda update-function-code --region $(AWS_DEFAULT_REGION) --publish --zip-file fileb://$< --function-name $* >$@
 
 COMMON = bracery-config.js bracery-web.js bracery-util.js
 bracery-store.zip: bracery-store.js $(COMMON)

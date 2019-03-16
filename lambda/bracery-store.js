@@ -72,40 +72,10 @@ exports.handler = async (event, context, callback) => {
           util.extend (item,
                        { locked: body.locked,
                          owner: session.user } );
-        if (result) {
-          let expr = "SET #b = :b, #u = :u";
-          let keys = { "#b": "bracery",
-                       "#u": "updated" };
-          let attrs = { ":b": item.bracery,
-                        ":u": item.updated };
-          if (session.loggedIn) {
-            expr = expr + ", #l = :l, #o = :o";
-            util.extend (keys,
-                         { "#l": "locked",
-                           "#o": "owner" } );
-            util.extend (attrs,
-                         { ":l": item.locked,
-                           ":o": item.owner });
-          }
-          await dynamoPromise('updateItem')
-          ({ TableName: tableName,
-             Key: { name: item.name },
-             UpdateExpression: expr,
-             ExpressionAttributeNames: keys,
-             ExpressionAttributeValues: attrs,
-           });
-        } else {
-          item.visibility = config.defaultVisibility;
-          item.created = item.updated;
-          await dynamoPromise('putItem')
-          ({ TableName: tableName,
-             Item: item,
-           });
-        }
-	await dynamoPromise('putItem')
-        ({ TableName: config.revisionsTableName,
-	   Item: item,
-	 });
+        await (result
+               ? util.updateBracery (item, dynamoPromise)
+               : util.createBracery (item, dynamoPromise));
+        
         respond.ok();
       }
       break;

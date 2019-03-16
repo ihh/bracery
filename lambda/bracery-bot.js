@@ -3,24 +3,23 @@
 
 //console.log('Loading function');
 
+// Our desired call rate
+const callsPerHour = 1;
+
+// Markdown->HTML, HTML->text
 const marked = require('marked');
 const textversionjs = require('textversionjs');
 const decodeHtmlEntities = require('html-entities').AllHtmlEntities.decode;
 const html2plaintext = (html) => decodeHtmlEntities (textversionjs (html)).replace (/\n$/,'');
 
+// Bracery web
 const config = require('./bracery-config');
 const util = require('./bracery-util');
 
-const Twit = require('twit');
-const maxTweetLen = 280;
-
-const TWITTER_CONSUMER_KEY = process.env.TWITTER_CONSUMER_KEY;  // must be defined from AWS Lambda
-const TWITTER_CONSUMER_SECRET = process.env.TWITTER_CONSUMER_SECRET;  // must be defined from AWS Lambda
-
-const callsPerHour = 1;  // On average we want each account to tweet once per hour
-
+// DynamoDB
 const dynamoPromise = util.dynamoPromise();
 
+// Bracery
 global.nlp = require('./compromise.es6.min');  // hack/workaround so Bracery can see nlp. Not very satisfactory.
 const Bracery = require('./bracery').Bracery;
 
@@ -28,10 +27,18 @@ let bracery = new Bracery();
 let vars = {};
 let braceryConfig = util.braceryExpandConfig (bracery, vars, dynamoPromise);
 
+// Twitter
+const Twit = require('twit');
+const maxTweetLen = 280;
+
+const TWITTER_CONSUMER_KEY = process.env.TWITTER_CONSUMER_KEY;  // must be defined from AWS Lambda
+const TWITTER_CONSUMER_SECRET = process.env.TWITTER_CONSUMER_SECRET;  // must be defined from AWS Lambda
+
 // The Lambda function
 exports.handler = async (event, context, callback) => {
   //console.log('Received event:', JSON.stringify(event, null, 2));
-
+  
+  // Scan the Twitter table for authorized bots; post to Twitter
   let scanResult = await dynamoPromise('scan')
   ({ TableName: config.twitterTableName,
      FilterExpression: '#g = :g',
@@ -40,7 +47,7 @@ exports.handler = async (event, context, callback) => {
    });
 
   if (scanResult) {
-    // One tweet per screen name
+    // Limit tweets to one per Twitter screen name (i.e. per user, as best we can tell)
     let byScreenName = {};
     scanResult.Items.forEach ((item) => {
       const sn = item.twitterScreenName;
@@ -54,7 +61,7 @@ exports.handler = async (event, context, callback) => {
       const items = byScreenName[screenNames[j]];
       screenNames[j] = screenNames[i];
       // This function is called many times per hour, so tweet with a probability that (on average) yields one tweet per hour
-      if (Math.random() >= 1 / callsPerHour)
+      if (Math.random() >= 1 / callsPerHour)  // On average we want each account to tweet once per hour
         continue;
       // Pick a random bracery word to expand
       const item = items[Math.floor (Math.random() * items.length)];

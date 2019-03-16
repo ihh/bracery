@@ -11,20 +11,18 @@
       <a href="%VIEW_PATH_PREFIX%">bracery</a> /
       <span id="title">%SYMBOL_NAME%</span>
       <p>
-	<div id="expansion">
-	  <i>...randomizing... </i>
-	</div>
+	<div id="expansion">%EXPANSION_HTML%</div>
 	<p>
 	<a id="reroll" href="#">Re-roll</a> /
-	<a href="#" id="sourcereveal">Edit</a>
-	<span id="sourcecontrols" style="display: none;">
+	<a href="#" id="sourcereveal" %SOURCE_REVEAL_STYLE%>Edit</a>
+	<span id="sourcecontrols" %SOURCE_CONTROLS_STYLE%>
 	  Editing source text (<a href="#" id="sourcehide">hide</a>
 	  / <a href="#" id="erase">erase</a>
 	  / <a href="#" id="reset">reload</a>
 	  / <a target="_blank" href="https://github.com/ihh/bracery#Bracery">docs</a>):
 	</span>
 	<a id="tweet" href="#">Tweet</a>
-	<div id="sourcepanel" style="display: none;">
+	<div id="sourcepanel" %SOURCE_CONTROLS_STYLE%>
 	  <div>
 	    <div contenteditable="true" id="eval">%ESCAPED_SYMBOL_DEFINITION%</div>
 	  </div>

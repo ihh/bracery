@@ -4,7 +4,7 @@ include Makefile.keys
 
 ZIP = zip
 
-FUNCTIONS = bracery-store bracery-view bracery-asset bracery-expand bracery-login bracery-twitter bracery-bot
+FUNCTIONS = bracery-store bracery-view bracery-asset bracery-expand bracery-login bracery-twitter bracery-bot bracery-news
 ZIPFILES = $(addsuffix .zip,$(FUNCTIONS))
 PUBLISH_PSEUDOTARGETS = $(addsuffix .publish,$(FUNCTIONS))
 
@@ -23,14 +23,14 @@ bracery-store.zip: bracery-store.js $(COMMON)
 	rm index.js
 
 STAGING_DIR = stage
-OAUTH_DEPS = oauth
-TWITTER_DEPS = twit
+OAUTH_NPM_DEPS = oauth
+TWITTER_NPM_DEPS = twit
 bracery-twitter.zip: bracery-twitter.js $(COMMON)
 	(test -e $(STAGING_DIR) && rm -rf $(STAGING_DIR)) || true
 	mkdir -p $(STAGING_DIR)/node_modules
 	cp $^ $(STAGING_DIR)
 	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
-	cd $(STAGING_DIR); npm install $(OAUTH_DEPS) $(TWITTER_DEPS)
+	cd $(STAGING_DIR); npm install $(OAUTH_NPM_DEPS) $(TWITTER_NPM_DEPS)
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
 bracery-login.zip: bracery-login.js $(COMMON)
@@ -40,12 +40,24 @@ bracery-login.zip: bracery-login.js $(COMMON)
 	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
+COMPROMISE = compromise.es6.min.js
+COMPROMISE_DIR = ../node_modules/compromise/builds
+COMPROMISE_DEP = $(COMPROMISE_DIR)/$(COMPROMISE)
+
+BRACERY_SOURCES = bracery.js template.js parsetree.js chomsky.js validator.js rhs.js
+BRACERY_SOURCE_DIR = ../src
+BRACERY_DEPS = $(addprefix $(BRACERY_SOURCE_DIR)/,$(BRACERY_SOURCES))
+
+EXPAND_DEPS = $(COMPROMISE_DEP) $(BRACERY_DEPS)
+
 TEMPLATES = index.html
-bracery-view.zip: bracery-view.js $(COMMON) $(TEMPLATES)
+VIEW_NPM_DEPS = marked
+bracery-view.zip: bracery-view.js $(COMMON) $(TEMPLATES) $(EXPAND_DEPS)
 	(test -e $(STAGING_DIR) && rm -rf $(STAGING_DIR)) || true
 	mkdir -p $(STAGING_DIR)/node_modules
 	cp $^ $(STAGING_DIR)
 	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
+	cd $(STAGING_DIR); npm install $(VIEW_NPM_DEPS)
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
 ASSETS = asset/bracery-view.js asset/bracery-view.css
@@ -70,11 +82,7 @@ MARKED_DIR = ../node_modules/marked
 asset/%.js: $(MARKED_DIR)/%.js
 	cp $< $@
 
-BRACERY_SOURCES = bracery.js template.js parsetree.js chomsky.js validator.js rhs.js
-COMPROMISE = compromise.es6.min.js
-COMPROMISE_DIR = ../node_modules/compromise/builds
-BRACERY_SOURCE_DIR = ../src
-bracery-expand.zip: bracery-expand.js $(COMMON) $(COMPROMISE_DIR)/$(COMPROMISE) $(addprefix $(BRACERY_SOURCE_DIR)/,$(BRACERY_SOURCES))
+bracery-expand.zip: bracery-expand.js $(COMMON) $(EXPAND_DEPS)
 	(test -e $(STAGING_DIR) && rm -rf $(STAGING_DIR)) || true
 	mkdir -p $(STAGING_DIR)/node_modules
 	cp $^ $(STAGING_DIR)
@@ -83,13 +91,18 @@ bracery-expand.zip: bracery-expand.js $(COMMON) $(COMPROMISE_DIR)/$(COMPROMISE) 
 	cp $(addprefix $(BRACERY_SOURCE_DIR)/,$(BRACERY_SOURCES)) $(STAGING_DIR)
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
-BOT_DEPS = marked textversionjs html-entities
-bracery-bot.zip: bracery-bot.js $(COMMON) $(COMPROMISE_DIR)/$(COMPROMISE) $(addprefix $(BRACERY_SOURCE_DIR)/,$(BRACERY_SOURCES))
+BOT_NPM_DEPS = $(VIEW_NPM_DEPS) textversionjs html-entities
+bracery-bot.zip: bracery-bot.js $(COMMON) $(EXPAND_DEPS)
 	(test -e $(STAGING_DIR) && rm -rf $(STAGING_DIR)) || true
 	mkdir -p $(STAGING_DIR)/node_modules
 	cp $^ $(STAGING_DIR)
 	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
 	cp $(COMPROMISE_DIR)/$(COMPROMISE) $(STAGING_DIR)
 	cp $(addprefix $(BRACERY_SOURCE_DIR)/,$(BRACERY_SOURCES)) $(STAGING_DIR)
-	cd $(STAGING_DIR); npm install $(TWITTER_DEPS) $(BOT_DEPS)
+	cd $(STAGING_DIR); npm install $(TWITTER_NPM_DEPS) $(BOT_NPM_DEPS)
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
+
+bracery-news.zip: bracery-news.js $(COMMON)
+	cp $< index.js
+	$(ZIP) $@ index.js $(COMMON)
+	rm index.js

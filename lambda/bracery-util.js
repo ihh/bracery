@@ -213,6 +213,50 @@ function getVars (event, body) {
   return vars;
 }
 
+async function createBracery (item, dynamoPromise) {
+  item.visibility = config.defaultVisibility;
+  item.created = item.updated = Date.now();
+  await dynamoPromise('putItem')
+  ({ TableName: config.tableName,
+     Item: item,
+   });
+  await putBraceryRevision (item, dynamoPromise);
+}
+
+async function updateBracery (item, dynamoPromise) {
+  item.updated = Date.now();
+  let expr = "SET #b = :b, #u = :u";
+  let keys = { "#b": "bracery",
+               "#u": "updated" };
+  let attrs = { ":b": item.bracery,
+                ":u": item.updated };
+  if (typeof(item.locked) !== 'undefined') {
+    expr = expr + ", #l = :l";
+    keys['#l'] = 'locked';
+    attrs[':l'] = item.locked;
+  }
+  if (typeof(item.owner) !== 'undefined') {
+    expr = expr + ", #o = :o";
+    keys['#o'] = 'owner';
+    attrs[':o'] = item.owner;
+  }
+  await dynamoPromise('updateItem')
+  ({ TableName: config.tableName,
+     Key: { name: item.name },
+     UpdateExpression: expr,
+     ExpressionAttributeNames: keys,
+     ExpressionAttributeValues: attrs,
+   });
+  await putBraceryRevision (item, dynamoPromise);
+}
+
+async function putBraceryRevision (item, dynamoPromise) {
+  await dynamoPromise('putItem')
+  ({ TableName: config.revisionsTableName,
+     Item: item,
+   });
+}
+
 function withCookie (callback, session) {
   return (res) => {
     let headers = {
@@ -358,6 +402,8 @@ module.exports = {
   dynamoPromise,
   getBody,
   getVars,
+  createBracery,
+  updateBracery,
   expandTemplate,
   randomChar,
   makeUniqueId,

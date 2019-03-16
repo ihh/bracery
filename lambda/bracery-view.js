@@ -7,13 +7,23 @@ const fs = require('fs');
 
 const util = require('./bracery-util');
 const config = require('./bracery-config');
+
 const tableName = config.tableName;
 const updateIndexName = config.updateIndexName;
 
 const dynamoPromise = util.dynamoPromise();
 
+// Bracery
+global.nlp = require('./compromise.es6.min');  // hack/workaround so Bracery can see nlp. Not very satisfactory.
+const Bracery = require('./bracery').Bracery;
+const bracery = new Bracery();
+
+// Markdown->HTML
+const marked = require('marked');
+
 // The static assets pointed to by these template substitutions
 // should be uploaded in the Lambda zip of bracery-asset.js (or to S3, or wherever)
+const hiddenStyle = 'style="display:none;"';
 const templateVarValMap = { 'JAVASCRIPT_FILE': config.assetPrefix + config.viewAssetStub + '.js',
                             'STYLE_FILE': config.assetPrefix + config.viewAssetStub + '.css',
                             'BASE_URL': config.baseUrl,
@@ -21,7 +31,9 @@ const templateVarValMap = { 'JAVASCRIPT_FILE': config.assetPrefix + config.viewA
                             'VIEW_PATH_PREFIX': config.viewPrefix,
                             'EXPAND_PATH_PREFIX': config.expandPrefix,
 			    'LOGIN_PATH_PREFIX': config.loginPrefix,
-                            'TWITTER_PATH_PREFIX': config.twitterPrefix };
+                            'TWITTER_PATH_PREFIX': config.twitterPrefix,
+                            'SOURCE_CONTROLS_STYLE': hiddenStyle,
+                            'SOURCE_REVEAL_STYLE': '' };
 const templateNameVar = 'SYMBOL_NAME';
 const templateDefVar = 'SYMBOL_DEFINITION';
 const templateLockedVar = 'LOCKED_BY_USER';
@@ -30,6 +42,7 @@ const templateVarsVar = 'VARS';
 const templateRecentVar = 'RECENT_SYMBOLS';
 const templateUserVar = 'USER';
 const templateExpVar = 'EXPANSION';
+const templateExpHtmlVar = 'EXPANSION_HTML';
 const templateBotsVar = 'BOTS';
 
 // The Lambda function
@@ -43,10 +56,13 @@ exports.handler = async (event, context, callback) => {
   // Wrap all downstream calls (to dynamo etc) in try...catch
   try {
     // Get app state parameters
+    const isRedirect = event && event.queryStringParameters && event.queryStringParameters.redirect;
+    const gotSessionState = session && session.state;
+    const isBookmark = event && event.queryStringParameters && event.queryStringParameters.id;
     const appState =
-	  (event && event.queryStringParameters && event.queryStringParameters.redirect && session && session.state
+	  (isRedirect && gotSessionState
 	   ? JSON.parse (session.state)
-	   : (event && event.queryStringParameters && event.queryStringParameters.id
+	   : (isBookmark
               ? await util.getBookmarkedParams (event, dynamoPromise)
               : util.getParams (event)));
     const { name, initText, evalText, vars, expansion } = appState;
@@ -70,12 +86,18 @@ exports.handler = async (event, context, callback) => {
     tmpMap[templateVarsVar] = vars;
     tmpMap[templateUserVar] = null;
     tmpMap[templateExpVar] = expansion;
+    tmpMap[templateExpHtmlVar] = '<i>' + 'Loading...' + '</i>';
 
-    // Keep a log, so we can debug "live" by inserting %LOG% into index.html (very unsafe...)
-    let logText = '';
-    const log = () => {
-      logText += Array.prototype.map.call (arguments, (arg) => JSON.stringify (arg)).join(' ') + '\n';
+    const populateExpansionTemplates = (expansion) => {
+      const e = expansion || {}, text = e.text || '', vars = e.vars || {}
+      tmpMap[templateExpVar] = { text: text, vars: vars };
+      tmpMap[templateExpHtmlVar] = util.expandMarkdown (text, marked);
     };
+
+    if (event && event.queryStringParameters && event.queryStringParameters.edit) {
+      tmpMap['SOURCE_CONTROLS_STYLE'] = '';
+      tmpMap['SOURCE_REVEAL_STYLE'] = hiddenStyle;
+    }
     
     // Query the database for recently-updated symbols
     let newsPromise = dynamoPromise('query')
@@ -98,7 +120,7 @@ exports.handler = async (event, context, callback) => {
     // Query the database for the given symbol definition, or use evalText if supplied
     let symbolPromise =
         (typeof(evalText) === 'string'
-         ? Promise.resolve()
+         ? Promise.resolve (expansion)
          : (dynamoPromise('query')
             ({ TableName: tableName,
 	       KeyConditionExpression: "#nkey = :nval",
@@ -114,8 +136,16 @@ exports.handler = async (event, context, callback) => {
                 tmpMap[templateDefVar] = result.bracery;
                 if (result.locked && result.owner === session.user)
                   tmpMap[templateLockedVar] = ' checked';
-              }
-            })));
+                
+                let braceryConfig = util.braceryExpandConfig (bracery, vars, dynamoPromise);
+
+                // If no expansion, call expandSymbol
+                return (expansion
+                        ? expansion
+                        : braceryConfig.expandFull ({ symbolName: name }));
+              } else
+                return expansion
+            }))).then (populateExpansionTemplates);
 
     // Query the database for any bots we're operating
     let botPromise =
@@ -151,7 +181,6 @@ exports.handler = async (event, context, callback) => {
     // Do the %VAR%->val template substitutions
     if (session && session.loggedIn && session.email)
       tmpMap[templateUserVar] = session.email.replace(/(\w)[^@\.]+([@\.])/g,(m,c,s)=>c+'**'+s);  // obfuscate email for username in view
-    tmpMap.LOG = logText;  // add log to template map
     const finalHtml = util.expandTemplate (templateHtmlBuf.toString(), tmpMap);
 
     // And return

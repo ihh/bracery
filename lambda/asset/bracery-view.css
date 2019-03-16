@@ -2,12 +2,17 @@ body {
     display: flex;
     flex-direction: row;
     justify-content: space-around;
+
+    font-family: sans-serif;
 }
 
 .main {
-    width: 600px;
-    background-color: #eee;
+    background-color: #fcfcfc;
+    width: 100%;
     padding: 4px;
+    border-color: lightgray;
+    border-style: solid;
+    border-width: 1px;
 }
 
 #login, #logout {
@@ -15,7 +20,13 @@ body {
 }
 
 #expansion {
-    background-color: lightgray;
+    background-color: white;
+    border-color: lightgray;
+    border-style: solid;
+    border-width: 1px;
+
+    font-size: x-large;
+    
     min-height: 1em;
     margin-left: 4px;
     margin-right: 4px;

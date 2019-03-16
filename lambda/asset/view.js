@@ -116,7 +116,7 @@ function initBraceryView (config) {
                 + ' (' + makeExternalLink ('revoke all', twitterPrefix, { unsubscribe: true }, addStateToLink) + ')'
                 + '<ul>'
                 + bots[botName].map (function (sym) {
-                  return '<li>' + makeExternalLink (sym, viewPrefix + sym, null, addStateToLink)
+                  return '<li>' + makeExternalLink (sym, viewPrefix + sym)
                     + ' (' + makeExternalLink ('revoke', twitterPrefix, { source: sym, unsubscribe: true }, addStateToLink) + ')'
                 }).join('')
                 + '</ul></li>'

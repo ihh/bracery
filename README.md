@@ -28,7 +28,7 @@ and lists from [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_langua
 ## Procedural text repository
 
 A writable repository of Bracery scripts is available at [bracery.org](https://bracery.org/).
-Edit Bracery in the web browser; save and share immediately; easily convert into a Twitter bot.
+Edit Bracery in the web browser; save and share immediately; deploy as a Twitter bot with a single click.
 
 Bracery can also be run from the command line, in the browser, etc.
 The Bracery command-line client will use the bracery.org server to resolve symbol definitions if the `-w` switch is specified from the command line, e.g.

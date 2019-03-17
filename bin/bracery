@@ -54,7 +54,7 @@ if (opt.options.seed && opt.options.web)
   throw new Error ("can't seed random number generator of webservice")
 var braceryInitConfig = {}
 if (opt.options.dictionary)
-  braceryInitConfig.cmuDict = fs.readFileSync (opt.options.dictionary).toString()
+  braceryInitConfig.cmuDict = function() { return fs.readFileSync (opt.options.dictionary).toString() }
 var b = (opt.options.web
          ? new bracery.BraceryClient (braceryInitConfig)
          : new bracery.Bracery (null, braceryInitConfig))

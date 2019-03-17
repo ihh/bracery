@@ -15,23 +15,28 @@ var Bracery = function (rules, config) {
       this.textToPhonemes = config.textToPhonemes
     else if (config.cmuDict) {
       var isWord = new RegExp ('^[a-z]')
-      var word2phonemes = {}
-      config.cmuDict.toLowerCase()
-        .split (/\n/)
-        .forEach (function (line) {
-          line = line
-            .replace (/^\s+/, '')
-            .replace (/\s+$/, '')
-            .replace(/[^a-z0-9\s]/g,'')  // these are the characters we keep
-          if (isWord.exec (line)) {
-            var fields = line.split (/\s+/)
-            word2phonemes[fields[0]] = fields.slice(1)
-              .map (function (phoneme) {
-                return phoneme.replace (/[0-9]/g, '')  // removing numerical digits elides the syllabic emphasis
-              })
-          }
-        })
+      var word2phonemes = null
+      function loadDictionary() {
+        word2phonemes = {}
+        config.cmuDict().toLowerCase()
+          .split (/\n/)
+          .forEach (function (line) {
+            line = line
+              .replace (/^\s+/, '')
+              .replace (/\s+$/, '')
+              .replace(/[^a-z0-9\s]/g,'')  // these are the characters we keep
+            if (isWord.exec (line)) {
+              var fields = line.split (/\s+/)
+              word2phonemes[fields[0]] = fields.slice(1)
+                .map (function (phoneme) {
+                  return phoneme.replace (/[0-9]/g, '')  // removing numerical digits elides the syllabic emphasis
+                })
+            }
+          })
+      }
       function convertToPhonemes (word) {
+        if (!word2phonemes)
+          loadDictionary()
         for (var i = 0; i < word.length; ++i) {
           var phonemes = word2phonemes[word.substr(i)]
           if (phonemes)

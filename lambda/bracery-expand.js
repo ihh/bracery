@@ -13,9 +13,6 @@ const Bracery = require('./bracery').Bracery;
 exports.handler = async (event, context, callback) => {
   //console.log('Received event:', JSON.stringify(event, null, 2));
 
-  // Get symbol name
-  const name = event.pathParameters.name;
-
   // Get initial vars as query or body parameters, if supplied
   const vars = util.getVars (event);
 
@@ -26,9 +23,25 @@ exports.handler = async (event, context, callback) => {
   let bracery = new Bracery();
   let braceryConfig = util.braceryExpandConfig (bracery, vars, util.dynamoPromise());
 
-  // Call expandSymbol
-  let expansion = await braceryConfig.expandFull ({ symbolName: name });
-
+  // GET (single symbol) or POST (arbitrary Bracery)?
+  let expansion = null;
+  switch (event.httpMethod) {
+  case 'GET':
+    // Get symbol name
+    const name = event.pathParameters.name;
+    // Call expandSymbol
+    expansion = await braceryConfig.expandFull ({ symbolName: name });
+    break;
+  case 'POST':
+    // Get Bracery to expand
+    const braceryText = util.getBody(event).bracery;
+    // Call expand
+    expansion = await bracery.expand ({ rhsText: braceryText },
+                                      braceryConfig);
+    break;
+  default:
+    return respond.badMethod();
+  }
   // And return
   respond.ok (expansion);
 };

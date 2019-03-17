@@ -262,7 +262,7 @@ function sampleParseTree (rhs, config) {
   })
 }
 
-function getSymbolNodes (rhs) {
+function getSymbolNodes (rhs, ignoreTracery) {
   var pt = this
   return rhs.reduce (function (result, node) {
     var r
@@ -271,43 +271,44 @@ function getSymbolNodes (rhs) {
       case 'lookup':
         break
       case 'assign':
-        r = pt.getSymbolNodes ((node.value || []).concat (node.local || []))
+        r = pt.getSymbolNodes ((node.value || []).concat (node.local || []), ignoreTracery)
         break
       case 'alt':
         r = node.opts.reduce (function (altResults, opt) {
-          return altResults.concat (pt.getSymbolNodes (opt))
+          return altResults.concat (pt.getSymbolNodes (opt, ignoreTracery))
         }, [])
         break
       case 'rep':
-        r = pt.getSymbolNodes (node.unit)
+        r = pt.getSymbolNodes (node.unit, ignoreTracery)
         break
       case 'func':
 	switch (node.funcname) {
 	case 'eval':
-	  r = pt.getSymbolNodes (node.args.concat (node.value || []))
+	  r = pt.getSymbolNodes (node.args.concat (node.value || []), ignoreTracery)
 	  break
 	case 'strictquote':
 	case 'quote':
 	case 'unquote':
         default:
-	  r = pt.getSymbolNodes (node.args)
+	  r = pt.getSymbolNodes (node.args, ignoreTracery)
           break
 	}
         break
       case 'cond':
-        r = pt.getSymbolNodes (node.test.concat (node.t, node.f))
+        if (!(ignoreTracery && isTraceryExpr (node)))
+          r = pt.getSymbolNodes (node.test.concat (node.t, node.f), ignoreTracery)
         break
       case 'root':
       case 'alt_sampled':
-        r = pt.getSymbolNodes (node.rhs)
+        r = pt.getSymbolNodes (node.rhs, ignoreTracery)
         break
       case 'rep_sampled':
-        r = pt.getSymbolNodes (node.reps.reduce (function (all, rep) { return all.concat(rep) }, []))
+        r = pt.getSymbolNodes (node.reps.reduce (function (all, rep) { return all.concat(rep) }, []), ignoreTracery)
         break
       default:
       case 'sym':
         r = [node]
-	r = r.concat (pt.getSymbolNodes (node.rhs || node.bind || []))
+	r = r.concat (pt.getSymbolNodes (node.rhs || node.bind || [], ignoreTracery))
         break
       }
     return r ? result.concat(r) : result
@@ -1185,7 +1186,16 @@ var binaryFunction = {
     }
     var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
     return resolve('')
-  }
+  },
+  rhyme: function (l, r, lv, rv, config) {
+    var textToPhonemes = config.textToPhonemes || textToWords
+    var lPhones = textToPhonemes (l), rPhones = textToPhonemes (r)
+    var lWords = lPhones.length, rWords = rPhones.length
+    var match = 0
+    while (match < lWords && match < rWords && lPhones[lWords-match-1] === rPhones[rWords-match-1])
+      ++match;
+    return match + ''
+  },
 }
 
 function funcType (funcname) {
@@ -2194,6 +2204,14 @@ function ordinal(i) {
   return i + "th";
 }
 
+// Text to words
+function textToWords (text) {
+  return text.toLowerCase()
+    .replace(/[^a-z\s]/g,'')  // these are the phoneme characters we keep
+    .replace(/\s+/g,' ').replace(/^ /,'').replace(/ $/,'')  // collapse all runs of space & remove start/end space
+    .split(' ');
+}
+
 // Externally exposed functions
 module.exports = {
   // config
@@ -2289,6 +2307,7 @@ module.exports = {
   capitalize: capitalize,
   countSyllables: countSyllables,
   pluralForm: pluralForm,
+  textToWords: textToWords,
   // general numerics
   ordinal: ordinal,
   nPlurals: nPlurals,

@@ -205,6 +205,7 @@ BinaryFunctionName
   / "and" / "or"
   / "cat" / "prepend" / "append" / "join" / "nth"
   / "apply" / "xapply"
+  / "rhyme"
 
 UnaryFunctionName
   = "eval" / "syntax" / "tree" / "jparse"

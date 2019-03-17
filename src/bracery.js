@@ -6,12 +6,51 @@ var RhsParser = ParseTree.RhsParser
 var extend = ParseTree.extend
 var nlp = ParseTree.nlp
 
-var Bracery = function (rules) {
+var Bracery = function (rules, config) {
   this.rules = {}
   if (rules)
     this.addRules (rules)
+  if (config) {
+    if (config.textToPhonemes)
+      this.textToPhonemes = config.textToPhonemes
+    else if (config.cmuDict) {
+      var isWord = new RegExp ('^[a-z]')
+      var word2phonemes = {}
+      config.cmuDict.toLowerCase()
+        .split (/\n/)
+        .forEach (function (line) {
+          line = line
+            .replace (/^\s+/, '')
+            .replace (/\s+$/, '')
+            .replace(/[^a-z0-9\s]/g,'')  // these are the characters we keep
+          if (isWord.exec (line)) {
+            var fields = line.split (/\s+/)
+            word2phonemes[fields[0]] = fields.slice(1)
+              .map (function (phoneme) {
+                return phoneme.replace (/[0-9]/g, '')  // removing numerical digits elides the syllabic emphasis
+              })
+          }
+        })
+      function convertToPhonemes (word) {
+        for (var i = 0; i < word.length; ++i) {
+          var phonemes = word2phonemes[word.substr(i)]
+          if (phonemes)
+            return (i ? convertToPhonemes (word.substr(0,i)) : []).concat (phonemes)
+        }
+        return 'xxx'
+      }
+      this.textToPhonemes = function (text) {
+        return ParseTree.textToWords (text)
+          .reduce (function (phonemeArray, word) {
+            return phonemeArray.concat (convertToPhonemes (word));
+          }, []);
+      }
+    }
+  }
   return this
 }
+
+Bracery.prototype.textToPhonemes = ParseTree.textToWords
 
 Bracery.prototype.defaultSymbol = ['origin', 'sentence']
 Bracery.prototype.rng = Math.random
@@ -197,7 +236,8 @@ function stringifyText (expansion) {
 }
 
 Bracery.prototype.makeConfig = function (config) {
-  return extend ({ expand: this._expandSymbol.bind (this),
+  return extend ({ textToPhonemes: this.textToPhonemes.bind (this),
+                   expand: this._expandSymbol.bind (this),
                    get: this._getSymbol.bind (this),
                    set: function() { return [] } },
                  config)

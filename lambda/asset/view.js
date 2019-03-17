@@ -48,6 +48,7 @@ function initBraceryView (config) {
   var eraseElement = document.getElementById('erase')
   var resetElement = document.getElementById('reset')
   var rerollElement = document.getElementById('reroll')
+  var refsElement = document.getElementById('refs')
   var expElement = document.getElementById('expansion')
   var tweetElement = document.getElementById('tweet')
 
@@ -157,11 +158,25 @@ function initBraceryView (config) {
 				   ? undefined
 				   : { text: currentExpansionText,
 				       vars: varsAfterCurrentExpansion }) })
+        updateRefs (currentSourceText)
       }
     }
   }
   function render (expansion) {
     return show() (expansion)
+  }
+  function updateRefs (text) {
+    text = text || config.init || evalElement.innerText
+    var isRef = {}
+    bracery.ParseTree.getSymbolNodes (bracery.ParseTree.parseRhs (text), true)
+      .forEach (function (node) { isRef[node.name] = true })
+    var refs = Object.keys (isRef)
+    refsElement.innerHTML =
+      (refs.length
+       ? ('References: ' + refs.map (function (name) {
+         return '~<a href="' + baseViewUrl + name + '?edit=true" target="_blank">' + name + '</a>'
+       }).join(', '))
+       : '')
   }
   
   function makeExternalLink (text, link, params, onclick) {
@@ -468,6 +483,7 @@ function initBraceryView (config) {
 	braceryServer.expand (text, extend (callbacks,
 					    expandConfig,
 					    { vars: extend ({}, updateVars) }))
+        
       } catch (e) {
 	expElement.innerText = e
 	reject (e)

@@ -21,7 +21,7 @@ async function httpsRequest (opts, formData) {
 
 var BraceryClient = function (config) {
   config = config || {}
-  Bracery.Bracery.call (this)
+  Bracery.Bracery.call (this, null, config)
   this.serverDomain = config.serverDomain || 'bracery.org'
   this.getUrlPrefix = config.getUrlPrefix || '/store/'
   this.expandUrlPrefix = config.expandUrlPrefix || '/expand/'

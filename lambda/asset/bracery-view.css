@@ -7,7 +7,7 @@ body {
 }
 
 .main {
-    background-color: #fcfcfc;
+    background-color: #fcfcfd;
     width: 100%;
     padding: 4px;
     border-color: lightgray;
@@ -51,6 +51,11 @@ body {
 
 #eval pre {
     white-space: pre-wrap;
+}
+
+#refs {
+    font-size: small;
+    font-style: italic;
 }
 
 #error {

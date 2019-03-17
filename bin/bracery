@@ -28,14 +28,15 @@ var opt = getopt.create([
   ['e' , 'eval=EXPR+'       , 'evaluate Bracery expression(s) text from comand line'],
   ['n' , 'num=NUMBER'       , 'number of randomized samples to output'],
   ['c' , 'config=JSON'      , 'specify config params (e.g. maxDepth, maxRecursion, maxLength, maxNodes, maxReps)'],
+  ['D' , 'dictionary=PATH'  , 'specify path to CMU Pronunciation Dictionary, for rhyming'],
   ['V' , 'validate=EXPR+'   , 'validate and normalize text, without expanding'],
   ['t' , 'tree'             , 'show parse tree'],
   ['T' , 'compact-tree'     , 'like --tree, but compact'],
   ['a' , 'async'            , 'run asynchronously'],
   ['R' , 'seed=NUMBER'      , 'seed random number generator'],
   ['r' , 'repl'             , 'enter Read-Evaluate-Print Loop (REPL)'],
-  ['S' , 'server=SOCKET'    , 'run as a web service'],
-  ['C' , 'client=URL'       , 'run as client of web service'],
+  ['S' , 'server=SOCKET'    , 'run as a simple web service'],
+  ['C' , 'client=URL'       , 'run as client of simple web service'],
   ['m' , 'markov=FILE'      , 'run as Markov chain from Braceplate template file'],
   ['q' , 'quiz=FILE'        , 'like --markov, but interactive'],
   ['v' , 'verbose=NUM'      , 'print logging info'],
@@ -51,9 +52,12 @@ var rng = (opt.options.verbose < 0
            : mt.random.bind(mt))
 if (opt.options.seed && opt.options.web)
   throw new Error ("can't seed random number generator of webservice")
+var braceryInitConfig = {}
+if (opt.options.dictionary)
+  braceryInitConfig.cmuDict = fs.readFileSync (opt.options.dictionary).toString()
 var b = (opt.options.web
-         ? new bracery.BraceryClient()
-         : new bracery.Bracery (null, { rng: rng }))
+         ? new bracery.BraceryClient (braceryInitConfig)
+         : new bracery.Bracery (null, braceryInitConfig))
 
 var varVal = {}
 function makeConfig() {

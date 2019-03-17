@@ -1782,6 +1782,21 @@ function makeExpansionPromise (config) {
                     expansion.text = makeString(a)
                     break
 
+                  case 'iota':
+                    var n = toNumber(argExpansion.text)
+                    expansion.value = new Array(n).fill(0).map (function (_item, i) { return i.toString() })
+                    expansion.text = makeString(expansion.value)
+                    break
+
+                  case 'sample':
+                    var weights = makeArray (argExpansion.value).map (toNumber)
+                    var totalWeight = weights.reduce (function (total, w) { return total + w }, 0)
+                    var w = totalWeight * rngSaver(), i = 0
+                    while (i + 1 < weights.length && (w -= weights[i]) > 0)
+                      ++i;
+                    expansion.text = i.toString()
+                    break
+
                     // basic text functions
                   case 'cap':
                     expansion.text = capitalize (arg)

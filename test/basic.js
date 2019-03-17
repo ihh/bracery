@@ -327,6 +327,8 @@ function doTests (testRunner) {
   expectExpand ('&reverse&split//{abcde}', 'edcba')  // empty regex in &split
   expectExpand ('&reverse&split/b/{abcde}', 'cdea')
 
+  expectExpand ('&join&iota{5}{,}', '0,1,2,3,4')
+
   // &makelist, &quotelist, &rotate, &cycle, &queue, &shuffle, &bump, &playlist
   expectExpand ('$x=&split{1 2 3} &rotate$x', '231')
 

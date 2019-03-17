@@ -146,3 +146,31 @@ function makeQueue (v, list) {
                                          [makeAssign (varname, list)]),
                         makeFunction ('shift', v)])
 }
+
+/*
+&imp{num}{expr}{template}
+=>
+&let$samples={}$weights=
+&map&iota{num}{
+&push$samples{&eval$template}
+&eval$expr
+}{
+&nth{&sample$weights}$samples
+}
+*/
+function makeImportanceSampler (num, expr, template) {
+  return makeLocalAssignChain
+  ([{ varname: 'samples',
+      value: [] },
+    { varname: 'weights',
+      value: [makeListFunction
+              ('map',
+               defaultListVarName,
+               [makeFunction ('iota', [num.toString()])],
+               [makeStrictQuote ([makeFunction ('push', [makeStrictQuote ([makeLookup ('samples')]),
+                                                         makeFunction ('eval', template)]),
+                                  makeFunction ('eval', [makeStrictQuote ([makeFunction ('math', [expr])])])])])] }],
+   [makeFunction ('nth',
+                  [makeFunction ('sample', [makeLookup ('weights')]),
+                   makeLookup ('samples')])])
+}

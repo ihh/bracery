@@ -58,6 +58,9 @@ Function
   / CallFunction
   / DefineFunction
   / MathFunction
+  / MeterFunction
+  / ScheduleFunction
+  / ImportanceSamplingFunction
   / LinkFunction
   / ParseFunction
   / ListConstructor
@@ -162,11 +165,6 @@ NullaryFunction
 BinaryVarFunction
   = "&" func:PushOrUnshift v:VarFunctionArg right:FunctionArg _ { return makeFunction (func, [wrapNodes (v), wrapNodes (right)]) }
   / "&" func:PushOrUnshift right:FunctionArg _ { return makeFunction (func, [makeStrictQuote ([makeLookup (defaultListVarName)]), wrapNodes (right)]) }
-  / "&meter" icon:FunctionArg expr:MathExpr status:QuotedFunctionArg _ { return makeMeter (icon, expr, status) }
-  / "&meter" icon:FunctionArg expr:MathExpr _ { return makeMeter (icon, expr) }
-  / "&cycle" v:VarFunctionArg list:FunctionArg _ { return makeCycle (v, list, false) }
-  / "&playlist" v:VarFunctionArg list:FunctionArg _ { return makeCycle (v, list, true) }
-  / "&queue" v:VarFunctionArg list:FunctionArg _ { return makeQueue (v, list) }
 
 UnaryVarFunction
   = "&" func:ShiftOrPop v:VarFunctionArg { return makeFunction (func, v) }
@@ -176,6 +174,18 @@ UnaryVarFunction
   / "--" v:VarFunctionArg { return wrapNodes ([makeFunction ('dec', v)].concat (v[0].args)) }
   / v:VarFunctionArg "++" { return wrapNodes (v[0].args.concat ([makeFunction ('inc', v)])) }
   / v:VarFunctionArg "--" { return wrapNodes (v[0].args.concat ([makeFunction ('dec', v)])) }
+
+MeterFunction
+  = "&meter" icon:FunctionArg expr:MathExpr status:QuotedFunctionArg _ { return makeMeter (icon, expr, status) }
+  / "&meter" icon:FunctionArg expr:MathExpr _ { return makeMeter (icon, expr) }
+
+ScheduleFunction
+  = "&cycle" v:VarFunctionArg list:FunctionArg _ { return makeCycle (v, list, false) }
+  / "&playlist" v:VarFunctionArg list:FunctionArg _ { return makeCycle (v, list, true) }
+  / "&queue" v:VarFunctionArg list:FunctionArg _ { return makeQueue (v, list) }
+
+ImportanceSamplingFunction
+  = "&imp{" num:Number "}{" _ expr:MathExpr _ "}" template:QuotedFunctionArg _ { return makeImportanceSampler (num, expr, template) }
 
 MathFunction
   = "&math{" _ math:MathExpr _ "}" { return makeFunction ('math', [math]) }
@@ -214,7 +224,7 @@ UnaryFunctionName
   / "wordnum" / "dignum" / "ordinal" / "cardinal"
   / "plural" / "singular" / "nlp_plural" / "topic" / "person" / "place" / "past" / "present" / "future" / "infinitive"
   / "json" / "parsejson"
-  / "list" / "value" / "islist" / "first" / "last" / "notfirst" / "notlast"
+  / "list" / "value" / "islist" / "first" / "last" / "notfirst" / "notlast" / "iota" / "sample"
   / "strlen" / "length" / "shuffle" / "bump" / "reverse" / "revstr"
   / "not"
   / "comment"
@@ -350,6 +360,12 @@ MultiplicativeExpr
       return makeFunction (op === '*' ? 'multiply' : 'divide', [left, right])
     }, first)
   }
+  / PowerExpr
+
+PowerExpr
+  = base:PrimaryExpr _ ("^"/"**") _ exp:PrimaryExpr { return makeFunction ('pow', [base, exp]) }
+  / ("e"/"exp") _ ("^"/"**") _ exp:PrimaryExpr { return makeFunction ('pow', [Math.exp(1).toString(), exp]) }
+  / "exp" _ "(" _ exp:AdditiveExpr _ ")" _ { return makeFunction ('pow', [Math.exp(1).toString(), exp]) }
   / PrimaryExpr
 
 PrimaryExpr

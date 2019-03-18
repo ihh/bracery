@@ -416,7 +416,7 @@ function initBraceryView (config) {
   var delayedUpdateTimer = null, updateDelay = 400
   function evalChanged (evt) {
     cancelDelayedUpdate()
-    setTimeout (update, updateDelay)
+    delayedUpdateTimer = setTimeout (update, updateDelay)
     evalTextEdited = true
     warnUnsaved()
     // The user typing input on the page overrides whatever was in the URL (or the current game state),
@@ -452,16 +452,12 @@ function initBraceryView (config) {
 	if (typeof(updateVars) === 'undefined')
           updateVars = initVars
 	
-	function expandSymbol (config) {
-          var symbolName = config.symbolName || config.node.name
-          return new Promise (function (resolve, reject) {
-            expandBracery (symbolName.toLowerCase(), config.vars, resolve)
-          })
-	}
 	function getSymbol (config) {
           var symbolName = config.symbolName || config.node.name
           return new Promise (function (resolve, reject) {
-            getBracery (symbolName.toLowerCase(), resolve)
+            getBracery (symbolName.toLowerCase(), function (bracery) {
+	      resolve ([bracery])
+	    })
           })
 	}
 	function setSymbol() { return [] }
@@ -473,9 +469,9 @@ function initBraceryView (config) {
 	  resolve (expansion)
 	}
 
-	var callbacks = { expand: expandSymbol,
-                          get: getSymbol,
+	var callbacks = { get: getSymbol,
                           set: setSymbol,
+			  expand: null,  // signals to Bracery that we want it to fetch the symbol definition & then expand it locally
                           callback: showAndResolve,
                           makeLink: makeInternalLink }
 

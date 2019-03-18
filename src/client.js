@@ -26,13 +26,15 @@ var BraceryClient = function (config) {
   this.getUrlPrefix = config.getUrlPrefix || '/store/'
   this.expandUrlPrefix = config.expandUrlPrefix || '/expand/'
   this.symbolDefinitionCache = {}
-  this.cacheSymbolDefinitions = !!config.cacheSymbolDefinitions
+  this.cacheSymbolDefinitions = !config.neverCacheSymbolDefinitions
+  this.expandRemotely = !!config.expandRemotely
   return this
 }
 
 Object.setPrototypeOf (BraceryClient.prototype, Bracery.Bracery.prototype)
 
 BraceryClient.prototype._getBracery = function (config) {
+  var bc = this
   var symbolName = config.symbolName || config.node.name
   var cached
   if (this.cacheSymbolDefinitions && (cached = this.symbolDefinitionCache[symbolName]))
@@ -47,8 +49,10 @@ BraceryClient.prototype._getBracery = function (config) {
     .then (function (res_data) {
       var [res, data] = res_data
       if (res.statusCode == 200) {
-        var result = JSON.parse (data)
-        return [result.bracery]
+        var result = JSON.parse (data), text = result.bracery, ret = [text]
+	if (bc.cacheSymbolDefinitions)
+	  bc.symbolDefinitionCache[symbolName] = ret
+        return ret
       } else
         return ''
     })
@@ -56,10 +60,6 @@ BraceryClient.prototype._getBracery = function (config) {
 
 BraceryClient.prototype._expandBracery = function (config) {
   var symbolName = config.symbolName || config.node.name
-  if (this.cacheSymbolDefinitions && this.symbolDefinitionCache[symbolName]) {
-    var def = symbolDefinitionCache[symbolName]
-    return Promise.resolve(def).then (function() { callback (def); return def })
-  }
   var opts = {
     hostname: this.serverDomain,
     port: 443,
@@ -79,11 +79,13 @@ BraceryClient.prototype._expandBracery = function (config) {
 }
 
 BraceryClient.prototype.makeConfig = function (config) {
-  return extend ({ callback: config.callback || true,
-                   expand: this._expandBracery.bind (this),
-                   get: this._getBracery.bind (this),
-                   set: function() { return [] } },
-                 config)
+  var newConfig = extend ({ callback: config.callback || true,
+			    get: this._getBracery.bind (this),
+			    set: function() { return [] } },
+			  config)
+  if (this.expandRemotely)
+    newConfig.expand = this._expandBracery.bind (this)
+  return newConfig
 }
 
 BraceryClient.prototype.getDefaultSymbol = function() { return 'welcome' }

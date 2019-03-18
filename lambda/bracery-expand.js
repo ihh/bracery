@@ -44,5 +44,5 @@ exports.handler = async (event, context, callback) => {
     return respond.badMethod();
   }
   // And return
-  respond.ok (expansion);
+  respond.ok ({ text: expansion.text });
 };

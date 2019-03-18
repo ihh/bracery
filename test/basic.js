@@ -415,6 +415,10 @@ function doTests (testRunner) {
   expectExpand ('$a={1}$b={2}$c={3}&let$a={~}$b={test}$c={1}{&eval{$a&cap{$b}$c}}$a&cap{$b}$c', 'Testing123')
   expectExpand ('$a={1}$b={2}$c={3}&let$a={~}$b={test}$c={1}{&eval{$a&cap{$b}$c}$a&cap{$b}$c}', 'Testing~Test1')
 
+  expectExpand ('$x=3 &save{x}', '$x=3')
+  expectExpand ('$x=3 $y=&save{x} $x=5 x=$x &$y x=$x', 'x=5  x=3')
+  expectExpand ('$x=3 $y=5 $s=&map&vars&save{$_} $x=10 $y=20 x=$x y=$y &$s x=$x y=$y', 'x=10 y=20  x=3 y=5')
+
   // syntax, parse, grammar, tree
   expectExpand ('&json&syntax&quote{$x=[a|b]}', '[[["$","x","=",["{",[["[",[[["a"],"|"],[["b"]]],"]"]],"}"]]]]')
   expectExpand ('&q&parsejson{\["a","b",\["c","d"\],\{"x":3,"w":\["abc","def"\]\}\]}', '&{a&,b&{c&,d}&{&{w&{abc&,def}}&{x&,3}}}')

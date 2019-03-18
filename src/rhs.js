@@ -7598,7 +7598,7 @@ function peg$parse(input, options) {
   function makeSave (arg) {
     return makeQuote ([makeFunction ('unquote', ['$'].concat (arg)),
                        '=',
-                       makeFunction ('unquote', [makeFunction ('eval', ['$'].concat (arg))])])
+                       makeFunction ('unquote', [makeFunction ('quotify', [makeFunction ('eval', ['$'].concat (arg))])])])
   }
 
 

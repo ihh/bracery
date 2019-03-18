@@ -8,7 +8,8 @@ var fs = require('fs'),
     request = require('request'),
     keypress = require('keypress'),
     colors = require('colors'),
-    MersenneTwister = require('mersenne-twister')
+    MersenneTwister = require('mersenne-twister'),
+    rita = require('rita')
 
 var bracery = require('..'),
     extend = bracery.ParseTree.extend,
@@ -28,7 +29,7 @@ var opt = getopt.create([
   ['e' , 'eval=EXPR+'       , 'evaluate Bracery expression(s) text from comand line'],
   ['n' , 'num=NUMBER'       , 'number of randomized samples to output'],
   ['c' , 'config=JSON'      , 'specify config params (e.g. maxDepth, maxRecursion, maxLength, maxNodes, maxReps)'],
-  ['D' , 'dictionary=PATH'  , 'specify path to CMU Pronunciation Dictionary, for rhyming'],
+  ['D' , 'dictionary=PATH'  , 'specify path to CMU Pronunciation Dictionary for phonetic translation (default is to use RiTa)'],
   ['V' , 'validate=EXPR+'   , 'validate and normalize text, without expanding'],
   ['t' , 'tree'             , 'show parse tree'],
   ['T' , 'compact-tree'     , 'like --tree, but compact'],
@@ -55,6 +56,8 @@ if (opt.options.seed && opt.options.web)
 var braceryInitConfig = {}
 if (opt.options.dictionary)
   braceryInitConfig.cmuDict = function() { return fs.readFileSync (opt.options.dictionary).toString() }
+else
+  braceryInitConfig.rita = rita
 var b = (opt.options.web
          ? new bracery.BraceryClient (braceryInitConfig)
          : new bracery.Bracery (null, braceryInitConfig))

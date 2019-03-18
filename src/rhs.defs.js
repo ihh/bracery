@@ -167,5 +167,5 @@ function makeImportanceSampler (num, expr, template) {
 function makeSave (arg) {
   return makeQuote ([makeFunction ('unquote', ['$'].concat (arg)),
                      '=',
-                     makeFunction ('unquote', [makeFunction ('eval', ['$'].concat (arg))])])
+                     makeFunction ('unquote', [makeFunction ('quotify', [makeFunction ('eval', ['$'].concat (arg))])])])
 }

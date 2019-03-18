@@ -1187,7 +1187,7 @@ var binaryFunction = {
     var resolve = config.sync ? syncPromiseResolve : Promise.resolve.bind(Promise)
     return resolve('')
   },
-  rhyme: function (l, r, lv, rv, config) {
+  assonance: function (l, r, lv, rv, config) {
     var textToPhonemes = config.textToPhonemes || textToWords
     var lPhones = textToPhonemes (l), rPhones = textToPhonemes (r)
     var lWords = lPhones.length, rWords = rPhones.length

@@ -61,6 +61,11 @@ describe('command-line tests (' + binPath + ')', function() {
   expectExpand ('~test1', JSON.stringify([tree2]), { opts: '--compact-tree' })
   expectExpand ('#test4#', '~TEST1', { opts: '--async' })
 
+  // RiTa
+  expectExpand ('&assonance{cat}{dog}', '0')
+  expectExpand ('&assonance{cat}{bat}', '2')
+  expectExpand ('&assonance{cattle}{battle}', '4')
+  
   // empty list test
   var emptyListTree = {text:'',vars:{},tree:[{type:'func',funcname:'list',args:[]}],nodes:1,value:[]}
   expectExpand ('&{}', JSON.stringify([emptyListTree]), { opts: '--compact-tree' })

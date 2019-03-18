@@ -180,13 +180,14 @@ MeterFunction
   / "&meter" icon:FunctionArg expr:MathExpr _ { return makeMeter (icon, expr) }
 
 ScheduleFunction
-  = "&cycle" v:VarFunctionArg list:FunctionArg _ { return makeCycle (v, list, false) }
-  / "&playlist" v:VarFunctionArg list:FunctionArg _ { return makeCycle (v, list, true) }
-  / "&queue" v:VarFunctionArg list:FunctionArg _ { return makeQueue (v, list) }
+  = "&cycle" v:VarFunctionArg list:FunctionArg { return makeCycle (v, list, false) }
+  / "&playlist" v:VarFunctionArg list:FunctionArg { return makeCycle (v, list, true) }
+  / "&queue" v:VarFunctionArg list:FunctionArg { return makeQueue (v, list) }
 
 ImportanceSamplingFunction
-  = "&imp{" num:Number "}{" _ expr:MathExpr _ "}" template:QuotedFunctionArg _ { return makeImportanceSampler (num, expr, template) }
+  = "&imp{" num:Number "}{" _ expr:MathExpr _ "}" template:QuotedFunctionArg { return makeImportanceSampler (num, expr, template) }
   / "&save" arg:FunctionArg { return makeSave (arg) }
+  / "&rhyme" a:FunctionArg b:FunctionArg { return makeRhyme (a, b) }
 
 MathFunction
   = "&math{" _ math:MathExpr _ "}" { return makeFunction ('math', [math]) }
@@ -216,7 +217,7 @@ BinaryFunctionName
   / "and" / "or"
   / "cat" / "prepend" / "append" / "join" / "nth"
   / "apply" / "xapply"
-  / "rhyme"
+  / "assonance"
 
 UnaryFunctionName
   = "eval" / "syntax" / "tree" / "jparse"

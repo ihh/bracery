@@ -169,3 +169,18 @@ function makeSave (arg) {
                      '=',
                      makeFunction ('unquote', [makeFunction ('quotify', [makeFunction ('eval', ['$'].concat (arg))])])])
 }
+
+var rhymeEfforts = 10, rhymeExponent = 10
+function makeRhyme (a, b) {
+  return makeLocalAssignChain
+  ([{ varname: 'a', value: [] },
+    { varname: 'b', value: [] }],
+   [makeImportanceSampler (rhymeEfforts,
+                           makeFunction ('pow',
+                                         [rhymeExponent.toString(),
+                                          makeFunction ('assonance',
+                                                        [makeLookup('a'),
+                                                         makeLookup('b')])]),
+                           [makeStrictQuote ([makeAssign ('a', a, true),
+                                              makeAssign ('b', b, true)])])])
+}

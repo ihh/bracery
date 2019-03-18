@@ -86,12 +86,14 @@ exports.handler = async (event, context, callback) => {
     tmpMap[templateVarsVar] = vars;
     tmpMap[templateUserVar] = null;
     tmpMap[templateExpVar] = expansion;
-    tmpMap[templateExpHtmlVar] = '<i>' + 'Loading...' + '</i>';
+    tmpMap[templateExpHtmlVar] = '<i>' + '...bracing...' + '</i>';
 
     const populateExpansionTemplates = (expansion) => {
-      const e = expansion || {}, text = e.text || '', vars = e.vars || {}
-      tmpMap[templateExpVar] = { text: text, vars: vars };
-      tmpMap[templateExpHtmlVar] = util.expandMarkdown (text, marked);
+      if (expansion) {
+        const text = expansion.text || '', vars = expansion.vars || {}
+        tmpMap[templateExpVar] = { text: text, vars: vars };
+        tmpMap[templateExpHtmlVar] = util.expandMarkdown (text, marked);
+      }
     };
 
     if (event && event.queryStringParameters && event.queryStringParameters.edit) {

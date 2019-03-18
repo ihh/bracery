@@ -278,7 +278,7 @@ function initBraceryView (config) {
   function expandBracery (symbolName, vars, callback) {
     function reqListener () {
       var responseBody = JSON.parse (this.responseText);
-      callback (responseBody.tree || []);
+      callback ([responseBody.text || '']);
     }
     var req = new XMLHttpRequest();
     req.addEventListener("load", reqListener);

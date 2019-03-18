@@ -72,7 +72,7 @@ BraceryClient.prototype._expandBracery = function (config) {
       var [res, data] = res_data
       if (res.statusCode == 200) {
         var expansion = JSON.parse (data)
-        return expansion.tree
+        return [expansion.text]
       } else
         return []
     })

@@ -170,14 +170,14 @@ function makeSave (arg) {
                      makeFunction ('unquote', [makeFunction ('quotify', [makeFunction ('eval', ['$'].concat (arg))])])])
 }
 
-var rhymeEfforts = 10, rhymeExponent = 10
-function makeRhyme (a, b) {
+var rhymeTries = 10, rhymeWeight = 100
+function makeRhyme (a, b, tries) {
   return makeLocalAssignChain
   ([{ varname: 'a', value: [] },
     { varname: 'b', value: [] }],
-   [makeImportanceSampler (rhymeEfforts,
+   [makeImportanceSampler (tries || rhymeTries,
                            makeFunction ('pow',
-                                         [rhymeExponent.toString(),
+                                         [rhymeWeight.toString(),
                                           makeFunction ('assonance',
                                                         [makeLookup('a'),
                                                          makeLookup('b')])]),

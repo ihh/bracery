@@ -44,5 +44,7 @@ exports.handler = async (event, context, callback) => {
     return respond.badMethod();
   }
   // And return
-  respond.ok ({ text: expansion.text });
+  delete expansion.tree  // too big for the wire
+  delete expansion.value  // redundant
+  respond.ok(expansion);
 };

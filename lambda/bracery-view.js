@@ -144,7 +144,7 @@ exports.handler = async (event, context, callback) => {
                         ? expansion
                         : braceryConfig.expandFull ({ symbolName: name }));
               } else
-                return expansion
+                return expansion;
             }))).then (populateExpansionTemplates);
 
     // Query the database for any bots we're operating

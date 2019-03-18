@@ -22,8 +22,9 @@ const dynamoPromise = util.dynamoPromise();
 // Bracery
 global.nlp = require('./compromise.es6.min');  // hack/workaround so Bracery can see nlp. Not very satisfactory.
 const Bracery = require('./bracery').Bracery;
+const rita = require('./rita-tiny');
 
-let bracery = new Bracery();
+let bracery = new Bracery (null, { rita });
 let vars = {};
 let braceryConfig = util.braceryExpandConfig (bracery, vars, dynamoPromise);
 

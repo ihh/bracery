@@ -21,7 +21,8 @@ Bracery aims...
 Bracery combines a few different tricks well-known to computational linguistics and adjacent fields, such as
 variable manipulation syntax from [Tracery](http://tracery.io/),
 alternations from [regular expressions](https://en.wikipedia.org/wiki/Regular_expression),
-natural language processing from the [compromise](https://github.com/spencermountain/compromise) library,
+natural language processing from the [compromise](https://github.com/spencermountain/compromise) library
+(and, optionally, rhymes and phonemes from [RiTa](http://rednoise.org/rita/)),
 parsing algorithms from [bioinformatics](https://en.wikipedia.org/wiki/Bioinformatics),
 and lists from [Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)).
 

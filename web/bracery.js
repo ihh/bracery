@@ -14126,33 +14126,49 @@ var Bracery = function (rules, config) {
   if (rules)
     this.addRules (rules)
   if (config) {
+    // Several ways of doing text->phoneme conversions:
+    // 1) Specify the function directly as config.textToPhonemes. It takes a string as input, and should return an array of phonemes.
+    // 2) Pass in a link to RiTa, as config.rita: http://rednoise.org/rita/
+    // 3) Pass in a function, config.cmuDict, that returns the CMU Pronunciation Dictionary as a string (function will only get called when needed: avoids the hit of loading the dictionary each time)
     if (config.textToPhonemes)
       this.textToPhonemes = config.textToPhonemes
+    else if (config.rita)
+      this.textToPhonemes = function (text) {
+        return ParseTree.textToWords (text)
+          .reduce (function (phonemeArray, word) {
+            return phonemeArray.concat (config.rita.getPhonemes(word).split(/-/));
+          }, []);
+      }
     else if (config.cmuDict) {
       var isWord = new RegExp ('^[a-z]')
-      var word2phonemes = {}
-      config.cmuDict.toLowerCase()
-        .split (/\n/)
-        .forEach (function (line) {
-          line = line
-            .replace (/^\s+/, '')
-            .replace (/\s+$/, '')
-            .replace(/[^a-z0-9\s]/g,'')  // these are the characters we keep
-          if (isWord.exec (line)) {
-            var fields = line.split (/\s+/)
-            word2phonemes[fields[0]] = fields.slice(1)
-              .map (function (phoneme) {
-                return phoneme.replace (/[0-9]/g, '')  // removing numerical digits elides the syllabic emphasis
-              })
-          }
-        })
+      var word2phonemes = null
+      function loadDictionary() {
+        word2phonemes = {}
+        config.cmuDict().toLowerCase()
+          .split (/\n/)
+          .forEach (function (line) {
+            line = line
+              .replace (/^\s+/, '')
+              .replace (/\s+$/, '')
+              .replace(/[^a-z0-9\s]/g,'')  // these are the characters we keep
+            if (isWord.exec (line)) {
+              var fields = line.split (/\s+/)
+              word2phonemes[fields[0]] = fields.slice(1)
+                .map (function (phoneme) {
+                  return phoneme.replace (/[0-9]/g, '')  // removing numerical digits elides the syllabic emphasis
+                })
+            }
+          })
+      }
       function convertToPhonemes (word) {
+        if (!word2phonemes)
+          loadDictionary()
         for (var i = 0; i < word.length; ++i) {
           var phonemes = word2phonemes[word.substr(i)]
           if (phonemes)
             return (i ? convertToPhonemes (word.substr(0,i)) : []).concat (phonemes)
         }
-        return 'xxx'
+        return 'xxx'  // dummy placeholder
       }
       this.textToPhonemes = function (text) {
         return ParseTree.textToWords (text)

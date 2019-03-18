@@ -8,6 +8,7 @@ const util = require('./bracery-util');
 
 global.nlp = require('./compromise.es6.min');  // hack/workaround so Bracery can see nlp. Not very satisfactory.
 const Bracery = require('./bracery').Bracery;
+const rita = require('./rita-tiny');
 
 // The Lambda function
 exports.handler = async (event, context, callback) => {
@@ -20,7 +21,7 @@ exports.handler = async (event, context, callback) => {
   const respond = util.respond (callback, event);
 
   // Set up Bracery
-  let bracery = new Bracery();
+  let bracery = new Bracery (null, { rita });
   let braceryConfig = util.braceryExpandConfig (bracery, vars, util.dynamoPromise());
 
   // GET (single symbol) or POST (arbitrary Bracery)?

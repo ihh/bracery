@@ -11,8 +11,19 @@ var Bracery = function (rules, config) {
   if (rules)
     this.addRules (rules)
   if (config) {
+    // Several ways of doing text->phoneme conversions:
+    // 1) Specify the function directly as config.textToPhonemes. It takes a string as input, and should return an array of phonemes.
+    // 2) Pass in a link to RiTa, as config.rita: http://rednoise.org/rita/
+    // 3) Pass in a function, config.cmuDict, that returns the CMU Pronunciation Dictionary as a string (function will only get called when needed: avoids the hit of loading the dictionary each time)
     if (config.textToPhonemes)
       this.textToPhonemes = config.textToPhonemes
+    else if (config.rita)
+      this.textToPhonemes = function (text) {
+        return ParseTree.textToWords (text)
+          .reduce (function (phonemeArray, word) {
+            return phonemeArray.concat (config.rita.getPhonemes(word).split(/-/));
+          }, []);
+      }
     else if (config.cmuDict) {
       var isWord = new RegExp ('^[a-z]')
       var word2phonemes = null
@@ -42,7 +53,7 @@ var Bracery = function (rules, config) {
           if (phonemes)
             return (i ? convertToPhonemes (word.substr(0,i)) : []).concat (phonemes)
         }
-        return 'xxx'
+        return 'xxx'  // dummy placeholder
       }
       this.textToPhonemes = function (text) {
         return ParseTree.textToWords (text)

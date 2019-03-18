@@ -42,7 +42,7 @@ function initBraceryView (config) {
       expandConfig[param] = urlParams[param]
   })
 
-  var braceryServer = new bracery.Bracery()
+  var braceryServer = new bracery.Bracery (null, { rita: window.RiTa })
 
   var evalElement = document.getElementById('eval')
   var eraseElement = document.getElementById('erase')
@@ -479,7 +479,6 @@ function initBraceryView (config) {
                           callback: showAndResolve,
                           makeLink: makeInternalLink }
 
-	var braceryServer = new bracery.Bracery()
 	braceryServer.expand (text, extend (callbacks,
 					    expandConfig,
 					    { vars: extend ({}, updateVars) }))

@@ -40,15 +40,21 @@ bracery-login.zip: bracery-login.js $(COMMON)
 	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
+NODE_MODULES = ../node_modules
+
 COMPROMISE = compromise.es6.min.js
-COMPROMISE_DIR = ../node_modules/compromise/builds
+COMPROMISE_DIR = $(NODE_MODULES)/compromise/builds
 COMPROMISE_DEP = $(COMPROMISE_DIR)/$(COMPROMISE)
+
+RITA = rita-tiny.js
+RITA_DIR = $(NODE_MODULES)/rita/lib
+RITA_DEP = $(RITA_DIR)/$(RITA)
 
 BRACERY_SOURCES = bracery.js template.js parsetree.js chomsky.js validator.js rhs.js
 BRACERY_SOURCE_DIR = ../src
 BRACERY_DEPS = $(addprefix $(BRACERY_SOURCE_DIR)/,$(BRACERY_SOURCES))
 
-EXPAND_DEPS = $(COMPROMISE_DEP) $(BRACERY_DEPS)
+EXPAND_DEPS = $(COMPROMISE_DEP) $(RITA_DEP) $(BRACERY_DEPS)
 
 TEMPLATES = index.html
 VIEW_NPM_DEPS = marked
@@ -72,15 +78,12 @@ asset/%.gz: asset/%
 
 WEB_BRACERY = ../web/bracery.min.js
 MARKED = marked.min.js
-asset/bracery-view.js: $(WEB_BRACERY) asset/$(MARKED) asset/bracery-web.js asset/view.js
+MARKED_DIR = ../node_modules/marked
+asset/bracery-view.js: $(WEB_BRACERY) $(MARKED_DIR)/$(MARKED) $(RITA_DIR)/$(RITA) asset/bracery-web.js asset/view.js
 	cat $^ >$@
 
 asset/bracery-web.js: asset/bracery-web-shim.js $(COMMON)
 	browserify $< >$@
-
-MARKED_DIR = ../node_modules/marked
-asset/%.js: $(MARKED_DIR)/%.js
-	cp $< $@
 
 bracery-expand.zip: bracery-expand.js $(COMMON) $(EXPAND_DEPS)
 	(test -e $(STAGING_DIR) && rm -rf $(STAGING_DIR)) || true
@@ -88,6 +91,7 @@ bracery-expand.zip: bracery-expand.js $(COMMON) $(EXPAND_DEPS)
 	cp $^ $(STAGING_DIR)
 	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
 	cp $(COMPROMISE_DIR)/$(COMPROMISE) $(STAGING_DIR)
+	cp $(RITA_DIR)/$(RITA) $(STAGING_DIR)
 	cp $(addprefix $(BRACERY_SOURCE_DIR)/,$(BRACERY_SOURCES)) $(STAGING_DIR)
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
@@ -98,6 +102,7 @@ bracery-bot.zip: bracery-bot.js $(COMMON) $(EXPAND_DEPS)
 	cp $^ $(STAGING_DIR)
 	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
 	cp $(COMPROMISE_DIR)/$(COMPROMISE) $(STAGING_DIR)
+	cp $(RITA_DIR)/$(RITA) $(STAGING_DIR)
 	cp $(addprefix $(BRACERY_SOURCE_DIR)/,$(BRACERY_SOURCES)) $(STAGING_DIR)
 	cd $(STAGING_DIR); npm install $(TWITTER_NPM_DEPS) $(BOT_NPM_DEPS)
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *

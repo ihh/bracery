@@ -68,7 +68,7 @@ function countWords (text, ParseTree, isWord) {
       nodes.forEach (countWordsAtNode);
   }
   function countWordsAtNode (node) {
-    if (typeof(node) === 'object')
+    if (typeof(node) === 'object') {
       if (node.functag)
 	countWord (ParseTree.funcChar + node.functag);
       switch (node.type) {
@@ -122,12 +122,12 @@ function countWords (text, ParseTree, isWord) {
         countWordsAtNodes (node.bind);
         break
       }
-    else if (typeof(node) === 'string')
+    } else if (typeof(node) === 'string')
       node.toLowerCase()
 	.replace(/[^a-zA-Z0-9_]/g,' ')  // these are the characters we keep
 	.replace(/\s+/g,' ').replace(/^ /,'').replace(/ $/,'')  // collapse all runs of space & remove start/end space
 	.split(' ')
-	.forEach (countWord);
+      .forEach (countWord);
   }
   
   var parsed = ParseTree.parseRhs (text);

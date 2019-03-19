@@ -6,6 +6,7 @@ const extend = braceryWeb.extend;
 const escapeHTML = braceryWeb.escapeHTML;
 const expandMarkdown = braceryWeb.expandMarkdown;
 const digestHTML = braceryWeb.digestHTML;
+const getWords = braceryWeb.getWords;
 
 const config = require ('./bracery-config');
 
@@ -443,4 +444,5 @@ module.exports = {
   httpsRequest,
   respond,
   braceryExpandConfig,
+  getWords,
 };

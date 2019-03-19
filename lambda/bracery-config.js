@@ -15,6 +15,7 @@ module.exports = {
   revisionsTableName: 'BraceryRevisionsTable',
   twitterTableName: 'BraceryTwitterTable',
   sessionTableName: 'BracerySessionTable',
+  wordTableName: 'BraceryWordTable',
 
   // DynamoDB attributes & default values
   // BraceryTable

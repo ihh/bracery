@@ -79,7 +79,7 @@ asset/%.gz: asset/%
 WEB_BRACERY = ../web/bracery.min.js
 MARKED = marked.min.js
 MARKED_DIR = ../node_modules/marked
-asset/bracery-view.js: $(WEB_BRACERY) $(MARKED_DIR)/$(MARKED) $(RITA_DIR)/$(RITA) asset/bracery-web.js asset/view.js
+asset/bracery-view.js: $(WEB_BRACERY) $(MARKED_DIR)/$(MARKED) $(RITA_DEP) asset/bracery-web.js asset/view.js
 	cat $^ >$@
 
 asset/bracery-web.js: asset/bracery-web-shim.js $(COMMON)
@@ -90,9 +90,9 @@ bracery-expand.zip: bracery-expand.js $(COMMON) $(EXPAND_DEPS)
 	mkdir -p $(STAGING_DIR)/node_modules
 	cp $^ $(STAGING_DIR)
 	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
-	cp $(COMPROMISE_DIR)/$(COMPROMISE) $(STAGING_DIR)
-	cp $(RITA_DIR)/$(RITA) $(STAGING_DIR)
-	cp $(addprefix $(BRACERY_SOURCE_DIR)/,$(BRACERY_SOURCES)) $(STAGING_DIR)
+	cp $(COMPROMISE_DEP) $(STAGING_DIR)
+	cp $(RITA_DEP) $(STAGING_DIR)
+	cp $(BRACERY_DEPS) $(STAGING_DIR)
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
 BOT_NPM_DEPS = $(VIEW_NPM_DEPS) textversionjs html-entities
@@ -101,9 +101,9 @@ bracery-bot.zip: bracery-bot.js $(COMMON) $(EXPAND_DEPS)
 	mkdir -p $(STAGING_DIR)/node_modules
 	cp $^ $(STAGING_DIR)
 	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
-	cp $(COMPROMISE_DIR)/$(COMPROMISE) $(STAGING_DIR)
-	cp $(RITA_DIR)/$(RITA) $(STAGING_DIR)
-	cp $(addprefix $(BRACERY_SOURCE_DIR)/,$(BRACERY_SOURCES)) $(STAGING_DIR)
+	cp $(COMPROMISE_DEP) $(STAGING_DIR)
+	cp $(RITA_DEP) $(STAGING_DIR)
+	cp $(BRACERY_DEPS) $(STAGING_DIR)
 	cd $(STAGING_DIR); npm install $(TWITTER_NPM_DEPS) $(BOT_NPM_DEPS)
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
@@ -112,7 +112,11 @@ bracery-news.zip: bracery-news.js $(COMMON)
 	$(ZIP) $@ index.js $(COMMON)
 	rm index.js
 
-bracery-index.zip: bracery-index.js $(COMMON)
-	cp $< index.js
-	$(ZIP) $@ index.js $(COMMON)
-	rm index.js
+bracery-index.zip: bracery-index.js $(COMMON) $(COMPROMISE_DEP) $(BRACERY_DEPS)
+	(test -e $(STAGING_DIR) && rm -rf $(STAGING_DIR)) || true
+	mkdir -p $(STAGING_DIR)
+	cp $^ $(STAGING_DIR)
+	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
+	cp $(COMPROMISE_DEP) $(STAGING_DIR)
+	cp $(BRACERY_DEPS) $(STAGING_DIR)
+	cd $(STAGING_DIR); $(ZIP) -r ../$@ *

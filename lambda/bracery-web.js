@@ -61,7 +61,7 @@ function countWords (text, ParseTree, isWord) {
   isWord = isWord || {};
   function countWord (word) {
     if (word)
-      isWord[word] = true;
+      isWord[word.toLowerCase()] = true;
   }
   function countWordsAtNodes (nodes) {
     if (nodes)
@@ -81,7 +81,7 @@ function countWords (text, ParseTree, isWord) {
         countWordsAtNodes (node.local);
         break
       case 'alt':
-        countWordsAtNodes (node.opts);
+        node.opts.forEach (countWordsAtNodes);
         break
       case 'rep':
         countWordsAtNodes (node.unit);
@@ -115,18 +115,19 @@ function countWords (text, ParseTree, isWord) {
       case 'rep_sampled':
         node.reps.forEach (countWordsAtNodes);
         break
-      default:
       case 'sym':
 	countWord (ParseTree.symChar + node.name);
         countWordsAtNodes (node.rhs);
         countWordsAtNodes (node.bind);
         break
+      default:
+	break
       }
     } else if (typeof(node) === 'string')
-      node.toLowerCase()
-	.replace(/[^a-zA-Z0-9_]/g,' ')  // these are the characters we keep
-	.replace(/\s+/g,' ').replace(/^ /,'').replace(/ $/,'')  // collapse all runs of space & remove start/end space
-	.split(' ')
+      node
+      .replace(/[^a-zA-Z0-9_]/g,' ')  // these are the characters we keep
+      .replace(/\s+/g,' ').replace(/^ /,'').replace(/ $/,'')  // collapse all runs of space & remove start/end space
+      .split(' ')
       .forEach (countWord);
   }
   

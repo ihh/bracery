@@ -137,10 +137,10 @@ exports.handler = async (event, context, callback) => {
                 
                 let braceryConfig = util.braceryExpandConfig (bracery, vars, dynamoPromise);
 
-                // If no expansion, call expandSymbol
+                // If no expansion, call expandFull
                 return (expansion
                         ? expansion
-                        : braceryConfig.expandFull ({ symbolName: name }));
+                        : braceryConfig.expandFull ({ rhsText: result.bracery }));
               } else
                 return expansion;
             }))).then (populateExpansionTemplates);

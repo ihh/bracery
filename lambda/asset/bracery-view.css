@@ -59,6 +59,8 @@ body {
     background: #eee;
     font-size: small;
     float: right;
+    text-align: right;
+    padding: 1px;
 }
 
 #refs {

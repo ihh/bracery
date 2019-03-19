@@ -85,8 +85,8 @@ module.exports = {
     maxDepth: 100,
     maxRecursion: 3,
     maxReps: 10,
-    maxNodes: 1000,
-    maxLength: 16384,
+    maxNodes: 1048576,  // 2^20
+    maxLength: 16384,  // 2^16
     enableParse: false,
   },
 };

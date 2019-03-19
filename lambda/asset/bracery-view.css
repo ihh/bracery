@@ -53,6 +53,14 @@ body {
     white-space: pre-wrap;
 }
 
+#revision {
+    border-style: solid;
+    border-width: 1px;
+    background: #eee;
+    font-size: small;
+    float: right;
+}
+
 #refs {
     font-size: small;
     font-style: italic;

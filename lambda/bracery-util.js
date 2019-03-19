@@ -213,23 +213,45 @@ function getVars (event, body) {
   return vars;
 }
 
+async function getBracery (name, revision, dynamoPromise) {
+  const query = ({ KeyConditionExpression: '#n = :n',
+		   ExpressionAttributeNames: {
+		     '#n': 'name'
+		   },
+		   ExpressionAttributeValues: {
+		     ':n': name
+		   }});
+  if (revision) {
+    query.TableName = config.revisionsTableName;
+    query.KeyConditionExpression += ' AND #r = :r';
+    query.ExpressionAttributeNames['#r'] = 'revision';
+    query.ExpressionAttributeValues[':r'] = parseInt (revision);
+  } else
+    query.TableName = config.tableName;
+  return await dynamoPromise('query') (query);
+}
+
 async function createBracery (item, dynamoPromise) {
   item.visibility = config.defaultVisibility;
   item.created = item.updated = Date.now();
+  item.revision = 1;
   await dynamoPromise('putItem')
   ({ TableName: config.tableName,
      Item: item,
    });
   await putBraceryRevision (item, dynamoPromise);
+  return item;
 }
 
 async function updateBracery (item, dynamoPromise) {
   item.updated = Date.now();
-  let expr = "SET #b = :b, #u = :u";
+  let expr = "SET #b = :b, #u = :u, #r = " + (item.revision ? "#r + :r" : ":r");
   let keys = { "#b": "bracery",
-               "#u": "updated" };
+               "#u": "updated",
+	       "#r": "revision" };
   let attrs = { ":b": item.bracery,
-                ":u": item.updated };
+                ":u": item.updated,
+		":r": 1 };
   if (typeof(item.locked) !== 'undefined') {
     expr = expr + ", #l = :l";
     keys['#l'] = 'locked';
@@ -240,14 +262,17 @@ async function updateBracery (item, dynamoPromise) {
     keys['#o'] = 'owner';
     attrs[':o'] = item.owner;
   }
-  await dynamoPromise('updateItem')
+  const update = await dynamoPromise('updateItem')
   ({ TableName: config.tableName,
      Key: { name: item.name },
      UpdateExpression: expr,
      ExpressionAttributeNames: keys,
      ExpressionAttributeValues: attrs,
+     ReturnValues: 'UPDATED_NEW',
    });
+  item.revision = update.Attributes.revision;
   await putBraceryRevision (item, dynamoPromise);
+  return update.Attributes;
 }
 
 async function putBraceryRevision (item, dynamoPromise) {
@@ -349,8 +374,11 @@ function braceryExpandConfig (bracery, vars, dp) {
   let braceryConfig = { vars };
   
   // Create a getSymbol function that queries the database for the given name
+  var braceryCache = {}
   const getSymbol = async (getConfig) => {
     const symbolName = getConfig.symbolName || getConfig.node.name;
+    if (braceryCache[symbolName])
+      return braceryCache[symbolName];
     const res = await dp('query')
     ({ TableName: config.tableName,
        KeyConditionExpression: "#nkey = :nval",
@@ -361,7 +389,7 @@ function braceryExpandConfig (bracery, vars, dp) {
          ":nval": symbolName.toLowerCase()
        }});
     const result = res.Items && res.Items.length && res.Items[0];
-    return (result && result.bracery) ? [result.bracery] : '';
+    return (braceryCache[symbolName] = (result && result.bracery) ? [result.bracery] : '');
   };
 
   // Create an expandSymbol function that queries the database for the given name, and expands it as Bracery
@@ -397,6 +425,7 @@ module.exports = {
   dynamoPromise,
   getBody,
   getVars,
+  getBracery,
   createBracery,
   updateBracery,
   expandTemplate,

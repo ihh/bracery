@@ -34,6 +34,7 @@ function initBraceryView (config) {
   var loginPrefix = config.login
   var twitterPrefix = config.twitter
   var user = config.user
+  var revision = config.revision
 
   var urlParams = getUrlParams()
   var expandConfig = extend ({}, braceryLimits)
@@ -56,6 +57,8 @@ function initBraceryView (config) {
   var nameElement = document.getElementById('name')
   var lockElement = document.getElementById('lock')
   var saveElement = document.getElementById('save')
+  var revElement = document.getElementById('revision')
+
   var errorElement = document.getElementById('error')
 
   var sourceRevealElement = document.getElementById('sourcereveal')
@@ -247,7 +250,7 @@ function initBraceryView (config) {
     pushState (currentState (showExp))
   }
   
-  var braceryCache = {}, serviceCalls = 0
+  var braceryCache = {}
   function getBracery (symbolName, callback) {
     if (braceryCache[symbolName])
       callback (braceryCache[symbolName])
@@ -296,9 +299,9 @@ function initBraceryView (config) {
     req.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     req.onreadystatechange = function() {
       if (this.readyState === XMLHttpRequest.DONE) {
-        if (this.status === 200)
-          callback()
-        else
+        if (this.status === 200) {
+          callback (null, JSON.parse (this.responseText))
+        } else
           callback (this.status)
       }
     }
@@ -390,6 +393,7 @@ function initBraceryView (config) {
            } else {
              errorElement.innerText = 'Saved.'
 	     setName (name)
+	     showRevision (result.revision)
 	     if (viewConfig.bookmark.save)
 	       pushState ({ name: name,
                             text: initText(),
@@ -400,7 +404,14 @@ function initBraceryView (config) {
        })
     }
   }
-
+  function showRevision (rev) {
+    if (rev) {
+      var html = 'Revision ' + rev
+      if (rev > 1)
+	html += '<br>(<a href="' + viewPrefix + name() + '?edit=true&rev=' + (rev-1) + '">previous</a>)'
+      revElement.innerHTML = html
+    }
+  }
   
   function warnUnsaved() {
     errorElement.innerText = 'Changes will not be final until saved.'
@@ -537,6 +548,8 @@ function initBraceryView (config) {
   if (urlParams.edit)
     revealSource()
 
+  showRevision (revision)
+
   var expansion = urlParams.exp || config.exp
   if (urlParams.exp)
     render (JSON.parse (window.decodeURIComponent (urlParams.exp)))
@@ -545,4 +558,3 @@ function initBraceryView (config) {
   else
     update()
 }
-

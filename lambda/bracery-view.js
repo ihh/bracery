@@ -31,11 +31,12 @@ const templateVarValMap = { 'JAVASCRIPT_FILE': config.assetPrefix + config.viewA
                             'VIEW_PATH_PREFIX': config.viewPrefix,
                             'EXPAND_PATH_PREFIX': config.expandPrefix,
 			    'LOGIN_PATH_PREFIX': config.loginPrefix,
-                            'TWITTER_PATH_PREFIX': config.twitterPrefix,
+                           'TWITTER_PATH_PREFIX': config.twitterPrefix,
                             'SOURCE_CONTROLS_STYLE': hiddenStyle,
                             'SOURCE_REVEAL_STYLE': '' };
 const templateNameVar = 'SYMBOL_NAME';
 const templateDefVar = 'SYMBOL_DEFINITION';
+const templateRevVar = 'REVISION';
 const templateLockedVar = 'LOCKED_BY_USER';
 const templateInitVar = 'INIT_TEXT';
 const templateVarsVar = 'VARS';
@@ -58,6 +59,7 @@ exports.handler = async (event, context, callback) => {
     // Get app state parameters
     const isRedirect = event && event.queryStringParameters && event.queryStringParameters.redirect;
     const gotSessionState = session && session.state;
+    const revision = event.queryStringParameters && event.queryStringParameters.rev;
     const isBookmark = event && event.queryStringParameters && event.queryStringParameters.id;
     const appState =
 	  (isRedirect && gotSessionState
@@ -79,6 +81,7 @@ exports.handler = async (event, context, callback) => {
     let bots = {};
     tmpMap[templateNameVar] = name;
     tmpMap[templateDefVar] = typeof(evalText) === 'string' ? evalText : '';
+    tmpMap[templateRevVar] = '';
     tmpMap[templateLockedVar] = '';
     tmpMap[templateInitVar] = typeof(initText) === 'string' ? initText : false;
     tmpMap[templateRecentVar] = [];
@@ -123,19 +126,12 @@ exports.handler = async (event, context, callback) => {
     let symbolPromise =
         (typeof(evalText) === 'string'
          ? Promise.resolve (expansion)
-         : (dynamoPromise('query')
-            ({ TableName: tableName,
-	       KeyConditionExpression: "#nkey = :nval",
-	       ExpressionAttributeNames:{
-		 "#nkey": "name"
-	       },
-	       ExpressionAttributeValues: {
-		 ":nval": name.toLowerCase()
-	       }})
+         : (util.getBracery (name, revision, dynamoPromise)
             .then ((res) => {
               const result = res.Items && res.Items.length && res.Items[0];
               if (result && result.bracery) {
                 tmpMap[templateDefVar] = result.bracery;
+                tmpMap[templateRevVar] = result.revision;
                 if (result.locked && result.owner === session.user)
                   tmpMap[templateLockedVar] = ' checked';
                 

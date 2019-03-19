@@ -8,6 +8,7 @@
 const util = require('./bracery-util');
 const config = require('./bracery-config');
 const tableName = config.tableName;
+const revisionsTableName = config.revisionsTableName;
 
 const dynamoPromise = util.dynamoPromise();
 
@@ -18,22 +19,15 @@ exports.handler = async (event, context, callback) => {
   // Get symbol name, and body if we have it
   const name = event.pathParameters.name;
   const body = util.getBody (event);
-
+  const revision = event.httpMethod === 'GET' && event.queryStringParameters && event.queryStringParameters.rev;
+  
   // Set up some returns
   let session = await util.getSession (event, dynamoPromise);
   const respond = util.respond (callback, event, session);
 
   // Query the database for the given name
   try {
-    let res = await dynamoPromise('query')
-    ({ TableName: tableName,
-       KeyConditionExpression: "#n = :n",
-       ExpressionAttributeNames:{
-         "#n": "name"
-       },
-       ExpressionAttributeValues: {
-         ":n": name
-       }});
+    let res = await util.getBracery (name, revision, dynamoPromise);
     const result = res.Items && res.Items.length && res.Items[0];
     const resultLocked = (result && result.locked && (!session || !session.loggedIn || (result.owner !== session.user)));
     // Handle the HTTP methods
@@ -67,16 +61,18 @@ exports.handler = async (event, context, callback) => {
           return respond.forbidden();
 	let item = { name: name,
                      bracery: body.bracery,
-		     updated: Date.now() };
+		     updated: Date.now(),
+		     revision: result.revision };
         if (session.loggedIn)
           util.extend (item,
                        { locked: body.locked,
                          owner: session.user } );
-        await (result
-               ? util.updateBracery (item, dynamoPromise)
-               : util.createBracery (item, dynamoPromise));
+        let putResult = await
+	(result
+         ? util.updateBracery (item, dynamoPromise)
+         : util.createBracery (item, dynamoPromise));
         
-        respond.ok();
+        respond.ok ({ revision: putResult.revision });
       }
       break;
     default:

@@ -1194,7 +1194,7 @@ var binaryFunction = {
     var match = 0
     while (match < lWords && match < rWords && lPhones[lWords-match-1] === rPhones[rWords-match-1])
       ++match;
-    return match + ''
+    return (match === lWords && match === rWords ? '' : match) + ''
   },
 }
 

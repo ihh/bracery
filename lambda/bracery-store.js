@@ -36,11 +36,13 @@ exports.handler = async (event, context, callback) => {
       if (resultLocked)
         return respond.forbidden();
       if (result) {
-        await dynamoPromise('deleteItem')
-        ({ TableName: tableName,
-           Key: { name: name },
-         });
-        return respond.ok();
+	let item = { name: name,
+                     bracery: ' ',  // DynamoDB doesn't like empty strings...
+		     updated: Date.now(),
+		     revision: result.revision,
+		     locked: false };
+        let deleteResult = await util.updateBracery (item, dynamoPromise);
+        return respond.ok ({ revision: deleteResult.revision });
       } else
         return respond.notFound();
       break;

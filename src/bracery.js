@@ -253,9 +253,9 @@ function stringifyText (expansion) {
 
 Bracery.prototype.makeConfig = function (config) {
   return extend ({ textToPhonemes: this.textToPhonemes.bind (this),
+		   expand: this._expandSymbol.bind (this),
 		   get: this._getSymbol.bind (this),
 		   set: function() { return [] },
-		   expand: null,  // signals to Bracery that we want it to fetch the symbol definition & then expand it locally
 		 },
 		 config)
 }
@@ -282,7 +282,7 @@ Bracery.prototype.getDefaultSymbol = function() {
 
 Bracery.prototype.expandParsed = function (config) {
   var newConfig = this.makeConfig (config)
-  if (!newConfig.expand)
+  if (config.expand === null || newConfig.expand === null)
     newConfig.expand = function (expandConfig) {
       var getResult = newConfig.get (expandConfig)
       function parseAndSample (def) {

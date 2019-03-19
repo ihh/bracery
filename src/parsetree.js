@@ -2272,6 +2272,7 @@ module.exports = {
   getSymbolNodes: getSymbolNodes,
   parseTreeEmpty: parseTreeEmpty,
   isTraceryExpr: isTraceryExpr,
+  traceryVarName: traceryVarName,
   isProbExpr: isProbExpr,
   isQuoteAssignExpr: isQuoteAssignExpr,
   isTagExpr: isTagExpr,

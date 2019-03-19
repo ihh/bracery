@@ -80,6 +80,7 @@ BraceryClient.prototype._expandBracery = function (config) {
 
 BraceryClient.prototype.makeConfig = function (config) {
   var newConfig = extend ({ callback: config.callback || true,
+			    expand: null,
 			    get: this._getBracery.bind (this),
 			    set: function() { return [] } },
 			  config)

@@ -56,19 +56,88 @@ function digestHTML (html, getTextContent, maxDigestChars, link) {
 }
 
 // So-called "countWords" actually just flags which "words" we have seen
-// Words are things that don't look like concatenated expressions
-function countWords (text, isWord) {
+// Words are symbol/variable/function names, or fragments of text
+function countWords (text, ParseTree, isWord) {
   isWord = isWord || {};
-  var words = text.toLowerCase()
-      .replace(/[^a-zA-Z0-9_&~%@]/g,'')  // these are the characters we keep
-      .replace(/\s+/g,' ').replace(/^ /,'').replace(/ $/,'')  // collapse all runs of space & remove start/end space
-      .split(' ');
-  words.forEach (function (word) { isWord[word] = true; });
+  function countWord (word) {
+    if (word)
+      isWord[word] = true;
+  }
+  function countWordsAtNodes (nodes) {
+    if (nodes)
+      nodes.forEach (countWordsAtNode);
+  }
+  function countWordsAtNode (node) {
+    if (typeof(node) === 'object')
+      if (node.functag)
+	countWord (ParseTree.funcChar + node.functag);
+      switch (node.type) {
+      case 'lookup':
+	countWord (ParseTree.varChar + node.varname);
+        break
+      case 'assign':
+	countWord (ParseTree.varChar + node.varname);
+        countWordsAtNodes (node.value);
+        countWordsAtNodes (node.local);
+        break
+      case 'alt':
+        countWordsAtNodes (node.opts);
+        break
+      case 'rep':
+        countWordsAtNodes (node.unit);
+        break
+      case 'func':
+	countWord (ParseTree.funcChar + node.funcname);
+	switch (node.funcname) {
+	case 'eval':
+          countWordsAtNodes (node.value);
+          countWordsAtNodes (node.args);
+	  break
+	case 'strictquote':
+	case 'quote':
+	case 'unquote':
+        default:
+          countWordsAtNodes (node.args);
+          break
+	}
+        break
+      case 'cond':
+        if (ParseTree.isTraceryExpr (node))
+	  countWord (ParseTree.traceryChar + ParseTree.traceryVarName(node) + ParseTree.traceryChar);
+        countWordsAtNodes (node.test);
+        countWordsAtNodes (node.t);
+        countWordsAtNodes (node.f);
+        break
+      case 'root':
+      case 'alt_sampled':
+        countWordsAtNodes (node.rhs);
+        break
+      case 'rep_sampled':
+        node.reps.forEach (countWordsAtNodes);
+        break
+      default:
+      case 'sym':
+	countWord (ParseTree.symChar + node.name);
+        countWordsAtNodes (node.rhs);
+        countWordsAtNodes (node.bind);
+        break
+      }
+    else if (typeof(node) === 'string')
+      node.toLowerCase()
+	.replace(/[^a-zA-Z0-9_]/g,' ')  // these are the characters we keep
+	.replace(/\s+/g,' ').replace(/^ /,'').replace(/ $/,'')  // collapse all runs of space & remove start/end space
+	.split(' ')
+	.forEach (countWord);
+  }
+  
+  var parsed = ParseTree.parseRhs (text);
+  countWordsAtNodes (parsed);
+
   return isWord;
 }
 
-function getWords (text) {
-  return Object.keys (countWords (text, {})).sort();
+function getWords (text, ParseTree) {
+  return Object.keys (countWords (text, ParseTree, {})).sort();
 }
 
 module.exports = {
@@ -79,6 +148,7 @@ module.exports = {
   clickHandlerName: clickHandlerName,
   makeInternalLink: makeInternalLink,
   countWords: countWords,
+  getWords: getWords,
 
   // Bracery expansion limits
   braceryLimits: {

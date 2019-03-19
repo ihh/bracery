@@ -20,10 +20,6 @@ function makeListFunction (func, listvar, list, inner) { return makeFunction (fu
 function makeReduceFunction (varname, list, result, init, func) { return makeListFunction ('reduce', varname, list, [makeLocalAssign (result, init, func)]) }
 function makeRegexFunction (func, pattern, text, expr) { return makeFunction (func, [wrapNodes(pattern.body), wrapNodes(pattern.flags), wrapNodes(text)].concat (expr || [])) }
 
-function makeDefineFunction (args, inner) {
-  return makeQuote ([makeLocalAssignChain (args.map (function (arg, n) { return makeAssign (arg, [makeLookup (makeGroupVarName (n + 1))]) }), inner)])
-}
-
 function makeModify (name, func, val) { return makeAssign (name, [makeFunction (func, [makeLookup (name), wrapNodes (val)])]) }
 function makeModifyConcat (name, suffix) { return makeAssign (name, [makeLookup (name)].concat (suffix)) }
 
@@ -109,78 +105,103 @@ function validRange (min, max) {
   return min <= max
 }
 
+function tagFunction (tag, construct) {
+  construct.functag = tag
+  return construct
+}
+
+function makeDefineFunction (args, inner) {
+  return tagFunction
+  ('function',
+   makeQuote ([makeLocalAssignChain (args.map (function (arg, n) { return makeAssign (arg, [makeLookup (makeGroupVarName (n + 1))]) }), inner)]))
+}
+
 function makeMeter (icon, expr, status) {
-  return makeFunction ('push', [makeStrictQuote ([makeLookup ('meters')]),
-                                wrapNodes (makeArgList ([makeArgList ([icon,
-                                                                       [makeStrictQuote ([makeFunction ('math', [expr])])]]
-                                                                      .concat (status ? [status] : []))]))])
+  return tagFunction
+  ('meter',
+   makeFunction ('push', [makeStrictQuote ([makeLookup ('meters')]),
+			  wrapNodes (makeArgList ([makeArgList ([icon,
+								 [makeStrictQuote ([makeFunction ('math', [expr])])]]
+								.concat (status ? [status] : []))]))]))
 }
 
 function makeRotate (arg) {
-  return makeFunction ('append', [makeFunction ('notfirst', arg),
-                                  makeFunction ('first', arg)])
+  return tagFunction
+  ('rotate',
+   makeFunction ('append', [makeFunction ('notfirst', arg),
+                            makeFunction ('first', arg)]))
 }
 
 function makeCycle (v, list, bump) {
   var vLookup = v[0].args, varname = v[0].args[0].varname
-  return makeFunction ('eval',
-                       [makeFunction ('first', [makeAssign (varname,
-                                                            [makeConditional (v[0].args,
-                                                                              [bump
-                                                                               ? makeFunction ('bump',
-                                                                                               wrapNodes ([vLookup]))
-                                                                               : makeRotate (vLookup)],
-                                                                              bump
-                                                                              ? [makeFunction ('shuffle',
-                                                                                               list)]
-                                                                              : list)],
-                                                            true)])])
+  return tagFunction
+  (bump ? 'bump' : 'cycle',
+   makeFunction ('eval',
+                 [makeFunction ('first', [makeAssign (varname,
+                                                      [makeConditional (v[0].args,
+                                                                        [bump
+                                                                         ? makeFunction ('bump',
+                                                                                         wrapNodes ([vLookup]))
+                                                                         : makeRotate (vLookup)],
+                                                                        bump
+                                                                        ? [makeFunction ('shuffle',
+                                                                                         list)]
+                                                                        : list)],
+                                                      true)])]))
 }
 
 function makeQueue (v, list) {
   var vLookup = v[0].args, varname = v[0].args[0].varname
-  return makeFunction ('eval',
-                       [makeConditional ([makeFunction ('islist',
-                                                        wrapNodes ([vLookup]))],
-                                         [],
-                                         [makeAssign (varname, list)]),
-                        makeFunction ('shift', v)])
+  return tagFunction
+  ('queue',
+   makeFunction ('eval',
+                 [makeConditional ([makeFunction ('islist',
+                                                  wrapNodes ([vLookup]))],
+                                   [],
+                                   [makeAssign (varname, list)]),
+                  makeFunction ('shift', v)]))
 }
 
 function makeImportanceSampler (num, expr, template) {
-  return makeLocalAssignChain
-  ([{ varname: 'samples',
-      value: [] },
-    { varname: 'weights',
-      value: [makeListFunction
-              ('map',
-               defaultListVarName,
-               [makeFunction ('iota', [num.toString()])],
-               [makeStrictQuote ([makeFunction ('push', [makeStrictQuote ([makeLookup ('samples')]),
-                                                         makeFunction ('eval', template)]),
-                                  makeFunction ('eval', [makeStrictQuote ([makeFunction ('math', [expr])])])])])] }],
-   [makeFunction ('nth',
-                  [makeFunction ('sample', [makeLookup ('weights')]),
-                   makeLookup ('samples')])])
+  return tagFunction
+  ('imp',
+   makeLocalAssignChain
+   ([{ varname: 'samples',
+       value: [] },
+     { varname: 'weights',
+       value: [makeListFunction
+               ('map',
+		defaultListVarName,
+		[makeFunction ('iota', [num.toString()])],
+		[makeStrictQuote ([makeFunction ('push', [makeStrictQuote ([makeLookup ('samples')]),
+                                                          makeFunction ('eval', template)]),
+                                   makeFunction ('eval', [makeStrictQuote ([makeFunction ('math', [expr])])])])])] }],
+    [makeFunction ('nth',
+                   [makeFunction ('sample', [makeLookup ('weights')]),
+                    makeLookup ('samples')])]))
 }
 
-function makeSave (arg) {
-  return makeQuote ([makeFunction ('unquote', ['$'].concat (arg)),
-                     '=',
-                     makeFunction ('unquote', [makeFunction ('quotify', [makeFunction ('eval', ['$'].concat (arg))])])])
+function makePreserve (arg) {
+  return tagFunction
+  ('preserve',
+   makeQuote ([makeFunction ('unquote', ['$'].concat (arg)),
+               '=',
+               makeFunction ('unquote', [makeFunction ('quotify', [makeFunction ('eval', ['$'].concat (arg))])])]))
 }
 
 var rhymeTries = 10, rhymeWeight = 100
 function makeRhyme (a, b, tries) {
-  return makeLocalAssignChain
-  ([{ varname: 'a', value: [] },
-    { varname: 'b', value: [] }],
-   [makeImportanceSampler (tries || rhymeTries,
-                           makeFunction ('pow',
-                                         [rhymeWeight.toString(),
-                                          makeFunction ('assonance',
-                                                        [makeLookup('a'),
-                                                         makeLookup('b')])]),
-                           [makeStrictQuote ([makeAssign ('a', a, true),
-                                              makeAssign ('b', b, true)])])])
+  return tagFunction
+  ('rhyme',
+   makeLocalAssignChain
+   ([{ varname: 'a', value: [] },
+     { varname: 'b', value: [] }],
+    [makeImportanceSampler (tries || rhymeTries,
+                            makeFunction ('pow',
+                                          [rhymeWeight.toString(),
+                                           makeFunction ('assonance',
+                                                         [makeLookup('a'),
+                                                          makeLookup('b')])]),
+                            [makeStrictQuote ([makeAssign ('a', a, true),
+                                               makeAssign ('b', b, true)])])]))
 }

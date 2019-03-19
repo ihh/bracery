@@ -186,7 +186,7 @@ ScheduleFunction
 
 ImportanceSamplingFunction
   = "&imp{" num:Number "}{" _ expr:MathExpr _ "}" template:QuotedFunctionArg { return makeImportanceSampler (num, expr, template) }
-  / "&save" arg:FunctionArg { return makeSave (arg) }
+  / "&preserve" arg:FunctionArg { return makePreserve (arg) }
   / "&rhyme{" num:Number "}" a:FunctionArg b:FunctionArg { return makeRhyme (a, b, num) }
   / "&rhyme" a:FunctionArg b:FunctionArg { return makeRhyme (a, b) }
 

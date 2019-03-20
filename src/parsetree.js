@@ -808,6 +808,23 @@ function mapReducer (expansion, childExpansion, config) {
     })
 }
 
+function forReducer (expansion, childExpansion, config) {
+  var pt = this
+  var mapRhs = config.mapRhs
+  var mapVarName = config.mapVarName
+
+  return makeAssignmentPromise.call (pt,
+                                     extend ({},
+                                             config,
+                                             { reduce: textReducer,
+                                               init: {} }),
+                                     [[mapVarName, [childExpansion.value || childExpansion.text]]],
+                                     pt.sampleParseTree (mapRhs, config))
+    .then (function (mappedChildExpansion) {
+      return expansion;
+    })
+}
+
 function filterReducer (expansion, childExpansion, config) {
   var pt = this
   var mapRhs = config.mapRhs
@@ -1466,8 +1483,8 @@ function makeExpansionPromise (config) {
                   expansion.text = JSON.stringify (listExpansion.value)
                   return expansionPromise
                 })
-            } else if (node.funcname === 'map') {
-              // map. first arg is &let$VAR:LIST{&strictquote{EXPR}}
+            } else if (node.funcname === 'map' || node.funcname === 'for') {
+              // map/for. first arg is &let$VAR:LIST{&strictquote{EXPR}}
               promise = makeRhsExpansionPromiseFor (node.args[0].value)
                 .then (function (listExpansion) {
                   return makeRhsExpansionReducer (pt,
@@ -1475,7 +1492,7 @@ function makeExpansionPromise (config) {
                                                           config,
                                                           { mapVarName: node.args[0].varname,
                                                             mapRhs: node.args[0].local[0].args }),
-                                                  mapReducer,
+                                                  node.funcname === 'map' ? mapReducer : forReducer,
                                                   { value: [] }) (makeArray (listExpansion.value))
                 })
             } else if (node.funcname === 'numsort' || node.funcname === 'lexsort') {

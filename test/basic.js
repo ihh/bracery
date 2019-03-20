@@ -329,6 +329,8 @@ function doTests (testRunner) {
 
   expectExpand ('&join&iota{5}{,}', '0,1,2,3,4')
 
+  expectExpand ('&for$x&iota{11}{$y+=$x}$y', '55')
+  
   // &makelist, &quotelist, &rotate, &cycle, &queue, &shuffle, &bump, &playlist
   expectExpand ('$x=&split{1 2 3} &rotate$x', '231')
 

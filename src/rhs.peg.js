@@ -113,7 +113,7 @@ MapFunction
   / "&" name:DefaultableMapFunctionName list:FunctionArg { return makeListFunction (name, defaultListVarName, list, [makeQuote ([makeLookup (defaultListVarName)])]) }
   / "&reduce" varname:MapVarIdentifier list:FunctionArg result:VarIdentifier ("=" / "") init:FunctionArg func:QuotedFunctionArg { return makeReduceFunction (varname, list, result, init, func) }
 
-MapFunctionName = "map" / DefaultableMapFunctionName
+MapFunctionName = "map" / "for" / DefaultableMapFunctionName
 DefaultableMapFunctionName = "filter" / "numsort" / "lexsort"
 
 MapVarIdentifier

@@ -558,6 +558,7 @@ Language features include
       - `&join{list}{item}` returns a string
       - `&map$varname:{list}{expr}` and `&filter$varname:{list}{expr}` return lists
       - `&reduce$varname:{list}$result={init}{expr}` can return list or string
+      - `&for:$varname{list}{expr}` returns the empty list, discarding the expansions of `expr` (but keeping the side-effects)
       - `&shuffle{list}` returns a shuffled list
           - `&rotate{list}` returns a rotated list (first element moved to back)
           - `&bump{list}` returns a pseudo-rotated list (first element moved to random place in back half)

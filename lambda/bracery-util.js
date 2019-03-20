@@ -11,6 +11,10 @@ const defaultSymbolName = braceryWeb.defaultSymbolName;
 
 const config = require ('./bracery-config');
 
+function btoa (s) {
+  return Buffer.from(s).toString('base64');
+}
+
 function promiseDelay (delay) {
   return new Promise ((resolve) => setTimeout (resolve, delay));
 }
@@ -428,7 +432,7 @@ function braceryExpandConfig (bracery, vars, dp) {
             set: setSymbol,
 	    expand: null,  // signals to Bracery that we want it to fetch the symbol definition & then expand it locally
             callback: true,  // signals to Bracery that we want it to return promises
-            makeLink: braceryWeb.makeInternalLink });
+            makeLink: braceryWeb.makeInternalLink.bind (null, btoa) });
 
   return braceryConfig;
 }

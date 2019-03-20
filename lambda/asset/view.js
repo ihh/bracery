@@ -75,6 +75,7 @@ function initBraceryView (config) {
   var debugHideElement = document.getElementById('debughide')
   var beforeElement = document.getElementById('varsbefore')
   var afterElement = document.getElementById('varsafter')
+  var initElement = document.getElementById('init')
 
   var suggestPanelElement = document.getElementById('suggestpanel')
   var suggestElement = document.getElementById('suggest')
@@ -178,6 +179,7 @@ function initBraceryView (config) {
 	rerollElement.innerHTML = rerollMeansRestart ? 'Restart' : 'Re-roll'
 	beforeElement.innerHTML = makeVarHtml (varsBeforeCurrentExpansion)
 	afterElement.innerHTML = makeVarHtml (varsAfterCurrentExpansion)
+	initElement.innerText = currentText (currentSourceText)
 
 	if (showConfig && showConfig.pushState)
 	  pushState ({ text: currentSourceText,
@@ -484,23 +486,24 @@ function initBraceryView (config) {
       delayedUpdateTimer = null
     }
   }
+  function currentText (updateText) {
+    return (typeof(updateText) === 'string'
+	    ? updateText
+	    : (typeof(initText()) === 'string'
+	       ? initText()
+	       : (evalElement.innerText.match(/\S/)
+		  ? evalElement.innerText
+		  : '')));
+  }
   function update (updateText, updateVars, showConfig) {
     cancelDelayedUpdate()
     return new Promise (function (resolve, reject) {
       try {
-	// The text to be expanded is updateText, the first argument to the update() function (if defined),
-	// or whatever is currently specified by config.init (originally set by query URL, may change dynamically),
-	// or (if neither of those are defined) the current contents of evalElement.
-	const text = (typeof(updateText) === 'string'
-		      ? updateText
-		      : (typeof(initText()) === 'string'
-			 ? initText()
-			 : (evalElement.innerText.match(/\S/)
-			    ? evalElement.innerText
-			    : '')));
-
-	if (typeof(updateVars) === 'undefined')
-          updateVars = initVars
+	var text = currentText (updateText)
+	var vars = extend ({},
+			   (typeof(updateVars) === 'undefined'
+			    ? initVars()
+			    : updateVars))
 	
 	// The URL that gets pushed includes updateText & updateVars
 	var showExpansion = show (updateText, updateVars, showConfig)
@@ -510,12 +513,12 @@ function initBraceryView (config) {
 	}
 
 	var callbacks = extend ({ callback: showAndResolve,
-				  makeLink: makeInternalLink },
+				  makeLink: makeInternalLink.bind (null, btoa) },
 				braceryExpandCallbacks)
 
 	braceryServer.expand (text, extend (callbacks,
 					    expandConfig,
-					    { vars: extend ({}, updateVars) }))
+					    { vars: vars }))
         
       } catch (e) {
 	expElement.innerText = e
@@ -557,7 +560,7 @@ function initBraceryView (config) {
   function hideElements (elements) { return setDisplay (elements, 'none') }
   function revealElements (elements) { return setDisplay (elements, '') }
   var sourceElements = [sourceControlsElement, sourcePanelElement, suggestPanelElement]
-  var debugElements = [beforeElement, afterElement, debugHideElement]
+  var debugElements = [beforeElement, afterElement, initElement, debugHideElement]
   function revealSource (evt) {
     if (evt)
       evt.preventDefault()

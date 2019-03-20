@@ -49,6 +49,7 @@ const templateUserVar = 'USER';
 const templateExpVar = 'EXPANSION';
 const templateExpHtmlVar = 'EXPANSION_HTML';
 const templateBotsVar = 'BOTS';
+const templateWarningVar = 'INITIAL_WARNING';
 
 // The Lambda function
 exports.handler = async (event, context, callback) => {
@@ -62,14 +63,15 @@ exports.handler = async (event, context, callback) => {
   try {
     // Get app state parameters
     const isRedirect = event && event.queryStringParameters && event.queryStringParameters.redirect;
-    const gotSessionState = session && !!session.state;
+    const isReset = event && event.queryStringParameters && event.queryStringParameters.reset;
+    const gotSessionState = session && !!session.state && !isReset;
     const parsedSessionState = gotSessionState && JSON.parse (session.state);
     const revision = event.queryStringParameters && event.queryStringParameters.rev;
     const isBookmark = event && event.queryStringParameters && event.queryStringParameters.id;
     const appState =
 	  (isBookmark
            ? await util.getBookmarkedParams (event, dynamoPromise)
-           : (gotSessionState && (isRedirect || parsedSessionState.name === util.getName(event))
+           : (parsedSessionState && (isRedirect || parsedSessionState.name === util.getName(event))
 	      ? parsedSessionState
 	      : util.getParams (event)));
     const { name, initText, evalText, vars, expansion } = appState;
@@ -89,6 +91,9 @@ exports.handler = async (event, context, callback) => {
     tmpMap[templateUserVar] = null;
     tmpMap[templateExpVar] = expansion;
     tmpMap[templateExpHtmlVar] = '<i>' + '...bracing...' + '</i>';
+    tmpMap[templateWarningVar] = (gotSessionState
+				  ? ('Loaded from auto-save (<a href="' + config.viewPrefix + name + '?reset=true">clear</a>).')
+				  : '');
 
     const populateExpansionTemplates = (expansion) => {
       if (expansion) {
@@ -131,7 +136,7 @@ exports.handler = async (event, context, callback) => {
               tmpMap[templateLockedVar] = ' checked';
 	  }
 	  if (!result || (typeof(evalText) === 'string' && !revision))
-	    return expansion
+	    return expansion;
           if (result.bracery)
             tmpMap[templateDefVar] = result.bracery;
           // If no expansion, call expandFull
@@ -176,6 +181,21 @@ exports.handler = async (event, context, callback) => {
                 });
             }))
          : Promise.resolve());
+
+    // Reset the session, if requested
+    let resetPromise =
+	(isReset
+	 ? dynamoPromise('updateItem')
+	 ({ TableName: config.sessionTableName,
+            Key: { cookie: session.cookie },
+            UpdateExpression: 'SET #s = :s',
+            ExpressionAttributeNames: {
+              '#s': 'state',
+            },
+            ExpressionAttributeValues: {
+              ':s': 'null',
+            } })
+	 : Promise.resolve());
     
     // Read the template HTML file
     const templateHtmlBuf = await util.promisify (fs.readFile) (config.templateHtmlFilename, config.templateHtmlFileEncoding);
@@ -184,6 +204,7 @@ exports.handler = async (event, context, callback) => {
     await newsPromise;
     await symbolPromise;
     await botPromise;
+    await resetPromise;
     
     // Do the %VAR%->val template substitutions
     if (session && session.loggedIn && session.email)

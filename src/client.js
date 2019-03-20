@@ -23,8 +23,8 @@ var BraceryClient = function (config) {
   config = config || {}
   Bracery.Bracery.call (this, null, config)
   this.serverDomain = config.serverDomain || 'bracery.org'
-  this.getUrlPrefix = config.getUrlPrefix || '/store/'
-  this.expandUrlPrefix = config.expandUrlPrefix || '/expand/'
+  this.getUrlPrefix = config.getUrlPrefix || '/api/v1/store/'
+  this.expandUrlPrefix = config.expandUrlPrefix || '/api/v1/expand/'
   this.symbolDefinitionCache = {}
   this.cacheSymbolDefinitions = !config.neverCacheSymbolDefinitions
   this.expandRemotely = !!config.expandRemotely
@@ -48,13 +48,17 @@ BraceryClient.prototype._getBracery = function (config) {
   return httpsRequest (opts)
     .then (function (res_data) {
       var [res, data] = res_data
+      var ret = ['']
       if (res.statusCode == 200) {
-        var result = JSON.parse (data), text = result.bracery, ret = [text]
+        var result = JSON.parse (data), text = result.bracery
+        ret = [text]
+      }
+      if (res.statusCode == 200 || res.statusCode == 404)
 	if (bc.cacheSymbolDefinitions)
 	  bc.symbolDefinitionCache[symbolName] = ret
-        return ret
-      } else
-        return ''
+      return ret
+    }).catch (function() {
+      return ['']
     })
 }
 

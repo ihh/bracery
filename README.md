@@ -544,10 +544,10 @@ Language features include
 	 - for those that are, however, it's useful to be able to retrieve the code in order to do syntactic analysis of the underlying context-free grammar
 	 - the `&parse` function uses this feature
 - lists:
-   - `&list{...}` or just `&{...}` creates an explicit nested list context, vs the default concatenation context
+   - `&list{...}` or just `&{...}` creates an explicit nested list context, vs the default string context
       - `&{}` is the empty list, equivalent to `&list{}`
-      - beginning a concatenation context with `{}` (or any other list) makes it a list context
-      - beginning a concatenation context with a string, or wrapping it in `&quote{...}` makes it a string context
+      - beginning a string context with `{}` (or any other list) makes it a list context
+      - beginning a string context with a string, or wrapping it in `&quote{...}` makes it a string context
    - `&islist{x}` returns true if, and only if, `x` is a list
    - list-coercing functions:
       - `&prepend{item}{list}`, `&append{list}{item}` return lists

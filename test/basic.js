@@ -329,6 +329,7 @@ function doTests (testRunner) {
 
   expectExpand ('&join&iota{5}{,}', '0,1,2,3,4')
 
+  expectExpand ('&map$x&iota{11}{$y+=$x}$y', '55')
   expectExpand ('&for$x&iota{11}{$y+=$x}$y', '55')
   
   // &makelist, &quotelist, &rotate, &cycle, &queue, &shuffle, &bump, &playlist
@@ -398,6 +399,12 @@ function doTests (testRunner) {
 
   expectExpand ('&or{a}{b}', 'a')
   expectExpand ('&or{ }{b}', 'b')
+
+  expectExpand ('$mood=lazy &and{ }{world$mood=busy} mood=$mood', ' mood=lazy')
+  expectExpand ('$mood=lazy &and{hello}{world$mood=busy} mood=$mood', 'helloworld mood=busy')
+
+  expectExpand ('$mood=lazy &or{ }{world$mood=busy} mood=$mood', 'world mood=busy')
+  expectExpand ('$mood=lazy &or{hello}{world$mood=busy} mood=$mood', 'hello mood=lazy')
 
   expectExpand ('&not{}', '1')
   expectExpand ('&not{ }', '1')
@@ -691,7 +698,8 @@ describe('idempotent double expansion tests', function() {
       var config2 = extend ({}, config, {rules:null})
       for (var n = 0; !(expand && expand.text === rhs) && n < maxTries; ++n)
         expand = b2.expand (lhs, config2)
-      var text = bracery.ParseTree.makeRhsExpansionText (extend ({ rhs: expand.tree },
+      var text = bracery.ParseTree.makeRhsExpansionText (extend ({ rhs: expand.tree,
+								   vars: {} },
                                                                  b2.makeConfig (config2)))
       verify (text, done)
     }

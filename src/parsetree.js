@@ -821,7 +821,7 @@ function forReducer (expansion, childExpansion, config) {
                                      [[mapVarName, [childExpansion.value || childExpansion.text]]],
                                      pt.sampleParseTree (mapRhs, config))
     .then (function (mappedChildExpansion) {
-      return expansion;
+      return expansion
     })
 }
 
@@ -1117,6 +1117,12 @@ var regexFunction = {
     return resolve (expansion)
   }
 }
+
+var lazyBinaryPredicate = {
+  // if these return a defined value, the corresponding binaryFunction will return that value after expanding the first argument
+  and: function (value) { return isTruthy(value) ? undefined : falseVal },
+  or: function (value) { return isTruthy(value) ? value : undefined },
+};
 
 var binaryFunction = {
   same: function (l, r, lv, rv) {
@@ -1589,8 +1595,15 @@ function makeExpansionPromise (config) {
                 })
             } else if (binaryFunction[node.funcname]) {
               // binary functions
+	      var lazyPred = lazyBinaryPredicate[node.funcname]
               promise = makeRhsExpansionPromiseFor ([node.args[0]])
                 .then (function (leftArg) {
+		  var lazyResult = lazyPred && lazyPred (leftArg.value)
+		  if (typeof(lazyResult) !== 'undefined') {
+		    expansion.value = lazyResult
+		    expansion.text = makeString (lazyResult)
+		    return expansionPromise
+		  }
                   return makeRhsExpansionPromiseFor ([node.args[1]])
                     .then (function (rightArg) {
                       expansion.nodes += leftArg.nodes + rightArg.nodes

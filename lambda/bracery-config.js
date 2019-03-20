@@ -25,6 +25,7 @@ module.exports = {
   recentlyUpdatedLimit: 5,
   // BracerySessionTable
   cookieName: 'bracery_session',
+  sessionExpirationSeconds: 24*60*60,  // 1 day
 
   // AWS Cognito
   cognitoDomain: 'auth.bracery.org',

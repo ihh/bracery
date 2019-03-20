@@ -91,7 +91,8 @@ async function getSession (event, dynamoPromise) {
 	return queryRes.Items[0];
     }
     const newCookie = await makeUniqueId (config.sessionTableName, 'cookie', 16, dynamoPromise);
-    const newSession = { cookie: newCookie };
+    const newSession = { cookie: newCookie,
+			 expires: Math.ceil (Date.now() / 1000 + config.sessionExpirationSeconds) };
     await dynamoPromise('putItem')
     ({ TableName: config.sessionTableName,
        Item: newSession,
@@ -175,14 +176,22 @@ async function getBookmarkedParams (event, dynamoPromise) {
   return params;
 }
 
-function getParams (event) {
+function getName (event) {
   const body = getBody (event);
   
-  // Get the symbol name
   const name = ((event && event.pathParameters && event.pathParameters.name)
 		|| (event && event.queryStringParameters && event.queryStringParameters.name)
 		|| body.name
 		|| config.defaultSymbolName);
+
+  return name;
+}
+
+function getParams (event) {
+  const body = getBody (event);
+  
+  // Get the symbol name
+  const name = getName (event);
 
   // Get symbol definition override from query parameters, if supplied
   const initText = ((event && event.queryStringParameters && typeof(event.queryStringParameters['text']) === 'string')
@@ -431,16 +440,17 @@ module.exports = {
   promisify,
   promiseDelay,
   dynamoPromise,
-  getBody,
-  getVars,
   getBracery,
   createBracery,
   updateBracery,
   expandTemplate,
   randomChar,
   makeUniqueId,
+  getBody,
+  getVars,
   getSession,
   getParams,
+  getName,
   getBookmarkedParams,
   createBookmark,
   httpsRequest,

@@ -62,12 +62,13 @@ exports.handler = async (event, context, callback) => {
   try {
     // Get app state parameters
     const isRedirect = event && event.queryStringParameters && event.queryStringParameters.redirect;
-    const gotSessionState = session && session.state;
+    const gotSessionState = session && !!session.state;
+    const parsedSessionState = gotSessionState && JSON.parse (session.state);
     const revision = event.queryStringParameters && event.queryStringParameters.rev;
     const isBookmark = event && event.queryStringParameters && event.queryStringParameters.id;
     const appState =
-	  (isRedirect && gotSessionState
-	   ? JSON.parse (session.state)
+	  (gotSessionState && (isRedirect || parsedSessionState.name === util.getName(event))
+	   ? parsedSessionState
 	   : (isBookmark
               ? await util.getBookmarkedParams (event, dynamoPromise)
               : util.getParams (event)));

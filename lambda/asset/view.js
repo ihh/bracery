@@ -317,26 +317,29 @@ function initBraceryView (config) {
     req.send (JSON.stringify (body));
   }
 
-  function createBookmark() {
+  function saveAppStateToServer (createBookmark) {
     return new Promise ((resolve) => {
       var callback = function (err, result) {
         if (err) {
           errorElement.innerText = 'Sorry, an error occurred (' + err + ').'
           throw new Error (err)
-        } else {
+        } else if (createBookmark && result) {
           errorElement.innerHTML = 'Bookmarked: <a href="' + result.url + '">' + result.id + '</a>.'
           resolve (result)
         }
       }
-      errorElement.innerText = 'Bookmarking...'
+      if (createBookmark)
+	errorElement.innerText = 'Bookmarking...'
       var req = new XMLHttpRequest();
       req.open("POST", window.location.origin + bookmarkPrefix);
       req.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-      var reqBody = stateBody (currentState(true), { name: config.name })
+      var reqBody = stateBody (currentState(true),
+			       { name: config.name,
+				 link: !!createBookmark })
       req.onreadystatechange = function() {
         if (this.readyState === XMLHttpRequest.DONE) {
           if (this.status === 200)
-            callback (null, JSON.parse (this.responseText))
+            callback (null, this.responseText && JSON.parse (this.responseText))
           else
             callback (this.status)
         }
@@ -351,7 +354,7 @@ function initBraceryView (config) {
     if (!awaitingBookmark) {
       awaitingBookmark = true
       var html = expandMarkdown (currentExpansionText, marked)  // Markdown expansion
-      return createBookmark()
+      return saveAppStateToServer(true)
         .then (function (bookmark) {
           var tweet = digestHTML (html, getTextContent, maxTweetLen - (bookmark.url.length + 1))
           var webIntentUrl = 'https://twitter.com/intent/tweet'
@@ -434,7 +437,9 @@ function initBraceryView (config) {
   var delayedUpdateTimer = null, updateDelay = 400
   function evalChanged (evt) {
     cancelDelayedUpdate()
-    delayedUpdateTimer = setTimeout (update, updateDelay)
+    delayedUpdateTimer = setTimeout (function() {
+      update().then (function() { saveAppStateToServer(false) })
+    }, updateDelay)
     evalTextEdited = true
     warnUnsaved()
     // The user typing input on the page overrides whatever was in the URL (or the current game state),

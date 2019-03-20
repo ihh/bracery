@@ -63,7 +63,7 @@ body {
     padding: 1px;
 }
 
-#refs {
+#refs, #referring {
     font-size: small;
     font-style: italic;
 }

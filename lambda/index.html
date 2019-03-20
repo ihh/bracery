@@ -28,6 +28,7 @@
 	    <div contenteditable="true" id="eval">%ESCAPED_SYMBOL_DEFINITION%</div>
 	  </div>
 	  <div id="refs"></div>
+	  <div id="referring"></div>
 	  <br><p>
 	    <span id="urlprefix">%BASE_URL%%VIEW_PATH_PREFIX%</span>
 	    <input type="text" id="name" name="name" size="20" value="%SYMBOL_NAME%">
@@ -45,7 +46,7 @@
     </div>
     <script src="%JAVASCRIPT_FILE%"></script>
     <script>
-      initBraceryView ({ name: "%SYMBOL_NAME%", revision: %JSON_REVISION%, user: %JSON_USER%, init: %JSON_INIT_TEXT%, vars: %JSON_VARS%, exp: %JSON_EXPANSION%, bots: %JSON_BOTS%, recent: %JSON_RECENT_SYMBOLS%, store: "%STORE_PATH_PREFIX%", view: "%VIEW_PATH_PREFIX%", expand: "%EXPAND_PATH_PREFIX%", login: "%LOGIN_PATH_PREFIX%", twitter: "%TWITTER_PATH_PREFIX%" });
+      initBraceryView ({ name: "%SYMBOL_NAME%", revision: %JSON_REVISION%, referring: %JSON_REFERRING_SYMBOLS%, user: %JSON_USER%, init: %JSON_INIT_TEXT%, vars: %JSON_VARS%, exp: %JSON_EXPANSION%, bots: %JSON_BOTS%, recent: %JSON_RECENT_SYMBOLS%, store: "%STORE_PATH_PREFIX%", view: "%VIEW_PATH_PREFIX%", expand: "%EXPAND_PATH_PREFIX%", login: "%LOGIN_PATH_PREFIX%", twitter: "%TWITTER_PATH_PREFIX%" });
     </script>
   </body>
 </html>

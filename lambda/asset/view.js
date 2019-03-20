@@ -28,6 +28,7 @@ function initBraceryView (config) {
   var initVars = config.vars
   var recent = config.recent
   var bots = config.bots
+  var referring = config.referring
   var storePrefix = config.store
   var viewPrefix = config.view
   var expandPrefix = config.expand
@@ -50,6 +51,7 @@ function initBraceryView (config) {
   var resetElement = document.getElementById('reset')
   var rerollElement = document.getElementById('reroll')
   var refsElement = document.getElementById('refs')
+  var referringElement = document.getElementById('referring')
   var expElement = document.getElementById('expansion')
   var tweetElement = document.getElementById('tweet')
 
@@ -133,11 +135,13 @@ function initBraceryView (config) {
       + ' to auto-tweets'
   }
 
+  // Referring pages
+  if (referring)
+    referringElement.innerHTML = makeRefList ('Used by', referring, 'No other pages refer to this page')
+  
   // Recently-updated pages
-  if (recent && recent.length)
-    recentElement.innerHTML = 'Recently updated: ' + recent
-    .map (function (recentName) { return '<a href="' + baseViewUrl + recentName + '">' + recentName + '</a>' })
-    .join (", ")
+  if (recent)
+    recentElement.innerHTML = makeRefList ('Recently updated', recent)
 
   // Application state
   var evalTextEdited = false  // indicates evalElement.innerText is "as loaded" from initText() = config.init; set by change event on evalElement, cleared by reload
@@ -174,12 +178,14 @@ function initBraceryView (config) {
     bracery.ParseTree.getSymbolNodes (bracery.ParseTree.parseRhs (text), true)
       .forEach (function (node) { isRef[node.name] = true })
     var refs = Object.keys (isRef)
-    refsElement.innerHTML =
-      (refs.length
-       ? ('References: ' + refs.map (function (name) {
-         return '~<a href="' + baseViewUrl + name + '?edit=true" target="_blank">' + name + '</a>'
-       }).join(', '))
-       : '')
+    refsElement.innerHTML = makeRefList ('References', refs)
+  }
+  function makeRefList (prefix, symbols, absentText) {
+    return (symbols.length
+	    ? (prefix + ': ' + symbols.map (function (name) {
+              return '~<a href="' + baseViewUrl + name + '?edit=true" target="_blank">' + name + '</a>'
+	    }).join(', '))
+	    : (absentText || ''))
   }
   
   function makeExternalLink (text, link, params, onclick) {

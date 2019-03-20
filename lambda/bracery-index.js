@@ -18,7 +18,9 @@ exports.handler = async (event, context, callback) => {
   //console.log('Received event:', JSON.stringify(event, null, 2));
 
   try {
-    let pagesContainingWord = {}, lastWord = null;
+    let currentSymbolList = Object.create(null);  // avoid giving this a 'constructor' property
+    let oldSymbolStr = Object.create(null);
+    let lastWord = null;
     do {
       let wordScanParams = { TableName: config.wordTableName };
       if (lastWord)
@@ -26,7 +28,10 @@ exports.handler = async (event, context, callback) => {
       let wordScanResult = await dynamoPromise('scan') (wordScanParams);
       lastWord = wordScanResult.LastEvaluatedKey;
       wordScanResult.Items.forEach ((wordItem) => {
-	pagesContainingWord[wordItem.name] = [];
+	if (wordItem.word) {
+	  oldSymbolStr[wordItem.word] = wordItem.symbols;
+	  currentSymbolList[wordItem.word] = [];
+	}
       });
     } while (lastWord);
 
@@ -46,36 +51,61 @@ exports.handler = async (event, context, callback) => {
 	const words = util.getWords (defItem.bracery, ParseTree);
 	const name = defItem.name;
 	words.forEach ((word) => {
-	  pagesContainingWord[word] = (pagesContainingWord[word] || []).concat ([name]);
+	  if (word)
+	    currentSymbolList[word] = (currentSymbolList[word] || []).concat ([name]);
 	});
       });
     } while (lastName);
 
-    let wordsLeft = null, backoffDelay = 1000, backoffMultiplier = 1.5;
-    while ((wordsLeft = Object.keys(pagesContainingWord)).length) {
+    let currentSymbolStr = Object.create(null);
+    let unchanged = 0;
+    Object.keys(currentSymbolList).forEach ((word) => {
+      const syms = currentSymbolList[word].sort().join(' ');
+      if (syms !== oldSymbolStr[word])
+	currentSymbolStr[word] = syms;
+      else
+	++unchanged;
+    });
+    Object.keys(oldSymbolStr).forEach ((word) => {
+      if (!currentSymbolList[word])
+	currentSymbolStr[word] = null;
+    });
+    console.warn (unchanged + ' entries in the word table are unchanged; ' + Object.keys(currentSymbolStr).length + ' are in need of update');
+     
+    let wordsLeft = null, backoffDelay = 100, backoffMultiplier = 1.5;
+    let nBatch = 0;
+    while ((wordsLeft = Object.keys(currentSymbolStr)).length) {
+      ++nBatch;
       const wordBatch = wordsLeft.slice (0, dynamoBatchSize);
+      console.warn('Processing batch #' + nBatch + ' (' + wordsLeft.length + ' remaining): ' + wordBatch.join(', '));
       let deleteParams = { RequestItems: {} };
       deleteParams.RequestItems[config.wordTableName] = wordBatch
+	.filter ((word) => oldSymbolStr[word])
 	.map ((word) => ({
-	  DeleteRequest: { Key: word }
+	  DeleteRequest: { Key: { word: word } }
 	}));
-      let deleteResult = await dynamoPromise('batchWriteItem') (deleteParams);
-      let failed = {};
-      if (deleteResult.UnprocessedItems)
-	deleteResult.UnprocessedItems.forEach ((item) => { failed[item.name] = true; });
+      let failed = Object.create (null);
+      if (deleteParams.RequestItems[config.wordTableName].length) {
+	let deleteResult = await dynamoPromise('batchWriteItem') (deleteParams);
+	if (deleteResult.UnprocessedItems && deleteResult.UnprocessedItems[config.wordTableName])
+	  deleteResult.UnprocessedItems[config.wordTableName].forEach ((item) => { failed[item.name] = true; });
+      }
       let putParams = { RequestItems: {} };
-      deleteParams.RequestItems[config.wordTableName] = wordBatch
+      putParams.RequestItems[config.wordTableName] = wordBatch
+	.filter ((word) => currentSymbolStr[word])
 	.filter ((word) => !failed[word])
 	.map ((word) => ({
 	  PutRequest: { Item: { word: word,
-				symbols: pagesContainingWord[word] } }
+				symbols: currentSymbolStr[word] } }
 	}));
-      let putResult = await dynamoPromise('batchWriteItem') (putParams);
-      if (putResult.UnprocessedItems)
-	putResult.UnprocessedItems.forEach ((item) => { failed[item.name] = true; });
+      if (putParams.RequestItems[config.wordTableName].length) {
+	let putResult = await dynamoPromise('batchWriteItem') (putParams);
+	if (putResult.UnprocessedItems && putResult.UnprocessedItems[config.wordTableName])
+	  putResult.UnprocessedItems[config.wordTableName].forEach ((item) => { failed[item.name] = true; });
+      }
       wordBatch
 	.filter ((word) => !failed[word])
-	.forEach ((word) => delete pagesContainingWord[word]);
+	.forEach ((word) => delete currentSymbolStr[word]);
       if (Object.keys(failed).length)
 	await util.promiseDelay (backoffDelay *= backoffMultiplier);
     }

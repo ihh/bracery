@@ -15,7 +15,9 @@ const dynamoPromise = util.dynamoPromise();
 
 // Bracery
 global.nlp = require('./compromise.es6.min');  // hack/workaround so Bracery can see nlp. Not very satisfactory.
-const Bracery = require('./bracery').Bracery;
+const BraceryModule = require('./bracery');
+const Bracery = BraceryModule.Bracery;
+const ParseTree = BraceryModule.ParseTree;
 const bracery = new Bracery();
 
 // Markdown->HTML
@@ -37,6 +39,7 @@ const templateVarValMap = { 'JAVASCRIPT_FILE': config.assetPrefix + config.viewA
 const templateNameVar = 'SYMBOL_NAME';
 const templateDefVar = 'SYMBOL_DEFINITION';
 const templateRevVar = 'REVISION';
+const templateRefsVar = 'REFERRING_SYMBOLS';
 const templateLockedVar = 'LOCKED_BY_USER';
 const templateInitVar = 'INIT_TEXT';
 const templateVarsVar = 'VARS';
@@ -82,6 +85,7 @@ exports.handler = async (event, context, callback) => {
     tmpMap[templateNameVar] = name;
     tmpMap[templateDefVar] = typeof(evalText) === 'string' ? evalText : '';
     tmpMap[templateRevVar] = '';
+    tmpMap[templateRefsVar] = [];
     tmpMap[templateLockedVar] = '';
     tmpMap[templateInitVar] = typeof(initText) === 'string' ? initText : false;
     tmpMap[templateRecentVar] = [];
@@ -111,7 +115,7 @@ exports.handler = async (event, context, callback) => {
        ScanIndexForward: false,
        Limit: config.recentlyUpdatedLimit,
        KeyConditionExpression: "#viskey = :visval",
-       ExpressionAttributeNames:{
+       ExpressionAttributeNames: {
          "#viskey": "visibility"
        },
        ExpressionAttributeValues: {
@@ -145,6 +149,18 @@ exports.handler = async (event, context, callback) => {
                 return expansion;
             }))).then (populateExpansionTemplates);
 
+    // Query the database for any symbols that use this symbol
+    let refPromise = await dynamoPromise('query')
+    ({ TableName: config.wordTableName,
+       KeyConditionExpression: "#word = :word",
+       ExpressionAttributeNames: { "#word": "word" },
+       ExpressionAttributeValues: { ":word": ParseTree.symChar + name } })
+      .then ((res) => {
+        const result = res.Items && res.Items.length && res.Items[0];
+	if (result)
+	  tmpMap[templateRefsVar] = result.symbols.split(' ');
+      });
+    
     // Query the database for any bots we're operating
     let botPromise =
         (session && session.loggedIn

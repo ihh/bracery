@@ -29,6 +29,7 @@ function initBraceryView (config) {
   var recent = config.recent
   var bots = config.bots
   var referring = config.referring
+  var bookmarkPrefix = config.bookmark
   var storePrefix = config.store
   var viewPrefix = config.view
   var expandPrefix = config.expand
@@ -329,7 +330,7 @@ function initBraceryView (config) {
       }
       errorElement.innerText = 'Bookmarking...'
       var req = new XMLHttpRequest();
-      req.open("POST", window.location.origin + viewPrefix);
+      req.open("POST", window.location.origin + bookmarkPrefix);
       req.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
       var reqBody = stateBody (currentState(true), { name: config.name })
       req.onreadystatechange = function() {

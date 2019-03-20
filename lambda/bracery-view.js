@@ -31,9 +31,10 @@ const templateVarValMap = { 'JAVASCRIPT_FILE': config.assetPrefix + config.viewA
                             'BASE_URL': config.baseUrl,
                             'STORE_PATH_PREFIX': config.storePrefix,
                             'VIEW_PATH_PREFIX': config.viewPrefix,
+                            'BOOKMARK_PATH_PREFIX': config.bookmarkPrefix,
                             'EXPAND_PATH_PREFIX': config.expandPrefix,
 			    'LOGIN_PATH_PREFIX': config.loginPrefix,
-                           'TWITTER_PATH_PREFIX': config.twitterPrefix,
+                            'TWITTER_PATH_PREFIX': config.twitterPrefix,
                             'SOURCE_CONTROLS_STYLE': hiddenStyle,
                             'SOURCE_REVEAL_STYLE': '' };
 const templateNameVar = 'SYMBOL_NAME';
@@ -71,13 +72,6 @@ exports.handler = async (event, context, callback) => {
               ? await util.getBookmarkedParams (event, dynamoPromise)
               : util.getParams (event)));
     const { name, initText, evalText, vars, expansion } = appState;
-
-    // Intercept POST and other non-GET requests
-    if (event.httpMethod === 'POST') {
-      const bookmark = await util.createBookmark (appState, session, dynamoPromise);
-      return respond.ok (bookmark);
-    } else if (event.httpMethod !== 'GET')
-      return respond.badMethod();
     
     // Add the name & a dummy empty definition to the template var->val map
     let tmpMap = util.extend ({}, templateVarValMap);

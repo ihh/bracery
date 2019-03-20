@@ -42,13 +42,13 @@ The API Gateway is organized as follows
 | Path | Method | Function |
 | ---- | ------ | -------- |
 | `/` | `GET` | [bracery-view.js](bracery-view.js) |
-| `/` | `POST` | [bracery-view.js](bracery-view.js) |
 | `/{name}` | `GET` | [bracery-view.js](bracery-view.js) |
-| `/asset/{filename}` | `GET` | [bracery-asset.js](bracery-asset.js) |
-| `/auth/login` | `GET` | [bracery-login.js](bracery-login.js) |
-| `/auth/twitter` | `GET` | [bracery-twitter.js](bracery-twitter.js) |
-| `/expand/{name}` | `GET` | [bracery-expand.js](bracery-expand.js) |
-| `/store/{name}` | `ANY` | [bracery-store.js](bracery-store.js) |
+| `/api/v1/bookmark` | `POST` | [bracery-view.js](bracery-view.js) |
+| `/api/v1/asset/{filename}` | `GET` | [bracery-asset.js](bracery-asset.js) |
+| `/api/v1/login` | `GET` | [bracery-login.js](bracery-login.js) |
+| `/api/v1/twitter` | `GET` | [bracery-twitter.js](bracery-twitter.js) |
+| `/api/v1/expand/{name}` | `GET` | [bracery-expand.js](bracery-expand.js) |
+| `/api/v1/store/{name}` | `ANY` | [bracery-store.js](bracery-store.js) |
 
 ## DynamoDB
 

@@ -2,12 +2,13 @@ module.exports = {
   // API Gateway
   baseUrl: 'https://bracery.org',
   viewPrefix: '/',
-  storePrefix: '/store/',
-  assetPrefix: '/asset/',
-  expandPrefix: '/expand/',
-  loginPrefix: '/auth/login/',
-  logoutPrefix: '/auth/logout/',
-  twitterPrefix: '/auth/twitter/',
+  storePrefix: '/api/v1/store/',
+  assetPrefix: '/api/v1/asset/',
+  expandPrefix: '/api/v1/expand/',
+  loginPrefix: '/api/v1/login/',
+  logoutPrefix: '/api/v1/logout/',
+  twitterPrefix: '/api/v1/twitter/',
+  bookmarkPrefix: '/api/v1/bookmark/',
   
   // DynamoDB tables
   tableName: 'BraceryTable',

@@ -4,7 +4,7 @@ include Makefile.keys
 
 ZIP = zip
 
-FUNCTIONS = bracery-store bracery-view bracery-asset bracery-expand bracery-login bracery-twitter bracery-bot bracery-news bracery-index
+FUNCTIONS = bracery-store bracery-view bracery-asset bracery-expand bracery-login bracery-twitter bracery-bot bracery-news bracery-index bracery-bookmark
 ZIPFILES = $(addsuffix .zip,$(FUNCTIONS))
 PUBLISH_PSEUDOTARGETS = $(addsuffix .publish,$(FUNCTIONS))
 
@@ -120,3 +120,8 @@ bracery-index.zip: bracery-index.js $(COMMON) $(COMPROMISE_DEP) $(BRACERY_DEPS)
 	cp $(COMPROMISE_DEP) $(STAGING_DIR)
 	cp $(BRACERY_DEPS) $(STAGING_DIR)
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
+
+bracery-bookmark.zip: bracery-bookmark.js $(COMMON)
+	cp $< index.js
+	$(ZIP) $@ index.js $(COMMON)
+	rm index.js

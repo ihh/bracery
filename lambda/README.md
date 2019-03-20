@@ -8,7 +8,8 @@ Via API Gateway
 
 - [bracery-store.js](bracery-store.js) is a tiny RESTful microservice for storing & retrieving Bracery code in DynamoDB
 - [bracery-expand.js](bracery-expand.js) pulls code from DynamoDB, expands it in AWS Lambda (possibly involving more calls to DynamoDB), and returns
-- [bracery-view.js](bracery-view.js) presents a single-page app for storing/retrieving/editing/expanding a Bracery expression. POSTing to this script creates a URL-shortened bookmark
+- [bracery-view.js](bracery-view.js) presents a single-page app for storing/retrieving/editing/expanding a Bracery expression
+- [bracery-bookmark.js](bracery-bookmark.js) creates a URL-shortened bookmark of the current app state
 - [bracery-asset.js](bracery-asset.js) serves up some of the static assets for the view
 - [bracery-login.js](bracery-login.js) redirects to/from Amazon Cognito for login & logout, handles session
    - uses environment variables `COGNITO_APP_CLIENT_ID`, `COGNITO_APP_SECRET`, `COGNITO_USER_POOL_ID`
@@ -21,6 +22,7 @@ Via CloudWatch Alarms
    - uses environment variables `TWITTER_CONSUMER_KEY`, `TWITTER_CONSUMER_SECRET`
 - [bracery-news.js](bracery-news.js) triggered by a CloudWatch alarm; polls [NewsAPI.org](https://newsapi.org/) and writes to ~[news_story](https://bracery.org/news_story)
    - uses environment variable `NEWS_API_KEY`
+- [bracery-index.js](bracery-index.js) triggered by a CloudWatch alarm; indexes the word search table
 
 ## Other files
 
@@ -43,7 +45,7 @@ The API Gateway is organized as follows
 | ---- | ------ | -------- |
 | `/` | `GET` | [bracery-view.js](bracery-view.js) |
 | `/{name}` | `GET` | [bracery-view.js](bracery-view.js) |
-| `/api/v1/bookmark` | `POST` | [bracery-view.js](bracery-view.js) |
+| `/api/v1/bookmark` | `POST` | [bracery-view.js](bracery-bookmark.js) |
 | `/api/v1/asset/{filename}` | `GET` | [bracery-asset.js](bracery-asset.js) |
 | `/api/v1/login` | `GET` | [bracery-login.js](bracery-login.js) |
 | `/api/v1/twitter` | `GET` | [bracery-twitter.js](bracery-twitter.js) |
@@ -61,6 +63,7 @@ The following tables are used
 | `BracerySessionTable` | `cookie` | n/a | n/a | n/a | n/a | Stores information about the session, e.g. whether user has logged on |
 | `BraceryTwitterTable` | `user` | `requestToken` | n/a | n/a | n/a | Stores information about pending & granted Twitter authorization requests, and their associated user accounts & symbols |
 | `BraceryBookmarkTable` | `id` | n/a | n/a | n/a | n/a | A table for saving application state (current source & expanded text) for URL-shortening purposes |
+| `BraceryWordTable` | `word` | n/a | n/a | n/a | n/a | For every word, a list of pages that contain that word |
 
 
 ## Cognito

@@ -406,6 +406,8 @@ function doTests (testRunner) {
   expectExpand ('$mood=lazy &or{ }{world$mood=busy} mood=$mood', 'world mood=busy')
   expectExpand ('$mood=lazy &or{hello}{world$mood=busy} mood=$mood', 'hello mood=lazy')
 
+  expectExpand ('$x=10 $y=20 or=&or$y{++$x} x=$x and=&and{}{++$y} y=$y', 'or=20 x=10 and= y=20')
+  
   expectExpand ('&not{}', '1')
   expectExpand ('&not{ }', '1')
   expectExpand ('&not{1}', '')

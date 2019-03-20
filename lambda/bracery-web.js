@@ -151,6 +151,10 @@ module.exports = {
   countWords: countWords,
   getWords: getWords,
 
+  // Special pages
+  defaultSymbolName: 'welcome',
+  suggestionsSymbolName: 'editor_suggestions',
+  
   // Bracery expansion limits
   braceryLimits: {
     maxDepth: 100,

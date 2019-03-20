@@ -19,6 +19,20 @@ body {
     float: right;
 }
 
+#varsbefore, #varsafter, #expansion {
+    margin-left: 4px;
+    margin-right: 4px;
+}
+
+#varsbefore, #varsafter {
+    font-size: x-small;
+    font-style: italic;
+    min-height: 1em;
+    background: #eee;
+    border-style: solid;
+    border-width: 1px;
+}
+
 #expansion {
     background-color: white;
     border-color: lightgray;
@@ -28,8 +42,7 @@ body {
     font-size: x-large;
     
     min-height: 1em;
-    margin-left: 4px;
-    margin-right: 4px;
+
     padding-left: 4px;
     padding-right: 4px;
 }

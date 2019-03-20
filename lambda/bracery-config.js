@@ -36,7 +36,4 @@ module.exports = {
   
   // Encoding
   stringEncoding: 'utf-8',
-
-  // Default page
-  defaultSymbolName: 'welcome',
 };

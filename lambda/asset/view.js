@@ -5,6 +5,7 @@ var digestHTML = window.braceryWeb.digestHTML;
 var clickHandlerName = window.braceryWeb.clickHandlerName;
 var makeInternalLink = window.braceryWeb.makeInternalLink;
 var braceryLimits = window.braceryWeb.braceryLimits;
+var suggestionsName = window.braceryWeb.suggestionsSymbolName;
 
 var viewConfig = { bookmark: { link: false,
 			       reset: false,
@@ -25,7 +26,7 @@ function getUrlParams() {
 function initBraceryView (config) {
   function name() { return config.name }  // make this dynamic, as save() can change the name
   function initText() { return config.init }  // make this dynamic, as initText is reset when user starts typing
-  var initVars = config.vars
+  function initVars() { return config.vars }  // make this dynamic, as initVars is reset when user clicks reload
   var recent = config.recent
   var bots = config.bots
   var referring = config.referring
@@ -70,6 +71,16 @@ function initBraceryView (config) {
   var sourcePanelElement = document.getElementById('sourcepanel')
   var lockPanelElement = document.getElementById('lockpanel')
 
+  var debugRevealElement = document.getElementById('debugreveal')
+  var debugHideElement = document.getElementById('debughide')
+  var beforeElement = document.getElementById('varsbefore')
+  var afterElement = document.getElementById('varsafter')
+
+  var suggestPanelElement = document.getElementById('suggestpanel')
+  var suggestElement = document.getElementById('suggest')
+  var suggestionsElement = document.getElementById('suggestions')
+  var dismissElement = document.getElementById('dismiss')
+
   var recentElement = document.getElementById('recent')
   var titleElement = document.getElementById('title')
 
@@ -109,7 +120,8 @@ function initBraceryView (config) {
   // Internal link. Looks like an external link, but just rewrites text in evalElement
   window[clickHandlerName] = function (newEvalText) {
     window.event.preventDefault();
-    return update (newEvalText, varsAfterCurrentExpansion, { pushState: viewConfig.bookmark.link });
+    return update (newEvalText, varsAfterCurrentExpansion, { pushState: viewConfig.bookmark.link })
+      .then (function() { saveAppStateToServer(false); })
   }
 
   // List of bots
@@ -148,17 +160,25 @@ function initBraceryView (config) {
   var evalTextEdited = false  // indicates evalElement.innerText is "as loaded" from initText() = config.init; set by change event on evalElement, cleared by reload
   var totalExpansions = 0, currentExpansionCount = 0   // used to avoid async issues where HTTP response callbacks from earlier clicks overwrite (what should be) later results
   var varsBeforeCurrentExpansion, varsAfterCurrentExpansion, currentSourceText, currentExpansionText  // the current state of the internal Bracery expansion at the core of the app
+  var rerollMeansRestart = false
   function show (text, vars, showConfig) {
     var expansionCount = ++totalExpansions
     return function (expansion) {
       if (expansionCount > currentExpansionCount) {
 	currentSourceText = text
 	currentExpansionText = expansion.text
-	extend (varsBeforeCurrentExpansion = {}, vars)
+	extend (varsBeforeCurrentExpansion = {}, vars || initVars())
         extend (varsAfterCurrentExpansion = {}, expansion.vars)
         currentExpansionCount = expansionCount
+	rerollMeansRestart = !!text
+
         var html = expandMarkdown (currentExpansionText, marked)  // Markdown expansion
         expElement.innerHTML = html
+
+	rerollElement.innerHTML = rerollMeansRestart ? 'Restart' : 'Re-roll'
+	beforeElement.innerHTML = makeVarHtml (varsBeforeCurrentExpansion)
+	afterElement.innerHTML = makeVarHtml (varsAfterCurrentExpansion)
+
 	if (showConfig && showConfig.pushState)
 	  pushState ({ text: currentSourceText,
 		       vars: varsBeforeCurrentExpansion,
@@ -187,6 +207,12 @@ function initBraceryView (config) {
               return '~<a href="' + baseViewUrl + name + '?edit=true" target="_blank">' + name + '</a>'
 	    }).join(', '))
 	    : (absentText || ''))
+  }
+
+  function makeVarHtml (vars) {
+    return Object.keys(vars).sort().map (function (name) {
+      return '<span class="var">$' + name + '</span>=<span class="val">' + vars[name] + '</span>'
+    }).join(', ')
   }
   
   function makeExternalLink (text, link, params, onclick) {
@@ -372,6 +398,7 @@ function initBraceryView (config) {
     getBracery (name(), function (reloadedEvalText) {
       evalElement.innerText = reloadedEvalText
       delete config.init
+      delete config.vars
       evalTextEdited = false
       update (undefined, undefined, { pushState: viewConfig.bookmark.reset,
 				      quiet: true })  // push state without init text
@@ -407,7 +434,7 @@ function initBraceryView (config) {
 	     if (viewConfig.bookmark.save)
 	       pushState ({ name: name,
                             text: initText(),
-                            vars: initVars })
+                            vars: initVars() })
              delete braceryCache[name]
            }
          }
@@ -443,12 +470,12 @@ function initBraceryView (config) {
     evalTextEdited = true
     warnUnsaved()
     // The user typing input on the page overrides whatever was in the URL (or the current game state),
-    // so clear the 'init' config parameter (corresponding to the '?text=' query URL parameter)
-    // and then push a clean URL
-    if (config.init) {
+    // so clear the 'init' and 'vars' config parameters, and then push a clean URL
+    if (config.init || config.vars) {
       delete config.init
+      delete config.vars
       if (viewConfig.bookmark.firstEdit)
-	pushState ({ vars: initVars })
+	pushState({})
     }
   }
   function cancelDelayedUpdate() {
@@ -475,16 +502,6 @@ function initBraceryView (config) {
 	if (typeof(updateVars) === 'undefined')
           updateVars = initVars
 	
-	function getSymbol (config) {
-          var symbolName = config.symbolName || config.node.name
-          return new Promise (function (resolve, reject) {
-            getBracery (symbolName.toLowerCase(), function (bracery) {
-	      resolve ([bracery])
-	    })
-          })
-	}
-	function setSymbol() { return [] }
-
 	// The URL that gets pushed includes updateText & updateVars
 	var showExpansion = show (updateText, updateVars, showConfig)
 	function showAndResolve (expansion) {
@@ -492,11 +509,9 @@ function initBraceryView (config) {
 	  resolve (expansion)
 	}
 
-	var callbacks = { get: getSymbol,
-                          set: setSymbol,
-			  expand: null,  // signals to Bracery that we want it to fetch the symbol definition & then expand it locally
-                          callback: showAndResolve,
-                          makeLink: makeInternalLink }
+	var callbacks = extend ({ callback: showAndResolve,
+				  makeLink: makeInternalLink },
+				braceryExpandCallbacks)
 
 	braceryServer.expand (text, extend (callbacks,
 					    expandConfig,
@@ -508,33 +523,83 @@ function initBraceryView (config) {
       }
     })
   }
+
+  function getSymbol (config) {
+    var symbolName = config.symbolName || config.node.name
+    return new Promise (function (resolve, reject) {
+      getBracery (symbolName.toLowerCase(), function (bracery) {
+	resolve ([bracery])
+      })
+    })
+  }
+  function setSymbol() { return [] }
+  var braceryExpandCallbacks = { expand: null,  // signals to Bracery that we want it to fetch the symbol definition & then expand it locally
+				 get: getSymbol,
+				 set: setSymbol }
+
+  function showSuggestions (evt) {
+    evt.preventDefault();
+    getBracery (suggestionsName, function (suggestionsText) {
+      braceryServer.expand (suggestionsText, extend ({
+	callback: function (expansion) {
+	  suggestionsElement.innerHTML = expandMarkdown (expansion.text, marked)
+	  revealElements ([dismissElement])
+	}
+      }, braceryExpandCallbacks, expandConfig))
+    })
+  }
+
+  function setDisplay (elements, display) {
+    elements.forEach (function (element) {
+      element.style.display = display
+    })
+  }
+  function hideElements (elements) { return setDisplay (elements, 'none') }
+  function revealElements (elements) { return setDisplay (elements, '') }
+  var sourceElements = [sourceControlsElement, sourcePanelElement, suggestPanelElement]
+  var debugElements = [beforeElement, afterElement, debugHideElement]
   function revealSource (evt) {
     if (evt)
       evt.preventDefault()
-    sourceControlsElement.style.display = ''
-    sourcePanelElement.style.display = ''
-    sourceRevealElement.style.display = 'none'
+    revealElements (sourceElements)
+    hideElements ([sourceRevealElement])
   }
   function hideSource (evt) {
     if (evt)
       evt.preventDefault()
-    sourceControlsElement.style.display = 'none'
-    sourcePanelElement.style.display = 'none'
-    sourceRevealElement.style.display = ''
+    hideElements (sourceElements)
+    revealElements ([sourceRevealElement])
+  }
+  function revealDebug (evt) {
+    if (evt)
+      evt.preventDefault()
+    revealElements (debugElements)
+    hideElements ([debugRevealElement])
+  }
+  function hideDebug (evt) {
+    if (evt)
+      evt.preventDefault()
+    hideElements (debugElements)
+    revealElements ([debugRevealElement])
   }
   evalElement.addEventListener ('input', evalChanged)
   eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.innerText = ''; update().then (viewConfig.bookmark.erase ? bookmark : undefined) })
   resetElement.addEventListener ('click', function (evt) { evt.preventDefault(); reset() })
-  rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); update() })
+  rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); if (!rerollMeansRestart || window.confirm('Really restart from the last bookmark? You will lose your progress.')) update() })
   tweetElement.addEventListener ('click', twitterWebIntent)
   saveElement.addEventListener ('click', function (evt) { evt.preventDefault(); save() })
   nameElement.addEventListener ('input', function (evt) { evt.preventDefault(); sanitizeName() })
   sourceRevealElement.addEventListener ('click', revealSource)
   sourceHideElement.addEventListener ('click', hideSource)
+  debugRevealElement.addEventListener ('click', revealDebug)
+  debugHideElement.addEventListener ('click', hideDebug)
   
   loginLinkElement.addEventListener ('click', function (evt) { evt.preventDefault(); doLogin() })
   logoutLinkElement.addEventListener ('click', function (evt) { evt.preventDefault(); doLogout() })
   lockElement.addEventListener ('input', warnUnsaved)
+
+  suggestElement.addEventListener ('click', showSuggestions)
+  dismissElement.addEventListener ('click', function (evt) { evt.preventDefault(); suggestionsElement.innerHTML = ''; hideElements ([dismissElement]) })
   
   if (user) {
     logoutElement.style.display = ''

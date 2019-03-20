@@ -11,17 +11,25 @@
       <a href="%VIEW_PATH_PREFIX%">bracery</a> /
       <span id="title">%SYMBOL_NAME%</span>
       <p>
+	<div id="varsbefore" style="display: none;"></div>
 	<div id="expansion">%EXPANSION_HTML%</div>
+	<div id="varsafter" style="display: none;"></div>
 	<p>
 	<a id="reroll" href="#">Re-roll</a> /
 	<a href="#" id="sourcereveal" %SOURCE_REVEAL_STYLE%>Edit</a>
 	<span id="sourcecontrols" %SOURCE_CONTROLS_STYLE%>
 	  Editing source text (<a href="#" id="sourcehide">hide</a>
-	  <!-- / --> <a href="#" id="erase" style="display: none;">erase</a>
-	  / <a href="#" id="reset">revert</a>
+	  / <a href="#" id="erase">erase</a>
+	  / <a href="#" id="reset">reload</a>
+	  / <a href="#" id="debugreveal">debug</a> <a href="#" id="debughide" style="display: none;">debug off</a>
+	  / <a href="#" id="suggest">suggest</a>
 	  / <a target="_blank" href="https://github.com/ihh/bracery#Bracery">docs</a>):
 	</span>
 	<a id="tweet" href="#">Tweet</a>
+	<div id="suggestpanel" %SOURCE_CONTROLS_STYLE%>
+	  <div id="suggestions"></div>
+	  <a href="#" id="dismiss" style="display: none;">Clear suggestions</a>
+	</div>
 	<div id="sourcepanel" %SOURCE_CONTROLS_STYLE%>
 	  <div id="revision"></div>
 	  <div>
@@ -29,7 +37,8 @@
 	  </div>
 	  <div id="refs"></div>
 	  <div id="referring"></div>
-	  <br><p>
+	  <br>
+	  <p>
 	    <span id="urlprefix">%BASE_URL%%VIEW_PATH_PREFIX%</span>
 	    <input type="text" id="name" name="name" size="20" value="%SYMBOL_NAME%">
 	    <button id="save" type="button">Save</button>
@@ -46,7 +55,23 @@
     </div>
     <script src="%JAVASCRIPT_FILE%"></script>
     <script>
-      initBraceryView ({ name: "%SYMBOL_NAME%", revision: %JSON_REVISION%, referring: %JSON_REFERRING_SYMBOLS%, user: %JSON_USER%, init: %JSON_INIT_TEXT%, vars: %JSON_VARS%, exp: %JSON_EXPANSION%, bots: %JSON_BOTS%, recent: %JSON_RECENT_SYMBOLS%, store: "%STORE_PATH_PREFIX%", view: "%VIEW_PATH_PREFIX%", expand: "%EXPAND_PATH_PREFIX%", login: "%LOGIN_PATH_PREFIX%", twitter: "%TWITTER_PATH_PREFIX%", bookmark: "%BOOKMARK_PATH_PREFIX%" });
+      initBraceryView ({
+      name: "%SYMBOL_NAME%",
+      revision: %JSON_REVISION%,
+      referring: %JSON_REFERRING_SYMBOLS%,
+      user: %JSON_USER%,
+      init: %JSON_INIT_TEXT%,
+      vars: %JSON_VARS%,
+      exp: %JSON_EXPANSION%,
+      bots: %JSON_BOTS%,
+      recent: %JSON_RECENT_SYMBOLS%,
+      store: "%STORE_PATH_PREFIX%",
+      view: "%VIEW_PATH_PREFIX%",
+      expand: "%EXPAND_PATH_PREFIX%",
+      login: "%LOGIN_PATH_PREFIX%",
+      twitter: "%TWITTER_PATH_PREFIX%",
+      bookmark: "%BOOKMARK_PATH_PREFIX%",
+      });
     </script>
   </body>
 </html>

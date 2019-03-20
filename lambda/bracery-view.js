@@ -67,11 +67,11 @@ exports.handler = async (event, context, callback) => {
     const revision = event.queryStringParameters && event.queryStringParameters.rev;
     const isBookmark = event && event.queryStringParameters && event.queryStringParameters.id;
     const appState =
-	  (gotSessionState && (isRedirect || parsedSessionState.name === util.getName(event))
-	   ? parsedSessionState
-	   : (isBookmark
-              ? await util.getBookmarkedParams (event, dynamoPromise)
-              : util.getParams (event)));
+	  (isBookmark
+           ? await util.getBookmarkedParams (event, dynamoPromise)
+           : (gotSessionState && (isRedirect || parsedSessionState.name === util.getName(event))
+	      ? parsedSessionState
+	      : util.getParams (event)));
     const { name, initText, evalText, vars, expansion } = appState;
     
     // Add the name & a dummy empty definition to the template var->val map
@@ -121,28 +121,26 @@ exports.handler = async (event, context, callback) => {
           tmpMap[templateRecentVar] = res.Items.map ((item) => item.name);
       });
 
-    // Query the database for the given symbol definition, or use evalText if supplied
-    let symbolPromise =
-        (typeof(evalText) === 'string'
-         ? Promise.resolve (expansion)
-         : (util.getBracery (name, revision, dynamoPromise)
-            .then ((res) => {
-              const result = res.Items && res.Items.length && res.Items[0];
-              if (result && result.bracery) {
-                tmpMap[templateDefVar] = result.bracery;
-                tmpMap[templateRevVar] = result.revision;
-                if (result.locked && result.owner === session.user)
-                  tmpMap[templateLockedVar] = ' checked';
-                
-                let braceryConfig = util.braceryExpandConfig (bracery, vars, dynamoPromise);
-
-                // If no expansion, call expandFull
-                return (expansion
-                        ? expansion
-                        : braceryConfig.expandFull ({ rhsText: result.bracery }));
-              } else
-                return expansion;
-            }))).then (populateExpansionTemplates);
+    // Query the database for the given symbol definition
+    let symbolPromise = util.getBracery (name, revision, dynamoPromise)
+        .then ((res) => {
+          const result = res.Items && res.Items.length && res.Items[0];
+	  if (result) {
+            tmpMap[templateRevVar] = result.revision;
+            if (result.locked && result.owner === session.user)
+              tmpMap[templateLockedVar] = ' checked';
+	  }
+	  if (!result || (typeof(evalText) === 'string' && !revision))
+	    return expansion
+          if (result.bracery)
+            tmpMap[templateDefVar] = result.bracery;
+          // If no expansion, call expandFull
+          return (expansion
+                  ? expansion
+                  : (util
+		     .braceryExpandConfig (bracery, vars, dynamoPromise)
+		     .expandFull ({ rhsText: result.bracery || '' })));
+        }).then (populateExpansionTemplates);
 
     // Query the database for any symbols that use this symbol
     let refPromise = await dynamoPromise('query')

@@ -15693,7 +15693,7 @@ function forReducer (expansion, childExpansion, config) {
                                      [[mapVarName, [childExpansion.value || childExpansion.text]]],
                                      pt.sampleParseTree (mapRhs, config))
     .then (function (mappedChildExpansion) {
-      return expansion;
+      return expansion
     })
 }
 

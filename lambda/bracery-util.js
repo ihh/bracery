@@ -7,6 +7,7 @@ const escapeHTML = braceryWeb.escapeHTML;
 const expandMarkdown = braceryWeb.expandMarkdown;
 const digestHTML = braceryWeb.digestHTML;
 const getWords = braceryWeb.getWords;
+const defaultSymbolName = braceryWeb.defaultSymbolName;
 
 const config = require ('./bracery-config');
 
@@ -182,7 +183,7 @@ function getName (event) {
   const name = ((event && event.pathParameters && event.pathParameters.name)
 		|| (event && event.queryStringParameters && event.queryStringParameters.name)
 		|| body.name
-		|| config.defaultSymbolName);
+		|| defaultSymbolName);
 
   return name;
 }

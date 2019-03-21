@@ -20,6 +20,8 @@ var tooltip = {
   varsbefore: 'Variable assignments before expansion of the template.',
   varsafter: 'Variable assignments after expansion of the template.',
   init: 'The template text actually used for the expansion. Normally this is the text typed into this page, but it may change if the reader follows a link.',
+  suggest: 'Show suggestions for phrase lists to go in the template.',
+  docs: 'View documentation on GitHub.',
   login: 'Log in, or create a new account.',
   logout: 'Log out of this account.',
 };

@@ -1,6 +1,5 @@
 var tooltip = {
   home: 'Go to the welcome page.',
-  eval: 'Enter template text here.',
   erase: 'Clear the template text and initial variables.',
   reset: 'Reload the template text from the server, and clear the initial variables.',
   reroll: 'Regenerate the expansion text randomly from the template text.',

@@ -664,8 +664,8 @@ function initBraceryView (config) {
       update (state.text, state.vars)
   }
 
-  if (urlParams.redirect)
-    pushState({})  // get rid of the '?redirect=true'
+  if (urlParams.redirect || urlParams.reset)
+    pushState({})  // get rid of the '?redirect=true' or '?reset=true'
 
   if (urlParams.edit)
     revealSource()

@@ -226,11 +226,22 @@ function initBraceryView (config) {
     return '<a href="' + url + '"' + (onclick ? (' onclick="' + onclick + '()"') : '') + '>' + text + '</a>'
   }
 
+  var maxUrlLength = 2000  // lower bound
   function doLogin() {
-    window.location.href = loginPrefix + stateQueryArgs (currentState(true), { name: config.name, login: 'true' })
+    doLoginOrLogout ({ login: 'true' })
   }
   function doLogout() {
-    window.location.href = loginPrefix + stateQueryArgs (currentState(true), { name: config.name, logout: 'true' })
+    doLoginOrLogout ({ logout: 'true' })
+  }
+  function doLoginOrLogout (loginConfig) {
+    var newUrl = loginPrefix + stateQueryArgs (currentState(true), extend ({ name: config.name }, loginConfig))
+    if (newUrl.length < maxUrlLength)
+      window.location.href = newUrl
+    else
+      saveAppStateToServer()
+      .then (function() {
+        window.location.href = loginPrefix + stateQueryArgs ({ name: config.name }, loginConfig)
+      })
   }
   function stateQueryArgs (pushStateConfig, miscArgs) {
     var name = pushStateConfig.name || config.name,
@@ -351,10 +362,9 @@ function initBraceryView (config) {
         if (err) {
           errorElement.innerText = 'Sorry, an error occurred (' + err + ').'
           throw new Error (err)
-        } else if (createBookmark && result) {
+        } else if (createBookmark && result)
           errorElement.innerHTML = 'Bookmarked: <a href="' + result.url + '">' + result.id + '</a>.'
-          resolve (result)
-        }
+        resolve (result)
       }
       if (createBookmark)
 	errorElement.innerText = 'Bookmarking...'

@@ -69,8 +69,10 @@ exports.handler = async (event, context, callback) => {
 	const item = items[Math.floor (Math.random() * items.length)];
 	vars = item.vars ? JSON.parse (item.vars) : {};
 	let expansion = await braceryConfig.expandFull ({ symbolName: item.name });
+	let wantBookmark = !!bookmarkRegex.exec (expansion.text);
 	let html = util.expandMarkdown (expansion.text, marked);
-	let digest = util.digestHTML (html, html2plaintext, maxTweetLen);
+	let text = html2plaintext (html);
+	let digest = await util.digestText (text, maxTweetLen);
 	let twit = new Twit({
           consumer_key: TWITTER_CONSUMER_KEY,
           consumer_secret: TWITTER_CONSUMER_SECRET,
@@ -78,15 +80,20 @@ exports.handler = async (event, context, callback) => {
           access_token_secret: item.accessTokenSecret
 	});
 	console.warn('Tweeting as @' + item.twitterScreenName + ': ' + digest);
-	await twit.post('statuses/update', { status: digest });
-	await dynamoPromise('updateItem')
-	({ TableName: config.twitterTableName,
-           Key: { user: item.user,
-                  requestToken: item.requestToken },
-           UpdateExpression: 'SET #v = :v',
-           ExpressionAttributeNames: { '#v': 'vars' },
-           ExpressionAttributeValues: { ':v': JSON.stringify (expansion.vars) },
-	 });
+	try {
+	  await twit.post('statuses/update', { status: digest });
+	  await dynamoPromise('updateItem')
+	  ({ TableName: config.twitterTableName,
+             Key: { user: item.user,
+                    requestToken: item.requestToken },
+             UpdateExpression: 'SET #v = :v',
+             ExpressionAttributeNames: { '#v': 'vars' },
+             ExpressionAttributeValues: { ':v': JSON.stringify (expansion.vars) },
+	   });
+	} catch (e) {
+	  // log error, move on to the next tweet
+	  console.error (e);
+	}
       }
     }
   } catch (e) {

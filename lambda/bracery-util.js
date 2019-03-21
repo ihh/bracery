@@ -5,9 +5,10 @@ const braceryWeb = require ('./bracery-web');
 const extend = braceryWeb.extend;
 const escapeHTML = braceryWeb.escapeHTML;
 const expandMarkdown = braceryWeb.expandMarkdown;
-const digestHTML = braceryWeb.digestHTML;
+const digestText = braceryWeb.digestText;
 const getWords = braceryWeb.getWords;
 const defaultSymbolName = braceryWeb.defaultSymbolName;
+const bookmarkRegex = braceryWeb.bookmarkRegex;
 
 const config = require ('./bracery-config');
 
@@ -451,11 +452,16 @@ function braceryExpandConfig (bracery, vars, dp) {
 }
 
 module.exports = {
+  // From bracery-web.js
+  promisify,
   extend,
   escapeHTML,
   expandMarkdown,
-  digestHTML,
-  promisify,
+  digestText,
+  getWords,
+  bookmarkRegex,
+
+  // From this file
   promiseDelay,
   dynamoPromise,
   getBracery,
@@ -475,5 +481,4 @@ module.exports = {
   httpsRequest,
   respond,
   braceryExpandConfig,
-  getWords,
 };

@@ -19,11 +19,11 @@ function escapeHTML (str) {
 }
 
 function makeInternalLink (btoa, text, link) {
-  var safeLink = btoa (link.text)
-  return '@@LINK_BEGIN@@' + safeLink + '@@LINK_TEXT@@' + text.text + '@@LINK_END@@'
+  var safeLink = btoa (link.text);
+  return '@@LINK_BEGIN@@' + safeLink + '@@LINK_TEXT@@' + text.text + '@@LINK_END@@';
 }
 
-var clickHandlerName = 'handleBraceryLink'
+var clickHandlerName = 'handleBraceryLink';
 function expandInternalLinks (text) {
   var regex = /^([\s\S]*)@@LINK_BEGIN@@(\S*?)@@LINK_TEXT@@([\s\S]*?)@@LINK_END@@([\s\S]*)$/;
   do {
@@ -38,21 +38,25 @@ function expandInternalLinks (text) {
   return text;
 }
 
+var bookmarkTag = '<bookmark>';
+var bookmarkRegex = new RegExp (bookmarkTag, 'ig');
 function expandMarkdown (text, marked) {
   // Prevent inclusion of <script> tags or arbitrary HTML
-  var safeText = text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  var safeText = text.replace(bookmarkRegex,'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   var html = marked (safeText);  // Markdown expansion
   return expandInternalLinks (html);
 }
 
-function digestHTML (html, getTextContent, maxDigestChars, link) {
-  var linkWithSpace = link ? (' ' + link) : '';
-  var truncationIndicator = '...';
-  var maxTruncatedChars = maxDigestChars - truncationIndicator.length - linkWithSpace.length;
-  var digested = getTextContent(html).replace(/^\s*/,'').replace(/\s*$/,'');
-  return (maxDigestChars && (digested.length > maxTruncatedChars)
-          ? (digested.substr (0, maxTruncatedChars) + truncationIndicator)
-          : digested) + linkWithSpace;
+function digestText (text, maxDigestChars, link) {
+  return new Promise ((function (resolve, reject) {
+    var linkWithSpace = link ? (' ' + link) : '';
+    var truncationIndicator = '...';
+    var maxTruncatedChars = maxDigestChars - truncationIndicator.length - linkWithSpace.length;
+    var digested = text.replace(/^\s*/,'').replace(/\s*$/,'');
+    resolve (maxDigestChars && (digested.length > maxTruncatedChars)
+             ? (digested.substr (0, maxTruncatedChars) + truncationIndicator)
+             : digested) + linkWithSpace;
+  }));
 }
 
 // So-called "countWords" actually just flags which "words" we have seen
@@ -145,7 +149,7 @@ module.exports = {
   extend: extend,
   escapeHTML: escapeHTML,
   expandMarkdown: expandMarkdown,
-  digestHTML: digestHTML,
+  digestText: digestText,
   clickHandlerName: clickHandlerName,
   makeInternalLink: makeInternalLink,
   countWords: countWords,
@@ -154,6 +158,10 @@ module.exports = {
   // Special pages
   defaultSymbolName: 'welcome',
   suggestionsSymbolName: 'editor_suggestions',
+
+  // Other special strings
+  bookmarkTag: bookmarkTag,
+  bookmarkRegex: bookmarkRegex,
   
   // Bracery expansion limits
   braceryLimits: {

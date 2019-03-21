@@ -1,7 +1,7 @@
 var extend = window.braceryWeb.extend;
 var escapeHTML = window.braceryWeb.escapeHTML;
 var expandMarkdown = window.braceryWeb.expandMarkdown;
-var digestHTML = window.braceryWeb.digestHTML;
+var digestText = window.braceryWeb.digestText;
 var clickHandlerName = window.braceryWeb.clickHandlerName;
 var makeInternalLink = window.braceryWeb.makeInternalLink;
 var braceryLimits = window.braceryWeb.braceryLimits;
@@ -419,7 +419,8 @@ function initBraceryView (config) {
       var html = expandMarkdown (currentExpansionText, marked)  // Markdown expansion
       return saveAppStateToServer(true)
         .then (function (bookmark) {
-          var tweet = digestHTML (html, getTextContent, maxTweetLen - (bookmark.url.length + 1))
+	  return digestText (getTextContent(html), maxTweetLen - (bookmark.url.length + 1))
+	}).then (function (tweet) {
           var webIntentUrl = 'https://twitter.com/intent/tweet'
               + '?text=' + encodeURIComponent(tweet)
               + '&url=' + encodeURI(bookmark.url)

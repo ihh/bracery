@@ -92,7 +92,7 @@ exports.handler = async (event, context, callback) => {
     tmpMap[templateExpVar] = expansion;
     tmpMap[templateExpHtmlVar] = '<i>' + '...bracing...' + '</i>';
     tmpMap[templateWarningVar] = (parsedSessionState
-				  ? ('Loaded from auto-save (<a href="' + config.viewPrefix + name + '?reset=true">clear</a>).')
+				  ? ('Loaded from auto-save (<a href="' + config.viewPrefix + name + '?reset=true" id="clear_autosave">clear</a>).')
 				  : '');
 
     const populateExpansionTemplates = (expansion) => {

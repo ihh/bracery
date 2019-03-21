@@ -31,6 +31,7 @@ Via CloudWatch Alarms
 - [bracery-web.js](bracery-web.js) contains utility functions used by both AWS Lambda and the client
 - [index.html](index.html) is a template HTML page for the single-page client app
 - [asset/view.js](asset/view.js) contains JavaScript for the single-page client
+- [asset/tooltips.js](asset/tooltips.js) contains tooltips for the single-page client
 - [asset/bracery-view.css](asset/bracery-view.css) contains CSS for the single-page client
 - [Makefile](Makefile) bundles up zipfiles for AWS Lambda (type `make publish` to upload)
 - [Makefile.keys](Makefile.keys) is the place for secrets

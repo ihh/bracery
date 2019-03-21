@@ -103,7 +103,7 @@ function initBraceryView (config) {
   var getTextContent = function (html) {
     return domParser.parseFromString(html,'text/html').documentElement.textContent
   }
-  
+
   // Little wrapper for external links that adds current application state as query parameters in the URL,
   // so it can be recorded in the session before callout/callback.
   var addStateToLink = 'addStateToLink';
@@ -132,12 +132,22 @@ function initBraceryView (config) {
          ? ('Current auto-tweets:<ul>'
             + Object.keys (bots).map (function (botName) {
               return '<li>'
-                + 'As @<a href="https://twitter.com/' + botName + '">' + botName + '</a>'
-                + ' (' + makeExternalLink ('revoke all', twitterPrefix, { unsubscribe: true }, addStateToLink) + ')'
+                + 'As @' + makeExternalLink ({ text: botName,
+                                               link: 'https://twitter.com/' + botName })
+                + ' (' + makeExternalLink ({ text: 'revoke all',
+                                             link: twitterPrefix,
+                                             tooltip: 'revoke_all_autotweets',
+                                             params: { unsubscribe: true },
+                                             onclick: addStateToLink }) + ')'
                 + '<ul>'
                 + bots[botName].map (function (sym) {
-                  return '<li>' + makeExternalLink (sym, viewPrefix + sym)
-                    + ' (' + makeExternalLink ('revoke', twitterPrefix, { source: sym, unsubscribe: true }, addStateToLink) + ')'
+                  return '<li>' + makeExternalLink ({ text: sym,
+                                                      link: viewPrefix + sym })
+                    + ' (' + makeExternalLink ({ text: 'revoke_autotweet',
+                                                 link: twitterPrefix,
+                                                 tooltip: 'revoke',
+                                                 params: { source: sym, unsubscribe: true },
+                                                 onclick: addStateToLink }) + ')'
                 }).join('')
                 + '</ul></li>'
             }).join('') + '</ul>')
@@ -145,7 +155,11 @@ function initBraceryView (config) {
     setupAutoLink()
   }
   function setupAutoLink() {
-    autoElement.innerHTML = makeExternalLink ('Add this page', twitterPrefix, { source: name() }, addStateToLink)
+    autoElement.innerHTML = makeExternalLink ({ text: 'Add this page',
+                                                link: twitterPrefix,
+                                                tooltip: 'autotweet',
+                                                params: { source: name() },
+                                                onclick: addStateToLink })
       + ' to auto-tweets'
   }
 
@@ -206,7 +220,9 @@ function initBraceryView (config) {
   function makeRefList (prefix, symbols, absentText) {
     return (symbols.length
 	    ? (prefix + ': ' + symbols.map (function (name) {
-              return '~<a href="' + baseViewUrl + name + '?edit=true">' + name + '</a>'
+              return '~' + makeExternalLink ({ text: name,
+                                               link: baseViewUrl + name,
+                                               param: { edit: 'true' } })
 	    }).join(', '))
 	    : (absentText || ''))
   }
@@ -217,13 +233,21 @@ function initBraceryView (config) {
     }).join(', ')
   }
   
-  function makeExternalLink (text, link, params, onclick) {
+  function makeExternalLink (linkConfig) {
+    var text = linkConfig.text
+    var link = linkConfig.link
+    var params = linkConfig.params
+    var onclick = linkConfig.onclick
+    var tooltipTag = linkConfig.tooltip
     var url = link
     if (params && Object.keys(params).length)
       url += '?' + Object.keys(params).map (function (p) {
         return p + '=' + window.encodeURIComponent (params[p])
       }).join('&')
-    return '<a href="' + url + '"' + (onclick ? (' onclick="' + onclick + '()"') : '') + '>' + text + '</a>'
+    return '<a href="' + url + '"'
+      + (onclick ? (' onclick="' + onclick + '()"') : '')
+      + (tooltipTag ? (' title="' + tooltip[tooltipTag] + '"') : '')
+      + '>' + text + '</a>'
   }
 
   var maxUrlLength = 2000  // lower bound
@@ -363,7 +387,8 @@ function initBraceryView (config) {
           errorElement.innerText = 'Sorry, an error occurred (' + err + ').'
           throw new Error (err)
         } else if (createBookmark && result)
-          errorElement.innerHTML = 'Bookmarked: <a href="' + result.url + '">' + result.id + '</a>.'
+          errorElement.innerHTML = 'Bookmarked: ' + makeExternalLink ({ text: result.id,
+                                                                        link: result.url }) + '.'
         resolve (result)
       }
       if (createBookmark)
@@ -458,7 +483,11 @@ function initBraceryView (config) {
     if (rev) {
       var html = 'Revision ' + rev
       if (rev > 1)
-	html += '<br>(<a href="' + viewPrefix + name() + '?edit=true&rev=' + (rev-1) + '">previous</a>)'
+	html += '<br>(' + makeExternalLink ({ text: 'previous',
+                                              link: viewPrefix + name(),
+                                              tooltip: 'previous_revision',
+                                              params: { edit: 'true',
+                                                        rev: rev-1 } }) + ')'
       revElement.innerHTML = html
     }
   }
@@ -620,6 +649,8 @@ function initBraceryView (config) {
     lockPanelElement.style.display = ''
   } else
     loginElement.style.display = ''
+  
+  addTooltips()
   
   window.onpopstate = function (evt) {
     var state = evt.state || {}

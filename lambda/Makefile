@@ -79,7 +79,7 @@ asset/%.gz: asset/%
 WEB_BRACERY = ../web/bracery.min.js
 MARKED = marked.min.js
 MARKED_DIR = ../node_modules/marked
-asset/bracery-view.js: $(WEB_BRACERY) $(MARKED_DIR)/$(MARKED) $(RITA_DEP) asset/bracery-web.js asset/view.js
+asset/bracery-view.js: $(WEB_BRACERY) $(MARKED_DIR)/$(MARKED) $(RITA_DEP) asset/bracery-web.js asset/tooltips.js asset/view.js
 	cat $^ >$@
 
 asset/bracery-web.js: asset/bracery-web-shim.js $(COMMON)

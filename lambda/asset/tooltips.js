@@ -4,11 +4,10 @@ var tooltip = {
   erase: 'Clear the template text and initial variables.',
   reset: 'Reload the template text from the server, and clear the initial variables.',
   reroll: 'Regenerate the expansion text randomly from the template text.',
-  expansion: 'This is the expansion text, generated from the template text.',
-  tweet: 'Tweet out the current expansion.',
+  tweet: 'Tweet out the current expansion text.',
   clear_autosave: 'Clear the auto-saved session data on the server.',
   autotweet: 'Add this page as a template for a Twitter bot.',
-  revoke_autotweet: 'Remove this page from the Twitter bot\'s repertoire.',
+  revoke_autotweet: 'Remove page from Twitter bot\'s repertoire.',
   revoke_all_autotweets: 'Cancel this Twitter bot entirely.',
   previous_revision: 'View the previous version of this page.',
   name: 'The name this template will be published under.',
@@ -22,7 +21,7 @@ var tooltip = {
   varsafter: 'Variable assignments after expansion of the template.',
   init: 'The template text actually used for the expansion. Normally this is the text typed into this page, but it may change if the reader follows a link.',
   login: 'Log in, or create a new account.',
-  logout: 'Log out.',
+  logout: 'Log out of this account.',
 };
 
 function addTooltips() {

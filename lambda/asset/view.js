@@ -143,9 +143,9 @@ function initBraceryView (config) {
                 + bots[botName].map (function (sym) {
                   return '<li>' + makeExternalLink ({ text: sym,
                                                       link: viewPrefix + sym })
-                    + ' (' + makeExternalLink ({ text: 'revoke_autotweet',
+                    + ' (' + makeExternalLink ({ text: 'revoke',
                                                  link: twitterPrefix,
-                                                 tooltip: 'revoke',
+                                                 tooltip: 'revoke_autotweet',
                                                  params: { source: sym, unsubscribe: true },
                                                  onclick: addStateToLink }) + ')'
                 }).join('')

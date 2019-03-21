@@ -91,7 +91,7 @@ exports.handler = async (event, context, callback) => {
     tmpMap[templateUserVar] = null;
     tmpMap[templateExpVar] = expansion;
     tmpMap[templateExpHtmlVar] = '<i>' + '...bracing...' + '</i>';
-    tmpMap[templateWarningVar] = (parsedSessionState
+    tmpMap[templateWarningVar] = (parsedSessionState && !isRedirect
 				  ? ('Loaded from auto-save (<a href="' + config.viewPrefix + name + '?reset=true" id="clear_autosave">clear</a>).')
 				  : '');
 

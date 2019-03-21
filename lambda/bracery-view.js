@@ -64,9 +64,9 @@ exports.handler = async (event, context, callback) => {
     // Get app state parameters
     const isRedirect = event && event.queryStringParameters && event.queryStringParameters.redirect;
     const isReset = event && event.queryStringParameters && event.queryStringParameters.reset;
-    const gotSessionState = session && !!session.state && !isReset;
-    const parsedSessionState = gotSessionState && JSON.parse (session.state);
     const revision = event.queryStringParameters && event.queryStringParameters.rev;
+    const gotSessionState = session && !!session.state && !isReset && !revision;
+    const parsedSessionState = gotSessionState && JSON.parse (session.state);
     const isBookmark = event && event.queryStringParameters && event.queryStringParameters.id;
     const appState =
 	  (isBookmark

@@ -404,6 +404,7 @@ function initBraceryView (config) {
       evalTextEdited = false
       update (undefined, undefined, { pushState: viewConfig.bookmark.reset,
 				      quiet: true })  // push state without init text
+      errorElement.innerHTML = ''
     })
   }
   function sanitizeName() {
@@ -586,7 +587,7 @@ function initBraceryView (config) {
     revealElements ([debugRevealElement])
   }
   evalElement.addEventListener ('input', evalChanged)
-  eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.innerText = ''; update().then (viewConfig.bookmark.erase ? bookmark : undefined) })
+  eraseElement.addEventListener ('click', function (evt) { evt.preventDefault(); evalElement.innerText = ''; errorElement.innerHTML = ''; update().then (viewConfig.bookmark.erase ? bookmark : undefined) })
   resetElement.addEventListener ('click', function (evt) { evt.preventDefault(); reset() })
   rerollElement.addEventListener ('click', function (evt) { evt.preventDefault(); if (!rerollMeansRestart || window.confirm('Really restart from the last bookmark? You will lose your progress.')) update() })
   tweetElement.addEventListener ('click', twitterWebIntent)

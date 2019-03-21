@@ -206,7 +206,7 @@ function initBraceryView (config) {
   function makeRefList (prefix, symbols, absentText) {
     return (symbols.length
 	    ? (prefix + ': ' + symbols.map (function (name) {
-              return '~<a href="' + baseViewUrl + name + '?edit=true" target="_blank">' + name + '</a>'
+              return '~<a href="' + baseViewUrl + name + '?edit=true">' + name + '</a>'
 	    }).join(', '))
 	    : (absentText || ''))
   }

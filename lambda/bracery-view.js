@@ -198,7 +198,7 @@ exports.handler = async (event, context, callback) => {
 	 : Promise.resolve());
     
     // Read the template HTML file
-    const templateHtmlBuf = await util.promisify (fs.readFile) (config.templateHtmlFilename, config.templateHtmlFileEncoding);
+    const templateHtmlBuf = await util.promisify (fs.readFile) (config.templateHtmlFilename, config.stringEncoding);
 
     // Wait for promises
     await newsPromise;

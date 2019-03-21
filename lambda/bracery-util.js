@@ -302,7 +302,7 @@ async function putBraceryRevision (item, dynamoPromise) {
 function withCookie (callback, session) {
   return (res) => {
     let headers = {
-      'Content-Type': 'text/html; charset=' + config.templateHtmlFileEncoding,
+      'Content-Type': 'text/html; charset=' + config.stringEncoding,
     };
     if (session && session.cookie)
       headers['Set-Cookie'] = config.cookieName + '=' + session.cookie;

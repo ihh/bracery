@@ -91,7 +91,7 @@ exports.handler = async (event, context, callback) => {
     tmpMap[templateUserVar] = null;
     tmpMap[templateExpVar] = expansion;
     tmpMap[templateExpHtmlVar] = '<i>' + '...bracing...' + '</i>';
-    tmpMap[templateWarningVar] = (parsedSessionState && !isRedirect
+    tmpMap[templateWarningVar] = (!isBookmark && !isRedirect && parsedSessionState && (evalText || initText || expansion)
 				  ? ('Loaded from auto-save (<a href="' + config.viewPrefix + name + '?reset=true" id="clear_autosave">clear</a>).')
 				  : '');
 
@@ -185,16 +185,7 @@ exports.handler = async (event, context, callback) => {
     // Reset the session, if requested
     let resetPromise =
 	(isReset
-	 ? dynamoPromise('updateItem')
-	 ({ TableName: config.sessionTableName,
-            Key: { cookie: session.cookie },
-            UpdateExpression: 'SET #s = :s',
-            ExpressionAttributeNames: {
-              '#s': 'state',
-            },
-            ExpressionAttributeValues: {
-              ':s': 'null',
-            } })
+	 ? util.clearSession (session, dynamoPromise)
 	 : Promise.resolve());
     
     // Read the template HTML file

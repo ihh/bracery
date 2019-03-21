@@ -109,6 +109,19 @@ async function getSession (event, dynamoPromise) {
   }
 }
 
+async function clearSession (session, dynamoPromise) {
+  await dynamoPromise('updateItem')
+  ({ TableName: config.sessionTableName,
+     Key: { cookie: session.cookie },
+     UpdateExpression: 'SET #s = :s',
+     ExpressionAttributeNames: {
+       '#s': 'state',
+     },
+     ExpressionAttributeValues: {
+       ':s': 'null',
+     } });
+}
+
 // async https.request
 async function httpsRequest (opts, formData) {
   return new Promise
@@ -457,6 +470,7 @@ module.exports = {
   getParams,
   getName,
   getBookmarkedParams,
+  clearSession,
   createBookmark,
   httpsRequest,
   respond,

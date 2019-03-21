@@ -73,6 +73,8 @@ exports.handler = async (event, context, callback) => {
 	(result
          ? util.updateBracery (item, dynamoPromise)
          : util.createBracery (item, dynamoPromise));
+
+        await util.clearSession (session, dynamoPromise);
         
         respond.ok ({ revision: putResult.revision });
       }

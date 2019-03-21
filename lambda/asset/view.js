@@ -639,6 +639,9 @@ function initBraceryView (config) {
   if (urlParams.edit)
     revealSource()
 
+  if (urlParams.debug)
+    revealDebug()
+
   showRevision (revision)
 
   var expansion = urlParams.exp || config.exp

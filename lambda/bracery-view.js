@@ -143,7 +143,7 @@ exports.handler = async (event, context, callback) => {
           return (expansion
                   ? expansion
                   : (util
-		     .braceryExpandConfig (bracery, vars, dynamoPromise)
+		     .braceryExpandConfig (bracery, util.extend ({}, vars), dynamoPromise)
 		     .expandFull ({ rhsText: result.bracery || '' })));
         }).then (populateExpansionTemplates);
 

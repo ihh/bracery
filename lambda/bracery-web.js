@@ -47,16 +47,26 @@ function expandMarkdown (text, marked) {
   return expandInternalLinks (html);
 }
 
-function digestText (text, maxDigestChars, link) {
-  return new Promise ((function (resolve, reject) {
-    var linkWithSpace = link ? (' ' + link) : '';
-    var truncationIndicator = '...';
-    var maxTruncatedChars = maxDigestChars - truncationIndicator.length - linkWithSpace.length;
-    var digested = text.replace(/^\s*/,'').replace(/\s*$/,'');
-    resolve (maxDigestChars && (digested.length > maxTruncatedChars)
-             ? (digested.substr (0, maxTruncatedChars) + truncationIndicator)
-             : digested) + linkWithSpace;
-  }));
+function digestText (text, maxDigestChars, link, alwaysIncludeLink) {
+  var digested = text.replace(/^\s*/,'').replace(/\s*$/,'');
+  var linkNeeded = ((typeof(link) === 'string' && link.match(/\S/))
+		    || (digested.length > maxDigestChars)
+		    || alwaysIncludeLink);
+  return (linkNeeded
+	  ? (typeof(link) === 'function'
+	     ? link()
+	     : Promise.resolve(link))
+	  : Promise.resolve())
+    .then (function (link) {
+      var linkWithSpace = link ? (' ' + link) : '';
+      var truncationIndicator = '...';
+      var truncationNeeded = maxDigestChars && (digested.length > (maxDigestChars - linkWithSpace.length));
+      var maxTruncatedChars = maxDigestChars - truncationIndicator.length - linkWithSpace.length;
+      return (truncationNeeded
+              ? (digested.substr (0, maxTruncatedChars) + truncationIndicator)
+              : digested)
+	+ ((alwaysIncludeLink || truncationNeeded) ? linkWithSpace : '');
+    });
 }
 
 // So-called "countWords" actually just flags which "words" we have seen

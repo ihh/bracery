@@ -2019,6 +2019,12 @@ function makeExpansionPromise (config) {
       }
       return promise
     }).then (function (expansion) {
+      // clean up vars
+      Object.keys(expansion.vars).forEach (function (name) {
+	if (!expansion.vars[name])
+	  delete expansion.vars[name]
+      })
+      // call post-expansion handler
       return handlerPromise ([node, varVal, depth, expansion], resolve(), config.after, 'all', node.type)
         .then (function() { return extend (expansion, { tree: node }) })
     })

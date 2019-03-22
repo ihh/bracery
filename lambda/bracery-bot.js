@@ -25,8 +25,6 @@ const Bracery = require('./bracery').Bracery;
 const rita = require('./rita-tiny');
 
 let bracery = new Bracery (null, { rita });
-let vars = {};
-let braceryConfig = util.braceryExpandConfig (bracery, vars, dynamoPromise);
 
 // Twitter
 const Twit = require('twit');
@@ -67,12 +65,24 @@ exports.handler = async (event, context, callback) => {
           continue;
 	// Pick a random bracery word to expand
 	const item = items[Math.floor (Math.random() * items.length)];
-	vars = item.vars ? JSON.parse (item.vars) : {};
+	let vars = item.vars ? JSON.parse (item.vars) : {};
+	let braceryConfig = util.braceryExpandConfig (bracery, vars, dynamoPromise);
 	let expansion = await braceryConfig.expandFull ({ symbolName: item.name });
-	let wantBookmark = !!bookmarkRegex.exec (expansion.text);
+	let tweetVar = expansion.vars.tweet;   // If the $tweet variable is set, use that as the tweet
+	delete expansion.vars.tweet;  // Make it easy on bot programmers; don't persist the $tweet variable
+	let bookmarkVar = expansion.vars.bookmark;   // If the $bookmark variable is set, we want to bookmark
+	let wantBookmark = tweetVar || bookmarkVar || !!util.bookmarkRegex.exec (expansion.text);  // if $tweet or $bookmark is set, or the text contains <bookmark>, then bookmark
 	let html = util.expandMarkdown (expansion.text, marked);
 	let text = html2plaintext (html);
-	let digest = await util.digestText (text, maxTweetLen);
+	const createBookmark = () => util.createBookmark ({ name: item.name,
+							    vars: vars,
+							    expansion: { text: expansion.text,
+									 vars: expansion.vars } },
+							  null,
+							  dynamoPromise)
+	      .then ((bookmark) => bookmark.url);
+	let digest = await util.digestText (tweetVar || text,
+					    maxTweetLen, createBookmark, wantBookmark);
 	let twit = new Twit({
           consumer_key: TWITTER_CONSUMER_KEY,
           consumer_secret: TWITTER_CONSUMER_SECRET,

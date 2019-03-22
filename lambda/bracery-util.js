@@ -20,11 +20,12 @@ function promiseDelay (delay) {
   return new Promise ((resolve) => setTimeout (resolve, delay));
 }
 
+const logAllDynamoOperations = false;
 function dynamoPromise() {
   const doc = require('dynamodb-doc');
   let dynamo = new doc.DynamoDB();
-  // uncomment to log all DynamoDB operations...
-  // return (method) => ((params) => { console.log(JSON.stringify({method,params})); return promisify (dynamo[method].bind (dynamo)) (params) });
+  if (logAllDynamoOperations)
+    return (method) => ((params) => { console.log(JSON.stringify({method,params})); return promisify (dynamo[method].bind (dynamo)) (params) });
   return (method) => promisify (dynamo[method].bind (dynamo));
 }
 

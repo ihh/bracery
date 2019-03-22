@@ -55,9 +55,16 @@ body {
     padding-right: 4px;
 }
 
-#tweet {
-    float: right;
-    text-align: right;
+#banner {
+    margin-bottom: 4px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+#loginout {
+    min-width: 10em;
+    justify-content: flex-end;
 }
 
 #eval {

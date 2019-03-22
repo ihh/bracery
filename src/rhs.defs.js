@@ -37,7 +37,7 @@ function makeLinkShortcut (text) {
       .replace(/[^a-z0-9_]*$/,'')
       .replace(/[^a-z0-9_]+/g,'_')
   return (symName.length
-	  ? makeFunction ('link', [text, makeQuote ([makeSymbol (symName)])])
+	  ? makeFunction ('link', [text, makeQuote ([makeTraceryExpr (symName, [])])])
 	  : ('[[' + text + ']]'))
 }
 

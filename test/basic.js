@@ -581,14 +581,21 @@ function doTests (testRunner) {
   // links
   expectExpand ('$x=3 &link{test$x}{$x}', '&link{test3}{$x}')
   expectExpand ('&quote&link{test}{$x}', '&link{test}$x')
-  expectExpand ('$x=3 &link{test}{$x}', 'test==>$x', {makeLink:function(text,link){return text.text+'==>'+link.text}})
+
+  expectExpand ('&quote&reveal{hello}{world}', '&reveal{hello}{world}')
+
+  expectExpand ('$x=3 &reveal{test$x}{$x}', '&reveal{test3}{3}')
+  expectExpand ('&quote&reveal{test}{$x}', '&reveal{test}$x')
+  
+  expectExpand ('$x=3 &link{test}{$x}', 'test==>(link)==>$x', {makeLink:function(text,link,type){return text.text+'==>('+type+')==>'+link.text}})
+  expectExpand ('$x=3 &reveal{test}{$x}', 'test==>(reveal)==>3', {makeLink:function(text,link,type){return text.text+'==>('+type+')==>'+link.text}})
 
   expectExpand ('[[]]', '[[]]')
   expectExpand ('[[ ]]', '[[ ]]')
-  expectExpand ('[[x]]', '&link{x}{~x}')
-  expectExpand ('[[xYz]]', '&link{xYz}{~xyz}')
-  expectExpand ('[[ X! ... ]]', '&link{ X! ... }{~x}')
-  expectExpand ('[[Next room.]]', '&link{Next room.}{~next_room}')
+  expectExpand ('[[x]]', '&link{x}{#x#}')
+  expectExpand ('[[xYz]]', '&link{xYz}{#xyz#}')
+  expectExpand ('[[ X! ... ]]', '&link{ X! ... }{#x#}')
+  expectExpand ('[[Next room.]]', '&link{Next room.}{#next_room#}')
 
   // charclass, alt
   expectExpand ('&charclass{abc}', '[a|b|c]')

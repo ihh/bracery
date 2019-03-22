@@ -214,17 +214,17 @@ function getParams (event) {
 
   // Get symbol definition override from query parameters, if supplied
   const initText = ((event && event.queryStringParameters && typeof(event.queryStringParameters['text']) === 'string')
-		    ? decodeURIComponent (event.queryStringParameters['text'])
+		    ? event.queryStringParameters['text']
 		    : (body.text || undefined));
   
   // Get evaluation text override from query parameters, if supplied
   const evalText = ((event && event.queryStringParameters && typeof(event.queryStringParameters['eval']) === 'string')
-		    ? decodeURIComponent (event.queryStringParameters['eval'])
+		    ? event.queryStringParameters['eval']
 		    : (body.eval || undefined));
 
   // Get the expansion, if supplied
   const expansion = ((event && event.queryStringParameters && typeof(event.queryStringParameters['exp']) === 'string')
-		     ? JSON.parse (decodeURIComponent (event.queryStringParameters['exp']))
+		     ? JSON.parse (event.queryStringParameters['exp'])
 		     : (body.expansion || undefined));
 
   // Get initial vars as query parameters, if supplied
@@ -238,7 +238,7 @@ function getVars (event, body) {
   body = body || getBody (event);
   let vars = {};
   if (event.queryStringParameters && event.queryStringParameters.vars)
-    extend (vars, JSON.parse (decodeURI (event.queryStringParameters.vars)));
+    extend (vars, JSON.parse (event.queryStringParameters.vars));
   if (body.vars)
     extend (vars, body.vars);
   return vars;

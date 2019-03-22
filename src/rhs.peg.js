@@ -196,6 +196,7 @@ MathFunction
 
 LinkFunction
   = "&link" text:FunctionArg link:FunctionArg { return makeFunction ('link', [wrapNodes(text), makeQuote(link)]) }
+  / "&reveal" text:FunctionArg link:FunctionArg { return makeFunction ('reveal', [wrapNodes(text), wrapNodes(link)]) }
 
 LinkShortcut
   = "[[" text:Text "]]" { return makeLinkShortcut (text) }

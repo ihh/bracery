@@ -18,21 +18,21 @@ function escapeHTML (str) {
     .replace(/'/g, "&#039;");
 }
 
-function makeInternalLink (btoa, text, link) {
+function makeInternalLink (btoa, text, link, funcname) {
   var safeLink = btoa (link.text);
-  return '@@LINK_BEGIN@@' + safeLink + '@@LINK_TEXT@@' + text.text + '@@LINK_END@@';
+  return '@@LINK_TYPE@@' + funcname + '@@LINK_DEST@@' + safeLink + '@@LINK_TEXT@@' + text.text + '@@LINK_END@@';
 }
 
 var clickHandlerName = 'handleBraceryLink';
 function expandInternalLinks (text) {
-  var regex = /^([\s\S]*)@@LINK_BEGIN@@(\S*?)@@LINK_TEXT@@([\s\S]*?)@@LINK_END@@([\s\S]*)$/;
+  var regex = /^([\s\S]*)@@LINK_TYPE@@(\S*)?@@LINK_DEST@@(\S*?)@@LINK_TEXT@@([\s\S]*?)@@LINK_END@@([\s\S]*)$/;
   do {
     var replaced = false;
     text = text.replace
     (regex,
-     function (_m, before, safeLink, text, after) {
+     function (_m, before, linkType, safeLink, text, after) {
        replaced = true;
-       return before + '<a href="#" onclick="' + clickHandlerName + '(atob(\'' + safeLink + '\'))">' + text + '</a>' + after;
+       return before + '<a href="#" onclick="' + clickHandlerName + '(atob(\'' + safeLink + '\'),\'' + linkType + '\')">' + text + '</a>' + after;
      });
   } while (replaced);
   return text;

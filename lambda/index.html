@@ -5,18 +5,24 @@
   </head>
   <body>
     <div class="main">
-      <div id="login" style="display: none;"><a id="loginlink" href="#">Login / Signup</a></div>
-      <div id="logout" style="display: none;">%USER% / <a id="logoutlink" href="#">Logout</a></div>
       <!-- div> LOG </div -->
-      <a href="%VIEW_PATH_PREFIX%" id="home">bracery</a> /
-      <span id="title">%SYMBOL_NAME%</span>
-      <p>
+      <div id="banner">
+	<span id="path" class="tab">
+	  <a href="%VIEW_PATH_PREFIX%" id="home">bracery</a> /
+	  <span id="title">%SYMBOL_NAME%</span>
+	</span>
+	<span class="tab"><a id="reroll" href="#">Re-roll</a></span>
+	<span class="tab"><a id="tweet" href="#">Tweet</a></span>
+	<span id="loginout">
+	  <span id="login" style="display: none;"><a id="loginlink" href="#">Login / Signup</a></span>
+	  <span id="logout" style="display: none;">%USER% / <a id="logoutlink" href="#">Logout</a></span>
+	</span>
+      </div>
 	<div id="varsbefore" style="display: none;"></div>
 	<div id="init" style="display: none;"></div>
 	<div id="expansion">%EXPANSION_HTML%</div>
 	<div id="varsafter" style="display: none;"></div>
 	<p>
-	<a id="reroll" href="#">Re-roll</a> /
 	<a href="#" id="sourcereveal" %SOURCE_REVEAL_STYLE%>Edit</a>
 	<span id="sourcecontrols" %SOURCE_CONTROLS_STYLE%>
 	  Editing template text (<a href="#" id="sourcehide">hide</a>
@@ -26,7 +32,6 @@
 	  / <a href="#" id="suggest">suggest</a>
 	  / <a target="_blank" href="https://github.com/ihh/bracery#Bracery" id="docs">docs</a>):
 	</span>
-	<a id="tweet" href="#">Tweet</a>
 	<div id="suggestpanel" %SOURCE_CONTROLS_STYLE%>
 	  <div id="suggestions"></div>
 	  <a href="#" id="dismiss" style="display: none;">Clear suggestions</a>

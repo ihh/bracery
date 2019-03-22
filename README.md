@@ -382,14 +382,17 @@ For the `&parse` function, constraints on the parsed sequence and subsequence le
 
 ## Comparison with Twine
 
-The syntax `&link{link text}{link destination}` will be rendered in an implementation-determined way
-(the default implementation just passes it through unchanged).
-At [bracery.org](https://bracery.org/), `link destination` is treated as text that replaces the current Bracery source text when the link is clicked,
+The syntax `&link{hint}{destination}` will be rendered in an implementation-determined way
+(the default implementation just passes it through unchanged);
+the same is true of `&reveal{hint}{revelation}`, except that `revelation` is expanded whereas `destination` is quoted.
+At [bracery.org](https://bracery.org/), both are modeled as anchor elements:
+`destination` is Bracery source text that replaces the current Bracery source text when the `hint` is clicked,
 so that an interactive fiction-style pattern is `&link{Doorway description}{~next_room}`
-where the tilde-prefixed symbol `~next_room` plays a similar role to a Twine [passage](https://twinery.org/wiki/passage).
+where the tilde-prefixed symbol `~next_room` plays a similar role to a Twine [passage](https://twinery.org/wiki/passage);
+whereas `revelation` is pre-expanded text that is revealed when the `hint` is clicked (replacing the clicked element).
 
-The Twine-inspired syntax `[[Next room.]]` is a shortcut for `&link{Next room.}{~next_room}`.
-(The symbol name is derived from the link text by lower-casing and replacing all invalid interior characters with underscores.)
+The Twine-inspired syntax `[[Next room.]]` is a shortcut for `&link{Next room.}{#next_room#}`.
+(The symbol name is derived from the link text by lower-casing and replacing some interior characters with underscores.)
 
 ## Comparison with Tracery
 

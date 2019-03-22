@@ -557,7 +557,8 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
         } else
           switch (funcType (tok.funcname)) {
           case 'link':
-            result = [funcChar, tok.funcname].concat ([tok.args[0], tok.args[1].args[0]].map (function (arg) { return makeFuncArgTree (pt, [arg], makeSymbolName, nextIsAlpha) }))
+          case 'reveal':
+            result = [funcChar, tok.funcname].concat ([tok.args[0], tok.funcname === 'link' ? tok.args[1].args[0] : tok.args[1]].map (function (arg) { return makeFuncArgTree (pt, [arg], makeSymbolName, nextIsAlpha) }))
             break
           case 'parse':
             result = [funcChar, tok.funcname].concat ([tok.args[0].args, [tok.args[1]]].map (function (args) { return makeFuncArgTree (pt, args, makeSymbolName, nextIsAlpha) }))
@@ -1222,7 +1223,7 @@ var binaryFunction = {
 }
 
 function funcType (funcname) {
-  if (funcname === 'link' || funcname === 'parse' || funcname === 'reduce' || funcname === 'vars' || funcname === 'math')
+  if (funcname === 'link' || funcname === 'reveal' || funcname === 'parse' || funcname === 'reduce' || funcname === 'vars' || funcname === 'math')
     return funcname
   if (funcname === 'call' || funcname === 'xcall')
     return 'call'
@@ -1615,14 +1616,14 @@ function makeExpansionPromise (config) {
                         })
                     })
                 })
-            } else if (node.funcname === 'link') {
+            } else if (node.funcname === 'link' || node.funcname === 'reveal') {
               promise = makeRhsExpansionPromiseFor ([node.args[0]])
                 .then (function (textArg) {
                   return makeRhsExpansionPromiseFor ([node.args[1]])
                     .then (function (linkArg) {
                       expansion.nodes += textArg.nodes + linkArg.nodes
                       expansion.text = (config.makeLink
-                                        ? config.makeLink (textArg, linkArg)
+                                        ? config.makeLink (textArg, linkArg, node.funcname)
                                         : (funcChar + node.funcname
                                            + leftBraceChar + textArg.text + rightBraceChar
                                            + leftBraceChar + linkArg.text + rightBraceChar))

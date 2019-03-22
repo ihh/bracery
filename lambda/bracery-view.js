@@ -92,7 +92,7 @@ exports.handler = async (event, context, callback) => {
     tmpMap[templateExpVar] = expansion;
     tmpMap[templateExpHtmlVar] = '<i>' + '...bracing...' + '</i>';
     tmpMap[templateWarningVar] = (!isBookmark && !isRedirect && parsedSessionState && (evalText || initText || expansion)
-				  ? ('Loaded from auto-save (<a href="' + config.viewPrefix + name + '?reset=true" id="clear_autosave">clear</a>).')
+				  ? ('Loaded from auto-save (<a href="' + config.viewPrefix + name + '?reset=true" id="clear_autosave">clear auto-save</a>)')
 				  : '');
 
     const populateExpansionTemplates = (expansion) => {

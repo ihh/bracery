@@ -2,7 +2,7 @@ var extend = window.braceryWeb.extend;
 var escapeHTML = window.braceryWeb.escapeHTML;
 var expandMarkdown = window.braceryWeb.expandMarkdown;
 var digestText = window.braceryWeb.digestText;
-var clickHandlerName = window.braceryWeb.clickHandlerName;
+var clickHandlerName = window.braceryWeb.clickHandlerName;  // handleBraceryLink
 var makeInternalLink = window.braceryWeb.makeInternalLink;
 var braceryLimits = window.braceryWeb.braceryLimits;
 var suggestionsName = window.braceryWeb.suggestionsSymbolName;
@@ -119,8 +119,18 @@ function initBraceryView (config) {
   }
   
   // Internal link. Looks like an external link, but just rewrites text in evalElement
-  window[clickHandlerName] = function (newEvalText) {
-    window.event.preventDefault();
+  // clickHandlerName === "handleBraceryLink"
+  window[clickHandlerName] = function (newEvalText, linkType) {
+    window.event.preventDefault()
+    if (linkType === 'reveal') {
+      var target = window.event.target, parent = target.parentElement
+      var div = document.createElement('div')
+      div.innerHTML = expandMarkdown (newEvalText, marked)
+      parent.insertBefore (div, target)
+      parent.removeChild (target)
+      return
+    }
+    // linkType === 'link'
     return update (newEvalText, varsAfterCurrentExpansion, { pushState: viewConfig.bookmark.link })
       .then (function() { saveAppStateToServer(false); })
   }
@@ -211,18 +221,25 @@ function initBraceryView (config) {
   }
   function updateRefs (text) {
     text = text || config.init || evalElement.innerText
-    var isRef = {}
+    var isRef = {}, isTracery = {}
     bracery.ParseTree.getSymbolNodes (bracery.ParseTree.parseRhs (text), true)
       .forEach (function (node) { isRef[node.name] = true })
-    var refs = Object.keys (isRef)
-    refsElement.innerHTML = makeRefList ('References', refs)
+    bracery.ParseTree.getSymbolNodes (bracery.ParseTree.parseRhs (text), false)
+      .forEach (function (node) { if (!isRef[node.name]) isTracery[node.name] = true })
+
+    var refs = Object.keys (isRef), traceryStyleRefs = Object.keys (isTracery)
+    var refsListHTML = makeRefList ('', refs), traceryStyleRefsListHTML = makeRefList ('', traceryStyleRefs, undefined, '#', '#')
+    refsElement.innerHTML = (refsListHTML || traceryStyleRefsListHTML
+			     ? ('References: ' + refsListHTML + (refsListHTML && traceryStyleRefsListHTML ? '; ' : '') + traceryStyleRefsListHTML)
+			     : '')
   }
-  function makeRefList (prefix, symbols, absentText) {
+  function makeRefList (prefix, symbols, absentText, lSym, rSym) {
+    if (!lSym) { lSym = '~'; rSym = '' }
     return (symbols.length
-	    ? (prefix + ': ' + symbols.map (function (name) {
-              return '~' + makeExternalLink ({ text: name,
-                                               link: baseViewUrl + name,
-                                               param: { edit: 'true' } })
+	    ? (prefix + (prefix ? ': ' : '') + symbols.map (function (name) {
+              return lSym + makeExternalLink ({ text: name,
+						link: baseViewUrl + name,
+						param: { edit: 'true' } }) + rSym
 	    }).join(', '))
 	    : (absentText || ''))
   }
@@ -287,7 +304,7 @@ function initBraceryView (config) {
     if (expansion)
       params.push (['exp', window.encodeURIComponent(JSON.stringify(expansion))])
     if (miscArgs)
-      params = params.concat (Object.keys (miscArgs).map (function (arg) { return [arg, miscArgs[arg]] }))
+      params = params.concat (Object.keys (miscArgs).map (function (arg) { return [arg, window.encodeURIComponent(miscArgs[arg])] }))
     return (params.length ? ('?' + params.map(function(pv){return pv[0]+'='+pv[1]}).join('&')) : '')
   }
   function stateBody (pushStateConfig, miscArgs) {
@@ -484,7 +501,7 @@ function initBraceryView (config) {
     if (rev) {
       var html = 'Revision ' + rev
       if (rev > 1)
-	html += '<br>(' + makeExternalLink ({ text: 'previous',
+	html += '<br>(' + makeExternalLink ({ text: (rev - 1).toString(),
                                               link: viewPrefix + name(),
                                               tooltip: 'previous_revision',
                                               params: { edit: 'true',

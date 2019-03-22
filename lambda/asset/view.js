@@ -124,9 +124,9 @@ function initBraceryView (config) {
     window.event.preventDefault()
     if (linkType === 'reveal') {
       var target = window.event.target, parent = target.parentElement
-      var div = document.createElement('div')
-      div.innerHTML = expandMarkdown (newEvalText, marked)
-      parent.insertBefore (div, target)
+      var span = document.createElement('span')
+      span.innerHTML = expandMarkdown (newEvalText, marked)
+      parent.insertBefore (span, target)
       parent.removeChild (target)
       return
     }

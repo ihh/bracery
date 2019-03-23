@@ -38,6 +38,7 @@ function getBody (event) {
 }
 
 function expandTemplate (template, tmpMap) {
+  tmpMap = extend ({}, tmpMap, { TEMPLATE_VARS: tmpMap });
   return Object.keys (tmpMap).reduce ((text, templateVar) => {
     const templateVal = tmpMap[templateVar];
     return text

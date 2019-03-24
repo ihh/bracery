@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "bracery": "git://github.com/ihh/bracery.git",
+    "bracery": "file:../../",
     "react": "^16.8.5",
     "react-dom": "^16.8.5",
     "react-scripts": "2.1.8"
@@ -12,25 +12,7 @@
     "start": "react-scripts start",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "build": "react-scripts build && npm run build-rename",
-    "build-rename": "npm run build-rename-js && npm run build-rename-css && npm run build-fix-references",
-    "build-rename-js": "renamer --find \"/main\\.[^\\.]+\\./i\" --replace \"main.\" build\\static\\js\\*",
-    "build-rename-css": "renamer --find \"/main\\.[^\\.]+\\./i\" --replace \"main.\" build\\static\\css\\*",
-    "build-fix-references": "npm run build-fix-sourcemap && npm run build-fix-index && npm run build-fix-serviceworker && npm run build-fix-assetmanifest",
-    "build-fix-sourcemap": "npm run build-fix-sourcemap-js && npm run build-fix-sourcemap-css",
-    "build-fix-sourcemap-js": "replace-in-file \"/sourceMappingURL=main\\.[^\\.]+\\.js\\.map/i\" \"sourceMappingURL=main.js.map\" build/static/js/main.js --isRegex",
-    "build-fix-sourcemap-css": "replace-in-file \"/sourceMappingURL=main\\.[^\\.]+\\.css\\.map/i\" \"sourceMappingURL=main.css.map\" build/static/css/main.css --isRegex",
-    "build-fix-index": "npm run build-fix-index-js && npm run build-fix-index-css",
-    "build-fix-index-js": "replace-in-file \"/main\\.[^\\.]+\\.js/i\" \"main.js?v=%npm_package_version%\" build/index.html --isRegex",
-    "build-fix-index-css": "replace-in-file \"/main\\.[^\\.]+\\.css/i\" \"main.css?v=%npm_package_version%\" build/index.html --isRegex",
-    "build-fix-serviceworker": "npm run build-fix-serviceworker-js && npm run build-fix-serviceworker-css",
-    "build-fix-serviceworker-js": "replace-in-file \"/main\\.[^\\.]+\\.js/i\" \"main.js\" build/service-worker.js --isRegex",
-    "build-fix-serviceworker-css": "replace-in-file \"/main\\.[^\\.]+\\.css/i\" \"main.css\" build/service-worker.js --isRegex",
-    "build-fix-assetmanifest": "npm run build-fix-assetmanifest-js && npm run build-fix-assetmanifest-css && npm run build-fix-assetmanifest-js-map && npm run build-fix-assetmanifest-css-map",
-    "build-fix-assetmanifest-js": "replace-in-file \"/main\\.[^\\.]+\\.js/i\" \"main.js\" build/asset-manifest.json --isRegex",
-    "build-fix-assetmanifest-css": "replace-in-file \"/main\\.[^\\.]+\\.css/i\" \"main.css\" build/asset-manifest.json --isRegex",
-    "build-fix-assetmanifest-js-map": "replace-in-file \"/main\\.[^\\.]+\\.js\\.map/i\" \"main.js.map\" build/asset-manifest.json --isRegex",
-    "build-fix-assetmanifest-css-map": "replace-in-file \"/main\\.[^\\.]+\\.css\\.map/i\" \"main.css.map\" build/asset-manifest.json --isRegex"
+    "build": "react-scripts build"
   },
   "eslintConfig": {
     "extends": "react-app"

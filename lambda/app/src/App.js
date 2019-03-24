@@ -68,7 +68,7 @@ class App extends Component {
 	</div>
 	{this.state.debugging ? (<div className="varsbefore"></div>) : ''}
         {this.state.debugging ? (<div className="init"></div>) : ''}
-	<div className="expansion">{this.state.currentExpansionHTML}</div>
+	<div className="expansion" dangerouslySetInnerHTML={{__html:this.state.currentExpansionHTML}}></div>
 	{this.state.debugging ? (<div className="varsafter"></div>) : ''}
 	<p>
 	{(this.state.editing

@@ -32,7 +32,9 @@ module.exports = {
   
   // Filenames and virtual paths
   templateHtmlFilename: 'index.html',
+  appTemplateHtmlFilename: 'index.html',
   viewAssetStub: 'bracery-view',
+  appAssetStub: 'app',
   
   // Encoding
   stringEncoding: 'utf-8',

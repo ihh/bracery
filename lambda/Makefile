@@ -4,7 +4,7 @@ include Makefile.keys
 
 ZIP = zip
 
-FUNCTIONS = bracery-store bracery-view bracery-asset bracery-expand bracery-login bracery-twitter bracery-bot bracery-news bracery-index bracery-bookmark
+FUNCTIONS = bracery-store bracery-view bracery-asset bracery-expand bracery-login bracery-twitter bracery-bot bracery-news bracery-index bracery-bookmark bracery-react
 ZIPFILES = $(addsuffix .zip,$(FUNCTIONS))
 PUBLISH_PSEUDOTARGETS = $(addsuffix .publish,$(FUNCTIONS))
 
@@ -56,17 +56,26 @@ BRACERY_DEPS = $(addprefix $(BRACERY_SOURCE_DIR)/,$(BRACERY_SOURCES))
 
 EXPAND_DEPS = $(COMPROMISE_DEP) $(RITA_DEP) $(BRACERY_DEPS)
 
-TEMPLATES = index.html
 VIEW_NPM_DEPS = marked
-bracery-view.zip: bracery-view.js $(COMMON) $(TEMPLATES) $(EXPAND_DEPS)
+bracery-view.zip: bracery-view.js $(COMMON) view.html $(EXPAND_DEPS)
 	(test -e $(STAGING_DIR) && rm -rf $(STAGING_DIR)) || true
 	mkdir -p $(STAGING_DIR)/node_modules
 	cp $^ $(STAGING_DIR)
+	mv $(STAGING_DIR)/view.html $(STAGING_DIR)/index.html
 	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
 	cd $(STAGING_DIR); npm install $(VIEW_NPM_DEPS)
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
-ASSETS = asset/bracery-view.js asset/bracery-view.css
+bracery-react.zip: bracery-view.js $(COMMON) main.html $(EXPAND_DEPS)
+	(test -e $(STAGING_DIR) && rm -rf $(STAGING_DIR)) || true
+	mkdir -p $(STAGING_DIR)/node_modules
+	cp $^ $(STAGING_DIR)
+	mv $(STAGING_DIR)/main.html $(STAGING_DIR)/index.html
+	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
+	cd $(STAGING_DIR); npm install $(VIEW_NPM_DEPS)
+	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
+
+ASSETS = asset/bracery-view.js asset/bracery-view.css asset/app.js asset/app.css asset/manifest.json
 GZIPPED_ASSETS = $(addsuffix .gz,$(ASSETS))
 bracery-asset.zip: bracery-asset.js $(COMMON) $(ASSETS)
 	cp $< index.js
@@ -75,6 +84,15 @@ bracery-asset.zip: bracery-asset.js $(COMMON) $(ASSETS)
 
 asset/%.gz: asset/%
 	gzip -ck $< >$@
+
+asset/app.js: app/build/static/js
+	(cat $</runtime~main.*.js; echo; cat $</main.*.chunk.js; echo; cat $</2.*.chunk.js) >$@
+
+asset/app.css: app/build/static/css
+	cp $</main.*.chunk.css $@
+
+asset/manifest.json: app/build/manifest.json
+	cp $< $@
 
 WEB_BRACERY = ../web/bracery.min.js
 MARKED = marked.min.js

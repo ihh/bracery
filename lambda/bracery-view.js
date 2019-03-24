@@ -28,6 +28,8 @@ const marked = require('marked');
 const hiddenStyle = 'style="display:none;"';
 const templateVarValMap = { 'JAVASCRIPT_FILE': config.assetPrefix + config.viewAssetStub + '.js',
                             'STYLE_FILE': config.assetPrefix + config.viewAssetStub + '.css',
+                            'APP_JAVASCRIPT_FILE': config.assetPrefix + config.appAssetStub + '.js',
+                            'APP_STYLE_FILE': config.assetPrefix + config.appAssetStub + '.css',
                             'BASE_URL': config.baseUrl,
                             'STORE_PATH_PREFIX': config.storePrefix,
                             'VIEW_PATH_PREFIX': config.viewPrefix,

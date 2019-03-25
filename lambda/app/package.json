@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "awesome-debounce-promise": "^2.1.0",
     "bracery": "file:../../",
     "react": "^16.8.5",
     "react-dom": "^16.8.5",

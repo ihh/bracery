@@ -7,8 +7,6 @@
 
 const util = require('./bracery-util');
 const config = require('./bracery-config');
-const tableName = config.tableName;
-const revisionsTableName = config.revisionsTableName;
 
 const dynamoPromise = util.dynamoPromise();
 
@@ -24,6 +22,7 @@ exports.handler = async (event, context, callback) => {
   // Set up some returns
   let session = await util.getSession (event, dynamoPromise);
   const respond = util.respond (callback, event, session);
+  const corsHeader = { 'Access-Control-Allow-Origin': '*' };
 
   // Query the database for the given name
   try {
@@ -42,7 +41,7 @@ exports.handler = async (event, context, callback) => {
 		     revision: result.revision,
 		     locked: false };
         let deleteResult = await util.updateBracery (item, dynamoPromise);
-        return respond.ok ({ revision: deleteResult.revision });
+        return respond.ok ({ revision: deleteResult.revision }, corsHeader);
       } else
         return respond.notFound();
       break;
@@ -53,7 +52,7 @@ exports.handler = async (event, context, callback) => {
           ret.locked = true;
           ret.owned = (result.owner === session.user);
         }
-        respond.ok (ret);
+        respond.ok (ret, corsHeader);
       } else
         respond.notFound();
       break;
@@ -76,7 +75,7 @@ exports.handler = async (event, context, callback) => {
 
         await util.clearSession (session, dynamoPromise);
         
-        respond.ok ({ revision: putResult.revision });
+        respond.ok ({ revision: putResult.revision }, corsHeader);
       }
       break;
     default:

@@ -331,13 +331,13 @@ function withCookie (callback, session) {
 }
 
 function ok (callback) {
-  return (res) => callback (null, {
+  return (res, headers) => callback (null, {
     statusCode: '200',
-    body: JSON.stringify (res),
-    headers: {
+    body: JSON.stringify (res || {}),
+    headers: extend ({
       'Content-Type': 'application/json',
-    },
-  });			       
+    }, headers || {}),
+  });
 }
 
 function redirectFound (callback) {

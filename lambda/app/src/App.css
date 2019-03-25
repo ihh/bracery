@@ -41,16 +41,12 @@ button {
     border-width: 1px;
 }
 
-.login, .logout {
-    float: right;
-}
-
-.varsbefore, .varsafter, .init, .expansion {
+.varsbefore, .varsafter, .source, .expansion {
     margin-left: 4px;
     margin-right: 4px;
 }
 
-.varsbefore, .varsafter, .init {
+.varsbefore, .varsafter, .source {
     border-style: none solid solid solid;
     font-size: x-small;
     border-width: 1px;
@@ -63,7 +59,7 @@ button {
     background: #ddd;
 }
 
-.init {
+.source {
     background: #eee;
 }
 
@@ -91,6 +87,10 @@ button {
 .loginout {
     min-width: 10em;
     justify-content: flex-end;
+}
+
+.loginout span {
+    float: right;
 }
 
 .sourcepanel {

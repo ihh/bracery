@@ -93,7 +93,17 @@ button {
     justify-content: flex-end;
 }
 
+.sourcepanel {
+    position: relative;
+}
+
+.evalcontainer {
+    display: flex;
+    flex-direction: row;
+}
+
 .eval {
+    flex-grow: 1;
     min-height: 10em;
     resize: vertical;
     background: white;
@@ -103,18 +113,20 @@ button {
     word-break: break-all;
 }
 
-.eval pre {
-    white-space: pre-wrap;
-}
-
 .revision {
+    position: absolute;
+    right: 0;
     border-style: solid;
     border-width: 1px;
     background: #eee;
     font-size: small;
-    float: right;
     text-align: right;
     padding: 1px;
+}
+
+.name {
+    margin-left: 2px;
+    margin-right: 4px;
 }
 
 .refs, .referring {

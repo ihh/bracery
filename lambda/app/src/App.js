@@ -14,6 +14,7 @@ class App extends Component {
       evalText: props.SYMBOL_DEFINITION,  // text entered into evaluation window
       evalTextEdited: false,
       revision: props.REVISION,
+      locked: props.LOCKED_BY_USER,
 
       initText: props.INIT_TEXT,  // value to reset text to
       initVars: props.INIT_VARS,       // value to reset vars to
@@ -26,6 +27,8 @@ class App extends Component {
       currentExpansionHTML: props.EXPANSION_HTML,
       varsAfterCurrentExpansion: {},
 
+      warning: props.INITIAL_WARNING,
+      
       loggedIn: !!props.USER,
       editing: !!props.EDITING,
       debugging: !!props.DEBUGGING,
@@ -34,7 +37,8 @@ class App extends Component {
 
       referring: props.REFERRING_SYMBOLS,
       recent: props.RECENT_SYMBOLS,
-      
+
+      base: props.BASE_URL,
       store: props.STORE_PATH_PREFIX,
       view: props.VIEW_PATH_PREFIX,
       expand: props.EXPAND_PATH_PREFIX,
@@ -54,14 +58,14 @@ class App extends Component {
     <div className="main">
       <div className="banner">
 	<span className="path tab">
-	  <a href={this.state.view} className="home">bracery</a> /
+	  <a href={this.state.view} className="home">bracery</a> <span> / </span>
 	  <span className="title">{this.state.name}</span>
 	</span>
 	<span className="tab"><button className="reroll">Re-roll</button></span>
 	<span className="tab"><button className="tweet">Tweet</button></span>
 	<span className="loginout">
 	{this.state.loggedIn
-	 ? (<span className="logout">{this.state.user} / <button className="logoutlink">Logout</button></span>)
+	 ? (<span className="logout">{this.state.user} <span> / </span> <button className="logoutlink">Logout</button></span>)
 	 : (<span className="login"><button className="loginlink">Login / Signup</button></span>)
 	}
       </span>
@@ -74,11 +78,11 @@ class App extends Component {
 	{(this.state.editing
 	  ? (<span className="sourcecontrols">
 	     Editing template text (<button onClick={()=>this.setState({editing:false})}>hide</button>
-				    / <button className="erase">erase</button>
-				    / <button className="reset">reload</button>
-				    / <button onClick={()=>this.setState({debugging:!this.state.debugging})}>debug{this.state.debugging?' off':''}</button>
-				    / <button className="suggest">suggest</button>
-				    / <a href="https://github.com/ihh/bracery#Bracery" className="docs">docs</a>):</span>)
+				    <span> / </span> <button className="erase">erase</button>
+				    <span> / </span> <button className="reset">reload</button>
+				    <span> / </span> <button onClick={()=>this.setState({debugging:!this.state.debugging})}>debug{this.state.debugging?' off':''}</button>
+				    <span> / </span> <button className="suggest">suggest</button>
+				    <span> / </span> <a href="https://github.com/ihh/bracery#Bracery" className="docs">docs</a>):</span>)
 	  
 	  : (<span><button onClick={()=>this.setState({editing:true})}>Edit</button></span>))}
       </p>
@@ -90,20 +94,20 @@ class App extends Component {
 	 : ''}
 	<div className="sourcepanel">
 	  <div className="revision"></div>
-	  <div>
-	    <div contentEditable="true" className="eval">{this.state.evalText}</div>
+	  <div className="evalcontainer">
+	    <textarea className="eval" defaultValue={this.state.evalText}></textarea>
 	  </div>
 	  <div className="refs"></div>
 	  <div className="referring"></div>
 	  <br/>
 	  <p>
-	    <span className="urlprefix">{this.state.BASE_URL}{this.state.VIEW_PATH_PREFIX}</span>
-	    <input type="text" className="name" name="name" size="20" value={this.state.SYMBOL_NAME}></input>
+	<span className="urlprefix" dangerouslySetInnerHTML={{__html:this.state.base + this.state.view}}></span>
+	    <input type="text" className="name" name="name" size="20" defaultValue={this.state.name}></input>
 	    <button className="save" type="button">Publish</button>
 	</p>
 	{(this.state.loggedIn
 	  ? (<div className="lockpanel">
-	     <input type="checkbox" className="lock" name="lock" checked={this.state.LOCKED_BY_USER}></input>
+	     <input type="checkbox" className="lock" name="lock" checked={this.state.locked}></input>
 	     <label for="lock">Prevent other users from editing</label>
 	     </div>)
 	  : '')}

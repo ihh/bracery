@@ -119,12 +119,6 @@ class App extends Component {
 
   get unsavedWarning() { return 'Changes will not be final until saved.' }
   
-  makeVarHtml (vars) {
-    return Object.keys(vars).sort().map (function (name) {
-      return '<span class="var">$' + name + '</span>=<span class="val">' + vars[name] + '</span>'
-    }).join(', ')
-  }
-
   getBracery (symbolName) {
     var app = this
     if (this.braceryCache[symbolName])
@@ -196,14 +190,14 @@ class App extends Component {
       </span>
 	</div>
 	{this.state.debugging
-	 ? (<div className="varsbefore" dangerouslySetInnerHTML={{__html:this.makeVarHtml(this.state.varsBeforeCurrentExpansion)}}></div>)
+	 ? (<Vars vars={this.state.varsBeforeCurrentExpansion} className="varsbefore" />)
 	 : ''}
       {this.state.debugging
        ? (<div className="source">{this.state.currentSourceText}</div>)
        : ''}
 	<div className="expansion" dangerouslySetInnerHTML={{__html:braceryWeb.expandMarkdown(this.state.currentExpansionText || '',marked,this.state.linkRevealed)}}></div>
 	{this.state.debugging
-	 ? (<div className="varsafter" dangerouslySetInnerHTML={{__html:this.makeVarHtml(this.state.varsAfterCurrentExpansion)}}></div>)
+	 ? (<Vars vars={this.state.varsAfterCurrentExpansion} className="varsafter" />)
 	 : ''}
 	<p>
 	{(this.state.editing
@@ -250,6 +244,17 @@ class App extends Component {
 	<div className="recent"></div>
     </div>
     );
+  }
+}
+
+class Vars extends Component {
+  render() {
+    const vars = this.props.vars, className = this.props.className;
+    return (<div className={this.props.className}>{
+      Object.keys(vars).sort().map (function (name, k) {
+	return (<span key={className+k}><span className="var">${name}</span>=<span className="val">{vars[name]}</span></span>)
+      })
+    }</div>)
   }
 }
 

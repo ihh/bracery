@@ -124,6 +124,10 @@ button {
     padding: 1px;
 }
 
+.suggestions {
+    font-size: small;
+}
+
 .name {
     margin-left: 2px;
     margin-right: 4px;

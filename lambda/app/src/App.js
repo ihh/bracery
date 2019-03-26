@@ -17,7 +17,8 @@ class App extends Component {
       evalText: props.SYMBOL_DEFINITION,  // text entered into evaluation window
       evalTextEdited: false,
       revision: props.REVISION,
-      locked: props.LOCKED_BY_USER,
+      locked: !!props.LOCKED_BY_USER,
+      saveAsName: props.SYMBOL_NAME,
 
       initText: props.INIT_TEXT || props.SYMBOL_DEFINITION,  // value to reset text to
       initVars: props.INIT_VARS || {},  // value to reset vars to
@@ -44,21 +45,37 @@ class App extends Component {
       base: props.BASE_URL,
       store: props.STORE_PATH_PREFIX,
       view: props.VIEW_PATH_PREFIX,
-      expand: props.EXPAND_PATH_PREFIX,
       login: props.LOGIN_PATH_PREFIX,
       twitter: props.TWITTER_PATH_PREFIX,
       bookmark: props.BOOKMARK_PATH_PREFIX,
 
     };
 
+    const urlParams = this.decodeURIParams();
+    if (urlParams.edit)
+      this.state.editing = true;
+    if (urlParams.debug)
+      this.state.debugging = true;
+    if (urlParams.redirect || urlParams.reset)
+      window.history.pushState ({}, '', this.encodeURIParams (window.location.origin + window.location.pathname,
+							      extend (urlParams, { redirect: null, reset: null })))
+
+    this.domParser = new DOMParser();
     this.bracery = new Bracery (null, { rita: RiTa });
     this.braceryCache = {};
-
-    let evalChangedUpdateDelay = 400
-    this.debounceEvalChangedUpdate = DebouncePromise (this.promiseBraceryExpansion.bind(this), evalChangedUpdateDelay)
-    
-    window[braceryWeb.clickHandlerName] = this.handleBraceryLink.bind (this)
+    this.debounceEvalChangedUpdate = DebouncePromise (this.promiseBraceryExpansion.bind(this), this.evalChangedUpdateDelay);
+    window[braceryWeb.clickHandlerName] = this.handleBraceryLink.bind (this);
   }
+
+  // Constants
+  get warning() { return { unsaved: 'Changes will not be final until saved.',
+			   noName: 'Please enter a name.',
+			   noDef: 'You cannot save an empty definition. Please enter some text.',
+			   saving: 'Saving...',
+			   saved: 'Saved.' } }
+  get maxUrlLength() { return 2000 }  // a lower bound...
+  get evalChangedUpdateDelay() { return 400 }
+  get maxTweetLen() { return 280 }
 
   // Global methods
   handleBraceryLink (newEvalText, linkType, linkName) {
@@ -75,9 +92,70 @@ class App extends Component {
     }
   }
 
+  // State persistence
+  sessionState (includeExpansion) {
+    var state = { name: this.state.name,
+		  text: this.state.currentSourceText,
+		  vars: JSON.stringify (this.state.varsBeforeCurrentExpansion),
+		  eval: this.state.evalText }
+    if (includeExpansion)
+      state.expansion = JSON.stringify ({ text: this.state.currentExpansionText || '',
+					  vars: this.state.varsAfterCurrentExpansion || {} })
+    return state
+  }
+
   saveAppStateToServer (createBookmark) {
-    // WRITE ME
-    console.error ('unimplemented')
+    const data = extend ({ link: !!createBookmark },
+			 this.sessionState(true));
+    return fetch (this.addHostPrefix (this.state.bookmark),
+		  { method: 'POST',
+		    headers: { 'Content-Type': 'application/json;charset=UTF-8' },
+		    body: JSON.stringify (data) })
+      .then ((response) => response.json());
+  }
+
+  saveStateAndRedirect (url, params) {
+    url = this.addHostPrefix(url)
+    params = params || {}
+    const bigParams = extend (this.sessionState(true), params)
+    const bigUrl = this.encodeURIParams (url, bigParams)
+    if (bigUrl.length < this.maxUrlLength)
+      this.redirect (bigUrl)
+    else {
+      const smallUrl = this.encodeURIParams (url, params)
+      this.saveAppStateToServer()
+	.then (this.redirect.bind (this, smallUrl))
+    }
+  }
+
+  // URL management
+  decodeURIParams (url) {
+    url = url || window.location.href;
+    let params = {};
+    url.replace (/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+      params[key] = window.decodeURIComponent (value);
+    })
+    return params;
+  }
+
+  encodeURIParams (url, params) {
+    params = params || {}
+    let paramNames = Object.keys(params).filter ((p) => params[p]);
+    return url + (paramNames.length
+		  ? ('?' + paramNames.map ((p) => (p + '=' + window.encodeURIComponent (params[p]))).join('&'))
+		  : '')
+  }
+
+  addHostPrefix (path, params) {
+    return (window.location.host === this.state.base ? '' : this.state.base) + this.encodeURIParams (path, params)
+  }
+
+  redirect (url) {
+    window.location.href = url
+  }
+
+  openTab (url) {
+    window.open (url, '_blank')
   }
 
   // Button handlers
@@ -91,15 +169,17 @@ class App extends Component {
 		     evalText: '',
 		     currentSourceText: '',
 		     evalTextEdited: true,
-		     warning: this.unsavedWarning
+		     warning: this.warning.unsaved
 		   })
     this.promiseBraceryExpansion()
   }
 
   reload() {
-    this.getBracery (this.state.name)
+    const name = this.state.name
+    this.getBracery (name)
       .then ((text) => {
-	this.setState ({ initText: text,
+	this.setState ({ saveAsName: name,
+			 initText: text,
 			 initVars: {},
 			 evalText: text,
 			 currentSourceText: text,
@@ -108,21 +188,89 @@ class App extends Component {
 	return this.promiseBraceryExpansion()
       })
   }
+
+  suggest() {
+    const app = this;
+    this.getBracery (braceryWeb.suggestionsSymbolName)
+      .then ((suggestions) => {
+	return app.bracery.expand (suggestions, extend ({ vars: {} }, app.braceryExpandCallbacks))
+      }).then ((expansion) => {
+	app.setState ({ suggestions: braceryWeb.expandMarkdown (expansion.text, marked) })
+      })
+  }
   
-  // Textarea change handler
+  tweet() {
+    const app = this
+    const html = this.expandMarkdown()
+    this.saveAppStateToServer(true)
+      .then (function (bookmark) {
+	return braceryWeb.digestText (app.getTextContent(html), app.maxTweetLen - (bookmark.url.length + 1))
+	  .then (function (tweet) {
+            const webIntentUrl = app.encodeURIParams ('https://twitter.com/intent/tweet',
+						      { text: tweet,
+							url: bookmark.url })
+            app.openTab (webIntentUrl)
+	  })
+      })
+  }
+
+  login() {
+    this.saveStateAndRedirect (this.state.login, { login: 'true' })
+  }
+
+  logout() {
+    this.saveStateAndRedirect (this.state.login, { logout: 'true' })
+  }
+  
+  revoke (sym) {
+    this.saveStateAndRedirect (this.state.twitter, { source: sym, unsubscribe: 'true' })
+  }
+
+  revokeAll() {
+    this.saveStateAndRedirect (this.state.twitter, { unsubscribe: 'true' })
+  }
+
+  autotweet() {
+    this.saveStateAndRedirect (this.state.twitter, { source: this.state.name })
+  }
+
+  publish() {
+    if (!this.state.saveAsName)
+      return this.setState ({ warning: this.warning.noName })
+    if (!this.state.evalText)
+      return this.setState ({ warning: this.warning.noDef })
+
+    const data = { bracery: this.state.evalText,
+		   locked: this.state.locked }
+
+    return fetch (this.addHostPrefix (this.state.store + this.state.name),
+		  { method: 'PUT',
+		    headers: { 'Content-Type': 'application/json;charset=UTF-8' },
+		    body: JSON.stringify (data) })
+  }
+  
+  // Event handlers
   evalChanged (event) {
     let text = event.target.value
     this.setState ({ initText: text,
 		     evalText: text,
 		     currentSourceText: text,
 		     evalTextEdited: true,
-		     warning: this.unsavedWarning
+		     warning: this.warning.unsaved
 		   })
     return this.debounceEvalChangedUpdate()
   }
 
-  // Constants
-  get unsavedWarning() { return 'Changes will not be final until saved.' }
+  nameChanged (event) {
+    let name = event.target.value
+	.replace(/ /g,'_').replace(/[^A-Za-z_0-9]/g,'')
+    this.setState ({ saveAsName: name })
+  }
+
+  lockChanged (event) {
+    let locked = event.target.checked
+    this.setState ({ locked: locked })
+  }
   
   // Interactions with store
   getBracery (symbolName) {
@@ -130,7 +278,7 @@ class App extends Component {
     if (this.braceryCache[symbolName])
       return Promise.resolve (this.braceryCache[symbolName])
     else
-      return fetch (this.state.base + this.state.store + symbolName)
+      return fetch (this.addHostPrefix (this.state.store + symbolName))
       .then ((response) => response.json())
       .then ((body) => {
         let result = body.bracery;
@@ -177,15 +325,41 @@ class App extends Component {
     })
   }
 
-  // Render
+  // Bracery parsing
+  parsedBracery() {
+    return ParseTree.parseRhs (this.state.evalText)
+  }
+  
+  usingRefSets (rhs) {
+    rhs = rhs || this.parsedBracery()
+    let isRef = {}, isTracery = {}
+    ParseTree.getSymbolNodes (rhs, true)
+      .forEach (function (node) { isRef[node.name] = true })
+    ParseTree.getSymbolNodes (rhs, false)
+      .forEach (function (node) { if (!isRef[node.name]) isTracery[node.name] = true })
+    return [ { symbols: Object.keys(isRef) },
+	     { symbols: Object.keys(isTracery), lSym: ParseTree.traceryChar, rSym: ParseTree.traceryChar } ]
+  }
+  
+  // Rendering
+  expandMarkdown() {
+    return braceryWeb.expandMarkdown (this.state.currentExpansionText || '',
+				      marked,
+				      this.state.linkRevealed)
+  }
+
+  getTextContent (html) {
+    return this.domParser.parseFromString (html, 'text/html').documentElement.textContent
+  }
+
   render() {
     var app = this
     return (
     <div className="main">
       <div className="banner">
 	<span>
-	  <a href={this.state.view}>bracery</a> <span> / </span>
-	  <span>{this.state.name}</span>
+	<a href={this.addHostPrefix(this.state.view)}>bracery</a> <span> / </span>
+	<span>{this.state.name}</span>
 	</span>
 	<span>{(this.state.rerollMeansRestart
 		? <button onClick={()=>(window.confirm('Really restart? You will lose your progress.') && this.reroll())}>Restart</button>
@@ -204,7 +378,7 @@ class App extends Component {
       {this.state.debugging
        ? (<div className="source">{this.state.currentSourceText}</div>)
        : ''}
-	<div className="expansion" dangerouslySetInnerHTML={{__html:braceryWeb.expandMarkdown(this.state.currentExpansionText || '',marked,this.state.linkRevealed)}}></div>
+	<div className="expansion" dangerouslySetInnerHTML={{__html:this.expandMarkdown()}}></div>
 	{this.state.debugging
 	 ? (<Vars vars={this.state.varsAfterCurrentExpansion} className="varsafter" />)
 	 : ''}
@@ -223,6 +397,7 @@ class App extends Component {
 	<div>
 	{this.state.suggestions
 	 ? (<div>
+	    <div className="suggestions" dangerouslySetInnerHTML={{__html:this.state.suggestions}} />
 	    <button onClick={()=>this.setState({suggestions:''})}>Clear suggestions</button>
 	    </div>)
 	 : ''}
@@ -232,23 +407,27 @@ class App extends Component {
 	{this.state.editing
 	 ? (<div>
 	    <div className="sourcepanel">
-	    <div className="revision"></div>
+	    <div className="revision">Revision: {this.state.revision}
+	    <span>{this.state.revision > 1
+		   ? (<span> (<a href={this.addHostPrefix(this.state.view + this.state.name,{edit:'true',rev:this.state.revision-1})}>{this.state.revision-1}</a>)</span>)
+		   : ''}</span></div>
 	    <div className="evalcontainer">
 	    <textarea className="eval" value={this.state.evalText} onChange={(event)=>this.evalChanged(event)}></textarea>
 	    </div>
-	    <div className="refs"></div>
-	    <div className="referring"></div>
+	    <Refs className="refs" prefix="References" view={this.addHostPrefix(this.state.view)} refSets={this.usingRefSets()} />
+	    <Refs className="referring" prefix="Used by" view={this.addHostPrefix(this.state.view)} refSets={[{ symbols: this.state.referring }]} />
 	    <br/>
 	    <p>
-	    <span dangerouslySetInnerHTML={{__html:this.state.base + this.state.view}}></span>
-	    <input type="text" className="name" name="name" size="20" defaultValue={this.state.name}></input>
+	    <span>{this.addHostPrefix(this.state.view)}</span>
+	    <input type="text" className="name" name="name" size="20" value={this.state.saveAsName} onChange={(event)=>this.nameChanged(event)}></input>
 	    <button onClick={()=>this.publish()}>Publish</button>
 	    </p>
 	    <div>
 	    {(this.state.loggedIn
 	      ? (<div>
-	   	 <input type="checkbox" name="lock" checked={this.state.locked}></input>
- 		 <label for="lock">Prevent other users from editing</label>
+ 		 <label>
+	   	 <input type="checkbox" name="lock" checked={this.state.locked} onChange={(event)=>this.lockChanged(event)}></input>
+		 Prevent other users from editing</label>
 		 </div>)
 	      : '')}
 	    </div>
@@ -264,13 +443,13 @@ class App extends Component {
           ? (<div>
 	      <span>Current auto-tweets </span>
               (<button onClick={()=>app.revokeAll()}>revoke all</button>)
-	      <ul>{Object.keys (this.state.bots).map (function (botName) {
-		return (<li>As <span> @<a href={'https://twitter.com/' + botName}>{botName}</a></span>
-			<ul>{app.state.bots[botName].map (function (sym) {
-			  return (<li><span>~<a href={app.state.view + sym}>{sym}</a> </span>
-				  (<button onClick={()=>app.revoke(sym)}>revoke</button>)
-				  </li>)
-			})}</ul>
+	     <ul>{Object.keys (this.state.bots).map (function (botName, j) {
+	       return (<li key={'bots'+j}>As <span> @<a href={'https://twitter.com/' + botName}>{botName}</a></span>
+		       <ul>{app.state.bots[botName].map (function (sym, k) {
+			 return (<li key={'bots'+j+'_'+k}><span>~<a href={app.state.view + sym}>{sym}</a> </span>
+				 (<button onClick={()=>app.revoke(sym)}>revoke</button>)
+				 </li>)
+		       })}</ul>
 		       </li>)})}</ul>
 	     </div>)
 	  : '')}
@@ -279,10 +458,9 @@ class App extends Component {
 	<button onClick={()=>this.autotweet()}>Add this page</button>
 	<span> to auto-tweets</span>
 	</div>
-	<div className="recent">
-	RECENT LINKS GO HERE
-      </div>
-    </div>
+	<hr/>
+	<Refs className="recent" prefix="Recently updated" view={this.addHostPrefix(this.state.view)} refSets={[{ symbols: this.state.recent }]} />
+	</div>
     );
   }
 }
@@ -297,5 +475,25 @@ class Vars extends Component {
     }</div>)
   }
 }
+
+class Refs extends Component {
+  render() {
+    const view = this.props.view;
+    const className = this.props.className;
+    const absentText = this.props.absentText;
+    const prefix = this.props.prefix;
+    const refSets = this.props.refSets;
+    const elements = refSets.reduce ((list, refSet, j) => {
+      const symbols = refSet.symbols
+      let lSym = refSet.lSym, rSym = refSet.rSym
+      if (!lSym) { lSym = ParseTree.symChar; rSym = '' }
+      return list.concat (symbols.map ((name, k) => (<span key={className+j+'_'+k}>{lSym}<a href={view + name + '?edit=true'}>{name}</a>{rSym} </span>)))
+    }, [])
+    return (elements.length
+	    ? (<div className={className}>{prefix}: {elements}</div>)
+	    : (<div className={className}>{absentText || ''}</div>))
+  }
+}
+
 
 export default App;

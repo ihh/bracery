@@ -63,7 +63,7 @@ class App extends Component {
     this.domParser = new DOMParser();
     this.bracery = new Bracery (null, { rita: RiTa });
     this.braceryCache = {};
-    this.debounceEvalChangedUpdate = DebouncePromise (this.promiseBraceryExpansion.bind(this), this.evalChangedUpdateDelay);
+    this.debounceEvalChangedUpdate = DebouncePromise (this.evalChangedUpdate.bind(this), this.evalChangedUpdateDelay);
     window[braceryWeb.clickHandlerName] = this.handleBraceryLink.bind (this);
   }
 
@@ -169,6 +169,7 @@ class App extends Component {
 		     evalText: '',
 		     currentSourceText: '',
 		     evalTextEdited: true,
+		     rerollMeansRestart: false,
 		     warning: this.warning.unsaved
 		   })
     this.promiseBraceryExpansion()
@@ -184,6 +185,7 @@ class App extends Component {
 			 evalText: text,
 			 currentSourceText: text,
 			 evalTextEdited: false,
+			 rerollMeansRestart: false,
 			 warning: '' })
 	return this.promiseBraceryExpansion()
       })
@@ -235,7 +237,9 @@ class App extends Component {
   }
 
   publish() {
-    if (!this.state.saveAsName)
+    const app = this
+    const saveAsName = this.state.saveAsName
+    if (!saveAsName)
       return this.setState ({ warning: this.warning.noName })
     if (!this.state.evalText)
       return this.setState ({ warning: this.warning.noDef })
@@ -243,10 +247,15 @@ class App extends Component {
     const data = { bracery: this.state.evalText,
 		   locked: this.state.locked }
 
-    return fetch (this.addHostPrefix (this.state.store + this.state.name),
-		  { method: 'PUT',
-		    headers: { 'Content-Type': 'application/json;charset=UTF-8' },
-		    body: JSON.stringify (data) })
+    return Promise.promisify (this.setState.bind(this)) ({ warning: this.warning.saving })
+      .then (() => fetch (this.addHostPrefix (this.state.store + saveAsName),
+			  { method: 'PUT',
+			    headers: { 'Content-Type': 'application/json;charset=UTF-8' },
+			    body: JSON.stringify (data) }))
+      .then (() => app.setState ({ warning: app.warning.saved,
+				   evalTextEdited: false,
+				   rerollMeansRestart: false,
+				   name: saveAsName }))
   }
   
   // Event handlers
@@ -261,6 +270,10 @@ class App extends Component {
     return this.debounceEvalChangedUpdate()
   }
 
+  evalChangedUpdate() {
+    this.promiseBraceryExpansion (this.state.evalText, this.state.initVars, { rerollMeansRestart: false })
+  }
+  
   nameChanged (event) {
     let name = event.target.value
 	.replace(/ /g,'_').replace(/[^A-Za-z_0-9]/g,'')
@@ -280,6 +293,7 @@ class App extends Component {
     else
       return fetch (this.addHostPrefix (this.state.store + symbolName))
       .then ((response) => response.json())
+      .catch (() => { return { bracery: '' } })
       .then ((body) => {
         let result = body.bracery;
         app.braceryCache[symbolName] = result;

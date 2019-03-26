@@ -1,8 +1,7 @@
-PEGFILES = $(wildcard src/*.peg.js)
 ALL = src/rhs.js web/bracery.js web/bracery.min.js
 
 NODE_MOD = node_modules
-PEGJS = $(NODE_MOD)/pegjs/bin/pegjs
+PEGJS = $(NODE_MOD)/.bin/pegjs
 BROWSERIFY = $(NODE_MOD)/browserify/bin/cmd.js
 UGLIFYJS = $(NODE_MOD)/uglify-js/bin/uglifyjs
 

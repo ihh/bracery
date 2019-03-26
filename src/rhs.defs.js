@@ -1,16 +1,27 @@
-function makeRep (unit, min, max) { return { type: 'rep', unit: unit, min: min, max: max } }
-function makeSymbolMethod (name, method, args) { return { type: 'sym', name: name.toLowerCase(), method: method, bind: args } }
-function makeLookup (name) { return { type: 'lookup', varname: name } }
-function makeAssign (name, value, visible) { return { type: 'assign', varname: name, value: value, visible: visible } }
-function makeLocalAssign (name, value, scope) { return { type: 'assign', varname: name, value: value, local: scope } }
-function makeAlternation (opts) { return { type: 'alt', opts: opts } }
-function makeConditional (testArg, trueArg, falseArg) { return { type: 'cond', test: testArg, t: trueArg, f: falseArg } }
-function makeFunction (name, args) { return { type: 'func', funcname: funcAlias[name] || name, args: args } }
+function extend (dest) {
+  dest = dest || {}
+  Array.prototype.slice.call (arguments, 1).forEach (function (src) {
+    if (src)
+      Object.keys(src).forEach (function (key) { dest[key] = src[key] })
+  })
+  return dest
+}
+
+function makeNode (type, props) { var loc = location(); return extend ({ type: type, pos: [loc.start.offset, loc.end.offset - loc.start.offset] }, props) }
+
+function makeRep (unit, min, max) { return makeNode ('rep', { unit: unit, min: min, max: max }) }
+function makeSymbolMethod (name, method, args) { return makeNode ('sym', { name: name.toLowerCase(), method: method, bind: args }) }
+function makeLookup (name) { return makeNode ('lookup', { varname: name }) }
+function makeAssign (name, value, visible) { return makeNode ('assign', { varname: name, value: value, visible: visible }) }
+function makeLocalAssign (name, value, scope) { return makeNode ('assign', { varname: name, value: value, local: scope }) }
+function makeAlternation (opts) { return makeNode ('alt', { opts: opts }) }
+function makeConditional (testArg, trueArg, falseArg) { return makeNode ('cond', { test: testArg, t: trueArg, f: falseArg }) }
+function makeFunction (name, args) { return makeNode ('func', { funcname: funcAlias[name] || name, args: args }) }
 
 var funcAlias = { q: 'quotify' }
 
 function wrapNodes (args) { return args.length === 1 ? args[0] : makeRoot (args) }
-function makeRoot (args) { return { type: 'root', rhs: args } }
+function makeRoot (args) { return makeNode ('root', { rhs: args }) }
 
 function makeValue (args) { return makeFunction ('value', args) }
 function makeQuote (args) { return makeFunction ('quote', args) }

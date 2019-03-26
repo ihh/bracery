@@ -280,7 +280,8 @@ class App extends Component {
 	<span> to auto-tweets</span>
 	</div>
 	<div className="recent">
-	</div>
+	RECENT LINKS GO HERE
+      </div>
     </div>
     );
   }

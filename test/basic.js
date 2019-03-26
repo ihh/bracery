@@ -562,7 +562,7 @@ function doTests (testRunner) {
   // regexes
   expectExpand ('&match/a/{cat}{$$0$$0}', 'aa')
   expectExpand ('&quotify&match/[aeiou]/g{generic}{&uc$$0}', '&{E&,E&,I}')
-  expectExpand ('&replace/a/g{catamaran}{u|o}', 'cutomoron', {maxTries:maxTries})
+  expectExpand ('&replace/a/g{catamaran}{u|o}', 'cutomoron', {maxTries:10*maxTries})  // bumping up maxTries because this has failed...
   expectExpand ('&join&split/[aeiou]+/{felicitous}{..}', 'f..l..c..t..s')
   expectExpand ('&join&split{a   bc   d}{,}', 'a,bc,d')
   expectExpand ('&join&map&split{a bc def}{"$_"}{, }', '"a", "bc", "def"')
@@ -597,6 +597,10 @@ function doTests (testRunner) {
   expectExpand ('[[ X! ... ]]', '&link{ X! ... }{#x#}')
   expectExpand ('[[Next room.]]', '&link{Next room.}{#next_room#}')
 
+  // layout
+  expectExpand ('&quote&xy{ + 1, - 2.3 }{hello}', '&xy{1,-2.3}{hello}')
+  expectExpand ('&quote[a@(2,3)=>hello|there]', '[a@2,3=>hello|there]')
+  
   // charclass, alt
   expectExpand ('&charclass{abc}', '[a|b|c]')
   expectExpand ('&charclass{a-e}', '[a|b|c|d|e]')

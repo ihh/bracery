@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/ihh/bracery#readme",
   "dependencies": {
+    "ajv": "^6.10.0",
     "bluebird": "^3.5.1",
     "canonicaljson": "^1.0.1",
     "colors": "^1.2.5",

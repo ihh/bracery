@@ -262,8 +262,9 @@ function sampleParseTree (rhs, config) {
   })
 }
 
-function getSymbolNodes (rhs, ignoreTracery) {
+function getSymbolNodes (rhs, config) {
   var pt = this
+  config = config || {}
   return rhs.reduce (function (result, node) {
     var r
     if (typeof(node) === 'object')
@@ -271,44 +272,53 @@ function getSymbolNodes (rhs, ignoreTracery) {
       case 'lookup':
         break
       case 'assign':
-        r = pt.getSymbolNodes ((node.value || []).concat (node.local || []), ignoreTracery)
+        r = pt.getSymbolNodes ((node.value || []).concat (node.local || []), config)
         break
       case 'alt':
         r = node.opts.reduce (function (altResults, opt) {
-          return altResults.concat (pt.getSymbolNodes (opt, ignoreTracery))
+          return altResults.concat (pt.getSymbolNodes (opt, config))
         }, [])
         break
       case 'rep':
-        r = pt.getSymbolNodes (node.unit, ignoreTracery)
+        r = pt.getSymbolNodes (node.unit, config)
         break
       case 'func':
 	switch (node.funcname) {
 	case 'eval':
-	  r = pt.getSymbolNodes (node.args.concat (node.value || []), ignoreTracery)
+	  r = pt.getSymbolNodes (node.args.concat (node.value || []), config)
+	  break
+	case 'link':
+	  if (!config.ignoreLink)
+	    r = pt.getSymbolNodes (node.args.concat (node.value || []), extend ({}, config, { inLink: true }))
 	  break
 	case 'strictquote':
 	case 'quote':
 	case 'unquote':
         default:
-	  r = pt.getSymbolNodes (node.args, ignoreTracery)
+	  r = pt.getSymbolNodes (node.args, config)
           break
 	}
         break
       case 'cond':
-        if (!(ignoreTracery && isTraceryExpr (node)))
-          r = pt.getSymbolNodes (node.test.concat (node.t, node.f), ignoreTracery)
+	if (isTraceryExpr (node)) {
+	  if (!(config.ignoreTracery || (config.linkOnly && !config.inLink)))
+	    r = [node.f[0]]
+	} else
+          r = pt.getSymbolNodes (node.test.concat (node.t, node.f), config)
         break
       case 'root':
       case 'alt_sampled':
-        r = pt.getSymbolNodes (node.rhs, ignoreTracery)
+        r = pt.getSymbolNodes (node.rhs, config)
         break
       case 'rep_sampled':
-        r = pt.getSymbolNodes (node.reps.reduce (function (all, rep) { return all.concat(rep) }, []), ignoreTracery)
+        r = pt.getSymbolNodes (node.reps.reduce (function (all, rep) { return all.concat(rep) }, []), config)
         break
       default:
       case 'sym':
-        r = [node]
-	r = r.concat (pt.getSymbolNodes (node.rhs || node.bind || [], ignoreTracery))
+        r = (((config.linkOnly && !config.inLink) || config.traceryOnly)
+	     ? []
+	     : [node])
+	r = r.concat (pt.getSymbolNodes (node.rhs || node.bind || [], config))
         break
       }
     return r ? result.concat(r) : result
@@ -411,10 +421,18 @@ function isProbExpr (node) {
 
 // &accept{x} expands to $accept=&quote{$x}
 // similarly &reject{x}, &status{x}, and &footer{x}
+function isQuoteAssignKeywordExpr (node) {
+  return isQuoteAssignExpr (node)
+    && (node.varname === 'accept' || node.varname === 'reject' || node.varname === 'status' || node.varname === 'footer')
+}
+
 function isQuoteAssignExpr (node) {
   return typeof(node) === 'object' && node.type === 'assign' && !node.local
-    && (node.varname === 'accept' || node.varname === 'reject' || node.varname === 'status' || node.varname === 'footer')
-    && node.value.length === 1 && node.value[0].type === 'func' && node.value[0].funcname === 'strictquote'
+    && node.value.length === 1 && node.value[0].type === 'func' && node.value[0].funcname === 'quote'
+}
+
+function getQuoteAssignRhs (node) {
+  return node.value[0].args
 }
 
 // &tag{x} expands to $tags={$tags x}
@@ -458,6 +476,30 @@ function getMeterStatus (node) {
   return node.args[1].args[0].args.length === 3 ? node.args[1].args[0].args[2].args : ''
 }
 
+// &xy{x,y}{args}
+var coordVarName = '_xy'
+function isLayoutExpr (node) {
+  return typeof(node) === 'object' && node.type === 'assign' && node.varname === coordVarName && node.value.length === 1 && node.local
+    && node.local.length === 1 && typeof(node.local[0]) === 'object' && node.local[0].type === 'func' && node.local[0].funcname === 'quote'
+}
+
+function getLayoutCoord (node) {
+  return node.value[0]
+}
+
+function getLayoutContent (node) {
+  return node.local[0].args
+}
+
+function isLayoutAssign (node) {
+  return typeof(node) === 'object' && node.type === 'assign' && !node.local && node.value.length === 1 && isLayoutExpr(node.value[0])
+}
+
+function getLayoutExpr (node) {
+  return node.value[0]
+}
+
+// Misc text rendering
 function makeFuncArgTree (pt, args, makeSymbolName, forceBraces) {
   var noBraces = !forceBraces && args.length === 1 && (args[0].type === 'func' || args[0].type === 'lookup' || args[0].type === 'alt')
   return [noBraces ? '' : leftBraceChar, pt.makeRhsTree (args, makeSymbolName), noBraces ? '' : rightBraceChar]
@@ -517,11 +559,20 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
                   : [varChar, tok.varname])
 	break
       case 'assign':
-        if (isQuoteAssignExpr (tok))
-          result = [funcChar, tok.varname, [leftBraceChar, pt.makeRhsTree(tok.value[0].args,makeSymbolName), rightBraceChar]]
+        if (isQuoteAssignKeywordExpr (tok))
+          result = [funcChar, tok.varname, [leftBraceChar, pt.makeRhsTree(getQuoteAssignRhs(tok),makeSymbolName), rightBraceChar]]
         else if (isTagExpr (tok))
           result = [funcChar, 'tag', [leftBraceChar, pt.makeRhsTree(getTagExprRhs(tok),makeSymbolName), rightBraceChar]]
-        else {
+	else if (isLayoutExpr (tok))
+          result = [funcChar, 'xy', [leftBraceChar, getLayoutCoord(tok), rightBraceChar], [leftBraceChar, pt.makeRhsTree (getLayoutContent(tok), makeSymbolName), rightBraceChar]]
+	else if (isLayoutAssign (tok)) {
+	  var content = getLayoutContent(getLayoutExpr(tok))
+          result = [leftSquareBraceChar, tok.varname, '@', getLayoutCoord(getLayoutExpr(tok)), '=>']
+	    .concat (content.length === 1 && typeof(content[0]) === 'object' && content[0].type === 'alt'
+		     ? content[0].opts.map (makeOptTree.bind(pt,makeSymbolName,content[0].opts.length))
+		     : pt.makeRhsTree(content,makeSymbolName))
+	    .concat ([rightSquareBraceChar])
+        } else {
           var assign = [varChar, tok.varname, (tok.visible ? ':' : '') + assignChar, [leftBraceChar, pt.makeRhsTree(tok.value,makeSymbolName), rightBraceChar]]
           if (tok.local)
             result = [funcChar, 'let'].concat (assign, [[leftBraceChar, pt.makeRhsTree(tok.local,makeSymbolName), rightBraceChar]])
@@ -2311,13 +2362,20 @@ module.exports = {
   isTraceryExpr: isTraceryExpr,
   traceryVarName: traceryVarName,
   isProbExpr: isProbExpr,
+  isQuoteAssignKeywordExpr: isQuoteAssignKeywordExpr,
   isQuoteAssignExpr: isQuoteAssignExpr,
+  getQuoteAssignRhs: getQuoteAssignRhs,
   isTagExpr: isTagExpr,
   getTagExprRhs: getTagExprRhs,
   isMeterExpr: isMeterExpr,
   getMeterIcon: getMeterIcon,
   getMeterLevel: getMeterLevel,
   getMeterStatus: getMeterStatus,
+  isLayoutExpr: isLayoutExpr,
+  getLayoutCoord: getLayoutCoord,
+  getLayoutContent: getLayoutContent,
+  isLayoutAssign: isLayoutAssign,
+  getLayoutExpr: getLayoutExpr,
   isEvalVar: isEvalVar,
   getEvalVar: getEvalVar,
   funcType: funcType,

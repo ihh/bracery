@@ -62,6 +62,7 @@ Function
   / ScheduleFunction
   / ImportanceSamplingFunction
   / LinkFunction
+  / LayoutFunction
   / ParseFunction
   / ListConstructor
   / ShortUnaryFunction  /* this goes last because it includes the one-letter function "a", which otherwise causes the PEG parser to miss all other function names beginning with "a" */
@@ -108,10 +109,10 @@ TraceryModifier
   / ".s" { return "plural" }
 
 MapFunction
-  = "&" name:MapFunctionName varname:MapVarIdentifier list:FunctionArg func:QuotedFunctionArg { return makeListFunction (name, varname, list, func) }
-  / "&" name:MapFunctionName list:FunctionArg func:QuotedFunctionArg { return makeListFunction (name, defaultListVarName, list, func) }
+  = "&" name:MapFunctionName varname:MapVarIdentifier list:FunctionArg func:StrictQuotedFunctionArg { return makeListFunction (name, varname, list, func) }
+  / "&" name:MapFunctionName list:FunctionArg func:StrictQuotedFunctionArg { return makeListFunction (name, defaultListVarName, list, func) }
   / "&" name:DefaultableMapFunctionName list:FunctionArg { return makeListFunction (name, defaultListVarName, list, [makeQuote ([makeLookup (defaultListVarName)])]) }
-  / "&reduce" varname:MapVarIdentifier list:FunctionArg result:VarIdentifier ("=" / "") init:FunctionArg func:QuotedFunctionArg { return makeReduceFunction (varname, list, result, init, func) }
+  / "&reduce" varname:MapVarIdentifier list:FunctionArg result:VarIdentifier ("=" / "") init:FunctionArg func:StrictQuotedFunctionArg { return makeReduceFunction (varname, list, result, init, func) }
 
 MapFunctionName = "map" / "for" / DefaultableMapFunctionName
 DefaultableMapFunctionName = "filter" / "numsort" / "lexsort"
@@ -121,7 +122,7 @@ MapVarIdentifier
   / "{" name:VarIdentifier "}" { return name }
 
 RegexFunction
-  = "&" name:BinaryRegexFunctionName pattern:RegularExpressionLiteral text:FunctionArg expr:QuotedFunctionArg { return makeRegexFunction (name, pattern, text, expr) }
+  = "&" name:BinaryRegexFunctionName pattern:RegularExpressionLiteral text:FunctionArg expr:StrictQuotedFunctionArg { return makeRegexFunction (name, pattern, text, expr) }
   / "&" name:UnaryRegexFunctionName pattern:RegularExpressionLiteral text:FunctionArg { return makeRegexFunction (name, pattern, text) }
   / "&split" text:FunctionArg { return makeRegexFunction ('split', { body: [defaultSplitPattern], flags: [] }, text) }
 
@@ -176,7 +177,7 @@ UnaryVarFunction
   / v:VarFunctionArg "--" { return wrapNodes (v[0].args.concat ([makeFunction ('dec', v)])) }
 
 MeterFunction
-  = "&meter" icon:FunctionArg expr:MathExpr status:QuotedFunctionArg _ { return makeMeter (icon, expr, status) }
+  = "&meter" icon:FunctionArg expr:MathExpr status:StrictQuotedFunctionArg _ { return makeMeter (icon, expr, status) }
   / "&meter" icon:FunctionArg expr:MathExpr _ { return makeMeter (icon, expr) }
 
 ScheduleFunction
@@ -185,7 +186,7 @@ ScheduleFunction
   / "&queue" v:VarFunctionArg list:FunctionArg { return makeQueue (v, list) }
 
 ImportanceSamplingFunction
-  = "&imp{" num:Number "}{" _ expr:MathExpr _ "}" template:QuotedFunctionArg { return makeImportanceSampler (num, expr, template) }
+  = "&imp{" num:Number "}{" _ expr:MathExpr _ "}" template:StrictQuotedFunctionArg { return makeImportanceSampler (num, expr, template) }
   / "&preserve" arg:FunctionArg { return makePreserve (arg) }
   / "&rhyme{" num:Number "}" a:FunctionArg b:FunctionArg { return makeRhyme (a, b, num) }
   / "&rhyme" a:FunctionArg b:FunctionArg { return makeRhyme (a, b) }
@@ -201,9 +202,15 @@ LinkFunction
 LinkShortcut
   = "[[" text:Text "]]" { return makeLinkShortcut (text) }
 
+LayoutFunction
+  = "&xy{" coord:XYCoord "}" arg:FunctionArg { return makeCoord (coord, arg) }
+
+XYCoord
+  = _ x:SignedFloat _ comma:"," _ y:SignedFloat _ { return x + comma + y }
+
 ParseFunction
-  = "&parse" grammar:QuotedFunctionArg text:FunctionArg { return makeFunction ('parse', [wrapNodes(grammar), wrapNodes(text)]) }
-  / "&grammar" grammar:QuotedFunctionArg { return makeFunction ('grammar', grammar) }
+  = "&parse" grammar:StrictQuotedFunctionArg text:FunctionArg { return makeFunction ('parse', [wrapNodes(grammar), wrapNodes(text)]) }
+  / "&grammar" grammar:StrictQuotedFunctionArg { return makeFunction ('grammar', grammar) }
 
 ListConstructor
   = "&{" args:NodeList "}" { return makeFunction ('list', args) }
@@ -249,6 +256,9 @@ Quote = ("quote" / "`") { return 'quote' }
 Unquote = ("unquote" / ",") { return 'unquote' }
 
 QuotedFunctionArg
+  = func:FunctionArg { return [makeQuote (func)] }
+
+StrictQuotedFunctionArg
   = func:FunctionArg { return [makeStrictQuote (func)] }
 
 VarFunctionArg
@@ -284,7 +294,9 @@ VarAssignment
   = "&set$" varname:Identifier args:FunctionArg _ { return makeAssign (varname, args) }
   / "&set{" ("$" / "") varname:Identifier "}" args:FunctionArg { return makeAssign (varname, args) }
   / "[" varname:Identifier ":" args:NodeList "]" _ { return makeAssign (varname, args) }
-  / "[" varname:Identifier "=>" opts:AltList "]" _ { return makeAssign (varname, [makeQuote (opts.length === 1 ? opts[0] : [makeAlternation (opts)])]) }
+  / "[" varname:Identifier "=>" opts:AltList "]" _ { return makeAssign (varname, [makeQuote (makeAltAssignRhs(opts))]) }
+  / "[" varname:Identifier "@" coord:XYCoord "=>" opts:AltList "]" _ { return makeAssign (varname, [makeCoord (coord, makeAltAssignRhs(opts))]) }
+  / "[" varname:Identifier "@(" coord:XYCoord ")=>" opts:AltList "]" _ { return makeAssign (varname, [makeCoord (coord, makeAltAssignRhs(opts))]) }
   / "$" varname:Identifier "=" target:VarAssignmentTarget { return makeAssign (varname, target) }
   / "$" varname:Identifier ":=" target:VarAssignmentTarget { return makeAssign (varname, target, true) }
   / "$" varname:Identifier "+=" delta:VarAssignmentTarget { return makeModify (varname, 'add', delta) }
@@ -336,6 +348,10 @@ Number
 
 Float
   = left:[0-9]* "." right:[0-9]+ { return parseFloat(left.join("") + "." +   right.join("")) }
+
+SignedFloat
+  = ("+" _ / "") f:(Float / Number) { return f }
+  / "-" _ f:(Float / Number) { return -f }
 
 Identifier
   = firstChar:[A-Za-z_] rest:[A-Za-z_0-9]* { return firstChar + rest.join("") }

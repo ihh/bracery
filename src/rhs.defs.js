@@ -68,6 +68,10 @@ function makeArgList (args) {
   return args && args.length ? [makeFunction ('list', args.map (wrapNodes))] : undefined
 }
 
+function makeAltAssignRhs (opts) {
+  return opts.length === 1 ? opts[0] : [makeAlternation (opts)]
+}
+
 function makeSymbol (name, args) { return makeSymbolMethod (name, 'expand', args) }
 function makeGetSymbol (name) { return makeSymbolMethod (name, 'get') }
 function makeSetSymbol (name, args) { return makeSymbolMethod (name, 'set', args) }
@@ -135,11 +139,15 @@ function makeTraceryExpr (sym, mods) {
 }
 
 function makeProbExpr (probArg, trueArg, falseArg) {
-  return makeConditional ([makeFunction ('lt',
-                                         [makeFunction ('random', ['1']),
-                                          wrapNodes (probArg)])],
-                          trueArg,
-                          falseArg)
+  return pseudoFunction
+  ('prob',
+   function() {
+     return makeConditional ([makeFunction ('lt',
+					    [makeFunction ('random', ['1']),
+					     wrapNodes (probArg)])],
+			     trueArg,
+			     falseArg)
+   })
 }
 
 function validRange (min, max) {
@@ -241,4 +249,12 @@ function makeRhyme (a, b, tries) {
 					 [makeStrictQuote ([makeAssign ('a', a, true),
 							    makeAssign ('b', b, true)])])]) })
 }
-  
+
+function makeCoord (coord, arg) {
+  return pseudoFunction
+  ('xy',
+   function() {
+     return makeLocalAssignChain ([{ varname: '_xy', value: [coord] }],
+				  [makeQuote (arg)])
+   })
+}

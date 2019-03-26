@@ -4,6 +4,8 @@ import braceryWeb, { extend } from './bracery-web';
 import RiTa from 'rita';
 import marked from 'marked';
 import DebouncePromise from 'awesome-debounce-promise';
+import { GraphView } from 'react-digraph';
+
 import './App.css';
 
 class App extends Component {
@@ -76,6 +78,8 @@ class App extends Component {
   get maxUrlLength() { return 2000 }  // a lower bound...
   get evalChangedUpdateDelay() { return 400 }
   get maxTweetLen() { return 280 }
+  get layoutRadius() { return 100 }
+  get startNodeName() { return 'START' }
 
   // Global methods
   handleBraceryLink (newEvalText, linkType, linkName) {
@@ -111,7 +115,7 @@ class App extends Component {
 		  { method: 'POST',
 		    headers: { 'Content-Type': 'application/json;charset=UTF-8' },
 		    body: JSON.stringify (data) })
-      .then ((response) => response.json());
+      .then ((response) => response.json())
   }
 
   saveStateAndRedirect (url, params) {
@@ -339,20 +343,67 @@ class App extends Component {
     })
   }
 
-  // Bracery parsing
-  parsedBracery() {
+  // Bracery parsing & analysis
+  parseBracery() {
     return ParseTree.parseRhs (this.state.evalText)
   }
   
   usingRefSets (rhs) {
-    rhs = rhs || this.parsedBracery()
+    rhs = rhs || this.parseBracery()
     let isRef = {}, isTracery = {}
-    ParseTree.getSymbolNodes (rhs, true)
+    ParseTree.getSymbolNodes (rhs, { ignoreTracery: true })
       .forEach (function (node) { isRef[node.name] = true })
-    ParseTree.getSymbolNodes (rhs, false)
-      .forEach (function (node) { if (!isRef[node.name]) isTracery[node.name] = true })
+    ParseTree.getSymbolNodes (rhs, { traceryOnly: true })
+      .forEach (function (node) { isTracery[node.name] = true })
     return [ { symbols: Object.keys(isRef) },
 	     { symbols: Object.keys(isTracery), lSym: ParseTree.traceryChar, rSym: ParseTree.traceryChar } ]
+  }
+
+  getLayoutGraph (rhs) {
+    const app = this
+    rhs = rhs || this.parseBracery()
+    let nodeOffset = 0, strOffset = 0, nodes = [], edges = [], seenNode = {}
+    while (nodeOffset < rhs.length && (ParseTree.isQuoteAssignExpr (rhs[nodeOffset]) || ParseTree.isLayoutAssign (rhs[nodeOffset]))) {
+      let braceryNode = rhs[nodeOffset]
+      let id = braceryNode.varname.toLowerCase()
+      let node = { id: id,
+		   pos: braceryNode.pos }
+      if (ParseTree.isLayoutAssign (braceryNode)) {
+	let expr = ParseTree.getLayoutExpr (braceryNode)
+	let xy = ParseTree.getLayoutCoord (expr).split(',')
+	node.x = parseFloat (xy[0])
+	node.y = parseFloat (xy[1])
+	node.rhs = ParseTree.getLayoutContent (expr)
+      } else
+	node.rhs = ParseTree.getQuoteAssignRhs (braceryNode)
+      nodes.push (node)
+      seenNode[id] = true
+      strOffset = braceryNode.pos[0] + braceryNode.pos[1]
+      ++nodeOffset
+    }
+    nodes = [{ id: this.startNodeName,
+	       x: 0,
+	       y: 0,
+	       pos: [strOffset, this.state.evalText.length - strOffset],
+	       rhs: rhs.slice (nodeOffset) }].concat (nodes)
+    nodes.forEach ((node, n) => {
+      if (typeof(node.x) === 'undefined') {
+	const angle = 2 * Math.PI * n / nodes.length
+	node.x = Math.cos(angle) * app.layoutRadius
+	node.y = Math.sin(angle) * app.layoutRadius
+      }
+      ParseTree.getSymbolNodes (node.rhs, { traceryOnly: true, ignoreLink: true })
+	.map ((targetNode) => targetNode.name.toLowerCase())
+	.filter ((target) => seenNode[target])
+	.forEach ((target) => edges.push ({ source: node.id, target: target, type: 'include' }))
+      ParseTree.getSymbolNodes (node.rhs, { traceryOnly: true, linkOnly: true })
+	.map ((targetNode) => targetNode.name.toLowerCase())
+	.filter ((target) => seenNode[target])
+	.forEach ((target) => edges.push ({ source: node.id, target: target, type: 'link' }))
+      node.title = node.id
+    })
+    return { nodes,
+	     edges }
   }
   
   // Rendering
@@ -367,7 +418,9 @@ class App extends Component {
   }
 
   render() {
-    var app = this
+    const app = this
+    const rhs = this.parseBracery()
+    const graph = this.getLayoutGraph(rhs)
     return (
     <div className="main">
       <div className="banner">
@@ -417,6 +470,7 @@ class App extends Component {
 	 : ''}
       </div>
 
+	<MapView graph={graph} />
 	<div>
 	{this.state.editing
 	 ? (<div>
@@ -428,7 +482,7 @@ class App extends Component {
 	    <div className="evalcontainer">
 	    <textarea className="eval" value={this.state.evalText} onChange={(event)=>this.evalChanged(event)}></textarea>
 	    </div>
-	    <Refs className="refs" prefix="References" view={this.addHostPrefix(this.state.view)} refSets={this.usingRefSets()} />
+	    <Refs className="refs" prefix="References" view={this.addHostPrefix(this.state.view)} refSets={this.usingRefSets(rhs)} />
 	    <Refs className="referring" prefix="Used by" view={this.addHostPrefix(this.state.view)} refSets={[{ symbols: this.state.referring }]} />
 	    <br/>
 	    <p>
@@ -509,5 +563,37 @@ class Refs extends Component {
   }
 }
 
+class MapView extends Component {
+  render() {
+    const graph = this.props.graph
+    console.warn(JSON.stringify(graph))
+    const edgeTypes = {
+      include: {
+	shapeId: "#includeEdge",
+	shape: (
+            <symbol viewBox="0 0 50 50" id="includeEdge" key="0">
+            <circle cx="25" cy="25" r="8" fill="currentColor"> </circle>
+            </symbol>
+	)
+      },
+      link: {
+	shapeId: "#linkEdge",
+	shape: (
+            <symbol viewBox="0 0 50 50" id="linkEdge" key="1">
+            <circle cx="25" cy="25" r="8" fill="currentColor"> </circle>
+            </symbol>
+	)
+      },
+    }
+    return (<GraphView
+            nodeKey="id"
+	    nodes={graph.nodes}
+	    edges={graph.edges}
+	    nodeTypes={{}}
+	    nodeSubtypes={{}}
+	    edgeTypes={edgeTypes}
+	    />)
+  }
+}
 
 export default App;

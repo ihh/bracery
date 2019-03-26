@@ -55,11 +55,12 @@ class App extends Component {
     this.braceryCache = {};
 
     let evalChangedUpdateDelay = 400
-    this.debounceEvalChangedUpdate = DebouncePromise (this.getNewExpansion.bind(this), evalChangedUpdateDelay)
+    this.debounceEvalChangedUpdate = DebouncePromise (this.promiseBraceryExpansion.bind(this), evalChangedUpdateDelay)
     
     window[braceryWeb.clickHandlerName] = this.handleBraceryLink.bind (this)
   }
 
+  // Global methods
   handleBraceryLink (newEvalText, linkType, linkName) {
     var app = this
     window.event.preventDefault()
@@ -69,17 +70,19 @@ class App extends Component {
       this.setState ({ linkRevealed: newLinkRevealed });
     } else {
       // linkType === 'link'
-      this.getNewExpansion (newEvalText, this.state.varsAfterCurrentExpansion, { rerollMeansRestart: true })
+      this.promiseBraceryExpansion (newEvalText, this.state.varsAfterCurrentExpansion, { rerollMeansRestart: true })
 	.then (function() { app.saveAppStateToServer(false); })
     }
   }
 
   saveAppStateToServer (createBookmark) {
     // WRITE ME
+    console.error ('unimplemented')
   }
-  
+
+  // Button handlers
   reroll() {
-    this.getNewExpansion (this.state.initText, this.state.initVars, { rerollMeansRestart: false })
+    this.promiseBraceryExpansion (this.state.initText, this.state.initVars, { rerollMeansRestart: false })
   }
 
   erase() {
@@ -90,7 +93,7 @@ class App extends Component {
 		     evalTextEdited: true,
 		     warning: this.unsavedWarning
 		   })
-    this.getNewExpansion()
+    this.promiseBraceryExpansion()
   }
 
   reload() {
@@ -102,10 +105,11 @@ class App extends Component {
 			 currentSourceText: text,
 			 evalTextEdited: false,
 			 warning: '' })
-	return this.getNewExpansion()
+	return this.promiseBraceryExpansion()
       })
   }
-
+  
+  // Textarea change handler
   evalChanged (event) {
     let text = event.target.value
     this.setState ({ initText: text,
@@ -117,8 +121,10 @@ class App extends Component {
     return this.debounceEvalChangedUpdate()
   }
 
+  // Constants
   get unsavedWarning() { return 'Changes will not be final until saved.' }
   
+  // Interactions with store
   getBracery (symbolName) {
     var app = this
     if (this.braceryCache[symbolName])
@@ -146,7 +152,8 @@ class App extends Component {
 	     set: this.setSymbol.bind (this) }
   }
 
-  getNewExpansion (text, vars, newState) {
+  // Bracery update method
+  promiseBraceryExpansion (text, vars, newState) {
     const app = this;
     text = typeof(text) !== 'undefined' ? text : app.state.currentSourceText;
     vars = extend ({}, typeof(vars) !== 'undefined' ? vars : app.state.varsBeforeCurrentExpansion);
@@ -169,8 +176,10 @@ class App extends Component {
       return expansion
     })
   }
-  
+
+  // Render
   render() {
+    var app = this
     return (
     <div className="main">
       <div className="banner">
@@ -181,11 +190,11 @@ class App extends Component {
 	<span>{(this.state.rerollMeansRestart
 		? <button onClick={()=>(window.confirm('Really restart? You will lose your progress.') && this.reroll())}>Restart</button>
 		: <button onClick={()=>this.reroll()}>Re-roll</button>)}</span>
-	<span><button>Tweet</button></span>
+	<span><button onClick={()=>this.tweet()}>Tweet</button></span>
 	<span className="loginout">
 	{this.state.loggedIn
-	 ? (<span>{this.state.user} / <button>Logout</button></span>)
-	 : (<span><button>Login / Signup</button></span>)
+	 ? (<span>{this.state.user} / <button onClick={()=>this.logout()}>Logout</button></span>)
+	 : (<span><button onClick={()=>this.login()}>Login / Signup</button></span>)
 	}
       </span>
 	</div>
@@ -206,42 +215,72 @@ class App extends Component {
 				    <span> / </span> <button onClick={()=>this.erase()}>erase</button>
 				    <span> / </span> <button onClick={()=>this.reload()}>reload</button>
 				    <span> / </span> <button onClick={()=>this.setState({debugging:!this.state.debugging})}>debug{this.state.debugging?' off':''}</button>
-				    <span> / </span> <button>suggest</button>
-				    <span> / </span> <a href="https://github.com/ihh/bracery#Bracery">docs</a>):</span>)
+				    <span> / </span> <button onClick={()=>this.suggest()}>suggest</button>
+				    <span> / </span> <a href="https://github.com/ihh/bracery#Bracery" target="_blank" rel="noopener noreferrer">docs</a>):</span>)
 	  
 	  : (<span><button onClick={()=>this.setState({editing:true})}>Edit</button></span>))}
       </p>
+	<div>
 	{this.state.suggestions
 	 ? (<div>
-	    <div></div>
-	    <button>Clear suggestions</button>
+	    <button onClick={()=>this.setState({suggestions:''})}>Clear suggestions</button>
 	    </div>)
 	 : ''}
-	<div className="sourcepanel">
-	  <div className="revision"></div>
-	<div className="evalcontainer">
-	<textarea className="eval" value={this.state.evalText} onChange={(event)=>this.evalChanged(event)}></textarea>
-	  </div>
-	  <div className="refs"></div>
-	  <div className="referring"></div>
-	  <br/>
-	  <p>
-	<span dangerouslySetInnerHTML={{__html:this.state.base + this.state.view}}></span>
+      </div>
+
+	<div>
+	{this.state.editing
+	 ? (<div>
+	    <div className="sourcepanel">
+	    <div className="revision"></div>
+	    <div className="evalcontainer">
+	    <textarea className="eval" value={this.state.evalText} onChange={(event)=>this.evalChanged(event)}></textarea>
+	    </div>
+	    <div className="refs"></div>
+	    <div className="referring"></div>
+	    <br/>
+	    <p>
+	    <span dangerouslySetInnerHTML={{__html:this.state.base + this.state.view}}></span>
 	    <input type="text" className="name" name="name" size="20" defaultValue={this.state.name}></input>
-	    <button type="button">Publish</button>
-	</p>
-	{(this.state.loggedIn
-	  ? (<div>
-	     <input type="checkbox" name="lock" checked={this.state.locked}></input>
-	     <label for="lock">Prevent other users from editing</label>
+	    <button onClick={()=>this.publish()}>Publish</button>
+	    </p>
+	    <div>
+	    {(this.state.loggedIn
+	      ? (<div>
+	   	 <input type="checkbox" name="lock" checked={this.state.locked}></input>
+ 		 <label for="lock">Prevent other users from editing</label>
+		 </div>)
+	      : '')}
+	    </div>
+	    <div className="error">{this.state.warning}</div>
+	    </div>
+	    </div>)
+	 : ''}
+      </div>
+	
+	<div className="bots">
+	<hr/>
+	{(Object.keys(this.state.bots).length
+          ? (<div>
+	      <span>Current auto-tweets </span>
+              (<button onClick={()=>app.revokeAll()}>revoke all</button>)
+	      <ul>{Object.keys (this.state.bots).map (function (botName) {
+		return (<li>As <span> @<a href={'https://twitter.com/' + botName}>{botName}</a></span>
+			<ul>{app.state.bots[botName].map (function (sym) {
+			  return (<li><span>~<a href={app.state.view + sym}>{sym}</a> </span>
+				  (<button onClick={()=>app.revoke(sym)}>revoke</button>)
+				  </li>)
+			})}</ul>
+		       </li>)})}</ul>
 	     </div>)
 	  : '')}
-      </div>
-	<div className="error">{this.state.warning}</div>
-	<div className="bots"></div>
-	<div className="auto"></div>
-	<hr/>
-	<div className="recent"></div>
+	</div>
+	<div className="auto">
+	<button onClick={()=>this.autotweet()}>Add this page</button>
+	<span> to auto-tweets</span>
+	</div>
+	<div className="recent">
+	</div>
     </div>
     );
   }

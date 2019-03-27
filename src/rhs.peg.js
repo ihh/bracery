@@ -266,6 +266,9 @@ VarFunctionArg
   / "{" lookup:PlainVarLookup "}" { return [makeStrictQuote ([lookup])] }
 
 FunctionArg
+  = a:RawFunctionArg { return addLocation(a) }
+
+RawFunctionArg
   = loc:LocalAssignment { return [loc] }
   / rep:Repetition { return [rep] }
   / cond:Conditional { return [cond] }

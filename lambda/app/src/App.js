@@ -36,7 +36,7 @@ class App extends Component {
       warning: props.INITIAL_WARNING,
       
       loggedIn: !!props.USER,
-      editing: !!props.EDITING,
+      editing: !!props.EDITING || true,  // DEBUG
       debugging: !!props.DEBUGGING,
       suggestions: props.SUGGESTIONS,
       rerollMeansRestart: false,
@@ -60,7 +60,7 @@ class App extends Component {
       this.state.debugging = true;
     if (urlParams.redirect || urlParams.reset)
       window.history.pushState ({}, '', this.encodeURIParams (window.location.origin + window.location.pathname,
-							      extend (urlParams, { redirect: null, reset: null })))
+							      extend (urlParams, { redirect: null, reset: null })));
 
     this.domParser = new DOMParser();
     this.bracery = new Bracery (null, { rita: RiTa });
@@ -74,17 +74,18 @@ class App extends Component {
 			   noName: 'Please enter a name.',
 			   noDef: 'You cannot save an empty definition. Please enter some text.',
 			   saving: 'Saving...',
-			   saved: 'Saved.' } }
-  get maxUrlLength() { return 2000 }  // a lower bound...
-  get evalChangedUpdateDelay() { return 400 }
-  get maxTweetLen() { return 280 }
-  get layoutRadius() { return 100 }
-  get startNodeName() { return 'START' }
+			   saved: 'Saved.' }; }
+  get maxUrlLength() { return 2000; }  // a lower bound...
+  get evalChangedUpdateDelay() { return 400; }
+  get maxTweetLen() { return 280; }
+  get layoutRadius() { return 300; }
+  get startNodeName() { return 'START'; }
+  get maxNodeTextLen() { return 100; }
 
   // Global methods
   handleBraceryLink (newEvalText, linkType, linkName) {
-    var app = this
-    window.event.preventDefault()
+    var app = this;
+    window.event.preventDefault();
     if (linkType === 'reveal') {
       let newLinkRevealed = extend ({}, this.state.linkRevealed);
       newLinkRevealed[linkName] = true;
@@ -92,7 +93,7 @@ class App extends Component {
     } else {
       // linkType === 'link'
       this.promiseBraceryExpansion (newEvalText, this.state.varsAfterCurrentExpansion, { rerollMeansRestart: true })
-	.then (function() { app.saveAppStateToServer(false); })
+	.then (function() { app.saveAppStateToServer(false); });
     }
   }
 
@@ -101,11 +102,11 @@ class App extends Component {
     var state = { name: this.state.name,
 		  text: this.state.currentSourceText,
 		  vars: JSON.stringify (this.state.varsBeforeCurrentExpansion),
-		  eval: this.state.evalText }
+		  eval: this.state.evalText };
     if (includeExpansion)
       state.expansion = JSON.stringify ({ text: this.state.currentExpansionText || '',
-					  vars: this.state.varsAfterCurrentExpansion || {} })
-    return state
+					  vars: this.state.varsAfterCurrentExpansion || {} });
+    return state;
   }
 
   saveAppStateToServer (createBookmark) {
@@ -115,20 +116,20 @@ class App extends Component {
 		  { method: 'POST',
 		    headers: { 'Content-Type': 'application/json;charset=UTF-8' },
 		    body: JSON.stringify (data) })
-      .then ((response) => response.json())
+      .then ((response) => response.json());
   }
 
   saveStateAndRedirect (url, params) {
-    url = this.addHostPrefix(url)
-    params = params || {}
-    const bigParams = extend (this.sessionState(true), params)
-    const bigUrl = this.encodeURIParams (url, bigParams)
+    url = this.addHostPrefix(url);
+    params = params || {};
+    const bigParams = extend (this.sessionState(true), params);
+    const bigUrl = this.encodeURIParams (url, bigParams);
     if (bigUrl.length < this.maxUrlLength)
-      this.redirect (bigUrl)
+      this.redirect (bigUrl);
     else {
-      const smallUrl = this.encodeURIParams (url, params)
+      const smallUrl = this.encodeURIParams (url, params);
       this.saveAppStateToServer()
-	.then (this.redirect.bind (this, smallUrl))
+	.then (this.redirect.bind (this, smallUrl));
     }
   }
 
@@ -138,33 +139,33 @@ class App extends Component {
     let params = {};
     url.replace (/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
       params[key] = window.decodeURIComponent (value);
-    })
+    });
     return params;
   }
 
   encodeURIParams (url, params) {
-    params = params || {}
+    params = params || {};
     let paramNames = Object.keys(params).filter ((p) => params[p]);
     return url + (paramNames.length
 		  ? ('?' + paramNames.map ((p) => (p + '=' + window.encodeURIComponent (params[p]))).join('&'))
-		  : '')
+		  : '');
   }
 
   addHostPrefix (path, params) {
-    return (window.location.host === this.state.base ? '' : this.state.base) + this.encodeURIParams (path, params)
+    return (window.location.host === this.state.base ? '' : this.state.base) + this.encodeURIParams (path, params);
   }
 
   redirect (url) {
-    window.location.href = url
+    window.location.href = url;
   }
 
   openTab (url) {
-    window.open (url, '_blank')
+    window.open (url, '_blank');
   }
 
   // Button handlers
   reroll() {
-    this.promiseBraceryExpansion (this.state.initText, this.state.initVars, { rerollMeansRestart: false })
+    this.promiseBraceryExpansion (this.state.initText, this.state.initVars, { rerollMeansRestart: false });
   }
 
   erase() {
@@ -175,12 +176,12 @@ class App extends Component {
 		     evalTextEdited: true,
 		     rerollMeansRestart: false,
 		     warning: this.warning.unsaved
-		   })
-    this.promiseBraceryExpansion()
+		   });
+    this.promiseBraceryExpansion();
   }
 
   reload() {
-    const name = this.state.name
+    const name = this.state.name;
     this.getBracery (name)
       .then ((text) => {
 	this.setState ({ saveAsName: name,
@@ -190,66 +191,66 @@ class App extends Component {
 			 currentSourceText: text,
 			 evalTextEdited: false,
 			 rerollMeansRestart: false,
-			 warning: '' })
-	return this.promiseBraceryExpansion()
-      })
+			 warning: '' });
+	return this.promiseBraceryExpansion();
+      });
   }
 
   suggest() {
     const app = this;
     this.getBracery (braceryWeb.suggestionsSymbolName)
       .then ((suggestions) => {
-	return app.bracery.expand (suggestions, extend ({ vars: {} }, app.braceryExpandCallbacks))
+	return app.bracery.expand (suggestions, extend ({ vars: {} }, app.braceryExpandCallbacks));
       }).then ((expansion) => {
-	app.setState ({ suggestions: braceryWeb.expandMarkdown (expansion.text, marked) })
-      })
+	app.setState ({ suggestions: braceryWeb.expandMarkdown (expansion.text, marked) });
+      });
   }
   
   tweet() {
-    const app = this
-    const html = this.expandMarkdown()
+    const app = this;
+    const html = this.expandMarkdown();
     this.saveAppStateToServer(true)
       .then (function (bookmark) {
 	return braceryWeb.digestText (app.getTextContent(html), app.maxTweetLen - (bookmark.url.length + 1))
 	  .then (function (tweet) {
             const webIntentUrl = app.encodeURIParams ('https://twitter.com/intent/tweet',
 						      { text: tweet,
-							url: bookmark.url })
-            app.openTab (webIntentUrl)
-	  })
-      })
+							url: bookmark.url });
+            app.openTab (webIntentUrl);
+	  });
+      });
   }
 
   login() {
-    this.saveStateAndRedirect (this.state.login, { login: 'true' })
+    this.saveStateAndRedirect (this.state.login, { login: 'true' });
   }
 
   logout() {
-    this.saveStateAndRedirect (this.state.login, { logout: 'true' })
+    this.saveStateAndRedirect (this.state.login, { logout: 'true' });
   }
   
   revoke (sym) {
-    this.saveStateAndRedirect (this.state.twitter, { source: sym, unsubscribe: 'true' })
+    this.saveStateAndRedirect (this.state.twitter, { source: sym, unsubscribe: 'true' });
   }
 
   revokeAll() {
-    this.saveStateAndRedirect (this.state.twitter, { unsubscribe: 'true' })
+    this.saveStateAndRedirect (this.state.twitter, { unsubscribe: 'true' });
   }
 
   autotweet() {
-    this.saveStateAndRedirect (this.state.twitter, { source: this.state.name })
+    this.saveStateAndRedirect (this.state.twitter, { source: this.state.name });
   }
 
   publish() {
-    const app = this
-    const saveAsName = this.state.saveAsName
+    const app = this;
+    const saveAsName = this.state.saveAsName;
     if (!saveAsName)
-      return this.setState ({ warning: this.warning.noName })
+      return this.setState ({ warning: this.warning.noName });
     if (!this.state.evalText)
-      return this.setState ({ warning: this.warning.noDef })
+      return this.setState ({ warning: this.warning.noDef });
 
     const data = { bracery: this.state.evalText,
-		   locked: this.state.locked }
+		   locked: this.state.locked };
 
     return Promise.promisify (this.setState.bind(this)) ({ warning: this.warning.saving })
       .then (() => fetch (this.addHostPrefix (this.state.store + saveAsName),
@@ -259,63 +260,63 @@ class App extends Component {
       .then (() => app.setState ({ warning: app.warning.saved,
 				   evalTextEdited: false,
 				   rerollMeansRestart: false,
-				   name: saveAsName }))
+				   name: saveAsName }));
   }
   
   // Event handlers
   evalChanged (event) {
-    let text = event.target.value
+    let text = event.target.value;
     this.setState ({ initText: text,
 		     evalText: text,
 		     currentSourceText: text,
 		     evalTextEdited: true,
 		     warning: this.warning.unsaved
-		   })
-    return this.debounceEvalChangedUpdate()
+		   });
+    return this.debounceEvalChangedUpdate();
   }
 
   evalChangedUpdate() {
-    this.promiseBraceryExpansion (this.state.evalText, this.state.initVars, { rerollMeansRestart: false })
+    this.promiseBraceryExpansion (this.state.evalText, this.state.initVars, { rerollMeansRestart: false });
   }
   
   nameChanged (event) {
     let name = event.target.value
-	.replace(/ /g,'_').replace(/[^A-Za-z_0-9]/g,'')
-    this.setState ({ saveAsName: name })
+	.replace(/ /g,'_').replace(/[^A-Za-z_0-9]/g,'');
+    this.setState ({ saveAsName: name });
   }
 
   lockChanged (event) {
-    let locked = event.target.checked
-    this.setState ({ locked: locked })
+    let locked = event.target.checked;
+    this.setState ({ locked: locked });
   }
   
   // Interactions with store
   getBracery (symbolName) {
-    var app = this
+    var app = this;
     if (this.braceryCache[symbolName])
-      return Promise.resolve (this.braceryCache[symbolName])
+      return Promise.resolve (this.braceryCache[symbolName]);
     else
       return fetch (this.addHostPrefix (this.state.store + symbolName))
       .then ((response) => response.json())
-      .catch (() => { return { bracery: '' } })
+      .catch (() => { return { bracery: '' }; })
       .then ((body) => {
         let result = body.bracery;
         app.braceryCache[symbolName] = result;
 	return result;
-      })
+      });
   }
 
   getSymbol (config) {
     return this.getBracery (config.symbolName || config.node.name)
-      .then ((bracery) => [bracery])
+      .then ((bracery) => [bracery]);
   }
-  setSymbol() { return [] }
+  setSymbol() { return []; }
   get braceryExpandCallbacks() {
     return { expand: null,  // signals to Bracery that we want it to fetch the symbol definition & then expand it locally
 	     callback: true,  // signals to Bracery that we want a Promise
 	     makeLink: braceryWeb.makeInternalLink.bind (null, btoa),
 	     get: this.getSymbol.bind (this),
-	     set: this.setSymbol.bind (this) }
+	     set: this.setSymbol.bind (this) };
   }
 
   // Bracery update method
@@ -327,10 +328,10 @@ class App extends Component {
     return new Promise (function (resolve, reject) {
       try {
 	app.bracery.expand (text, extend ({ vars: vars }, app.braceryExpandCallbacks))
-	  .then (resolve)
+	  .then (resolve);
       } catch (e) {
-	console.error(e)
-	reject (e)
+	console.error(e);
+	reject (e);
       }
     }).then (function (expansion) {
       app.setState (extend ({ currentSourceText: text,
@@ -338,197 +339,207 @@ class App extends Component {
 			      currentExpansionText: expansion.text,
 			      varsAfterCurrentExpansion: expansion.vars,
 			      linkRevealed: {} },
-			    newState || {}))
-      return expansion
-    })
+			    newState || {}));
+      return expansion;
+    });
   }
 
   // Bracery parsing & analysis
   parseBracery() {
-    return ParseTree.parseRhs (this.state.evalText)
+    return ParseTree.parseRhs (this.state.evalText);
   }
   
   usingRefSets (rhs) {
-    rhs = rhs || this.parseBracery()
-    let isRef = {}, isTracery = {}
+    rhs = rhs || this.parseBracery();
+    let isRef = {}, isTracery = {};
     ParseTree.getSymbolNodes (rhs, { ignoreTracery: true })
-      .forEach (function (node) { isRef[node.name] = true })
+      .forEach (function (node) { isRef[node.name] = true; });
     ParseTree.getSymbolNodes (rhs, { traceryOnly: true })
-      .forEach (function (node) { isTracery[node.name] = true })
+      .forEach (function (node) { isTracery[node.name] = true; });
     return [ { symbols: Object.keys(isRef) },
-	     { symbols: Object.keys(isTracery), lSym: ParseTree.traceryChar, rSym: ParseTree.traceryChar } ]
+	     { symbols: Object.keys(isTracery), lSym: ParseTree.traceryChar, rSym: ParseTree.traceryChar } ];
   }
 
+  nodeText (node) {
+    return this.state.evalText.substr (node.pos[0], node.pos[1]);
+  }
+
+  nodeSummary (node) {
+    return this.nodeText(node).substr (0, this.maxNodeTextLen);
+  }
+  
   getLayoutGraph (rhs) {
-    const app = this
-    rhs = rhs || this.parseBracery()
-    let nodeOffset = 0, strOffset = 0, nodes = [], edges = [], seenNode = {}
+    const app = this;
+    rhs = rhs || this.parseBracery();
+    let nodeOffset = 0, strOffset = 0, nodes = [], edges = [], seenNode = {};
     while (nodeOffset < rhs.length && (ParseTree.isQuoteAssignExpr (rhs[nodeOffset]) || ParseTree.isLayoutAssign (rhs[nodeOffset]))) {
-      let braceryNode = rhs[nodeOffset]
-      let id = braceryNode.varname.toLowerCase()
+      let braceryNode = rhs[nodeOffset];
+      let id = braceryNode.varname.toLowerCase();
       let node = { id: id,
-		   pos: braceryNode.pos }
+		   title: ParseTree.traceryChar + id + ParseTree.traceryChar,
+		   pos: braceryNode.pos,
+		   type: 'passage' };
       if (ParseTree.isLayoutAssign (braceryNode)) {
-	let expr = ParseTree.getLayoutExpr (braceryNode)
-	let xy = ParseTree.getLayoutCoord (expr).split(',')
-	node.x = parseFloat (xy[0])
-	node.y = parseFloat (xy[1])
-	node.rhs = ParseTree.getLayoutContent (expr)
+	let expr = ParseTree.getLayoutExpr (braceryNode);
+	let xy = ParseTree.getLayoutCoord (expr).split(',');
+	node.x = parseFloat (xy[0]);
+	node.y = parseFloat (xy[1]);
+	node.rhs = ParseTree.getLayoutContent (expr);
       } else
-	node.rhs = ParseTree.getQuoteAssignRhs (braceryNode)
-      nodes.push (node)
-      seenNode[id] = true
-      strOffset = braceryNode.pos[0] + braceryNode.pos[1]
-      ++nodeOffset
+	node.rhs = ParseTree.getQuoteAssignRhs (braceryNode);
+      nodes.push (node);
+      seenNode[id] = true;
+      strOffset = braceryNode.pos[0] + braceryNode.pos[1];
+      ++nodeOffset;
     }
     nodes = [{ id: this.startNodeName,
+	       title: this.startNodeName,
+	       type: 'start',
 	       x: 0,
 	       y: 0,
 	       pos: [strOffset, this.state.evalText.length - strOffset],
-	       rhs: rhs.slice (nodeOffset) }].concat (nodes)
+	       rhs: rhs.slice (nodeOffset) }].concat (nodes);
     nodes.forEach ((node, n) => {
       if (typeof(node.x) === 'undefined') {
-	const angle = 2 * Math.PI * n / nodes.length
-	node.x = Math.cos(angle) * app.layoutRadius
-	node.y = Math.sin(angle) * app.layoutRadius
+	const angle = 2 * Math.PI * n / nodes.length;
+	node.x = Math.cos(angle) * app.layoutRadius;
+	node.y = Math.sin(angle) * app.layoutRadius;
       }
       ParseTree.getSymbolNodes (node.rhs, { traceryOnly: true, ignoreLink: true })
 	.map ((targetNode) => targetNode.name.toLowerCase())
 	.filter ((target) => seenNode[target])
-	.forEach ((target) => edges.push ({ source: node.id, target: target, type: 'include' }))
+	.forEach ((target) => edges.push ({ source: node.id, target: target, type: 'include' }));
       ParseTree.getSymbolNodes (node.rhs, { traceryOnly: true, linkOnly: true })
 	.map ((targetNode) => targetNode.name.toLowerCase())
 	.filter ((target) => seenNode[target])
-	.forEach ((target) => edges.push ({ source: node.id, target: target, type: 'link' }))
-      node.title = node.id
-    })
+	.forEach ((target) => edges.push ({ source: node.id, target: target, type: 'link' }));
+    });
     return { nodes,
-	     edges }
+	     edges };
   }
   
   // Rendering
   expandMarkdown() {
     return braceryWeb.expandMarkdown (this.state.currentExpansionText || '',
 				      marked,
-				      this.state.linkRevealed)
+				      this.state.linkRevealed);
   }
 
   getTextContent (html) {
-    return this.domParser.parseFromString (html, 'text/html').documentElement.textContent
+    return this.domParser.parseFromString (html, 'text/html').documentElement.textContent;
   }
 
   render() {
-    const app = this
-    const rhs = this.parseBracery()
-    const graph = this.getLayoutGraph(rhs)
+    const app = this;
+    const rhs = this.parseBracery();
+    const graph = this.getLayoutGraph(rhs);
     return (
-    <div className="main">
-      <div className="banner">
-	<span>
-	<a href={this.addHostPrefix(this.state.view)}>bracery</a> <span> / </span>
-	<span>{this.state.name}</span>
-	</span>
-	<span>{(this.state.rerollMeansRestart
-		? <button onClick={()=>(window.confirm('Really restart? You will lose your progress.') && this.reroll())}>Restart</button>
-		: <button onClick={()=>this.reroll()}>Re-roll</button>)}</span>
-	<span><button onClick={()=>this.tweet()}>Tweet</button></span>
-	<span className="loginout">
-	{this.state.loggedIn
-	 ? (<span>{this.state.user} / <button onClick={()=>this.logout()}>Logout</button></span>)
-	 : (<span><button onClick={()=>this.login()}>Login / Signup</button></span>)
-	}
-      </span>
+      <div className="main">
+        <div className="banner">
+	  <span>
+	    <a href={this.addHostPrefix(this.state.view)}>bracery</a> <span> / </span>
+	    <span>{this.state.name}</span>
+	  </span>
+	  <span>{(this.state.rerollMeansRestart
+		  ? <button onClick={()=>(window.confirm('Really restart? You will lose your progress.') && this.reroll())}>Restart</button>
+		  : <button onClick={()=>this.reroll()}>Re-roll</button>)}</span>
+	  <span><button onClick={()=>this.tweet()}>Tweet</button></span>
+	  <span className="loginout">
+	    {this.state.loggedIn
+	     ? (<span>{this.state.user} / <button onClick={()=>this.logout()}>Logout</button></span>)
+	     : (<span><button onClick={()=>this.login()}>Login / Signup</button></span>)
+	    }
+          </span>
 	</div>
 	{this.state.debugging
 	 ? (<Vars vars={this.state.varsBeforeCurrentExpansion} className="varsbefore" />)
 	 : ''}
-      {this.state.debugging
-       ? (<div className="source">{this.state.currentSourceText}</div>)
-       : ''}
+        {this.state.debugging
+         ? (<div className="source">{this.state.currentSourceText}</div>)
+         : ''}
 	<div className="expansion" dangerouslySetInnerHTML={{__html:this.expandMarkdown()}}></div>
 	{this.state.debugging
 	 ? (<Vars vars={this.state.varsAfterCurrentExpansion} className="varsafter" />)
 	 : ''}
 	<p>
-	{(this.state.editing
-	  ? (<span>
-	     Editing template text (<button onClick={()=>this.setState({editing:false})}>hide</button>
-				    <span> / </span> <button onClick={()=>this.erase()}>erase</button>
-				    <span> / </span> <button onClick={()=>this.reload()}>reload</button>
-				    <span> / </span> <button onClick={()=>this.setState({debugging:!this.state.debugging})}>debug{this.state.debugging?' off':''}</button>
-				    <span> / </span> <button onClick={()=>this.suggest()}>suggest</button>
-				    <span> / </span> <a href="https://github.com/ihh/bracery#Bracery" target="_blank" rel="noopener noreferrer">docs</a>):</span>)
-	  
-	  : (<span><button onClick={()=>this.setState({editing:true})}>Edit</button></span>))}
-      </p>
+	  {(this.state.editing
+	    ? (<span>
+	         Editing template text (<button onClick={()=>this.setState({editing:false})}>hide</button>
+		 <span> / </span> <button onClick={()=>this.erase()}>erase</button>
+		 <span> / </span> <button onClick={()=>this.reload()}>reload</button>
+		 <span> / </span> <button onClick={()=>this.setState({debugging:!this.state.debugging})}>debug{this.state.debugging?' off':''}</button>
+		 <span> / </span> <button onClick={()=>this.suggest()}>suggest</button>
+		 <span> / </span> <a href="https://github.com/ihh/bracery#Bracery" target="_blank" rel="noopener noreferrer">docs</a>):</span>)
+	    : (<span><button onClick={()=>this.setState({editing:true})}>Edit</button></span>))}
+        </p>
 	<div>
-	{this.state.suggestions
-	 ? (<div>
-	    <div className="suggestions" dangerouslySetInnerHTML={{__html:this.state.suggestions}} />
-	    <button onClick={()=>this.setState({suggestions:''})}>Clear suggestions</button>
-	    </div>)
-	 : ''}
-      </div>
+	  {this.state.suggestions
+	   ? (<div>
+	        <div className="suggestions" dangerouslySetInnerHTML={{__html:this.state.suggestions}} />
+	        <button onClick={()=>this.setState({suggestions:''})}>Clear suggestions</button>
+	      </div>)
+	   : ''}
+        </div>
 
-	<MapView graph={graph} />
+	{this.state.editing ? <MapView graph={graph} /> : ''}
 	<div>
-	{this.state.editing
-	 ? (<div>
-	    <div className="sourcepanel">
-	    <div className="revision">Revision: {this.state.revision}
-	    <span>{this.state.revision > 1
-		   ? (<span> (<a href={this.addHostPrefix(this.state.view + this.state.name,{edit:'true',rev:this.state.revision-1})}>{this.state.revision-1}</a>)</span>)
-		   : ''}</span></div>
-	    <div className="evalcontainer">
-	    <textarea className="eval" value={this.state.evalText} onChange={(event)=>this.evalChanged(event)}></textarea>
-	    </div>
-	    <Refs className="refs" prefix="References" view={this.addHostPrefix(this.state.view)} refSets={this.usingRefSets(rhs)} />
-	    <Refs className="referring" prefix="Used by" view={this.addHostPrefix(this.state.view)} refSets={[{ symbols: this.state.referring }]} />
-	    <br/>
-	    <p>
-	    <span>{this.addHostPrefix(this.state.view)}</span>
-	    <input type="text" className="name" name="name" size="20" value={this.state.saveAsName} onChange={(event)=>this.nameChanged(event)}></input>
-	    <button onClick={()=>this.publish()}>Publish</button>
-	    </p>
-	    <div>
-	    {(this.state.loggedIn
-	      ? (<div>
- 		 <label>
-	   	 <input type="checkbox" name="lock" checked={this.state.locked} onChange={(event)=>this.lockChanged(event)}></input>
-		 Prevent other users from editing</label>
-		 </div>)
-	      : '')}
-	    </div>
-	    <div className="error">{this.state.warning}</div>
-	    </div>
-	    </div>)
-	 : ''}
-      </div>
+	  {this.state.editing
+	   ? (<div>
+	        <div className="sourcepanel">
+	          <div className="revision">Revision: {this.state.revision}
+	            <span>{this.state.revision > 1
+		           ? (<span> (<a href={this.addHostPrefix(this.state.view + this.state.name,{edit:'true',rev:this.state.revision-1})}>{this.state.revision-1}</a>)</span>)
+		           : ''}</span></div>
+	          <div className="evalcontainer">
+	            <textarea className="eval" value={this.state.evalText} onChange={(event)=>this.evalChanged(event)}></textarea>
+	          </div>
+	  <Refs className="refs" prefix="References" view={this.addHostPrefix(this.state.view)} refSets={this.usingRefSets(rhs)} />
+	          <Refs className="referring" prefix="Used by" view={this.addHostPrefix(this.state.view)} refSets={[{ symbols: this.state.referring }]} />
+	          <br/>
+	          <p>
+	            <span>{this.addHostPrefix(this.state.view)}</span>
+	            <input type="text" className="name" name="name" size="20" value={this.state.saveAsName} onChange={(event)=>this.nameChanged(event)}></input>
+	            <button onClick={()=>this.publish()}>Publish</button>
+	          </p>
+	          <div>
+	            {(this.state.loggedIn
+	              ? (<div>
+ 		           <label>
+	   	             <input type="checkbox" name="lock" checked={this.state.locked} onChange={(event)=>this.lockChanged(event)}></input>
+		             Prevent other users from editing</label>
+		         </div>)
+	              : '')}
+	          </div>
+	          <div className="error">{this.state.warning}</div>
+	        </div>
+	      </div>)
+	   : ''}
+        </div>
 	
 	<div className="bots">
-	<hr/>
-	{(Object.keys(this.state.bots).length
-          ? (<div>
-	      <span>Current auto-tweets </span>
-              (<button onClick={()=>app.revokeAll()}>revoke all</button>)
-	     <ul>{Object.keys (this.state.bots).map (function (botName, j) {
-	       return (<li key={'bots'+j}>As <span> @<a href={'https://twitter.com/' + botName}>{botName}</a></span>
-		       <ul>{app.state.bots[botName].map (function (sym, k) {
-			 return (<li key={'bots'+j+'_'+k}><span>~<a href={app.state.view + sym}>{sym}</a> </span>
-				 (<button onClick={()=>app.revoke(sym)}>revoke</button>)
-				 </li>)
-		       })}</ul>
-		       </li>)})}</ul>
-	     </div>)
-	  : '')}
+	  <hr/>
+	  {(Object.keys(this.state.bots).length
+            ? (<div>
+	         <span>Current auto-tweets </span>
+                 (<button onClick={()=>app.revokeAll()}>revoke all</button>)
+	         <ul>{Object.keys (this.state.bots).map (function (botName, j) {
+	           return (<li key={'bots'+j}>As <span> @<a href={'https://twitter.com/' + botName}>{botName}</a></span>
+		  <ul>{app.state.bots[botName].map (function (sym, k) {
+		    return (<li key={'bots'+j+'_'+k}><span>~<a href={app.state.view + sym}>{sym}</a> </span>
+			      (<button onClick={()=>app.revoke(sym)}>revoke</button>)
+	                    </li>);
+		             })}</ul>
+               </li>);})}</ul>
+	       </div>)
+	    : '')}
 	</div>
 	<div className="auto">
-	<button onClick={()=>this.autotweet()}>Add this page</button>
-	<span> to auto-tweets</span>
+	  <button onClick={()=>this.autotweet()}>Add this page</button>
+	  <span> to auto-tweets</span>
 	</div>
 	<hr/>
 	<Refs className="recent" prefix="Recently updated" view={this.addHostPrefix(this.state.view)} refSets={[{ symbols: this.state.recent }]} />
-	</div>
+      </div>
     );
   }
 }
@@ -538,9 +549,9 @@ class Vars extends Component {
     const vars = this.props.vars, className = this.props.className;
     return (<div className={this.props.className}>{
       Object.keys(vars).sort().map (function (name, k) {
-	return (<span key={className+k}><span className="var">${name}</span>=<span className="val">{vars[name]}</span></span>)
+	return (<span key={className+k}><span className="var">${name}</span>=<span className="val">{vars[name]}</span></span>);
       })
-    }</div>)
+    }</div>);
   }
 }
 
@@ -552,47 +563,67 @@ class Refs extends Component {
     const prefix = this.props.prefix;
     const refSets = this.props.refSets;
     const elements = refSets.reduce ((list, refSet, j) => {
-      const symbols = refSet.symbols
-      let lSym = refSet.lSym, rSym = refSet.rSym
-      if (!lSym) { lSym = ParseTree.symChar; rSym = '' }
-      return list.concat (symbols.map ((name, k) => (<span key={className+j+'_'+k}>{lSym}<a href={view + name + '?edit=true'}>{name}</a>{rSym} </span>)))
-    }, [])
+      const symbols = refSet.symbols;
+      let lSym = refSet.lSym, rSym = refSet.rSym;
+      if (!lSym) { lSym = ParseTree.symChar; rSym = ''; }
+      return list.concat (symbols.map ((name, k) => (<span key={className+j+'_'+k}>{lSym}<a href={view + name + '?edit=true'}>{name}</a>{rSym} </span>)));
+    }, []);
     return (elements.length
 	    ? (<div className={className}>{prefix}: {elements}</div>)
-	    : (<div className={className}>{absentText || ''}</div>))
+	    : (<div className={className}>{absentText || ''}</div>));
   }
 }
 
 class MapView extends Component {
   render() {
-    const graph = this.props.graph
-    console.warn(JSON.stringify(graph))
+    const graph = this.props.graph;
+    const nodeTypes = {
+    start: {
+      shapeId: "#start",
+      shape: (
+          <symbol viewBox="0 0 50 20" id="start" key="0">
+          <ellipse cx="25" cy="10" rx="22" ry="10"></ellipse>
+          </symbol>
+      )
+    },
+      passage: {
+	shapeId: "#passage",
+	shape: (
+            <symbol viewBox="0 0 25 10" id="passage" key="0">
+            <rect x="0" y="0" width="25" height="10"></rect>
+            </symbol>
+	)
+      }
+    };
     const edgeTypes = {
       include: {
 	shapeId: "#includeEdge",
 	shape: (
-            <symbol viewBox="0 0 50 50" id="includeEdge" key="0">
+          <symbol viewBox="0 0 50 50" id="includeEdge" key="0">
             <circle cx="25" cy="25" r="8" fill="currentColor"> </circle>
-            </symbol>
+          </symbol>
 	)
       },
       link: {
 	shapeId: "#linkEdge",
 	shape: (
-            <symbol viewBox="0 0 50 50" id="linkEdge" key="1">
+          <symbol viewBox="0 0 50 50" id="linkEdge" key="1">
             <circle cx="25" cy="25" r="8" fill="currentColor"> </circle>
-            </symbol>
+          </symbol>
 	)
       },
-    }
-    return (<GraphView
+    };
+    return (<div className="mapview">
+	    <GraphView
             nodeKey="id"
 	    nodes={graph.nodes}
 	    edges={graph.edges}
-	    nodeTypes={{}}
-	    nodeSubtypes={{}}
 	    edgeTypes={edgeTypes}
-	    />)
+	    nodeTypes={nodeTypes}
+	    nodeSubtypes={{}}
+	    zoomLevel="1"
+	    />
+	    </div>);
   }
 }
 

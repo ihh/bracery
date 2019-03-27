@@ -145,3 +145,10 @@ button {
 .recent {
     font-size: small;
 }
+
+.mapview {
+    border-style: solid;
+    border-width: 1px;
+    height: 50vh;
+    position: relative;
+}

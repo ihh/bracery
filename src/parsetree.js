@@ -289,7 +289,8 @@ function getSymbolNodes (rhs, config) {
 	  break
 	case 'link':
 	  if (!config.ignoreLink)
-	    r = pt.getSymbolNodes (node.args.concat (node.value || []), extend ({}, config, { inLink: true }))
+	    r = pt.getSymbolNodes ([node.args[0]], config)
+	    .concat (pt.getSymbolNodes ([node.args[1]], extend ({}, config, { inLink: true, linkText: node.args[1] })))
 	  break
 	case 'strictquote':
 	case 'quote':
@@ -302,7 +303,7 @@ function getSymbolNodes (rhs, config) {
       case 'cond':
 	if (isTraceryExpr (node)) {
 	  if (!(config.ignoreTracery || (config.linkOnly && !config.inLink)))
-	    r = [node.f[0]]
+	    r = [extend ({}, node.f[0], config.linkText ? { linkText: config.linkText } : {}) ]
 	} else
           r = pt.getSymbolNodes (node.test.concat (node.t, node.f), config)
         break
@@ -317,7 +318,7 @@ function getSymbolNodes (rhs, config) {
       case 'sym':
         r = (((config.linkOnly && !config.inLink) || config.traceryOnly)
 	     ? []
-	     : [node])
+	     : [extend ({}, node, config.linkText ? { linkText: config.linkText } : {})])
 	r = r.concat (pt.getSymbolNodes (node.rhs || node.bind || [], config))
         break
       }

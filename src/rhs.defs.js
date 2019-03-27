@@ -51,7 +51,12 @@ function makeFunction (name, args) { return makeNode ('func', { funcname: funcAl
 var funcAlias = { q: 'quotify' }
 
 function wrapNodes (args) { return args.length === 1 ? args[0] : makeRoot (args) }
-function makeRoot (args) { return makeNode ('root', { rhs: args }) }
+function makeRoot (args) {
+  var node = makeNode ('root', { rhs: args })
+  if (args.pos)
+    node.pos = args.pos
+  return node
+}
 
 function makeValue (args) { return makeFunction ('value', args) }
 function makeQuote (args) { return makeFunction ('quote', args) }

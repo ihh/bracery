@@ -378,7 +378,7 @@ class App extends Component {
 
   nodesText (nodes, fallback) {
     const app = this;
-    return nodes.reduce((pre,node) => pre + app.nodeText(node),'') || fallback
+    return nodes.reduce((pre,node) => pre + app.nodeText(node),'') || fallback || ''
   }
   
   // Rendering

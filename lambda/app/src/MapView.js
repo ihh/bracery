@@ -18,6 +18,7 @@ class MapView extends Component {
   // Get graph by analyzing parsed Bracery expression
   getLayoutGraph (app, rhs) {
     rhs = rhs || app.parseBracery();
+    const text = app.nodesText (rhs);
     // Scan parsed Bracery code for top-level global variable assignments of the form $variable=&quote{...} or $variable=&let$_xy{...}&quote{...}
     let nodeOffset = 0, strOffset = 0, nodes = [], edges = [], seenNode = {};
     while (nodeOffset < rhs.length && (ParseTree.isQuoteAssignExpr (rhs[nodeOffset]) || ParseTree.isLayoutAssign (rhs[nodeOffset]))) {
@@ -25,7 +26,7 @@ class MapView extends Component {
       let id = braceryNode.varname.toLowerCase();
       let node = { id: id,
 		   pos: braceryNode.pos,
-                   cssTag: 'defined' };
+                   nodeType: 'defined' };
       if (ParseTree.isLayoutAssign (braceryNode)) {
 	let expr = ParseTree.getLayoutExpr (braceryNode);
 	let xy = ParseTree.getLayoutCoord (expr).split(',');
@@ -43,7 +44,7 @@ class MapView extends Component {
     nodes = [{ id: app.startNodeName,
 	       pos: [strOffset, app.state.evalText.length - strOffset],
 	       rhs: rhs.slice (nodeOffset),
-               cssTag: 'start' }].concat (nodes);
+               nodeType: 'start' }].concat (nodes);
     // Do some analysis of outgoing edges
     const getTargetNodes = (node, config) => {
       return ParseTree.getSymbolNodes (node.rhs, config)
@@ -71,9 +72,9 @@ class MapView extends Component {
         }
       });
     }
-    nodes.forEach (createPlaceholders (getIncludedNodes, { cssTag: 'placeholder' }));
-    nodes.forEach (createPlaceholders (getLinkedNodes, { cssTag: 'placeholder' }));
-    nodes.forEach (createPlaceholders (getExternalNodes, { cssTag: 'external' }));
+    nodes.forEach (createPlaceholders (getIncludedNodes, { nodeType: 'placeholder' }));
+    nodes.forEach (createPlaceholders (getLinkedNodes, { nodeType: 'placeholder' }));
+    nodes.forEach (createPlaceholders (getExternalNodes, { nodeType: 'external' }));
 
     // Lay things out
     nodes.forEach ((node, n) => {
@@ -100,9 +101,35 @@ class MapView extends Component {
         .forEach ((target) => edges.push ({ source: node.id, target: target.name, type: 'link', handleText: app.truncate (app.nodeText (target.linkText, node.id), app.maxEdgeHandleLen) }));
     });
     return { nodes,
-	     edges };
+	     edges,
+             text };
   }
 
+  // Event handlers
+  makeNodeBracery (app, node, dx, dy) {
+    if (node.nodeType === 'external' || node.nodeType === 'placeholder')
+      return '';
+    return '[' + node.id + '@' + Math.round(node.x + (dx || 0)) + ',' + Math.round(node.y + (dy || 0)) + '=>' + app.nodesText (node.rhs) + ']\n';
+  }
+  
+  onUpdateNode (app, graph, node) {
+    const mv = this;
+    switch (node.nodeType) {
+    case 'defined':
+      app.setState ({ evalText: graph.text.substr(0,node.pos[0]) + this.makeNodeBracery(app,node) + graph.text.substr(node.pos[0]+node.pos[1]) })
+      break
+    case 'start':
+      const newEvalText = graph.nodes.slice(1).map ((other) => mv.makeNodeBracery (app, other, -node.x, -node.y)).join('')
+        + app.nodesText (graph.nodes[0].rhs);
+      app.setState ({ evalText: newEvalText });
+      break
+    case 'placeholder':
+    case 'external':
+    default:
+      break
+    }
+  }
+  
   // Render graph
   render() {
     const app = this.props.app;
@@ -116,7 +143,7 @@ class MapView extends Component {
              typeText: node.id,
 	     shape: (
                  <symbol viewBox="0 0 25 10" id={node.id} key="0">
-                 <rect x="0" y="0" width="25" height="10" className={node.cssTag+'-node'}></rect>
+                 <rect x="0" y="0" width="25" height="10" className={node.nodeType+'-node'}></rect>
                  </symbol>
 	     )
            })]));
@@ -146,6 +173,7 @@ class MapView extends Component {
 	    edgeTypes={edgeTypes}
 	    nodeTypes={nodeTypes}
 	    nodeSubtypes={{}}
+            onUpdateNode={(node)=>this.onUpdateNode(app,graph,node)}
 	    zoomLevel="1"
 	    />
 	    </div>);

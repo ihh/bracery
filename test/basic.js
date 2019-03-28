@@ -608,8 +608,11 @@ function doTests (testRunner) {
   expectExpand ('&quote[a@(2,3)=>hello|there]', '[a@2,3=>hello|there]')
   expectExpand ('&layout{1,2}{hi}', 'hi')
 
+  expectExpand ('&placeholder{1,2}', '')
   expectExpand ('&placeholder$x{1,2}', '')
   expectExpand ('&placeholder~test1{1,2}', '')
+
+  expectExpand ('&quote&placeholder{1,2}', '&placeholder{1,2}')
   expectExpand ('&quote&placeholder$x{1,2}', '&placeholder$x{1,2}')
   expectExpand ('&quote&placeholder~test1{1,2}', '&placeholder~test1{1,2}')
 

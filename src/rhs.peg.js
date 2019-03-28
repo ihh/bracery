@@ -210,11 +210,15 @@ LinkShortcut
 
 LayoutFunction
   = "&layout" coord:DelimitedXYCoord arg:FunctionArg { return makeLayout (coord, arg) }
-  / "&placeholder" arg:PlainVarOrSymbol coord:DelimitedXYCoord _ { return makePlaceholder (arg, coord) }
+  / "&placeholder" arg:PlaceholderArg coord:DelimitedXYCoord _ { return makePlaceholder (arg, coord) }
 
-PlainVarOrSymbol
-  = PlainVarLookup
-  / PlainSymbol
+PlaceholderArg
+  = r:RawPlaceholderArg { return addLocation(r) }
+
+RawPlaceholderArg
+  = v:PlainVarLookup { return [v] }
+  / s:PlainSymbol { return [s] }
+  / "" { return [] }
 
 DelimitedXYCoord
   = "{" coord:XYCoord "}" { return coord }

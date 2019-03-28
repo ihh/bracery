@@ -283,6 +283,6 @@ function makeLayout (coord, args) {
   return makeFunction ('layout', [coord, pseudoQuote (args)])
 }
 
-function makePlaceholder (arg, coord) {
-  return makeFunction ('placeholder', [pseudoQuote (arrayWithPos (arg)), coord])
+function makePlaceholder (args, coord) {
+  return makeFunction ('placeholder', [pseudoQuote (args), coord])
 }

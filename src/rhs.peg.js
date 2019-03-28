@@ -18,6 +18,9 @@ Node
   / char:[\~\#&\$\+\-] { return char }
 
 NodeList
+  = nl:RawNodeList { return addLocation(nl) }
+
+RawNodeList
   = "&," tail:NodeList { return concatNodes (makeValue([]), tail) }
   / head:Node "&," tail:NodeList { return concatNodes (makeValue([head]), tail.length ? tail : [makeValue([])]) }
   / head:Node tail:NodeList { return concatNodes (head, tail) }
@@ -196,7 +199,7 @@ MathFunction
   / "&math{}" { return makeFunction ('math', []) }
 
 LinkFunction
-  = "&link" text:FunctionArg link:FunctionArg { return makeFunction ('link', [wrapNodes(text), makeQuote(link)]) }
+  = "&link" text:FunctionArg link:FunctionArg { return makeFunction ('link', [wrapNodes(text), pseudoQuote(link)]) }
   / "&reveal" text:FunctionArg link:FunctionArg { return makeFunction ('reveal', [wrapNodes(text), wrapNodes(link)]) }
 
 LinkShortcut
@@ -297,7 +300,7 @@ VarAssignment
   = "&set$" varname:Identifier args:FunctionArg _ { return makeAssign (varname, args) }
   / "&set{" ("$" / "") varname:Identifier "}" args:FunctionArg { return makeAssign (varname, args) }
   / "[" varname:Identifier ":" args:NodeList "]" _ { return makeAssign (varname, args) }
-  / "[" varname:Identifier "=>" opts:AltList "]" _ { return makeAssign (varname, [makeQuote (makeAltAssignRhs(opts))]) }
+  / "[" varname:Identifier "=>" opts:AltList "]" _ { return makeAssign (varname, [pseudoQuote (makeAltAssignRhs(opts))]) }
   / "[" varname:Identifier "@" coord:XYCoord "=>" opts:AltList "]" _ { return makeAssign (varname, [makeCoord (coord, makeAltAssignRhs(opts))]) }
   / "[" varname:Identifier "@(" coord:XYCoord ")=>" opts:AltList "]" _ { return makeAssign (varname, [makeCoord (coord, makeAltAssignRhs(opts))]) }
   / "$" varname:Identifier "=" target:VarAssignmentTarget { return makeAssign (varname, target) }
@@ -334,8 +337,8 @@ Alternation
   / "[" head:NodeList "|" tail:AltList "]" { return makeAlternation ([head].concat(tail)) }
 
 AltList
-  = head:NodeList "|" tail:AltList { return [head].concat(tail) }
-  / head:NodeList { return [head] }
+  = head:NodeList "|" tail:AltList { return addLocation ([head].concat(tail)) }
+  / head:NodeList { return addLocation ([head]) }
 
 CappedIdentifier
   = firstChar:[A-Z] mid:[A-Za-z_0-9]* lc:[a-z] rest:[A-Za-z_0-9]* { return firstChar + mid.join("") + lc + rest.join("") }

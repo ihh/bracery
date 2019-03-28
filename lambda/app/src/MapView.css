@@ -1,0 +1,8 @@
+.start-node, .defined-node {
+    stroke-width: 0.3;
+}
+
+.unknown-placeholder-node {
+    stroke-width: 0.1;
+    stroke-dasharray: 2 1;    
+}

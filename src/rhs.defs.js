@@ -46,11 +46,16 @@ function makeAssign (name, value, visible) { return makeNode ('assign', { varnam
 function makeLocalAssign (name, value, scope) { return makeNode ('assign', { varname: name, value: value, local: scope }) }
 function makeAlternation (opts) { return makeNode ('alt', { opts: opts }) }
 function makeConditional (testArg, trueArg, falseArg) { return makeNode ('cond', { test: testArg, t: trueArg, f: falseArg }) }
-function makeFunction (name, args) { return makeNode ('func', { funcname: funcAlias[name] || name, args: args }) }
+function makeFunction (name, args, useArgPos) {
+  var node = makeNode ('func', { funcname: funcAlias[name] || name, args: args })
+  if (useArgPos && args.pos)
+    node.pos = args.pos
+  return node
+}
 
 var funcAlias = { q: 'quotify' }
 
-function wrapNodes (args) { return args.length === 1 ? args[0] : makeRoot (args) }
+function wrapNodes (args) { return (args.length === 1 && typeof(args[0]) !== 'string') ? args[0] : makeRoot (args) }
 function makeRoot (args) {
   var node = makeNode ('root', { rhs: args })
   if (args.pos)
@@ -59,8 +64,13 @@ function makeRoot (args) {
 }
 
 function makeValue (args) { return makeFunction ('value', args) }
+
 function makeQuote (args) { return makeFunction ('quote', args) }
 function makeStrictQuote (args) { return makeFunction ('strictquote', args) }
+
+// pseudoQuote is makeQuote but called non-locally, so it needs to get its location from the arguments
+function pseudoQuote (args) { return makeFunction ('quote', args, true) }
+function pseudoStrictQuote (args) { return makeFunction ('strictquote', args, true) }
 
 function makeListFunction (func, listvar, list, inner) { return makeFunction (func, [makeLocalAssign (listvar, list, inner)]) }
 function makeReduceFunction (varname, list, result, init, func) { return makeListFunction ('reduce', varname, list, [makeLocalAssign (result, init, func)]) }

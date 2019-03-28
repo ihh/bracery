@@ -562,7 +562,7 @@ function doTests (testRunner) {
   // regexes
   expectExpand ('&match/a/{cat}{$$0$$0}', 'aa')
   expectExpand ('&quotify&match/[aeiou]/g{generic}{&uc$$0}', '&{E&,E&,I}')
-  expectExpand ('&replace/a/g{catamaran}{u|o}', 'cutomoron', {maxTries:10*maxTries})  // bumping up maxTries because this has failed...
+  expectExpand ('&replace/a/g{catamaran}{u|o}', 'cutomoron', {maxTries:10*maxTries})  // bumping up maxTries because this has failed... should probably do the basic probability calculation required to set this with a given probability of failure (or specify this probability at the level of the whole test suite), given that the probability of success on each try is 1/16 in this case
   expectExpand ('&join&split/[aeiou]+/{felicitous}{..}', 'f..l..c..t..s')
   expectExpand ('&join&split{a   bc   d}{,}', 'a,bc,d')
   expectExpand ('&join&map&split{a bc def}{"$_"}{, }', '"a", "bc", "def"')
@@ -580,12 +580,18 @@ function doTests (testRunner) {
 
   // links
   expectExpand ('$x=3 &link{test$x}{$x}', '&link{test3}{$x}')
-  expectExpand ('&quote&link{test}{$x}', '&link{test}$x')
+  expectExpand ('&quote&link{test}{$x}', '&link{test}{$x}')
+
+  expectExpand ('[x=>&link{test}{#x#}] #x#', '&link{test}{#x#}')
+  expectExpand ('[x=>&link{test}{Indeed, this is #x#}] #x#', '&link{test}{Indeed, this is #x#}')
+
+  expectExpand ('&quote{&link{test}{$x}}', '&link{test}{$x}')
+  expectExpand ('&quote{&link{test}{x=$x}}', '&link{test}{x=$x}')
 
   expectExpand ('&quote&reveal{hello}{world}', '&reveal{hello}{world}')
 
   expectExpand ('$x=3 &reveal{test$x}{$x}', '&reveal{test3}{3}')
-  expectExpand ('&quote&reveal{test}{$x}', '&reveal{test}$x')
+  expectExpand ('&quote&reveal{test}{$x}', '&reveal{test}{$x}')
   
   expectExpand ('$x=3 &link{test}{$x}', 'test==>(link)==>$x', {makeLink:function(text,link,type){return text.text+'==>('+type+')==>'+link.text}})
   expectExpand ('$x=3 &reveal{test}{$x}', 'test==>(reveal)==>3', {makeLink:function(text,link,type){return text.text+'==>('+type+')==>'+link.text}})

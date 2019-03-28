@@ -513,7 +513,7 @@ function getPlaceholderNode (node) {
 }
 
 function getPlaceholderCoord (node) {
-  return node.args[0].args[1]
+  return node.args[1]
 }
 
 // Misc text rendering

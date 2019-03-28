@@ -79,10 +79,6 @@ class App extends Component {
   get maxUrlLength() { return 2000; }  // a lower bound...
   get evalChangedUpdateDelay() { return 400; }
   get maxTweetLen() { return 280; }
-  get layoutRadius() { return 300; }
-  get startNodeName() { return 'START'; }
-  get maxNodeTitleLen() { return 30; }
-  get maxEdgeHandleLen() { return 10; }
 
   // Global methods
   handleBraceryLink (newEvalText, linkType, linkName) {
@@ -360,25 +356,6 @@ class App extends Component {
       .forEach (function (node) { isTracery[node.name] = true; });
     return [ { symbols: Object.keys(isRef) },
 	     { symbols: Object.keys(isTracery), lSym: ParseTree.traceryChar, rSym: ParseTree.traceryChar } ];
-  }
-
-  truncate (text, len) {
-    return (text.length < len
-            ? text
-            : (text.substr(0,len) + '...'))
-  }
-  
-  nodeText (node, fallback) {
-    return (typeof(node) === 'string'
-                  ? node
-                  : (node.pos
-                     ? this.state.evalText.substr (node.pos[0], node.pos[1]).replace (/^{([\s\S]*)}$/, (_m,c)=>c)
-                     : fallback));
-  }
-
-  nodesText (nodes, fallback) {
-    const app = this;
-    return nodes.reduce((pre,node) => pre + app.nodeText(node),'') || fallback || ''
   }
   
   // Rendering

@@ -29,7 +29,7 @@ class MapView extends Component {
   get externalNodeType() { return 'external'; }
   get placeholderNodeType() { return 'placeholder'; }
 
-  get placeholderNodeText() { return 'Double-click to add text'; }
+  get placeholderNodeText() { return 'Click to edit'; }
   get emptyNodeText() { return '(empty)'; }
 
   get includeEdgeType() { return 'include'; }

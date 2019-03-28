@@ -121,7 +121,6 @@ class MapView extends Component {
                  </symbol>
 	     )
            })]));
-    console.warn({nodeTypes});
     const edgeTypes = {
       include: {
 	shapeId: "#includeEdge",

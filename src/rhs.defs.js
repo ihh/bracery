@@ -31,6 +31,13 @@ function copyLocation (destNode, srcNode, destTag, srcTag) {
   return destNode
 }
 
+function arrayWithPos (node) {
+  var result = [node]
+  if (node.pos)
+    result.pos = node.pos
+  return result
+}
+
 function makeNode (type, props) {
   return addLocation (extend ({ type: type }, props))
 }
@@ -84,7 +91,14 @@ function makeArgList (args) {
 }
 
 function makeAltAssignRhs (opts) {
-  return opts.length === 1 ? opts[0] : [makeAlternation (opts)]
+  return opts.length === 1 ? opts[0] : arrayWithPos (pseudoAlternation (opts))
+}
+
+function pseudoAlternation (opts) {
+  var alt = makeAlternation (opts)
+  if (opts.pos)
+    alt.pos = opts.pos
+  return alt
 }
 
 function makeSymbol (name, args) { return makeSymbolMethod (name, 'expand', args) }
@@ -270,6 +284,6 @@ function makeCoord (coord, arg) {
   ('xy',
    function() {
      return makeLocalAssignChain ([{ varname: '_xy', value: [coord] }],
-				  [makeQuote (arg)])
+				  [pseudoQuote (arg)])
    })
 }

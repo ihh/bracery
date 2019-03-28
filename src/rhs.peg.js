@@ -300,9 +300,9 @@ VarAssignment
   = "&set$" varname:Identifier args:FunctionArg _ { return makeAssign (varname, args) }
   / "&set{" ("$" / "") varname:Identifier "}" args:FunctionArg { return makeAssign (varname, args) }
   / "[" varname:Identifier ":" args:NodeList "]" _ { return makeAssign (varname, args) }
-  / "[" varname:Identifier "=>" opts:AltList "]" _ { return makeAssign (varname, [pseudoQuote (makeAltAssignRhs(opts))]) }
-  / "[" varname:Identifier "@" coord:XYCoord "=>" opts:AltList "]" _ { return makeAssign (varname, [makeCoord (coord, makeAltAssignRhs(opts))]) }
-  / "[" varname:Identifier "@(" coord:XYCoord ")=>" opts:AltList "]" _ { return makeAssign (varname, [makeCoord (coord, makeAltAssignRhs(opts))]) }
+  / "[" varname:Identifier "=>" opts:AltList "]" _ { return makeAssign (varname, arrayWithPos (pseudoQuote (makeAltAssignRhs(opts)))) }
+  / "[" varname:Identifier "@" coord:XYCoord "=>" opts:AltList "]" _ { return makeAssign (varname, arrayWithPos (makeCoord (coord, makeAltAssignRhs(opts)))) }
+  / "[" varname:Identifier "@(" coord:XYCoord ")=>" opts:AltList "]" _ { return makeAssign (varname, arrayWithPos (makeCoord (coord, makeAltAssignRhs(opts)))) }
   / "$" varname:Identifier "=" target:VarAssignmentTarget { return makeAssign (varname, target) }
   / "$" varname:Identifier ":=" target:VarAssignmentTarget { return makeAssign (varname, target, true) }
   / "$" varname:Identifier "+=" delta:VarAssignmentTarget { return makeModify (varname, 'add', delta) }

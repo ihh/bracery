@@ -152,12 +152,13 @@ class MapView extends Component {
 	  if (!targetNode.parent && targetNode.nodeType !== mv.startNodeType)
 	    targetNode.parent = node;
 	} else {
-          nodes.push (extend ({ id: target.graphNodeName,
-                                pos: [strOffset, 0],
-                                parent: node,
-                                rhs: [] },
-                              attrs));
-          nodeByID[target.graphNodeName] = true;
+	  const newNode = extend ({ id: target.graphNodeName,
+                                    pos: [strOffset, 0],
+                                    parent: node,
+                                    rhs: [] },
+				  attrs);
+          nodes.push (newNode);
+          nodeByID[target.graphNodeName] = newNode;
         }
       });
     }

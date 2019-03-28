@@ -21,7 +21,7 @@ class MapView extends Component {
 
   get layoutRadius() { return 300; }
   get layoutRadiusMultiplier() { return 0.8; }
-  get maxNodeTitleLen() { return 30; }
+  get maxNodeTitleLen() { return 24; }
   get maxEdgeHandleLen() { return 10; }
 
   get startNodeType() { return 'start'; }
@@ -37,7 +37,7 @@ class MapView extends Component {
 
   // Helpers
   truncate (text, len) {
-    return (text.length < len
+    return (text.length <= len
             ? text
             : (text.substr(0,len) + '...'))
   }

@@ -262,71 +262,133 @@ function sampleParseTree (rhs, config) {
   })
 }
 
-function getSymbolNodes (rhs, config) {
+// config = {
+//  excludeSubtree (boolean),
+//  nodePredicate ([config,node] => foundNode),
+//  makeChildConfig ([config,node,nChild] => childConfig)
+// }
+function findNodes (rhs, config) {
   var pt = this
   config = config || {}
+  if (config.excludeSubtree)
+    return []
+  config.nodePredicate = config.nodePredicate || function (config, node) { return node }
+  config.makeChildConfig = config.makeChildConfig || function (config, node, nChild) { return config }
+  var nodePredicate = config.nodePredicate, makeChildConfig = config.makeChildConfig
   return rhs.reduce (function (result, node) {
-    var r
+    var foundNode = nodePredicate (config, node)
+    var childConfig = function (n) { return makeChildConfig (config, node, n) }
+    var r = null
     if (typeof(node) === 'object')
       switch (node.type) {
       case 'lookup':
         break
       case 'assign':
-        r = pt.getSymbolNodes ((node.value || []).concat (node.local || []), config)
+        r = pt.findNodes ((node.value || []).concat (node.local || []), childConfig())
         break
       case 'alt':
         r = node.opts.reduce (function (altResults, opt) {
-          return altResults.concat (pt.getSymbolNodes (opt, config))
+          return altResults.concat (pt.findNodes (opt, childConfig()))
         }, [])
         break
       case 'rep':
-        r = pt.getSymbolNodes (node.unit, config)
+        r = pt.findNodes (node.unit, childConfig())
         break
       case 'func':
 	switch (node.funcname) {
 	case 'eval':
-	  r = pt.getSymbolNodes (node.args.concat (node.value || []), config)
+	  r = pt.findNodes (node.args.concat (node.value || []), childConfig())
 	  break
 	case 'link':
-	  if (!config.ignoreLink)
-	    r = pt.getSymbolNodes ([node.args[0]], config)
-	    .concat (pt.getSymbolNodes ([node.args[1]], extend ({}, config, { inLink: true, linkText: node.args[0] })))
+	  r = pt.findNodes ([node.args[0]], childConfig(0))
+	    .concat (pt.findNodes ([node.args[1]], childConfig(1)))
 	  break
 	case 'strictquote':
 	case 'quote':
 	case 'unquote':
         default:
-	  r = pt.getSymbolNodes (node.args, config)
+	  r = pt.findNodes (node.args, childConfig())
           break
 	}
         break
       case 'cond':
-	if (isTraceryExpr (node)) {
-	  if (!(config.ignoreTracery || (config.linkOnly && !config.inLink)))
-	    r = [extend ({}, node.f[0], config.linkText ? { linkText: config.linkText } : {}) ]
-	} else
-          r = pt.getSymbolNodes (node.test.concat (node.t, node.f), config)
+        r = pt.findNodes (node.test.concat (node.t, node.f), childConfig())
         break
       case 'root':
       case 'alt_sampled':
-        r = pt.getSymbolNodes (node.rhs, config)
+        r = pt.findNodes (node.rhs, childConfig())
         break
       case 'rep_sampled':
-        r = pt.getSymbolNodes (node.reps.reduce (function (all, rep) { return all.concat(rep) }, []), config)
+        r = pt.findNodes (node.reps.reduce (function (all, rep) { return all.concat(rep) }, []), childConfig())
         break
       default:
       case 'sym':
-        r = (((config.linkOnly && !config.inLink) || config.traceryOnly)
-	     ? []
-	     : [extend ({}, node, config.linkText ? { linkText: config.linkText } : {})])
-	r = r.concat (pt.getSymbolNodes (node.rhs || node.bind || [], config))
+        r = pt.findNodes (node.rhs || node.bind || [], childConfig())
         break
       }
-    return r ? result.concat(r) : result
+    return result.concat(foundNode ? [foundNode] : []).concat(r || []);
   }, [])
 }
 
+// Specialized findNodes for symbol nodes (common use case)
+function getSymbolNodes (rhs, gsnConfig) {
+  gsnConfig = gsnConfig || {}
+  return this.findNodes (rhs, {
+    nodePredicate: function (nodeConfig, node) {
+      var waitingForLink = (gsnConfig.linkOnly && !nodeConfig.inLink)
+      function addLinkText (foundNode) {
+	return extend ({}, foundNode, nodeConfig.linkText ? { linkText: nodeConfig.linkText } : {})
+      }
+      if (typeof(node) === 'object')
+        switch (node.type) {
+        case 'cond':
+	  if (isTraceryExpr (node)
+	      && !gsnConfig.ignoreTracery
+              && !waitingForLink)
+	    return addLinkText (node.f[0])
+          break
+        case 'sym':
+          if (!gsnConfig.traceryOnly
+              && !waitingForLink)
+	    return addLinkText (node)
+          break
+        default:
+          break
+        }
+      return false
+    },
+    makeChildConfig: function (nodeConfig, node, nChild) {
+      if (typeof(node) === 'object')
+        switch (node.type) {
+        case 'link':
+          return (gsnConfig.ignoreLink
+                  ? { excludeSubtree: true }
+                  : extend (nodeConfig,
+                            { inLink: true,
+                              linkText: node.args[0] }))
+        case 'cond':
+          if (isTraceryExpr(node))
+            return { excludeSubtree: true }
+          break
+        default:
+          break
+        }
+      return nodeConfig
+    }
+  })
+}
+
+// Specialized findNodes for checking if a tree contains no variables or symbols
+function isStaticExpr (rhs) {
+  return this.findNodes (rhs, {
+    nodePredicate: function (nodeConfig, node) {
+      return typeof(node) === 'object' && (node.type === 'sym' || node.type === 'lookup')
+    }
+  }).length === 0
+}
+
 // parseTreeEmpty returns true if a tree contains no nonwhite characters OR unexpanded symbols
+// TODO: rewrite using findNodes
 function parseTreeEmpty (rhs) {
   var pt = this
   return rhs.reduce (function (result, node) {
@@ -2393,8 +2455,10 @@ module.exports = {
   
   // parse tree manipulations
   sampleParseTree: sampleParseTree,
+  findNodes: findNodes,
   getSymbolNodes: getSymbolNodes,
   parseTreeEmpty: parseTreeEmpty,
+  isStaticExpr: isStaticExpr,
   isPlainSymExpr: isPlainSymExpr,
   isTraceryExpr: isTraceryExpr,
   traceryVarName: traceryVarName,

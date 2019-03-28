@@ -54,7 +54,11 @@ class MapView extends Component {
     const mv = this;
     return nodes.reduce((pre,node) => pre + mv.nodeText(node),'') || fallback || ''
   }
-
+  
+  startNodeText (graph) {
+    return this.nodesText (graph.nodes[0].rhs)
+  }
+  
   nodeInSubtree (node, subtreeRoot) {
     while (node) {
       if (node === subtreeRoot)
@@ -72,60 +76,67 @@ class MapView extends Component {
     const symName = this.props.name;
     const startNodeName = this.SYM_PREFIX + symName;
     // Scan parsed Bracery code for top-level global variable assignments of the form $variable=&quote{...} or $variable=&let$_xy{...}&quote{...}
-    let nodeOffset = 0, strOffset = 0, nodes = [], edges = [];
-    while (nodeOffset < rhs.length && (ParseTree.isQuoteAssignExpr (rhs[nodeOffset]) || ParseTree.isLayoutAssign (rhs[nodeOffset]) || ParseTree.isPlaceholderExpr (rhs[nodeOffset]))) {
+    let nodeOffset = 0, nodes = [], edges = [], startRhs = [];
+    while (nodeOffset < rhs.length) {
       let braceryNode = rhs[nodeOffset];
-      let node = { pos: braceryNode.pos }, coord = null;
-      if (ParseTree.isPlaceholderExpr (braceryNode)) {
-	const heldNode = ParseTree.getPlaceholderNode (braceryNode);
-	const heldNodeType = heldNode && heldNode.type;
-	coord = ParseTree.getPlaceholderCoord (braceryNode);
-	if (heldNodeType === 'lookup') {
-	  node.id = heldNode.varname;
-	  node.nodeType = mv.placeholderNodeType;
-	} else if (heldNodeType === 'sym') {
-	  node.id = mv.SYM_PREFIX + heldNode.name;
-	  node.nodeType = mv.externalNodeType;
-	} else {
-	  node.id = startNodeName;
-	  node.nodeType = mv.startNodeType;
-	}
-	node.rhs = [];
-      } else {
-	node.id = braceryNode.varname.toLowerCase();
-        node.nodeType = this.definedNodeType;
-	if (ParseTree.isLayoutAssign (braceryNode)) {
-	  let expr = ParseTree.getLayoutExpr (braceryNode);
-	  coord = ParseTree.getLayoutCoord (expr);
-	  node.rhs = ParseTree.getLayoutContent (expr);
-	} else
-	  node.rhs = ParseTree.getQuoteAssignRhs (braceryNode);
-      }
-      if (coord) {
-	const xy = coord.split(',');
-	node.x = parseFloat (xy[0]);
-	node.y = parseFloat (xy[1]);
-      }
-      nodes = nodes.filter ((n) => n.id !== node.id);
-      if (node.nodeType === this.startNodeType)
-	nodes = [node].concat (nodes);
+      console.warn('scanning',braceryNode);
+      if (ParseTree.isQuoteAssignExpr (braceryNode)
+          || ParseTree.isLayoutAssign (braceryNode)
+          || ParseTree.isPlaceholderExpr (braceryNode)) {
+        let node = { pos: braceryNode.pos }, coord = null;
+        if (ParseTree.isPlaceholderExpr (braceryNode)) {
+	  const heldNode = ParseTree.getPlaceholderNode (braceryNode);
+	  const heldNodeType = heldNode && heldNode.type;
+	  coord = ParseTree.getPlaceholderCoord (braceryNode);
+	  if (heldNodeType === 'lookup') {
+	    node.id = heldNode.varname;
+	    node.nodeType = mv.placeholderNodeType;
+	  } else if (heldNodeType === 'sym') {
+	    node.id = mv.SYM_PREFIX + heldNode.name;
+	    node.nodeType = mv.externalNodeType;
+	  } else {
+	    node.id = startNodeName;
+	    node.nodeType = mv.startNodeType;
+	  }
+	  node.rhs = [];
+        } else {
+	  node.id = braceryNode.varname.toLowerCase();
+          node.nodeType = this.definedNodeType;
+	  if (ParseTree.isLayoutAssign (braceryNode)) {
+	    let expr = ParseTree.getLayoutExpr (braceryNode);
+	    coord = ParseTree.getLayoutCoord (expr);
+	    node.rhs = ParseTree.getLayoutContent (expr);
+	  } else
+	    node.rhs = ParseTree.getQuoteAssignRhs (braceryNode);
+        }
+        if (coord) {
+	  const xy = coord.split(',');
+	  node.x = parseFloat (xy[0]);
+	  node.y = parseFloat (xy[1]);
+        }
+        nodes = nodes.filter ((n) => n.id !== node.id);
+        if (node.nodeType === this.startNodeType)
+	  nodes = [node].concat (nodes);
+        else
+	  nodes.push (node);
+      } else if (ParseTree.isStaticExpr ([braceryNode]))
+        startRhs.push (braceryNode);
       else
-	nodes.push (node);
-      strOffset = braceryNode.pos[0] + braceryNode.pos[1];
+        break;
       ++nodeOffset;
     }
 
-    // Add a start node for everything from the first character that is *not* part of a top-level global variable assignment
+    // Add a start node for everything that is *not* part of a top-level global variable assignment
     let nodeByID = {};
     nodes.forEach ((node) => nodeByID[node.id] = node);
     if (!nodeByID[startNodeName]) {
       const startNode = { id: startNodeName,
-	                  pos: [strOffset, 0],
+	                  pos: [0, 0],
                           nodeType: this.startNodeType };
       nodes = [startNode].concat (nodes);
       nodeByID[startNodeName] = startNode;
     }
-    nodes[0].rhs = rhs.slice (nodeOffset);
+    nodes[0].rhs = startRhs.concat (rhs.slice (nodeOffset));
 
     // Do some analysis of outgoing edges
     const getTargetNodes = (node, config, namePrefix) => {
@@ -153,7 +164,7 @@ class MapView extends Component {
 	    targetNode.parent = node;
 	} else {
 	  const newNode = extend ({ id: target.graphNodeName,
-                                    pos: [strOffset, 0],
+                                    pos: [0, 0],
                                     parent: node,
                                     rhs: [] },
 				  attrs);
@@ -240,8 +251,7 @@ class MapView extends Component {
     // Return
     return { nodes,
 	     edges,
-             text,
-	     strOffset };
+             text };
   }
 
   // Event handlers
@@ -267,7 +277,7 @@ class MapView extends Component {
       mv.nodeInSubtree (graphNode, node)
 	? mv.makeNodeBracery(graphNode)
 	: mv.nodeText(graphNode)
-    )).join('') + graph.text.substr (graph.strOffset);
+    )).join('') + this.startNodeText(graph)
     this.setEvalText (newEvalText);
   }
 
@@ -279,7 +289,7 @@ class MapView extends Component {
   render() {
     const rhs = this.props.rhs;
     const graph = this.getLayoutGraph (rhs);
-//    console.warn(graph);
+    console.warn(graph);
     const nodeTypes = fromEntries (
       graph.nodes.map (
         (node) => [

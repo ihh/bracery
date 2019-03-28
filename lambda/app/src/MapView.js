@@ -24,7 +24,8 @@ class MapView extends Component {
       let braceryNode = rhs[nodeOffset];
       let id = braceryNode.varname.toLowerCase();
       let node = { id: id,
-		   pos: braceryNode.pos };
+		   pos: braceryNode.pos,
+                   cssTag: 'defined' };
       if (ParseTree.isLayoutAssign (braceryNode)) {
 	let expr = ParseTree.getLayoutExpr (braceryNode);
 	let xy = ParseTree.getLayoutCoord (expr).split(',');
@@ -41,7 +42,8 @@ class MapView extends Component {
     // Add a start node for everything from the first character that is *not* part of a top-level global variable assignment
     nodes = [{ id: app.startNodeName,
 	       pos: [strOffset, app.state.evalText.length - strOffset],
-	       rhs: rhs.slice (nodeOffset) }].concat (nodes);
+	       rhs: rhs.slice (nodeOffset),
+               cssTag: 'start' }].concat (nodes);
     // Do some analysis of outgoing edges
     const getTargetNodes = (node, config) => {
       return ParseTree.getSymbolNodes (node.rhs, config)
@@ -50,22 +52,29 @@ class MapView extends Component {
     };
     const getIncludedNodes = (node) => getTargetNodes (node, { traceryOnly: true, ignoreLink: true });
     const getLinkedNodes = (node) => getTargetNodes (node, { traceryOnly: true, linkOnly: true });
+    const getExternalNodes = (node, linkFlag) => getTargetNodes (node, extend ({ ignoreTracery: true },
+                                                                               typeof(linkFlag) === 'undefined'
+                                                                               ? {}
+                                                                               : (linkFlag
+                                                                                  ? { linkOnly: true }
+                                                                                  : { ignoreLink: true })));
     // Find unknown nodes
     let unknownNodeOffsetAngle = 0, unknownNodeOffsetAngleInc = 1, unknownNodeOffsetRadius = app.layoutRadius / 3;
-    const createPlaceholders = (getter) => (node) => {
+    const createPlaceholders = (getter, attrs) => (node) => {
       getter(node).forEach ((target) => {
         if (!seenNode[target.name]) {
-          nodes.push ({ id: target.name,
-                        pos: [strOffset, 0],
-                        placeholder: true,
-                        parent: node,
-                        rhs: [] });
+          nodes.push (extend ({ id: target.name,
+                                pos: [strOffset, 0],
+                                parent: node,
+                                rhs: [] },
+                              attrs));
           seenNode[target.name] = true;
         }
       });
     }
-    nodes.forEach (createPlaceholders (getIncludedNodes));
-    nodes.forEach (createPlaceholders (getLinkedNodes));
+    nodes.forEach (createPlaceholders (getIncludedNodes, { cssTag: 'placeholder' }));
+    nodes.forEach (createPlaceholders (getLinkedNodes, { cssTag: 'placeholder' }));
+    nodes.forEach (createPlaceholders (getExternalNodes, { cssTag: 'external' }));
 
     // Lay things out
     nodes.forEach ((node, n) => {
@@ -85,8 +94,10 @@ class MapView extends Component {
                                 app.maxNodeTitleLen);
       // Create outgoing edges
       getIncludedNodes (node)
+        .concat (getExternalNodes (node, false))
         .forEach ((target) => edges.push ({ source: node.id, target: target.name, type: 'include' }));
       getLinkedNodes (node)
+        .concat (getExternalNodes (node, true))
         .forEach ((target) => edges.push ({ source: node.id, target: target.name, type: 'link', handleText: app.truncate (app.nodeText (target.linkText, node.id), app.maxEdgeHandleLen) }));
     });
     return { nodes,
@@ -102,23 +113,14 @@ class MapView extends Component {
       graph.nodes.map (
         (node, n) => [
           node.id,
-          (n === 0
-           ? { shapeId: '#' + node.id,
-               typeText: node.id,
-               shape: (
-                   <symbol viewBox="0 0 50 20" id={node.id} key="0">
-                   <ellipse cx="25" cy="10" rx="22" ry="10" className="start-node"></ellipse>
-                   </symbol>
-               )
-             }
-           : { shapeId: '#' + node.id,
-               typeText: node.id,
-	       shape: (
-                   <symbol viewBox="0 0 25 10" id={node.id} key="0">
-                   <rect x="0" y="0" width="25" height="10" className={node.placeholder?'unknown-placeholder-node':'defined-node'}></rect>
-                   </symbol>
-	       )
-             })]));
+          ({ shapeId: '#' + node.id,
+             typeText: node.id,
+	     shape: (
+                 <symbol viewBox="0 0 25 10" id={node.id} key="0">
+                 <rect x="0" y="0" width="25" height="10" className={node.cssTag+'-node'}></rect>
+                 </symbol>
+	     )
+           })]));
     console.warn({nodeTypes});
     const edgeTypes = {
       include: {

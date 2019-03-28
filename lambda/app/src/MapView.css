@@ -1,8 +1,18 @@
-.start-node, .defined-node {
+.start-node, .variable-node {
     stroke-width: 0.3;
 }
 
-.unknown-placeholder-node {
+.start-node, .external-node {
+    rx: 2;
+    ry: 2;
+}
+
+.placeholder-node {
     stroke-width: 0.1;
     stroke-dasharray: 2 1;    
+}
+
+.external-node {
+    stroke-width: 0.1;
+    stroke-dasharray: .1 .5;
 }

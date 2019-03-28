@@ -79,7 +79,6 @@ class MapView extends Component {
     let nodeOffset = 0, nodes = [], edges = [], startRhs = [];
     while (nodeOffset < rhs.length) {
       let braceryNode = rhs[nodeOffset];
-      console.warn('scanning',braceryNode);
       if (ParseTree.isQuoteAssignExpr (braceryNode)
           || ParseTree.isLayoutAssign (braceryNode)
           || ParseTree.isPlaceholderExpr (braceryNode)) {
@@ -289,7 +288,7 @@ class MapView extends Component {
   render() {
     const rhs = this.props.rhs;
     const graph = this.getLayoutGraph (rhs);
-    console.warn(graph);
+//    console.warn(graph);
     const nodeTypes = fromEntries (
       graph.nodes.map (
         (node) => [

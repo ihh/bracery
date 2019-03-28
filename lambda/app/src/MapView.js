@@ -42,17 +42,17 @@ class MapView extends Component {
             : (text.substr(0,len) + '...'))
   }
   
-  nodeText (app, node, fallback) {
+  nodeText (node, fallback) {
     return (typeof(node) === 'string'
                   ? node
                   : (node.pos
-                     ? app.state.evalText.substr (node.pos[0], node.pos[1]).replace (/^{([\s\S]*)}$/, (_m,c)=>c)
+                     ? this.props.evalText.substr (node.pos[0], node.pos[1]).replace (/^{([\s\S]*)}$/, (_m,c)=>c)
                      : fallback));
   }
 
-  nodesText (app, nodes, fallback) {
+  nodesText (nodes, fallback) {
     const mv = this;
-    return nodes.reduce((pre,node) => pre + mv.nodeText(app,node),'') || fallback || ''
+    return nodes.reduce((pre,node) => pre + mv.nodeText(node),'') || fallback || ''
   }
 
   nodeInSubtree (node, subtreeRoot) {
@@ -65,11 +65,11 @@ class MapView extends Component {
   }
   
   // Get graph by analyzing parsed Bracery expression
-  getLayoutGraph (app, rhs) {
+  getLayoutGraph() {
     const mv = this;
-    rhs = rhs || app.parseBracery();
-    const text = this.nodesText (app, rhs);
-    const symName = app.state.name;
+    const rhs = this.props.rhs;
+    const text = this.props.evalText;
+    const symName = this.props.name;
     const startNodeName = this.SYM_PREFIX + symName;
     // Scan parsed Bracery code for top-level global variable assignments of the form $variable=&quote{...} or $variable=&let$_xy{...}&quote{...}
     let nodeOffset = 0, strOffset = 0, nodes = [], edges = [];
@@ -180,7 +180,7 @@ class MapView extends Component {
                                    ? ''
                                    : (node.nodeType === mv.placeholderNodeType
                                       ? mv.placeholderNodeText
-                                      : (mv.nodesText (app, node.rhs)
+                                      : (mv.nodesText (node.rhs)
                                          || mv.emptyNodeText))),
                                   this.maxNodeTitleLen);
       // Create outgoing edges
@@ -194,7 +194,7 @@ class MapView extends Component {
         .forEach ((target) => addEdge ({ source: node.id,
                                          target: target.graphNodeName,
                                          type: mv.linkEdgeType,
-                                         handleText: this.truncate (mv.nodeText (app, target.linkText, node.id),
+                                         handleText: this.truncate (mv.nodeText (target.linkText, node.id),
                                                                     this.maxEdgeHandleLen) }));
     });
     
@@ -245,7 +245,7 @@ class MapView extends Component {
   }
 
   // Event handlers
-  makeNodeBracery (app, node, dx, dy) {
+  makeNodeBracery (node, dx, dy) {
     const x = Math.round(node.x + (dx || 0)), y = Math.round(node.y + (dy || 0));
     switch (node.nodeType) {
     case this.externalNodeType:
@@ -255,27 +255,30 @@ class MapView extends Component {
     case this.startNodeType:
       return '&placeholder{' + x + ',' + y + '}\n';
     case this.definedNodeType:
-      return '[' + node.id + '@' + x + ',' + y + '=>' + this.nodesText (app, node.rhs) + ']\n';
+      return '[' + node.id + '@' + x + ',' + y + '=>' + this.nodesText (node.rhs) + ']\n';
     default:
       return '';
     }
   }
   
-  onUpdateNode (app, graph, node) {
+  onUpdateNode (graph, node) {
     const mv = this;
     const newEvalText = graph.nodes.map ((graphNode) => (
       mv.nodeInSubtree (graphNode, node)
-	? mv.makeNodeBracery(app,graphNode)
-	: mv.nodeText(app,graphNode)
+	? mv.makeNodeBracery(graphNode)
+	: mv.nodeText(graphNode)
     )).join('') + graph.text.substr (graph.strOffset);
-    app.setState ({ evalText: newEvalText });
+    this.setEvalText (newEvalText);
+  }
+
+  setEvalText (newEvalText) {
+    this.props.app.setState ({ evalText: newEvalText });
   }
   
   // Render graph
   render() {
-    const app = this.props.app;
     const rhs = this.props.rhs;
-    const graph = this.getLayoutGraph (app, rhs);
+    const graph = this.getLayoutGraph (rhs);
 //    console.warn(graph);
     const nodeTypes = fromEntries (
       graph.nodes.map (
@@ -315,7 +318,7 @@ class MapView extends Component {
 	    edgeTypes={edgeTypes}
 	    nodeTypes={nodeTypes}
 	    nodeSubtypes={{}}
-            onUpdateNode={(node)=>this.onUpdateNode(app,graph,node)}
+            onUpdateNode={(node)=>this.onUpdateNode(graph,node)}
 	    zoomLevel="1"
 	    />
 	    </div>);

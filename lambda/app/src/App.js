@@ -420,7 +420,7 @@ class App extends Component {
 	   : ''}
         </div>
 
-	{this.state.editing ? <MapView app={this} /> : ''}
+      {this.state.editing ? <MapView app={this} name={this.state.name} evalText={this.state.evalText} rhs={rhs} /> : ''}
 	<div>
 	  {this.state.editing
 	   ? (<div>

@@ -360,12 +360,14 @@ function getSymbolNodes (rhs, gsnConfig) {
     makeChildConfig: function (nodeConfig, node, nChild) {
       if (typeof(node) === 'object')
         switch (node.type) {
-        case 'link':
-          return (gsnConfig.ignoreLink
-                  ? { excludeSubtree: true }
-                  : extend (nodeConfig,
-                            { inLink: true,
-                              linkText: node.args[0] }))
+        case 'func':
+          if (node.funcname === 'link')
+            return (gsnConfig.ignoreLink && nChild === 1
+                    ? { excludeSubtree: true }
+                    : extend (nodeConfig,
+                              { inLink: true,
+                                linkText: node.args[0] }))
+          break
         case 'cond':
           if (isTraceryExpr(node))
             return { excludeSubtree: true }

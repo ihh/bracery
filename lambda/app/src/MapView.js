@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
-import { Bracery, ParseTree } from 'bracery';
-import braceryWeb, { extend } from './bracery-web';
+import { ParseTree } from 'bracery';
+import { extend } from './bracery-web';
 import { GraphView } from 'react-digraph';
 
 import './MapView.css';
@@ -59,7 +59,6 @@ class MapView extends Component {
                                                                                   ? { linkOnly: true }
                                                                                   : { ignoreLink: true })));
     // Find unknown nodes
-    let unknownNodeOffsetAngle = 0, unknownNodeOffsetAngleInc = 1, unknownNodeOffsetRadius = app.layoutRadius / 3;
     const createPlaceholders = (getter, attrs) => (node) => {
       getter(node).forEach ((target) => {
         if (!seenNode[target.name]) {

@@ -279,11 +279,10 @@ function makeRhyme (a, b, tries) {
 							    makeAssign ('b', b, true)])])]) })
 }
 
-function makeCoord (coord, arg) {
-  return pseudoFunction
-  ('xy',
-   function() {
-     return makeLocalAssignChain ([{ varname: '_xy', value: [coord] }],
-				  [pseudoQuote (arg)])
-   })
+function makeLayout (coord, args) {
+  return makeFunction ('layout', [coord, pseudoQuote (args)])
+}
+
+function makePlaceholder (arg, coord) {
+  return makeFunction ('placeholder', [pseudoQuote (arrayWithPos (arg)), coord])
 }

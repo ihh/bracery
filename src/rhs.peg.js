@@ -71,12 +71,15 @@ Function
   / ShortUnaryFunction  /* this goes last because it includes the one-letter function "a", which otherwise causes the PEG parser to miss all other function names beginning with "a" */
 
 SymbolFunction
-  = sym:PrefixedSymIdentifier { return makeSugaredSymbol (sym, makeArgList ([])) }
+  = PlainSymbol
   / sym:CallSymbol args:ArgList { return makeSugaredSymbol (sym, makeArgList (args)) }
   / sym:ApplySymbol args:FunctionArg { return makeSugaredSymbol (sym, args) }
   / "#" sym:Identifier mods:TraceryModifiers "#" { return makeTraceryExpr (sym, mods) }
   / sym:GetSymbol { return makeGetSymbol (sym) }
   / sym:SetSymbol args:FunctionArg { return makeSetSymbol (sym, args) }
+
+PlainSymbol
+  = sym:PrefixedSymIdentifier { return makeSugaredSymbol (sym, makeArgList ([])) }
 
 CallSymbol
   = "&xcall" sym:SymIdentifier { return sym }
@@ -206,7 +209,15 @@ LinkShortcut
   = "[[" text:Text "]]" { return makeLinkShortcut (text) }
 
 LayoutFunction
-  = "&xy{" coord:XYCoord "}" arg:FunctionArg { return makeCoord (coord, arg) }
+  = "&layout" coord:DelimitedXYCoord arg:FunctionArg { return makeLayout (coord, arg) }
+  / "&placeholder" arg:PlainVarOrSymbol coord:DelimitedXYCoord _ { return makePlaceholder (arg, coord) }
+
+PlainVarOrSymbol
+  = PlainVarLookup
+  / PlainSymbol
+
+DelimitedXYCoord
+  = "{" coord:XYCoord "}" { return coord }
 
 XYCoord
   = _ x:SignedFloat _ comma:"," _ y:SignedFloat _ { return x + comma + y }
@@ -301,8 +312,8 @@ VarAssignment
   / "&set{" ("$" / "") varname:Identifier "}" args:FunctionArg { return makeAssign (varname, args) }
   / "[" varname:Identifier ":" args:NodeList "]" _ { return makeAssign (varname, args) }
   / "[" varname:Identifier "=>" opts:AltList "]" _ { return makeAssign (varname, arrayWithPos (pseudoQuote (makeAltAssignRhs(opts)))) }
-  / "[" varname:Identifier "@" coord:XYCoord "=>" opts:AltList "]" _ { return makeAssign (varname, arrayWithPos (makeCoord (coord, makeAltAssignRhs(opts)))) }
-  / "[" varname:Identifier "@(" coord:XYCoord ")=>" opts:AltList "]" _ { return makeAssign (varname, arrayWithPos (makeCoord (coord, makeAltAssignRhs(opts)))) }
+  / "[" varname:Identifier "@" coord:XYCoord "=>" opts:AltList "]" _ { return makeAssign (varname, arrayWithPos (makeLayout (coord, makeAltAssignRhs(opts)))) }
+  / "[" varname:Identifier "@(" coord:XYCoord ")=>" opts:AltList "]" _ { return makeAssign (varname, arrayWithPos (makeLayout (coord, makeAltAssignRhs(opts)))) }
   / "$" varname:Identifier "=" target:VarAssignmentTarget { return makeAssign (varname, target) }
   / "$" varname:Identifier ":=" target:VarAssignmentTarget { return makeAssign (varname, target, true) }
   / "$" varname:Identifier "+=" delta:VarAssignmentTarget { return makeModify (varname, 'add', delta) }

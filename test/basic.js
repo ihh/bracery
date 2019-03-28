@@ -604,9 +604,15 @@ function doTests (testRunner) {
   expectExpand ('[[Next room.]]', '&link{Next room.}{#next_room#}')
 
   // layout
-  expectExpand ('&quote&xy{ + 1, - 2.3 }{hello}', '&xy{1,-2.3}{hello}')
+  expectExpand ('&quote&layout{ + 1, - 2.3 }{hello}', '&layout{1,-2.3}{hello}')
   expectExpand ('&quote[a@(2,3)=>hello|there]', '[a@2,3=>hello|there]')
-  
+  expectExpand ('&layout{1,2}{hi}', 'hi')
+
+  expectExpand ('&placeholder$x{1,2}', '')
+  expectExpand ('&placeholder~test1{1,2}', '')
+  expectExpand ('&quote&placeholder$x{1,2}', '&placeholder$x{1,2}')
+  expectExpand ('&quote&placeholder~test1{1,2}', '&placeholder~test1{1,2}')
+
   // charclass, alt
   expectExpand ('&charclass{abc}', '[a|b|c]')
   expectExpand ('&charclass{a-e}', '[a|b|c|d|e]')

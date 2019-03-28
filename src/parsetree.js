@@ -390,13 +390,17 @@ function makeEvalVar (name) {
                     varname: name }] }
 }
 
+function isPlainSymExpr (node) {
+  return typeof(node) === 'object' && node.type === 'sym' && !(node.bind && node.bind.length && node.bind[0].args && node.bind[0].args.length)
+}
+
 // #x# expands to &if{$x}{&eval{$x}}{~x}
 function isTraceryExpr (node, makeSymbolName) {
   makeSymbolName = makeSymbolName || defaultMakeSymbolName
   return typeof(node) === 'object' && node.type === 'cond'
     && node.test.length === 1 && typeof(node.test[0]) === 'object' && node.test[0].type === 'lookup'
     && node.t.length === 1 && isEvalVar (node.t[0])
-    && node.f.length === 1 && typeof(node.f[0]) === 'object' && node.f[0].type === 'sym' && !(node.f[0].bind && node.f[0].bind.length && node.f[0].bind[0].args && node.f[0].bind[0].args.length)
+    && node.f.length === 1 && isPlainSymExpr (node.f[0])
     && node.test[0].varname.toLowerCase() === node.t[0].args[0].varname.toLowerCase()
     && node.test[0].varname.toLowerCase() === makeSymbolName (node.f[0]).toLowerCase()
 }
@@ -477,32 +481,44 @@ function getMeterStatus (node) {
   return node.args[1].args[0].args.length === 3 ? node.args[1].args[0].args[2].args : ''
 }
 
-// &xy{x,y}{args}
-var coordVarName = '_xy'
+// &layout{x,y}{args}
 function isLayoutExpr (node) {
-  return typeof(node) === 'object' && node.type === 'assign' && node.varname === coordVarName && node.value.length === 1 && node.local
-    && node.local.length === 1 && typeof(node.local[0]) === 'object' && node.local[0].type === 'func' && node.local[0].funcname === 'quote'
+  return typeof(node) === 'object' && node.type === 'func' && node.funcname === 'layout'
 }
 
 function getLayoutCoord (node) {
-  return node.value[0]
+  return node.args[0]
 }
 
 function getLayoutContent (node) {
-  return node.local[0].args
-}
-
-function isLayoutAssign (node) {
-  return typeof(node) === 'object' && node.type === 'assign' && !node.local && node.value.length === 1 && isLayoutExpr(node.value[0])
+  return node.args[1].args
 }
 
 function getLayoutExpr (node) {
   return node.value[0]
 }
 
+// $var=&layout{X,Y}{...}
+function isLayoutAssign (node) {
+  return typeof(node) === 'object' && node.type === 'assign' && !node.local && !node.visible && node.value.length === 1 && isLayoutExpr(node.value[0])
+}
+
+// &placeholder$var{X,Y} or &placeholder~sym{X,Y}
+function isPlaceholderExpr (node) {
+  return typeof(node) === 'object' && node.type === 'func' && node.funcname === 'placeholder'
+}
+
+function getPlaceholderNode (node) {
+  return node.args[0].args[0]
+}
+
+function getPlaceholderCoord (node) {
+  return node.args[0].args[1]
+}
+
 // Misc text rendering
-function makeFuncArgTree (pt, args, makeSymbolName, forceBraces) {
-  var noBraces = !forceBraces && args.length === 1 && (args[0].type === 'func' || args[0].type === 'lookup' || args[0].type === 'alt')
+function makeFuncArgTree (pt, args, makeSymbolName, forceBraces, allowNakedSymbol) {
+  var noBraces = !forceBraces && args.length === 1 && (args[0].type === 'func' || args[0].type === 'lookup' || args[0].type === 'alt' || (allowNakedSymbol && isPlainSymExpr(args[0])))
   return [noBraces ? '' : leftBraceChar, pt.makeRhsTree (args, makeSymbolName), noBraces ? '' : rightBraceChar]
 }
 
@@ -609,7 +625,13 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
         } else
           switch (funcType (tok.funcname)) {
           case 'link':
-            result = [funcChar, tok.funcname].concat ([[tok.args[0]], tok.funcname === 'link' ? tok.args[1].args : [tok.args[1]]].map (function (args) { return makeFuncArgTree (pt, args, makeSymbolName, true) }))
+            result = [funcChar, tok.funcname].concat ([[tok.args[0]], tok.args[1].args].map (function (args) { return makeFuncArgTree (pt, args, makeSymbolName, true) }))
+            break
+          case 'reveal':
+            result = [funcChar, tok.funcname].concat (tok.args.map (function (arg) { return makeFuncArgTree (pt, [arg], makeSymbolName, true) }))
+            break
+          case 'placeholder':
+            result = [funcChar, tok.funcname].concat ([tok.args[0].args, [tok.args[1]]].map (function (args, n) { return makeFuncArgTree (pt, args, makeSymbolName, n > 0, n === 0) }))
             break
           case 'parse':
             result = [funcChar, tok.funcname].concat ([tok.args[0].args, [tok.args[1]]].map (function (args) { return makeFuncArgTree (pt, args, makeSymbolName, nextIsAlpha) }))
@@ -1274,12 +1296,19 @@ var binaryFunction = {
       ++match;
     return (match === lWords && match === rWords ? '' : match) + ''
   },
+  layout: function (l, r, lv, rv) {
+    return rv
+  },
+  placeholder: function (l, r, lv, rv) {
+    return []
+  },
 }
 
+// funcType(funcname) returns the function that is the canonical example of how funcname's arguments are rendered
 function funcType (funcname) {
-  if (funcname === 'parse' || funcname === 'reduce' || funcname === 'vars' || funcname === 'math')
+  if (funcname === 'reduce' || funcname === 'vars' || funcname === 'math' || funcname === 'parse' || funcname === 'placeholder' || funcname === 'reveal')
     return funcname
-  if (funcname === 'link' || funcname === 'reveal')
+  if (funcname === 'link' || funcname === 'layout')
     return 'link'
   if (funcname === 'call' || funcname === 'xcall')
     return 'call'
@@ -2364,6 +2393,7 @@ module.exports = {
   sampleParseTree: sampleParseTree,
   getSymbolNodes: getSymbolNodes,
   parseTreeEmpty: parseTreeEmpty,
+  isPlainSymExpr: isPlainSymExpr,
   isTraceryExpr: isTraceryExpr,
   traceryVarName: traceryVarName,
   isProbExpr: isProbExpr,
@@ -2381,6 +2411,9 @@ module.exports = {
   getLayoutContent: getLayoutContent,
   isLayoutAssign: isLayoutAssign,
   getLayoutExpr: getLayoutExpr,
+  isPlaceholderExpr: isPlaceholderExpr,
+  getPlaceholderNode: getPlaceholderNode,
+  getPlaceholderCoord: getPlaceholderCoord,
   isEvalVar: isEvalVar,
   getEvalVar: getEvalVar,
   funcType: funcType,

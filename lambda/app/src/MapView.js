@@ -27,12 +27,12 @@ class NodeEditor extends Component {
     ];
   }
 
-  selectionUpdateListener = () => this.props.updateEditor(
+  selectionUpdateListener = () => this.props.setEditorState(
     { selection: this.getSelection(this.textarea) }
   );
 
-  focusListener = () => this.props.updateEditor ({ focus: true });
-  blurListener = () => this.props.updateEditor ({ focus: false });
+  focusListener = () => this.props.setEditorState ({ focus: true });
+  blurListener = () => this.props.setEditorState ({ focus: false });
   
   getSelection = (textareaRef) => ({
     startOffset: textareaRef.selectionStart,
@@ -94,7 +94,7 @@ class NodeEditor extends Component {
   });
 
   updateTextarea = ({ content, selection }) => {
-    this.props.updateEditor(
+    this.props.setEditorState(
       { content, selection },
       () => this.setSelectionToDOM(
         this.textarea,
@@ -108,6 +108,7 @@ class NodeEditor extends Component {
             ref={c => { this.textarea = c; }}
             className="rhs"
             value={this.props.content}
+            disabled={this.props.disabled}
             onChange={this.onChange} />);
   }
   
@@ -118,6 +119,10 @@ class MapView extends Component {
   // Constants
   get START() { return 'START'; }
   get SYM_PREFIX() { return 'SYM_'; }
+
+  get nodeSize() { return 150; }
+  get edgeHandleSize() { return 50; }
+  get edgeArrowSize() { return 10; }
 
   get layoutRadius() { return 300; }
   get layoutRadiusMultiplier() { return 0.8; }
@@ -195,6 +200,14 @@ class MapView extends Component {
     }
   }
 
+  rebuildBracery (graph, changedNode) {
+    return graph.nodes.map ((graphNode) => (
+      this.nodeInSubtree (graphNode, changedNode)
+	? this.makeNodeBracery(graphNode)
+	: this.nodeText(graphNode)
+    )).join('') + this.startNodeText(graph);
+  }
+  
   selectedNode (graph, selected) {
     selected = selected || this.props.selected;
     return (selected.node
@@ -207,7 +220,7 @@ class MapView extends Component {
   selectedEdges (graph, selected) {
     selected = selected || this.props.selected;
     return (selected.edge
-            ? (graph.edgesBySourceTargetID[selected.edge.source][selected.edge.target] || [])
+            ? (graph.nodeByID[selected.edge.source].outgoing[selected.edge.target] || [])
             : null);
   }
 
@@ -238,7 +251,7 @@ class MapView extends Component {
 
   // State modification
   setEvalText (newEvalText) {
-    this.props.app.setState ({ evalText: newEvalText });
+    this.props.setAppState ({ evalText: newEvalText });
   }
 
   setSelected (graph, selected) {
@@ -250,10 +263,36 @@ class MapView extends Component {
       if (selectedEdges.length === 1)
         editorSelection = this.calculateSelectionRange (this.selectedNode(graph,selected).rhs, selectedEdges[0].pos);
     }
-    this.props.app.setState ({ mapSelection: selected,
-                               editorContent: editorContent,
-                               editorSelection: editorSelection,
-                               editorFocus: !!(selected.node || selected.edge) });
+    const editorDisabled = !(selected.node || selected.edge)
+          || (selected.node && this.selectedNode(graph,selected).nodeType === this.externalNodeType);
+    this.props.setAppState ({ mapSelection: selected,
+                              editorContent: editorContent,
+                              editorSelection: editorSelection,
+                              editorDisabled: editorDisabled,
+                              editorFocus: ((selected.node || selected.edge) && !editorDisabled) });
+  }
+
+  setEditorState = (graph, selectedNode, newEditorState, callback) => {
+    const appProp = { focus: 'editorFocus',
+                      content: 'editorContent',
+                      selection: 'editorSelection' };
+    let newAppState = fromEntries (
+      Object.keys(appProp)
+        .filter ((prop) => newEditorState.hasOwnProperty(prop))
+        .map ((prop) => [appProp[prop], newEditorState[prop]]));
+    if (selectedNode && newEditorState.content) {
+      const newNode = extend ({},
+                              selectedNode,
+                              { rhs: [newEditorState.content],
+                                nodeType: (selectedNode.nodeType === this.placeholderNodeType
+                                           ? this.definedNodeType
+                                           : selectedNode.nodeType) });
+      const newGraph = extend ({},
+                               graph,
+                               { nodes: graph.nodes.map ((node) => (node === selectedNode ? newNode : node)) });
+      newAppState.evalText = this.rebuildBracery (newGraph, newNode);
+    }
+    this.props.setAppState (newAppState, callback);
   }
 
   // Get graph by analyzing parsed Bracery expression
@@ -366,15 +405,16 @@ class MapView extends Component {
     nodes.forEach (createPlaceholders (getExternalNodes, { nodeType: mv.externalNodeType }));
 
     // Do some common initializing, and create edges
-    let childPos = fromEntries (nodes.map ((node) => [node.id, {}]));
-    let edgesBySourceTargetID = fromEntries (nodes.map ((node) => [node.id, {}]));
+    let childRank = fromEntries (nodes.map ((node) => [node.id, {}]));
+    nodes.forEach ((node) => { node.incoming = {}; node.outgoing = {}; });
     const addEdge = ((edge) => {
       edges.push (edge);
-      let ebs = edgesBySourceTargetID[edge.source];
-      ebs[edge.target] = (ebs[edge.target] || []).concat ([edge]);
-      let srcChildPos = childPos[edge.source];
-      if (!srcChildPos[edge.target])
-	srcChildPos[edge.target] = Object.keys(srcChildPos).length;
+      let sourceNode = nodeByID[edge.source], targetNode = nodeByID[edge.target];
+      sourceNode.outgoing[edge.target] = (sourceNode.outgoing[edge.target] || []).concat (edge);
+      targetNode.incoming[edge.target] = (targetNode.incoming[edge.source] || []).concat (edge);
+      let srcChildRank = childRank[edge.source];
+      if (!srcChildRank[edge.target])
+	srcChildRank[edge.target] = Object.keys(srcChildRank).length;
     });
     nodes.forEach ((node) => {
       node.type = node.id;
@@ -416,10 +456,14 @@ class MapView extends Component {
 	++node.depth;
     });
     nodes.forEach ((node) => {
-      node.children = node.children.sort ((a,b) => childPos[node.id][a.id] - childPos[node.id][b.id]);
+      node.children = node.children.sort ((a,b) => childRank[node.id][a.id] - childRank[node.id][b.id]);
       node.children.forEach ((child, n) => { if (child.parent === node) child.childIndex = n; });
     });
 
+    // Remove any placeholders or external nodes that don't have incoming edges
+    nodes = nodes.filter ((node) => ((node.nodeType !== this.placeholderNodeType && node.nodeType !== this.externalNodeType)
+                                     || Object.keys(node.incoming).length));
+    
     // Lay things out
     const layoutNode = (node) => {
       // If no (x,y) specified, lay out nodes on a circle of radius layoutRadius/2^(depth-1) around the parent node
@@ -438,6 +482,7 @@ class MapView extends Component {
           node.x = node.y = 0;
 	node.autoLayout = true;
       }
+      node.orig = { x: node.x, y: node.y };
     };
     nodes.forEach (layoutNode);
 
@@ -445,7 +490,7 @@ class MapView extends Component {
     if (selected.node)
       nodeByID[selected.node].selected = true;
     else if (selected.edge) {
-      (edgesBySourceTargetID[selected.edge.source][selected.edge.target] || [])
+      (nodeByID[selected.edge.source].outgoing[selected.edge.target] || [])
         .forEach ((edge) => {
           edge.selected = true;
           edge.type += mv.selectedEdgeTypeSuffix;
@@ -458,19 +503,13 @@ class MapView extends Component {
     return { nodes,
 	     edges,
              nodeByID,
-             edgesBySourceTargetID,
              text };
   }
 
   // Event handlers
   onUpdateNode (graph, node) {
-    const mv = this;
-    const newEvalText = graph.nodes.map ((graphNode) => (
-      mv.nodeInSubtree (graphNode, node)
-	? mv.makeNodeBracery(graphNode)
-	: mv.nodeText(graphNode)
-    )).join('') + this.startNodeText(graph)
-    this.setEvalText (newEvalText);
+    if (node.x !== node.orig.x || node.y !== node.orig.y)
+      this.setEvalText (this.rebuildBracery (graph, node));
   }
 
   onSelectNode (graph, node) {
@@ -491,17 +530,11 @@ class MapView extends Component {
   // <textarea> for selected node/edge
   selectionTextArea (graph) {
     return (<NodeEditor
-            updateEditor={this.updateEditor}
+            setEditorState={this.setEditorState.bind(this,graph,this.selectedNode(graph))}
             content={this.props.editorContent}
             selection={this.props.editorSelection}
+            disabled={this.props.editorDisabled}
             focus={this.props.editorFocus} />);
-  }
-
-  updateEditor = (newState, callback) => {
-    this.props.app.setState (extend (newState.hasOwnProperty('focus') ? { editorFocus: newState.focus } : {},
-                                     newState.hasOwnProperty('content') ? { editorContent: newState.content } : {},
-                                     newState.hasOwnProperty('selection') ? { editorSelection: newState.selection } : {}),
-                             callback);
   }
   
   // Render graph
@@ -552,6 +585,9 @@ class MapView extends Component {
 	    edgeTypes={edgeTypes}
 	    nodeTypes={nodeTypes}
 	    nodeSubtypes={{}}
+            nodeSize={this.nodeSize}
+            edgeHandleSize={this.edgeHandleSize}
+            edgeArrowSize={this.edgeArrowSize}
             onUpdateNode={(node)=>this.onUpdateNode(graph,node)}
             onSelectNode={(node)=>this.onSelectNode(graph,node)}
             onSelectEdge={(edge)=>this.onSelectEdge(graph,edge)}

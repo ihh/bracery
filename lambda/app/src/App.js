@@ -39,6 +39,7 @@ class App extends Component {
       editorContent: '',
       editorSelection: this.emptyEditorSelection(),
       editorFocus: false,
+      editorDisabled: true,
       
       loggedIn: !!props.USER,
       editing: !!props.EDITING || true,  // DEBUG
@@ -270,6 +271,15 @@ class App extends Component {
 				   rerollMeansRestart: false,
 				   name: saveAsName }));
   }
+
+  // Editor setState callback
+  setAppStateFromMapView = (newState) => {
+    if (newState.evalText)
+      extend (newState,
+              { evalTextEdited: true,
+                warning: this.warning.unsaved });
+    this.setState (newState);
+  }
   
   // Event handlers
   evalChanged (event) {
@@ -436,7 +446,7 @@ class App extends Component {
 
       {this.state.editing
        ? (<MapView
-          app={this}
+          setAppState={this.setAppStateFromMapView}
           name={this.state.name}
           evalText={this.state.evalText}
           rhs={rhs}
@@ -444,6 +454,7 @@ class App extends Component {
           editorContent={this.state.editorContent}
           editorSelection={this.state.editorSelection}
           editorFocus={this.state.editorFocus}
+          editorDisabled={this.state.editorDisabled}
           />)
        : ''}
 	<div>

@@ -14,44 +14,107 @@ const fromEntries = (props_values) => {
   return obj;
 };
 
-// SelectionTextArea
-class SelectionTextArea extends Component {
-  render() {
-    const mapview = this.props.mapview;
-    const text = this.props.text;
-    return (<textarea
-            ref={c => { this.textarea = c; }}
-            className="rhs"
-            value={text}
-            onChange={(event)=>mapview.rhsChanged(event)} />);
+// NodeEditor
+// Based on https://hashnode.com/post/tightly-controlled-textareas-building-solid-plain-text-editors-in-react-cj6yvu6yq00cls5wtrbbkw96d
+class NodeEditor extends Component {
+  constructor(props) {
+    super(props);
+    this.selectionUpdateEvents = [
+      'select',
+      'click',
+      'focus',
+      'keyup'
+    ];
   }
 
-  setSelection() {
-    if (this.props.selected) {
+  selectionUpdateListener = () => this.props.updateEditor(
+    { selection: this.getSelection(this.textarea) }
+  );
+
+  focusListener = () => this.props.updateEditor ({ focus: true });
+  blurListener = () => this.props.updateEditor ({ focus: false });
+  
+  getSelection = (textareaRef) => ({
+    startOffset: textareaRef.selectionStart,
+    endOffset: textareaRef.selectionEnd,
+  });
+
+  setSelectionToDOM = (textareaRef, selection) => {
+    textareaRef.selectionStart = selection.startOffset;
+    textareaRef.selectionEnd = selection.endOffset;
+  }
+
+  setSelectionAndFocus = () => {  
+    this.setSelectionToDOM (this.textarea, this.props.selection);
+    if (this.props.focus) {
+      this.removeFocusListeners();
       this.textarea.focus();
-      if (this.props.range)
-        this.textarea.setSelectionRange (this.props.range[0], this.props.range[0] + this.props.range[1]);
+      this.addFocusListeners();
     }
+  }
+
+  addFocusListeners() {
+    this.textarea.addEventListener ('focus', this.focusListener);
+    this.textarea.addEventListener ('blur', this.blurListener);
+  }
+
+  removeFocusListeners() {
+    this.textarea.removeEventListener ('focus', this.focusListener);
+    this.textarea.removeEventListener ('blur', this.blurListener);
   }
   
   componentDidMount() {
-    this.setSelection()
+    this.setSelectionAndFocus();
+    this.selectionUpdateEvents.forEach(
+      eventType => this.textarea.addEventListener(
+        eventType,
+        this.selectionUpdateListener
+      )
+    );
+    this.addFocusListeners();
+  }
+
+  componentWillUnmount() {
+    this.selectionUpdateEvents.forEach(
+      eventType => this.textarea.removeEventListener(
+        eventType,
+        this.selectionUpdateListener
+      )
+    );
+    this.removeFocusListeners();
   }
 
   componentDidUpdate() {
-    this.setSelection()
+    this.setSelectionAndFocus();
   }
+
+  onChange = () => this.updateTextarea({
+    content: this.textarea.value,
+    selection: this.getSelection(this.textarea)
+  });
+
+  updateTextarea = ({ content, selection }) => {
+    this.props.updateEditor(
+      { content, selection },
+      () => this.setSelectionToDOM(
+        this.textarea,
+        selection
+      )
+    );
+  }
+
+  render() {
+    return (<textarea
+            ref={c => { this.textarea = c; }}
+            className="rhs"
+            value={this.props.content}
+            onChange={this.onChange} />);
+  }
+  
 }
 
 // MapView
 class MapView extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      selected: {},
-    }
-  };
-
   // Constants
   get START() { return 'START'; }
   get SYM_PREFIX() { return 'SYM_'; }
@@ -132,32 +195,65 @@ class MapView extends Component {
     }
   }
 
-  selectedNode (graph) {
-    return (this.state.selected.node
-            ? graph.nodeByID[this.state.selected.node]
-            : (this.state.selected.edge
-               ? graph.nodeByID[this.state.selected.edge.source]
+  selectedNode (graph, selected) {
+    selected = selected || this.props.selected;
+    return (selected.node
+            ? graph.nodeByID[selected.node]
+            : (selected.edge
+               ? graph.nodeByID[selected.edge.source]
                : null));
   }
 
-  selectedEdges (graph) {
-    return (this.state.selected.edge
-            ? (graph.edgesBySourceTargetID[this.state.selected.edge.source][this.state.selected.edge.target] || [])
+  selectedEdges (graph, selected) {
+    selected = selected || this.props.selected;
+    return (selected.edge
+            ? (graph.edgesBySourceTargetID[selected.edge.source][selected.edge.target] || [])
             : null);
   }
 
-  selectedNodeText (graph) {
-    const node = this.selectedNode (graph);
+  selectedNodeText (graph, selected) {
+    const node = this.selectedNode (graph, selected);
     return node ? this.nodesText (node.rhs) : '';
   }
 
-  // Modify App state
+  calculateSelectionRange (rhs, pos) {
+    let offset = 0, range = null;
+    range = rhs.reduce ((r, rhsNode) => {
+      if (!r) {
+        if (typeof(rhsNode) === 'string')
+          offset += rhsNode.length;
+        else if (rhsNode.pos) {
+          if (pos[0] >= rhsNode.pos[0] && pos[0] < rhsNode.pos[0] + rhsNode.pos[1])
+            r = [offset + pos[0] - rhsNode.pos[0], pos[1]];
+          else
+            offset += rhsNode.pos[1];
+        } else
+          console.error ('rhsNode without pos', rhsNode);
+      }
+        return r;
+    }, range);
+    range = range || [offset, 0];
+    return { startOffset: range[0], endOffset: range[0] + range[1] };
+  }
+
+  // State modification
   setEvalText (newEvalText) {
     this.props.app.setState ({ evalText: newEvalText });
   }
 
-  setSelected (sel) {
-    this.setState ({ selected: sel });
+  setSelected (graph, selected) {
+    const editorContent = this.selectedNodeText (graph, selected);
+    let editorSelection = { startOffset: editorContent.length,
+                            endOffset: editorContent.length };
+    if (selected.edge) {
+      const selectedEdges = this.selectedEdges (graph, selected);
+      if (selectedEdges.length === 1)
+        editorSelection = this.calculateSelectionRange (this.selectedNode(graph,selected).rhs, selectedEdges[0].pos);
+    }
+    this.props.app.setState ({ mapSelection: selected,
+                               editorContent: editorContent,
+                               editorSelection: editorSelection,
+                               editorFocus: !!(selected.node || selected.edge) });
   }
 
   // Get graph by analyzing parsed Bracery expression
@@ -166,7 +262,7 @@ class MapView extends Component {
     const rhs = this.props.rhs;
     const text = this.props.evalText;
     const symName = this.props.name;
-    const selected = this.state.selected;
+    const selected = this.props.selected;
     const startNodeName = this.SYM_PREFIX + symName;
     // Scan parsed Bracery code for top-level global variable assignments of the form $variable=&quote{...} or $variable=&let$_xy{...}&quote{...}
     let nodeOffset = 0, nodes = [], edges = [], startRhs = [];
@@ -378,56 +474,34 @@ class MapView extends Component {
   }
 
   onSelectNode (graph, node) {
-    this.setSelected (node
+    this.setSelected (graph,
+                      node
                       ? { node: node.id }
                       : {});
   }
 
   onSelectEdge (graph, edge) {
-    this.setSelected (edge
+    this.setSelected (graph,
+                      edge
                       ? { edge: { source: edge.source,
                                   target: edge.target } }
                       : {});
   }
 
-  rhsChanged (event) {
-    let text = event.target.value;
-    console.warn('rhsChanged',text)
-  }
-
   // <textarea> for selected node/edge
   selectionTextArea (graph) {
-    const text = this.selectedNodeText(graph);
-    let range = null;
-    if (this.state.selected.edge) {
-      const selectedEdges = this.selectedEdges(graph);
-      if (selectedEdges.length === 1)
-        range = this.calculateSelectionRange (this.selectedNode(graph).rhs, selectedEdges[0].pos);
-    }
-    return (<SelectionTextArea
-            selected={!!this.selectedNode(graph)}
-            mapview={this}
-            text={text}
-            range={range} />);
+    return (<NodeEditor
+            updateEditor={this.updateEditor}
+            content={this.props.editorContent}
+            selection={this.props.editorSelection}
+            focus={this.props.editorFocus} />);
   }
 
-  calculateSelectionRange (rhs, pos) {
-    let offset = 0, range = null;
-    range = rhs.reduce ((r, rhsNode) => {
-      if (!r) {
-        if (typeof(rhsNode) === 'string')
-          offset += rhsNode.length;
-        else if (rhsNode.pos) {
-          if (pos[0] >= rhsNode.pos[0] && pos[0] < rhsNode.pos[0] + rhsNode.pos[1])
-            r = [offset + pos[0] - rhsNode.pos[0], pos[1]];
-          else
-            offset += rhsNode.pos[1];
-        } else
-          console.error ('rhsNode without pos', rhsNode);
-      }
-        return r;
-    }, range);
-    return range;
+  updateEditor = (newState, callback) => {
+    this.props.app.setState (extend (newState.hasOwnProperty('focus') ? { editorFocus: newState.focus } : {},
+                                     newState.hasOwnProperty('content') ? { editorContent: newState.content } : {},
+                                     newState.hasOwnProperty('selection') ? { editorSelection: newState.selection } : {}),
+                             callback);
   }
   
   // Render graph

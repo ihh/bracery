@@ -34,6 +34,11 @@ class App extends Component {
       linkRevealed: {},
 
       warning: props.INITIAL_WARNING,
+
+      mapSelection: {},
+      editorContent: '',
+      editorSelection: this.emptyEditorSelection(),
+      editorFocus: false,
       
       loggedIn: !!props.USER,
       editing: !!props.EDITING || true,  // DEBUG
@@ -66,8 +71,8 @@ class App extends Component {
     this.bracery = new Bracery (null, { rita: RiTa });
     this.ParseTree = ParseTree;  // a convenience, for debugging
     this.braceryCache = {};
-    this.debounceEvalChangedUpdate = DebouncePromise (this.evalChangedUpdate.bind(this), this.evalChangedUpdateDelay);
-    window[braceryWeb.clickHandlerName] = this.handleBraceryLink.bind (this);
+    this.debounceEvalChangedUpdate = DebouncePromise (this.evalChangedUpdate, this.evalChangedUpdateDelay);
+    window[braceryWeb.clickHandlerName] = this.handleBraceryLink;
   }
 
   // Constants
@@ -80,8 +85,13 @@ class App extends Component {
   get evalChangedUpdateDelay() { return 400; }
   get maxTweetLen() { return 280; }
 
+  // Helpers
+  emptyEditorSelection() {
+    return { startOffset: 0, endOffset: 0 };
+  }
+  
   // Global methods
-  handleBraceryLink (newEvalText, linkType, linkName) {
+  handleBraceryLink = (newEvalText, linkType, linkName) => {
     var app = this;
     window.event.preventDefault();
     if (linkType === 'reveal') {
@@ -268,12 +278,16 @@ class App extends Component {
 		     evalText: text,
 		     currentSourceText: text,
 		     evalTextEdited: true,
+                     mapSelection: {},
+                     editorFocus: false,
+                     editorContent: '',
+                     editorSelection: this.emptyEditorSelection(),
 		     warning: this.warning.unsaved
 		   });
     return this.debounceEvalChangedUpdate();
   }
 
-  evalChangedUpdate() {
+  evalChangedUpdate = () => {
     this.promiseBraceryExpansion (this.state.evalText, this.state.initVars, { rerollMeansRestart: false });
   }
   
@@ -420,7 +434,18 @@ class App extends Component {
 	   : ''}
         </div>
 
-      {this.state.editing ? <MapView app={this} name={this.state.name} evalText={this.state.evalText} rhs={rhs} /> : ''}
+      {this.state.editing
+       ? (<MapView
+          app={this}
+          name={this.state.name}
+          evalText={this.state.evalText}
+          rhs={rhs}
+          selected={this.state.mapSelection}
+          editorContent={this.state.editorContent}
+          editorSelection={this.state.editorSelection}
+          editorFocus={this.state.editorFocus}
+          />)
+       : ''}
 	<div>
 	  {this.state.editing
 	   ? (<div>

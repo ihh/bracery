@@ -14,7 +14,44 @@ const fromEntries = (props_values) => {
   return obj;
 };
 
+// SelectionTextArea
+class SelectionTextArea extends Component {
+  render() {
+    const mapview = this.props.mapview;
+    const text = this.props.text;
+    return (<textarea
+            ref={c => { this.textarea = c; }}
+            className="rhs"
+            value={text}
+            onChange={(event)=>mapview.rhsChanged(event)} />);
+  }
+
+  setSelection() {
+    if (this.props.selected) {
+      this.textarea.focus();
+      if (this.props.range)
+        this.textarea.setSelectionRange (this.props.range[0], this.props.range[0] + this.props.range[1]);
+    }
+  }
+  
+  componentDidMount() {
+    this.setSelection()
+  }
+
+  componentDidUpdate() {
+    this.setSelection()
+  }
+}
+
+// MapView
 class MapView extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      selected: {},
+    }
+  };
+
   // Constants
   get START() { return 'START'; }
   get SYM_PREFIX() { return 'SYM_'; }
@@ -34,6 +71,7 @@ class MapView extends Component {
 
   get includeEdgeType() { return 'include'; }
   get linkEdgeType() { return 'link'; }
+  get selectedEdgeTypeSuffix() { return 'Selected'; }
 
   // Helpers
   truncate (text, len) {
@@ -41,18 +79,28 @@ class MapView extends Component {
             ? text
             : (text.substr(0,len) + '...'))
   }
+
+  // graphNodeText is to be called on a graph node
+  graphNodeText (node) {
+    return this.nodeText(node) + (node.nodeType === this.startNodeType
+                                  ? this.nodesText(node.rhs)
+                                  : '')
+  }
   
-  nodeText (node, fallback) {
+  // nodeText is to be called on a Bracery parse tree node (it references the "pos" attribute)
+  // It is also called by graphNodeText on graph nodes, which copy the parse tree node's "pos"
+  nodeText (node) {
     return (typeof(node) === 'string'
-                  ? node
-                  : (node.pos
-                     ? this.props.evalText.substr (node.pos[0], node.pos[1]).replace (/^{([\s\S]*)}$/, (_m,c)=>c)
-                     : fallback));
+            ? node
+            : (node && node.pos
+               ? this.props.evalText.substr (node.pos[0], node.pos[1]).replace (/^{([\s\S]*)}$/, (_m,c)=>c)
+               : ''));
   }
 
-  nodesText (nodes, fallback) {
+  // nodesText is to be called on an array of Bracery parse tree nodes
+  nodesText (nodes) {
     const mv = this;
-    return nodes.reduce((pre,node) => pre + mv.nodeText(node),'') || fallback || ''
+    return nodes.reduce((pre,node) => pre + mv.nodeText(node),'') || ''
   }
   
   startNodeText (graph) {
@@ -67,13 +115,58 @@ class MapView extends Component {
     }
     return false;
   }
-  
+
+  makeNodeBracery (node, dx, dy) {
+    const x = Math.round(node.x + (dx || 0)), y = Math.round(node.y + (dy || 0));
+    switch (node.nodeType) {
+    case this.externalNodeType:
+      return '&placeholder' + ParseTree.symChar + node.id.replace(this.SYM_PREFIX,'') + '{' + x + ',' + y + '}\n';
+    case this.placeholderNodeType:
+      return '&placeholder' + ParseTree.varChar + node.id + '{' + x + ',' + y + '}\n';
+    case this.startNodeType:
+      return '&placeholder{' + x + ',' + y + '}\n';
+    case this.definedNodeType:
+      return '[' + node.id + '@' + x + ',' + y + '=>' + this.nodesText (node.rhs) + ']\n';
+    default:
+      return '';
+    }
+  }
+
+  selectedNode (graph) {
+    return (this.state.selected.node
+            ? graph.nodeByID[this.state.selected.node]
+            : (this.state.selected.edge
+               ? graph.nodeByID[this.state.selected.edge.source]
+               : null));
+  }
+
+  selectedEdges (graph) {
+    return (this.state.selected.edge
+            ? (graph.edgesBySourceTargetID[this.state.selected.edge.source][this.state.selected.edge.target] || [])
+            : null);
+  }
+
+  selectedNodeText (graph) {
+    const node = this.selectedNode (graph);
+    return node ? this.nodesText (node.rhs) : '';
+  }
+
+  // Modify App state
+  setEvalText (newEvalText) {
+    this.props.app.setState ({ evalText: newEvalText });
+  }
+
+  setSelected (sel) {
+    this.setState ({ selected: sel });
+  }
+
   // Get graph by analyzing parsed Bracery expression
   getLayoutGraph() {
     const mv = this;
     const rhs = this.props.rhs;
     const text = this.props.evalText;
     const symName = this.props.name;
+    const selected = this.state.selected;
     const startNodeName = this.SYM_PREFIX + symName;
     // Scan parsed Bracery code for top-level global variable assignments of the form $variable=&quote{...} or $variable=&let$_xy{...}&quote{...}
     let nodeOffset = 0, nodes = [], edges = [], startRhs = [];
@@ -141,18 +234,18 @@ class MapView extends Component {
     const getTargetNodes = (node, config, namePrefix) => {
       return ParseTree.getSymbolNodes (node.rhs, config)
         .map ((target) => extend (target, { graphNodeName: (namePrefix || '') + target.name.toLowerCase() }))
-	.filter ((target) => target.graphNodeName !== node.id);
+        .filter ((target) => target.graphNodeName !== node.id);
     };
     const getIncludedNodes = (node) => getTargetNodes (node, { traceryOnly: true, ignoreLink: true });
-    const getLinkedNodes = (node) => getTargetNodes (node, { traceryOnly: true, linkOnly: true });
+    const getLinkedNodes = (node) => getTargetNodes (node, { traceryOnly: true, linkOnly: true, addLinkInfo: true });
     const getExternalNodes = (node, linkFlag) => getTargetNodes (node,
                                                                  extend ({ ignoreTracery: true },
                                                                          typeof(linkFlag) === 'undefined'
                                                                          ? {}
                                                                          : (linkFlag
-                                                                            ? { linkOnly: true }
+                                                                            ? { linkOnly: true, addLinkInfo: true }
                                                                             : { ignoreLink: true })),
-                                                                 this.SYM_PREFIX);
+                                                                 this.SYM_PREFIX)
     
     // Create placeholders for unknown & external nodes
     const createPlaceholders = (getter, attrs) => (node) => {
@@ -178,8 +271,11 @@ class MapView extends Component {
 
     // Do some common initializing, and create edges
     let childPos = fromEntries (nodes.map ((node) => [node.id, {}]));
+    let edgesBySourceTargetID = fromEntries (nodes.map ((node) => [node.id, {}]));
     const addEdge = ((edge) => {
       edges.push (edge);
+      let ebs = edgesBySourceTargetID[edge.source];
+      ebs[edge.target] = (ebs[edge.target] || []).concat ([edge]);
       let srcChildPos = childPos[edge.source];
       if (!srcChildPos[edge.target])
 	srcChildPos[edge.target] = Object.keys(srcChildPos).length;
@@ -198,13 +294,15 @@ class MapView extends Component {
         .concat (getExternalNodes (node, false))
         .forEach ((target) => addEdge ({ source: node.id,
                                          target: target.graphNodeName,
-                                         type: mv.includeEdgeType }));
+                                         type: mv.includeEdgeType,
+                                         pos: target.pos }));
       getLinkedNodes (node)
         .concat (getExternalNodes (node, true))
         .forEach ((target) => addEdge ({ source: node.id,
                                          target: target.graphNodeName,
                                          type: mv.linkEdgeType,
-                                         handleText: this.truncate (mv.nodeText (target.linkText, node.id),
+                                         pos: target.link.pos,
+                                         handleText: this.truncate (mv.nodeText (target.linkText) || node.id,
                                                                     this.maxEdgeHandleLen) }));
     });
     
@@ -247,29 +345,28 @@ class MapView extends Component {
     };
     nodes.forEach (layoutNode);
 
+    // Mark selected node/edge
+    if (selected.node)
+      nodeByID[selected.node].selected = true;
+    else if (selected.edge) {
+      (edgesBySourceTargetID[selected.edge.source][selected.edge.target] || [])
+        .forEach ((edge) => {
+          edge.selected = true;
+          edge.type += mv.selectedEdgeTypeSuffix;
+        });
+      nodeByID[selected.edge.source].selectedOutgoingEdge = true;
+      nodeByID[selected.edge.target].selectedIncomingEdge = true;
+    }
+    
     // Return
     return { nodes,
 	     edges,
+             nodeByID,
+             edgesBySourceTargetID,
              text };
   }
 
   // Event handlers
-  makeNodeBracery (node, dx, dy) {
-    const x = Math.round(node.x + (dx || 0)), y = Math.round(node.y + (dy || 0));
-    switch (node.nodeType) {
-    case this.externalNodeType:
-      return '&placeholder' + ParseTree.symChar + node.id.replace(this.SYM_PREFIX,'') + '{' + x + ',' + y + '}\n';
-    case this.placeholderNodeType:
-      return '&placeholder' + ParseTree.varChar + node.id + '{' + x + ',' + y + '}\n';
-    case this.startNodeType:
-      return '&placeholder{' + x + ',' + y + '}\n';
-    case this.definedNodeType:
-      return '[' + node.id + '@' + x + ',' + y + '=>' + this.nodesText (node.rhs) + ']\n';
-    default:
-      return '';
-    }
-  }
-  
   onUpdateNode (graph, node) {
     const mv = this;
     const newEvalText = graph.nodes.map ((graphNode) => (
@@ -280,15 +377,65 @@ class MapView extends Component {
     this.setEvalText (newEvalText);
   }
 
-  setEvalText (newEvalText) {
-    this.props.app.setState ({ evalText: newEvalText });
+  onSelectNode (graph, node) {
+    this.setSelected (node
+                      ? { node: node.id }
+                      : {});
+  }
+
+  onSelectEdge (graph, edge) {
+    this.setSelected (edge
+                      ? { edge: { source: edge.source,
+                                  target: edge.target } }
+                      : {});
+  }
+
+  rhsChanged (event) {
+    let text = event.target.value;
+    console.warn('rhsChanged',text)
+  }
+
+  // <textarea> for selected node/edge
+  selectionTextArea (graph) {
+    const text = this.selectedNodeText(graph);
+    let range = null;
+    if (this.state.selected.edge) {
+      const selectedEdges = this.selectedEdges(graph);
+      if (selectedEdges.length === 1)
+        range = this.calculateSelectionRange (this.selectedNode(graph).rhs, selectedEdges[0].pos);
+    }
+    return (<SelectionTextArea
+            selected={!!this.selectedNode(graph)}
+            mapview={this}
+            text={text}
+            range={range} />);
+  }
+
+  calculateSelectionRange (rhs, pos) {
+    let offset = 0, range = null;
+    range = rhs.reduce ((r, rhsNode) => {
+      if (!r) {
+        if (typeof(rhsNode) === 'string')
+          offset += rhsNode.length;
+        else if (rhsNode.pos) {
+          if (pos[0] >= rhsNode.pos[0] && pos[0] < rhsNode.pos[0] + rhsNode.pos[1])
+            r = [offset + pos[0] - rhsNode.pos[0], pos[1]];
+          else
+            offset += rhsNode.pos[1];
+        } else
+          console.error ('rhsNode without pos', rhsNode);
+      }
+        return r;
+    }, range);
+    return range;
   }
   
   // Render graph
   render() {
     const rhs = this.props.rhs;
     const graph = this.getLayoutGraph (rhs);
-//    console.warn(graph);
+    //    console.warn(graph);
+    //    console.warn(selected);
     const nodeTypes = fromEntries (
       graph.nodes.map (
         (node) => [
@@ -297,29 +444,33 @@ class MapView extends Component {
              typeText: node.id.replace (this.SYM_PREFIX, ParseTree.symChar),
 	     shape: (
                  <symbol viewBox="0 0 25 10" id={node.id} key="0">
-                 <rect x="0" y="0" width="25" height="10" className={node.nodeType+'-node'}></rect>
+                 <rect x="0" y="0" width="25" height="10" className={node.nodeType+'-node'+(node.selected
+                                                                                            ?' selected-node'
+                                                                                            :(node.selectedOutgoingEdge
+                                                                                              ?' selected-edge-source-node'
+                                                                                              :''))}></rect>
                  </symbol>
 	     )
            })]));
-    const edgeTypes = {
-      include: {
-	shapeId: "#includeEdge",
+    const edgeTypes = fromEntries (['',this.selectedEdgeTypeSuffix].reduce ((a, selectedSuffix) => a.concat ([
+      ['include'+selectedSuffix, {
+	shapeId: '#includeEdge'+selectedSuffix,
 	shape: (
-          <symbol viewBox="0 0 50 50" id="includeEdge" key="0">
-            <circle cx="25" cy="25" r="8" fill="green"> </circle>
-          </symbol>
+            <symbol viewBox="0 0 50 50" id={'includeEdge'+selectedSuffix} key="0">
+            <circle cx="25" cy="25" r="8" className={'includeEdge'+selectedSuffix}></circle>
+            </symbol>
 	)
-      },
-      link: {
-	shapeId: "#linkEdge",
+      }],
+      ['link'+selectedSuffix, {
+	shapeId: '#linkEdge'+selectedSuffix,
 	shape: (
-          <symbol viewBox="0 0 100 100" id="linkEdge" key="1">
-            <circle cx="50" cy="50" r="50" fill="currentcolor"></circle>
-          </symbol>
+            <symbol viewBox="0 0 100 100" id={'linkEdge'+selectedSuffix} key="1">
+            <circle cx="50" cy="50" r="50" className={'linkEdge'+selectedSuffix}></circle>
+            </symbol>
 	)
-      },
-    };
-    return (<div className="mapview">
+      }]]), []));
+    return (<div>
+            <div className="mapview">
 	    <GraphView
             nodeKey="id"
 	    nodes={graph.nodes}
@@ -328,8 +479,14 @@ class MapView extends Component {
 	    nodeTypes={nodeTypes}
 	    nodeSubtypes={{}}
             onUpdateNode={(node)=>this.onUpdateNode(graph,node)}
+            onSelectNode={(node)=>this.onSelectNode(graph,node)}
+            onSelectEdge={(edge)=>this.onSelectEdge(graph,edge)}
 	    zoomLevel="1"
 	    />
+            </div>
+            <div className="rhscontainer">
+	    {this.selectionTextArea (graph)}
+            </div>
 	    </div>);
   }
 }

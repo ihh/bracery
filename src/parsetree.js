@@ -336,8 +336,15 @@ function getSymbolNodes (rhs, gsnConfig) {
   return this.findNodes (rhs, {
     nodePredicate: function (nodeConfig, node) {
       var waitingForLink = (gsnConfig.linkOnly && !nodeConfig.inLink)
-      function addLinkText (foundNode) {
-	return extend ({}, foundNode, nodeConfig.linkText ? { linkText: nodeConfig.linkText } : {})
+      function addLinkInfo (foundNode) {
+	return (gsnConfig.addLinkInfo
+                ? extend ({},
+                          foundNode,
+                          nodeConfig.inLink
+                          ? { linkText: nodeConfig.linkText,
+                              link: nodeConfig.link }
+                          : {})
+                : foundNode)
       }
       if (typeof(node) === 'object')
         switch (node.type) {
@@ -345,12 +352,12 @@ function getSymbolNodes (rhs, gsnConfig) {
 	  if (isTraceryExpr (node)
 	      && !gsnConfig.ignoreTracery
               && !waitingForLink)
-	    return addLinkText (node.f[0])
+	    return addLinkInfo (node.f[0])
           break
         case 'sym':
           if (!gsnConfig.traceryOnly
               && !waitingForLink)
-	    return addLinkText (node)
+	    return addLinkInfo (node)
           break
         default:
           break
@@ -364,9 +371,11 @@ function getSymbolNodes (rhs, gsnConfig) {
           if (node.funcname === 'link')
             return (gsnConfig.ignoreLink && nChild === 1
                     ? { excludeSubtree: true }
-                    : extend (nodeConfig,
+                    : extend ({},
+                              nodeConfig,
                               { inLink: true,
-                                linkText: node.args[0] }))
+                                linkText: node.args[0],
+                                link: node }))
           break
         case 'cond':
           if (isTraceryExpr(node))

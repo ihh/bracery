@@ -16,3 +16,45 @@
     stroke-width: 0.1;
     stroke-dasharray: .1 .5;
 }
+
+.selected-node {
+    stroke: #00f;
+    fill: #ccf;
+}
+
+.selected-edge-source-node {
+    stroke: #00e;
+    fill: #eef;
+}
+
+.includeEdge {
+    fill: lightgreen;
+}
+
+.linkEdge {
+    fill: white;
+}
+
+.includeEdgeSelected {
+    fill: green;
+}
+
+.linkEdgeSelected {
+    fill: #ccf;
+}
+
+.rhscontainer {
+    display: flex;
+    flex-direction: row;
+}
+
+.rhs {
+    flex-grow: 1;
+    min-height: 10em;
+    resize: vertical;
+    background: white;
+    border-width: 1px;
+    border-style: solid;
+    white-space: pre-wrap;
+    word-break: break-all;
+}

@@ -274,7 +274,7 @@ class App extends Component {
 
   // Editor setState callback
   setAppStateFromMapView = (newState) => {
-    if (newState.evalText)
+    if (newState.hasOwnProperty('evalText'))
       extend (newState,
               { evalTextEdited: true,
                 warning: this.warning.unsaved });

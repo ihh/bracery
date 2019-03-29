@@ -111,11 +111,15 @@ class NodeEditor extends Component {
             disabled={this.props.disabled}
             onChange={this.onChange} />);
   }
-  
 }
 
 // MapView
 class MapView extends Component {
+  constructor(props) {
+    super(props);
+    this.ParseTree = ParseTree;
+  }
+
   // Constants
   get START() { return 'START'; }
   get SYM_PREFIX() { return 'SYM_'; }
@@ -148,6 +152,16 @@ class MapView extends Component {
             : (text.substr(0,len) + '...'))
   }
 
+  // escapeTopLevelSquareBraces
+  // Parse an expression as Bracery, replace top-level "]" with "\\]", then regenerate it as Bracery
+  escapeTopLevelSquareBraces (text) {
+    return ParseTree.parseRhs(text)
+      .map ((node) => (typeof(node) === 'string'
+                       ? node.replace (/[[\]]/g, (m) => '\\'+m)
+                       : this.nodeText(node,text)))
+      .join('');
+  }
+  
   // graphNodeText is to be called on a graph node
   graphNodeText (node) {
     return this.nodeText(node) + (node.nodeType === this.startNodeType
@@ -157,27 +171,29 @@ class MapView extends Component {
   
   // nodeText is to be called on a Bracery parse tree node (it references the "pos" attribute)
   // It is also called by graphNodeText on graph nodes, which copy the parse tree node's "pos"
-  nodeText (node) {
+  nodeText (node, text) {
+    if (typeof(text) === 'undefined')
+      text = this.props.evalText;
     return (typeof(node) === 'string'
             ? node
             : (node && node.pos
-               ? this.props.evalText.substr (node.pos[0], node.pos[1]).replace (/^{([\s\S]*)}$/, (_m,c)=>c)
+               ? text.substr (node.pos[0], node.pos[1]).replace (/^{([\s\S]*)}$/, (_m,c)=>c)
                : ''));
   }
 
   // nodesText is to be called on an array of Bracery parse tree nodes
-  nodesText (nodes) {
+  nodesText (nodes, text) {
     const mv = this;
-    return nodes.reduce((pre,node) => pre + mv.nodeText(node),'') || ''
+    return nodes.reduce((pre,node) => pre + mv.nodeText(node,text),'') || '';
   }
   
-  startNodeText (graph) {
-    return this.nodesText (graph.nodes[0].rhs)
+  startNodeText (graph, text) {
+    return this.nodesText (graph.nodes[0].rhs, text, false)
   }
   
   nodeInSubtree (node, subtreeRoot) {
     while (node) {
-      if (node === subtreeRoot)
+      if (node.id === subtreeRoot.id)  // compare IDs not nodes themselves, as we do a fair bit of object cloning
 	return true;
       node = node.parent;
     }
@@ -194,7 +210,7 @@ class MapView extends Component {
     case this.startNodeType:
       return '&placeholder{' + x + ',' + y + '}\n';
     case this.definedNodeType:
-      return '[' + node.id + '@' + x + ',' + y + '=>' + this.nodesText (node.rhs) + ']\n';
+      return '[' + node.id + '@' + x + ',' + y + '=>' + this.escapeTopLevelSquareBraces (this.nodesText (node.rhs)) + ']\n';
     default:
       return '';
     }
@@ -280,7 +296,7 @@ class MapView extends Component {
       Object.keys(appProp)
         .filter ((prop) => newEditorState.hasOwnProperty(prop))
         .map ((prop) => [appProp[prop], newEditorState[prop]]));
-    if (selectedNode && newEditorState.content) {
+    if (selectedNode && newEditorState.hasOwnProperty('content')) {
       const newNode = extend ({},
                               selectedNode,
                               { rhs: [newEditorState.content],
@@ -387,7 +403,7 @@ class MapView extends Component {
       getter(node).forEach ((target) => {
 	const targetNode = nodeByID[target.graphNodeName];
         if (targetNode) {
-	  if (!targetNode.parent && targetNode.nodeType !== mv.startNodeType)
+	  if (!targetNode.parent && targetNode.nodeType !== mv.startNodeType && !mv.nodeInSubtree (node, targetNode))
 	    targetNode.parent = node;
 	} else {
 	  const newNode = extend ({ id: target.graphNodeName,

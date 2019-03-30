@@ -596,25 +596,43 @@ function doTests (testRunner) {
   expectExpand ('$x=3 &link{test}{$x}', 'test==>(link)==>$x', {makeLink:function(text,link,type){return text.text+'==>('+type+')==>'+link.text}})
   expectExpand ('$x=3 &reveal{test}{$x}', 'test==>(reveal)==>3', {makeLink:function(text,link,type){return text.text+'==>('+type+')==>'+link.text}})
 
+  // [[Text with spaces, punctuation and caps.] shorthand for &link{Text with spaces, punctuation and caps.}{#text_with_spaces_punctuation_and_caps#}
   expectExpand ('[[]]', '[[]]')
   expectExpand ('[[ ]]', '[[ ]]')
   expectExpand ('[[x]]', '&link{x}{#x#}')
   expectExpand ('[[xYz]]', '&link{xYz}{#xyz#}')
   expectExpand ('[[ X! ... ]]', '&link{ X! ... }{#x#}')
   expectExpand ('[[Next room.]]', '&link{Next room.}{#next_room#}')
+  expectExpand ('[[Next    room.]]', '&link{Next    room.}{#next_room#}')
 
   // layout
-  expectExpand ('&quote&layout{ + 1, - 2.3 }{hello}', '&layout{1,-2.3}{hello}')
-  expectExpand ('&quote[a@(2,3)=>hello|there]', '[a@2,3=>hello|there]')
+  expectExpand ('&quote&layout{+001,-0002}{hello}', '&layout{1,-2}{hello}')
   expectExpand ('&layout{1,2}{hi}', 'hi')
 
-  expectExpand ('&placeholder{1,2}', '')
+  expectExpand ('&placeholder{}{1,2}', '')
   expectExpand ('&placeholder$x{1,2}', '')
   expectExpand ('&placeholder~test1{1,2}', '')
 
-  expectExpand ('&quote&placeholder{1,2}', '&placeholder{1,2}')
+  expectExpand ('&quote&placeholder{}{1,2}', '&placeholder{}{1,2}')
   expectExpand ('&quote&placeholder$x{1,2}', '&placeholder$x{1,2}')
   expectExpand ('&quote&placeholder~test1{1,2}', '&placeholder~test1{1,2}')
+
+  // @x,y notation for layout, and [text]{target} shorthand for &link{text}{target}
+  expectExpand ('&quote[a@2,3=>hello|there]', '[a@2,3=>hello|there]')
+  expectExpand ('&quote[a@(2,3)=>hello|there]', '[a@2,3=>hello|there]')
+
+  expectExpand ('@1,2:START', '')
+  expectExpand ('&quote{@1,2:START}', '&placeholder{}{1,2}')
+
+  expectExpand ('@1,2:START', '')
+  expectExpand ('&quote{@1,2:START}', '&placeholder{}{1,2}')
+  expectExpand ('&quote{@1,2$x}', '&placeholder$x{1,2}')
+  expectExpand ('&quote{@1,2~test1}', '&placeholder~test1{1,2}')
+
+  expectExpand ('[hello]{world}', '&link{hello}{world}')
+  expectExpand ('$x=hi [$x]{$x world}', '&link{hi}{$x world}')
+  expectExpand ('[hello]@100,200{world}', '&link{hello}{world}')
+  expectExpand ('&quote{[hello]@100,200{world}}', '&layout{100,200}{&link{hello}{world}}')
 
   // charclass, alt
   expectExpand ('&charclass{abc}', '[a|b|c]')

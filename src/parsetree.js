@@ -736,8 +736,8 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
             break
           case 'placeholder':
             result = [funcChar, tok.funcname].concat ([tok.args[0].args, [tok.args[1]]].reduce (function (arr, args, n) { return (n || args.length
-																  ? arr.concat ([makeFuncArgTree (pt, args, makeSymbolName, n > 0, n === 0)])
-																  : arr) }, []))
+                                                                                                                                 ? arr.concat ([makeFuncArgTree (pt, args, makeSymbolName, n > 0, n === 0)])
+                                                                                                                                  : arr.concat ([[pt.leftBraceChar, pt.rightBraceChar]])) }, []))
             break
           case 'parse':
             result = [funcChar, tok.funcname].concat ([tok.args[0].args, [tok.args[1]]].map (function (args) { return makeFuncArgTree (pt, args, makeSymbolName, nextIsAlpha) }))

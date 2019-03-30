@@ -15,7 +15,7 @@ Node
   / Alternation
   / LinkShortcut
   / args:DummyBrackets { return wrapNodes (args) }
-  / char:[\~\#&\$\+\-] { return char }
+  / char:[@\~\#&\$\+\-] { return char }
 
 NodeList
   = nl:RawNodeList { return addLocation(nl) }
@@ -208,10 +208,13 @@ LinkFunction
 
 LinkShortcut
   = "[[" text:Text "]]" { return makeLinkShortcut (text) }
+  / "[" text:NodeList "]@" coord:XYCoord link:DelimitedNodeList { return makeLayout (coord, arrayWithPos (makeFunction ('link', [wrapNodes(text), pseudoQuote(link)]))) }
+  / "[" text:NodeList "]" link:DelimitedNodeList { return makeFunction ('link', [wrapNodes(text), pseudoQuote(link)]) }
 
 LayoutFunction
   = "&layout" coord:DelimitedXYCoord arg:FunctionArg { return makeLayout (coord, arg) }
   / "&placeholder" arg:PlaceholderArg coord:DelimitedXYCoord _ { return makePlaceholder (arg, coord) }
+  / "@" coord:XYCoord arg:PlaceholderArg _ { return makePlaceholder (arg, coord) }
 
 PlaceholderArg
   = r:RawPlaceholderArg { return addLocation(r) }
@@ -219,13 +222,13 @@ PlaceholderArg
 RawPlaceholderArg
   = v:PlainVarLookup { return [v] }
   / s:PlainSymbol { return [s] }
-  / "" { return [] }
+  / ("{}" / ":START") { return [] }
 
 DelimitedXYCoord
   = "{" coord:XYCoord "}" { return coord }
 
 XYCoord
-  = _ x:SignedFloat _ comma:"," _ y:SignedFloat _ { return x + comma + y }
+  = x:SignedNumber comma:"," y:SignedNumber { return x + comma + y }
 
 ParseFunction
   = "&parse" grammar:StrictQuotedFunctionArg text:FunctionArg { return makeFunction ('parse', [wrapNodes(grammar), wrapNodes(text)]) }
@@ -363,7 +366,7 @@ UpperCaseIdentifier
   = firstChar:[A-Z] rest:[A-Z_0-9]* { return firstChar + rest.join("") }
 
 // Atoms
-Text = chars:[^\~\#&\$\+\-\{\}\[\]\|\\]+ { return chars.join("") }
+Text = chars:[^\@\~\#&\$\+\-\{\}\[\]\|\\]+ { return chars.join("") }
 
 Number
   = num:[0-9]+ { return parseInt (num.join('')) }
@@ -371,9 +374,9 @@ Number
 Float
   = left:[0-9]* "." right:[0-9]+ { return parseFloat(left.join("") + "." +   right.join("")) }
 
-SignedFloat
-  = ("+" _ / "") f:(Float / Number) { return f }
-  / "-" _ f:(Float / Number) { return -f }
+SignedNumber
+  = ("+" _ / "") n:Number { return n }
+  / "-" n:Number { return -n }
 
 Identifier
   = firstChar:[A-Za-z_] rest:[A-Za-z_0-9]* { return firstChar + rest.join("") }

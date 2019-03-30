@@ -1117,9 +1117,11 @@ function getSymbolNodes (rhs, gsnConfig) {
 	    return addLinkInfo (node)
           break
         case 'func':
-          if ((isLinkExpr(node) || isLayoutLinkExpr(node))
-              && gsnConfig.reportLinksAsSymbols)
+          if (((isLinkExpr(node) && !(nodeConfig.layoutNode && isLayoutLinkExpr(nodeConfig.layoutNode)))
+               || isLayoutLinkExpr(node))
+              && gsnConfig.reportLinksAsSymbols) {
             return addLinkInfo (node)
+          }
           break
         default:
           break
@@ -1127,7 +1129,7 @@ function getSymbolNodes (rhs, gsnConfig) {
       return false
     },
     makeChildConfig: function (nodeConfig, node, nChild) {
-      if (typeof(node) === 'object')
+      if (typeof(node) === 'object') {
         switch (node.type) {
         case 'func':
           if (node.funcname === 'link')
@@ -1138,6 +1140,8 @@ function getSymbolNodes (rhs, gsnConfig) {
                               { inLink: true,
                                 linkText: node.args[0],
                                 link: node }))
+          else if (node.funcname === 'layout' && gsnConfig.reportLinksAsSymbols)
+            return extend ({}, nodeConfig, { layoutNode: node });
           break
         case 'cond':
           if (isTraceryExpr(node))
@@ -1146,6 +1150,7 @@ function getSymbolNodes (rhs, gsnConfig) {
         default:
           break
         }
+      }
       return nodeConfig
     }
   })
@@ -1344,7 +1349,11 @@ function getLinkTargetRhs (node) {
 }
 
 function isLayoutLinkExpr (node) {
-  return isLayoutExpr(node) && isLinkExpr(getLayoutContent(node))
+  return isLayoutExpr(node) && getLayoutContent(node).length === 1 && isLinkExpr(getLayoutContent(node)[0])
+}
+
+function getLayoutLink (node) {
+  return getLayoutContent(node)[0]
 }
 
 // $var=&layout{X,Y}{...}
@@ -3272,6 +3281,7 @@ module.exports = {
   getLinkText: getLinkText,
   getLinkTargetRhs: getLinkTargetRhs,
   isLayoutLinkExpr: isLayoutLinkExpr,
+  getLayoutLink: getLayoutLink,
   isPlaceholderExpr: isPlaceholderExpr,
   getPlaceholderNode: getPlaceholderNode,
   getPlaceholderCoord: getPlaceholderCoord,
@@ -11550,9 +11560,13 @@ function peg$parse(input, options) {
     var symName = text.toLowerCase()
         .replace(/^[^a-z0-9_]*/,'')
         .replace(/[^a-z0-9_]*$/,'')
-        .replace(/[^a-z0-9_]+/g,'_')
+        .replace(/[^a-z0-9_]+/g,'_');
+    var loc = addLocation({})
     return (symName.length
-  	  ? makeFunction ('link', [text, makeQuote ([makeTraceryExpr (symName, [])])])
+  	  ? makeFunction ('link',
+                            [text,
+                             makeQuote ([copyLocation (makeTraceryExpr (symName, []),
+                                                       { pos: [loc.pos[0]+2, loc.pos[1]-4] })])])
   	  : ('[[' + text + ']]'))
   }
 

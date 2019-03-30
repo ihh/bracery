@@ -163,16 +163,14 @@ class MapView extends Component {
                        : this.nodeText(node,text)))
       .join('');
   }
-  escapeTopLevelSquareBraces (text) {
-    return this.escapeTopLevelRegex (text, /[[\]|\\]/g);
-  }
-  escapeTopLevelCurlyBraces (text) {
-    return this.escapeTopLevelRegex (text, /[{}|\\]/g);
+  escapeTopLevelBraces (text) {
+    return this.escapeTopLevelRegex (text, /[[\]{}|\\]/g);
   }
   
   // isLinkShortcut
   isLinkShortcut (text) {
-    return text.match(/^\[\[.*\]\]$/);
+    return text.match(/^\[\[.*\]\]$/)
+     || text.match(/^&layout{[+\-0-9]+,[+\-0-9]+}{\[\[.*\]\]}$/);
   }
 
   // parseCoord
@@ -180,6 +178,14 @@ class MapView extends Component {
     const xy = coord.split(',');
     return { x: parseFloat (xy[0]),
 	     y: parseFloat (xy[1]) };
+  }
+
+  isSingleTraceryNode (rhs) {
+    return rhs.length === 1 && ParseTree.isTraceryExpr (rhs[0]);
+  }
+
+  makeTraceryText (rhs) {
+    return ParseTree.traceryChar + ParseTree.traceryVarName(rhs[0]) + ParseTree.traceryChar;
   }
   
   // graphNodeText is to be called on a graph node
@@ -220,7 +226,7 @@ class MapView extends Component {
     return false;
   }
 
-  makeNodeBracery (node, wantImplicit) {
+  makeNodeBracery (node) {
     const x = Math.round(node.x), y = Math.round(node.y);
     switch (node.nodeType) {
     case this.externalNodeType:
@@ -230,36 +236,42 @@ class MapView extends Component {
     case this.startNodeType:
       return '&placeholder{' + x + ',' + y + '}\n';
     case this.definedNodeType:
-      return '[' + node.id + '@' + x + ',' + y + '=>' + this.escapeTopLevelSquareBraces (this.nodesText (node.rhs)) + ']\n';
+      return '[' + node.id + '@' + x + ',' + y + '=>' + this.escapeTopLevelBraces (this.nodesText (node.rhs)) + ']\n';
     case this.implicitNodeType:
-      if (wantImplicit) {
-        const isShortcut = this.isLinkShortcut(this.nodeText(node));
-        console.warn('implicit',node);
-        return '&link@' + x + ',' + y + '{'
-          + this.nodeText(node.linkText)
-          + '}{'
-          + this.escapeTopLevelCurlyBraces (isShortcut
-                                            ? (ParseTree.traceryChar + ParseTree.traceryVarName(node.rhs[0]) + ParseTree.traceryChar)
-                                            : this.nodesText(node.rhs))
-          + '}';
-      }
-      return '';
     default:
       return '';
     }
   }
+  
+  makeLinkBracery (node, newLinkText, newLinkTarget) {
+    const x = Math.round(node.x), y = Math.round(node.y);
+    return '&link@' + x + ',' + y + '{'
+      + this.escapeTopLevelBraces (newLinkText)
+      + '}{'
+      + this.escapeTopLevelBraces (newLinkTarget)
+      + '}';
+  }
 
-  rebuildBracery (graph, changedNode) {
-    // If we're changing an implicit node, then just rewrite the substring.
+  rebuildBracery (graph, changedNode, changedPos, newLinkText) {
+    // If we're changing an implicit node or an edge to an implicit node, then just rewrite the substring.
     // If we're changing a defined or start node (i.e. at the top level of the file), then rebuild the whole string.
     // This is a bit messy but is consistent with the top-level entities being autonomous, with the implicit ones dangling off them
     // (and being able to select smaller and smaller substrings by clicking on implicit nodes).
     if (changedNode.nodeType === this.implicitNodeType) {
-      return graph.text.substr (0, changedNode.pos[0])
-        + this.makeNodeBracery(changedNode,true)
-        + graph.text.substr (changedNode.pos[0] + changedNode.pos[1]);
+      changedPos = changedPos || changedNode.pos;
+      return graph.text.substr (0, changedPos[0])
+        + this.makeLinkBracery (changedNode,
+                                typeof(newLinkText) === 'undefined'
+                                ? this.nodeText(changedNode.linkText)
+                                : newLinkText,
+                                (this.isSingleTraceryNode (changedNode.rhs)
+                                 ? this.makeTraceryText (changedNode.rhs)
+                                 : this.nodesText (changedNode.rhs)))
+        + graph.text.substr (changedPos[0] + changedPos[1]);
     } else {
-      return graph.nodes.map ((graphNode) => (
+      return graph.nodes
+        .filter ((graphNode) => graphNode.nodeType !== this.implicitNodeType)
+        .map ((graphNode) => (
         this.nodeInSubtree (graphNode, changedNode)
 	  ? this.makeNodeBracery(graphNode)
 	  : this.nodeText(graphNode)
@@ -271,21 +283,40 @@ class MapView extends Component {
     selected = selected || this.props.selected;
     return (selected.node
             ? graph.nodeByID[selected.node]
-            : (selected.edge
-               ? graph.nodeByID[selected.edge.source]
-               : null));
+            : null);
+  }
+
+  selectedNodeText (graph, selected, node) {
+    node = node || this.selectedNode (graph, selected);
+    return (this.isSingleTraceryNode (node.rhs)
+            ? this.makeTraceryText (node.rhs)
+            : this.nodesText (node.rhs, graph.text));
   }
 
   selectedEdges (graph, selected) {
     selected = selected || this.props.selected;
-    return (selected.edge
+    return (selected.edge && graph.nodeByID[selected.edge.source]
             ? (graph.nodeByID[selected.edge.source].outgoing[selected.edge.target] || [])
             : null);
   }
 
-  selectedNodeText (graph, selected) {
-    const node = this.selectedNode (graph, selected);
-    return node ? this.nodesText (node.rhs) : '';
+  selectedEdge (graph, selected) {
+    const edges = this.selectedEdges(graph,selected);
+    return edges && edges.length && edges[0];
+  }
+
+  selectedEdgeSourceNode (graph, selected) {
+    selected = selected || this.props.selected;
+    return (selected.edge
+            ? graph.nodeByID[selected.edge.source]
+            : null);
+  }
+
+  selectedEdgeTargetNode (graph, selected) {
+    selected = selected || this.props.selected;
+    return (selected.edge
+            ? graph.nodeByID[selected.edge.target]
+            : null);
   }
 
   calculateSelectionRange (rhs, pos) {
@@ -314,14 +345,21 @@ class MapView extends Component {
   }
 
   setSelected (graph, selected) {
-    const editorContent = this.selectedNodeText (graph, selected);
-    let editorSelection = { startOffset: editorContent.length,
-                            endOffset: editorContent.length };
+    let editorContent = '', editorSelection = null;
     if (selected.edge) {
-      const selectedEdges = this.selectedEdges (graph, selected);
-      if (selectedEdges.length === 1)
-        editorSelection = this.calculateSelectionRange (this.selectedNode(graph,selected).rhs, selectedEdges[0].pos);
-    }
+      const selectedEdge = this.selectedEdge (graph, selected);
+      const selectedSource = this.selectedEdgeSourceNode (graph, selected);
+      editorContent = (selectedEdge.edgeType === this.linkEdgeType
+                       ? this.nodeText (selectedEdge.parseTreeNode.linkText)
+                       : this.selectedNodeText (graph, selected, selectedSource));
+      if (selectedEdge && selectedEdge.edgeType === this.includeEdgeType)
+        editorSelection = (selectedSource.nodeType === this.implicitNodeType
+                           ? { startOffset: 0, endOffset: editorContent.length }
+                           : this.calculateSelectionRange (this.selectedSource.rhs, selectedEdge.pos));
+    } else if (selected.node)
+      editorContent = this.selectedNodeText (graph, selected);
+    editorSelection = editorSelection || { startOffset: editorContent.length,
+                                           endOffset: editorContent.length };
     const editorDisabled = !(selected.node || selected.edge)
           || (selected.node && this.selectedNode(graph,selected).nodeType === this.externalNodeType);
     this.props.setAppState ({ mapSelection: selected,
@@ -331,7 +369,7 @@ class MapView extends Component {
                               editorFocus: ((selected.node || selected.edge) && !editorDisabled) });
   }
 
-  setEditorState = (graph, selectedNode, newEditorState, callback) => {
+  setEditorState = (graph, selectedNode, selectedEdge, selectedEdgeSource, selectedEdgeTarget, newEditorState, callback) => {
     const appProp = { focus: 'editorFocus',
                       content: 'editorContent',
                       selection: 'editorSelection' };
@@ -339,17 +377,24 @@ class MapView extends Component {
       Object.keys(appProp)
         .filter ((prop) => newEditorState.hasOwnProperty(prop))
         .map ((prop) => [appProp[prop], newEditorState[prop]]));
-    if (selectedNode && newEditorState.hasOwnProperty('content')) {
-      const newNode = extend ({},
-                              selectedNode,
-                              { rhs: [newEditorState.content],
-                                nodeType: (selectedNode.nodeType === this.placeholderNodeType
-                                           ? this.definedNodeType
-                                           : selectedNode.nodeType) });
-      const newGraph = extend ({},
-                               graph,
-                               { nodes: graph.nodes.map ((node) => (node === selectedNode ? newNode : node)) });
-      newAppState.evalText = this.rebuildBracery (newGraph, newNode);
+    if (newEditorState.hasOwnProperty('content')) {
+      if (selectedEdge && selectedEdge.edgeType === this.linkEdgeType) {
+        newAppState.evalText = this.rebuildBracery (graph, selectedEdgeTarget, selectedEdge.parseTreeNode.pos, newEditorState.content);
+      } else {
+        const oldNode = selectedNode || selectedEdgeSource;
+        if (oldNode) {
+          const newNode = extend ({},
+                                  oldNode,
+                                  { rhs: [newEditorState.content],
+                                    nodeType: (oldNode.nodeType === this.placeholderNodeType
+                                               ? this.definedNodeType
+                                               : oldNode.nodeType) });
+          const newGraph = extend ({},
+                                   graph,
+                                   { nodes: graph.nodes.map ((node) => (node === oldNode ? newNode : node)) });
+          newAppState.evalText = this.rebuildBracery (newGraph, newNode);
+        }
+      }
     }
     this.props.setAppState (newAppState, callback);
   }
@@ -366,7 +411,7 @@ class MapView extends Component {
     let nodeOffset = 0, topLevelNodes = [], edges = [], startRhs = [];
     let nodeByID = {};
     const pushNode = (nodes, node) => { nodeByID[node.id] = node; nodes.push(node); };
-    const unshiftNode = (nodes, node) => { nodeByID[node.id] = node; nodes = [node].concat(nodes); };
+    const unshiftNode = (nodes, node) => { nodeByID[node.id] = node; nodes.splice(0,0,node); };
     while (nodeOffset < rhs.length) {
       let braceryNode = rhs[nodeOffset];
       if (ParseTree.isQuoteAssignExpr (braceryNode)
@@ -445,31 +490,35 @@ class MapView extends Component {
 
     // Create implicit nodes for links
     let implicitNodes = [];
-    topLevelNodes.forEach ((topLevelNode) =>
-                           getLinkedNodes(topLevelNode).forEach ((linkNode) => {
-                             const implicitNode = extend ({
-                               id: linkNode.graphNodeName,
-                               pos: linkNode.pos,
-                               parent: (linkNode.inLink
-                                        ? nodeByID[linkNamer(linkNode.link)]
-                                        : topLevelNode),
-                               nodeType: this.implicitNodeType,
-                               linkText: (ParseTree.isLinkExpr(linkNode)
-                                          ? ParseTree.getLinkText(linkNode)
-                                          : (ParseTree.isLayoutLinkExpr(linkNode)
-                                             ? ParseTree.getLinkText(ParseTree.getLayoutLink(linkNode))
-                                             : null)),
-                               rhs: (ParseTree.isLinkExpr(linkNode)
-                                     ? ParseTree.getLinkTargetRhs(linkNode)
-                                     : (ParseTree.isLayoutLinkExpr(linkNode)
-                                        ? ParseTree.getLinkTargetRhs(ParseTree.getLayoutLink(linkNode))
-                                        : null)),
-                             }, (ParseTree.isLayoutLinkExpr(linkNode)
-                                 ? this.parseCoord (ParseTree.getLayoutCoord(linkNode))
-                                 : {}));
-                             pushNode (implicitNodes, implicitNode);
-                           }));
-    
+    topLevelNodes.forEach (
+      (topLevelNode) =>
+        getLinkedNodes(topLevelNode)
+        .forEach ((linkNode) => {
+          const isLink = ParseTree.isLinkExpr(linkNode);
+          const isLayoutLink = ParseTree.isLayoutLinkExpr(linkNode);
+          const parent = (linkNode.inLink
+                          ? nodeByID[linkNamer(linkNode.link)]
+                          : topLevelNode);
+          const actualLinkNode = (isLink
+                                  ? linkNode
+                                  : (isLayoutLink
+                                     ? ParseTree.getLayoutLink(linkNode)
+                                     : null));
+          const implicitNode = extend (
+            {
+              id: linkNode.graphNodeName,
+              pos: linkNode.pos,
+              parent: parent,
+              nodeType: this.implicitNodeType,
+              linkText: ParseTree.getLinkText(actualLinkNode),
+              rhs: ParseTree.getLinkTargetRhs(actualLinkNode),
+            },
+            (isLayoutLink
+             ? this.parseCoord (ParseTree.getLayoutCoord(linkNode))
+             : {}));
+          pushNode (implicitNodes, implicitNode);
+        }));
+
     // Create placeholders for unknown & external nodes
     const realNodes = topLevelNodes.concat (implicitNodes);
     let placeholderNodes = [];
@@ -526,7 +575,9 @@ class MapView extends Component {
     implicitNodes.forEach ((node) => addEdge ({ source: node.parent.id,
                                                 target: node.id,
                                                 type: mv.linkEdgeType,
-                                                pos: node.pos }));
+                                                parseTreeNode: node }));
+    // Common processing for edges
+    edges.forEach ((edge) => { edge.edgeType = edge.type; });  // preserve type against later modification of selected edge type
 
     // Create tree structure
     // Ensure every node (except start) has a parent, and sort children by the order that the parent->child edges appear
@@ -574,9 +625,11 @@ class MapView extends Component {
     prunedNodes.forEach (layoutNode);
 
     // Mark selected node/edge
-    if (selected.node)
+    if (selected.node && nodeByID[selected.node])
       nodeByID[selected.node].selected = true;
-    else if (selected.edge) {
+    else if (selected.edge
+             && nodeByID[selected.edge.source]
+             && nodeByID[selected.edge.target]) {
       (nodeByID[selected.edge.source].outgoing[selected.edge.target] || [])
         .forEach ((edge) => {
           edge.selected = true;
@@ -616,12 +669,23 @@ class MapView extends Component {
 
   // <textarea> for selected node/edge
   selectionTextArea (graph) {
+    this.assertSelectionValid (graph);
     return (<NodeEditor
-            setEditorState={this.setEditorState.bind(this,graph,this.selectedNode(graph))}
+            setEditorState={this.setEditorState.bind(this,graph,this.selectedNode(graph),this.selectedEdge(graph),this.selectedEdgeSourceNode(graph),this.selectedEdgeTargetNode(graph))}
             content={this.props.editorContent}
             selection={this.props.editorSelection}
             disabled={this.props.editorDisabled}
             focus={this.props.editorFocus} />);
+  }
+
+  assertSelectionValid (graph) {
+    if (this.props && this.props.selected) {
+      if (this.props.selected.node && !this.selectedNode(graph))
+        console.error("Lost selected.node",this.props.selected.node);
+      if (this.props.selected.edge && !this.selectedEdge(graph))
+        console.error("Lost selected.edge",this.props.selected.edge);
+    } else
+      throw new Error ('no props.selected');
   }
   
   // Render graph

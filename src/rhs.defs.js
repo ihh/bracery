@@ -109,9 +109,13 @@ function makeLinkShortcut (text) {
   var symName = text.toLowerCase()
       .replace(/^[^a-z0-9_]*/,'')
       .replace(/[^a-z0-9_]*$/,'')
-      .replace(/[^a-z0-9_]+/g,'_')
+      .replace(/[^a-z0-9_]+/g,'_');
+  var loc = addLocation({})
   return (symName.length
-	  ? makeFunction ('link', [text, makeQuote ([makeTraceryExpr (symName, [])])])
+	  ? makeFunction ('link',
+                          [text,
+                           makeQuote ([copyLocation (makeTraceryExpr (symName, []),
+                                                     { pos: [loc.pos[0]+2, loc.pos[1]-4] })])])
 	  : ('[[' + text + ']]'))
 }
 

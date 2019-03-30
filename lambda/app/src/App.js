@@ -376,7 +376,7 @@ class App extends Component {
     let isRef = {}, isTracery = {};
     ParseTree.getSymbolNodes (rhs, { ignoreTracery: true })
       .forEach (function (node) { isRef[node.name] = true; });
-    ParseTree.getSymbolNodes (rhs, { traceryOnly: true })
+    ParseTree.getSymbolNodes (rhs, { ignoreSymbols: true })
       .forEach (function (node) { isTracery[node.name] = true; });
     return [ { symbols: Object.keys(isRef) },
 	     { symbols: Object.keys(isTracery), lSym: ParseTree.traceryChar, rSym: ParseTree.traceryChar } ];

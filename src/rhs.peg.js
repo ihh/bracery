@@ -203,6 +203,7 @@ MathFunction
 
 LinkFunction
   = "&link" text:FunctionArg link:FunctionArg { return makeFunction ('link', [wrapNodes(text), pseudoQuote(link)]) }
+  / "&link@" coord:XYCoord text:FunctionArg link:FunctionArg { return makeLayout (coord, arrayWithPos (makeFunction ('link', [wrapNodes(text), pseudoQuote(link)]))) }
   / "&reveal" text:FunctionArg link:FunctionArg { return makeFunction ('reveal', [wrapNodes(text), wrapNodes(link)]) }
 
 LinkShortcut

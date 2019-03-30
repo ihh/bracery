@@ -1,4 +1,4 @@
-.start-node, .variable-node {
+.start-node, .defined-node {
     stroke-width: 0.3;
 }
 
@@ -17,22 +17,35 @@
     stroke-dasharray: .1 .5;
 }
 
-.selected-node {
-    stroke: #00f;
-    fill: #ccf;
-}
-
-.selected-edge-source-node {
-    stroke: #00e;
-    fill: #eef;
-}
-
 .includeEdge {
     fill: lightgreen;
 }
 
 .linkEdge {
     fill: white;
+}
+.selected-edge-source-node {
+    stroke: #00e;
+    fill: #eef;
+}
+
+.selected-edge-target-node {
+    stroke: #040;
+    fill: #efe;
+}
+
+.selected-node {
+    stroke: #00f;
+}
+
+.selected-node.start-node,
+.selected-node.defined-node,
+.selected-node.placeholder-node {
+    fill: #ccf;
+}
+
+.selected-node.external-node {
+    fill: #ecf;
 }
 
 .includeEdgeSelected {
@@ -43,16 +56,23 @@
     fill: #ccf;
 }
 
-.rhscontainer {
+.editor-enabled {
+    background: #eef;
+}
+
+.editor-disabled {
+    background: white;
+}
+
+.editorcontainer {
     display: flex;
     flex-direction: row;
 }
 
-.rhs {
+.editor {
     flex-grow: 1;
     min-height: 10em;
     resize: vertical;
-    background: white;
     border-width: 1px;
     border-style: solid;
     white-space: pre-wrap;

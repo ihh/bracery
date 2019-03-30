@@ -330,34 +330,40 @@ function findNodes (rhs, config) {
   }, [])
 }
 
-// Specialized findNodes for symbol nodes (common use case)
+// Specialized findNodes for symbol nodes (and common variants)
+// Somewhat misnamed, as it can also be configured to return &link{source}{target} and &layout&link{src}{targ} nodes, tracery-style #symbol# constructs, etc.
 function getSymbolNodes (rhs, gsnConfig) {
   gsnConfig = gsnConfig || {}
   return this.findNodes (rhs, {
     nodePredicate: function (nodeConfig, node) {
-      var waitingForLink = (gsnConfig.linkOnly && !nodeConfig.inLink)
       function addLinkInfo (foundNode) {
-	return (gsnConfig.addLinkInfo
+	return (gsnConfig.addParentLinkInfo
                 ? extend ({},
                           foundNode,
                           nodeConfig.inLink
-                          ? { linkText: nodeConfig.linkText,
+                          ? { inLink: true,
+                              linkText: nodeConfig.linkText,
                               link: nodeConfig.link }
-                          : {})
+                          : { inLink: false })
                 : foundNode)
       }
       if (typeof(node) === 'object')
         switch (node.type) {
         case 'cond':
 	  if (isTraceryExpr (node)
-	      && !gsnConfig.ignoreTracery
-              && !waitingForLink)
+	      && !gsnConfig.ignoreTracery)
 	    return addLinkInfo (node.f[0])
           break
         case 'sym':
-          if (!gsnConfig.traceryOnly
-              && !waitingForLink)
+          if (!gsnConfig.ignoreSymbols)
 	    return addLinkInfo (node)
+          break
+        case 'func':
+          if (((isLinkExpr(node) && !(nodeConfig.layoutNode && isLayoutLinkExpr(nodeConfig.layoutNode)))
+               || isLayoutLinkExpr(node))
+              && gsnConfig.reportLinksAsSymbols) {
+            return addLinkInfo (node)
+          }
           break
         default:
           break
@@ -365,17 +371,19 @@ function getSymbolNodes (rhs, gsnConfig) {
       return false
     },
     makeChildConfig: function (nodeConfig, node, nChild) {
-      if (typeof(node) === 'object')
+      if (typeof(node) === 'object') {
         switch (node.type) {
         case 'func':
           if (node.funcname === 'link')
-            return (gsnConfig.ignoreLink && nChild === 1
+            return (gsnConfig.ignoreLinkSubtrees && nChild === 1
                     ? { excludeSubtree: true }
                     : extend ({},
                               nodeConfig,
                               { inLink: true,
                                 linkText: node.args[0],
                                 link: node }))
+          else if (node.funcname === 'layout' && gsnConfig.reportLinksAsSymbols)
+            return extend ({}, nodeConfig, { layoutNode: node });
           break
         case 'cond':
           if (isTraceryExpr(node))
@@ -384,6 +392,7 @@ function getSymbolNodes (rhs, gsnConfig) {
         default:
           break
         }
+      }
       return nodeConfig
     }
   })
@@ -567,13 +576,35 @@ function getLayoutContent (node) {
   return node.args[1].args
 }
 
-function getLayoutExpr (node) {
-  return node.value[0]
+// &layout{x,y}&link{src}{target}
+
+function isLinkExpr (node) {
+    return typeof(node) === 'object' && node.type === 'func' && node.funcname === 'link'
+}
+
+function getLinkText (node) {
+  return node.args[0]
+}
+
+function getLinkTargetRhs (node) {
+  return node.args[1].args
+}
+
+function isLayoutLinkExpr (node) {
+  return isLayoutExpr(node) && getLayoutContent(node).length === 1 && isLinkExpr(getLayoutContent(node)[0])
+}
+
+function getLayoutLink (node) {
+  return getLayoutContent(node)[0]
 }
 
 // $var=&layout{X,Y}{...}
 function isLayoutAssign (node) {
   return typeof(node) === 'object' && node.type === 'assign' && !node.local && !node.visible && node.value.length === 1 && isLayoutExpr(node.value[0])
+}
+
+function getLayoutExpr (node) {
+  return node.value[0]
 }
 
 // &placeholder$var{X,Y} or &placeholder~sym{X,Y}
@@ -2488,6 +2519,11 @@ module.exports = {
   getLayoutContent: getLayoutContent,
   isLayoutAssign: isLayoutAssign,
   getLayoutExpr: getLayoutExpr,
+  isLinkExpr: isLinkExpr,
+  getLinkText: getLinkText,
+  getLinkTargetRhs: getLinkTargetRhs,
+  isLayoutLinkExpr: isLayoutLinkExpr,
+  getLayoutLink: getLayoutLink,
   isPlaceholderExpr: isPlaceholderExpr,
   getPlaceholderNode: getPlaceholderNode,
   getPlaceholderCoord: getPlaceholderCoord,

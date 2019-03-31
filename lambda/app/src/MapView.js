@@ -479,7 +479,8 @@ class MapView extends Component {
         .map ((target) => extend (target, { graphNodeName: namer(target) }))
         .filter ((target) => target.graphNodeName !== node.id);
     };
-    const linkNamer = (n) => this.LINK_PREFIX + n.pos[0];
+    let nLinkedNodes = 0;
+    const linkNamer = (n) => this.LINK_PREFIX + (++nLinkedNodes);
     const getLinkedNodes = (node) => getTargetNodes (node,
                                                      { ignoreSymbols: true,
                                                        ignoreTracery: true,
@@ -756,7 +757,9 @@ class MapView extends Component {
 	shapeId: '#includeEdge'+selectedSuffix,
 	shape: (
             <symbol viewBox="0 0 60 60" id={'includeEdge'+selectedSuffix} key="0">
-            <path d="M20 20 h15 q 10 0,10 10 q 0 10,-10 10 h-15 q 3 0,3 -10 q 0 -10,-3 -10 Z" className={'includeEdgeLabel'+selectedSuffix}></path>
+            {/* Commented out because it appears in the wrong orientation when arrow is right-to-left
+               <path d="M20 20 h15 q 10 0,10 10 q 0 10,-10 10 h-15 q 3 0,3 -10 q 0 -10,-3 -10 Z" className={'includeEdgeLabel'+selectedSuffix}></path> 
+             */}
             </symbol>
 	)
       }],

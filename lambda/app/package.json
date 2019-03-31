@@ -6,7 +6,7 @@
     "awesome-debounce-promise": "^2.1.0",
     "bracery": "file:../../",
     "react": "^16.8.5",
-    "react-digraph": "^6.2.2",
+    "react-digraph": "file:react-digraph",
     "react-dom": "^16.8.5",
     "react-scripts": "2.1.8"
   },

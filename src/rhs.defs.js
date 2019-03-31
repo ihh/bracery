@@ -287,8 +287,8 @@ function makeLayout (coord, args) {
   return makeLayoutNoQuote (coord, pseudoQuote (args))
 }
 
-function makeLayoutNoQuote (coord, args) {
-  return makeFunction ('layout', [coord, args])
+function makeLayoutNoQuote (coord, arg) {
+  return makeFunction ('layout', [coord, arg])
 }
 
 function makePlaceholder (args, coord) {

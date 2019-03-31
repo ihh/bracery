@@ -183,6 +183,19 @@ class MapView extends Component {
 	     y: parseFloat (xy[1]) };
   }
 
+  // Specialized findNodes for checking if a tree contains no variables, symbols, or links
+  isStaticExpr (rhs) {
+    return ParseTree.findNodes (rhs, {
+      nodePredicate: function (nodeConfig, node) {
+        return (typeof(node) === 'object'
+                && (node.type === 'sym'
+                    || node.type === 'lookup'
+                    || (node.type === 'func'
+                        && node.funcname === 'link')))
+      }
+    }).length === 0
+  }
+  
   isSingleTraceryNode (rhs) {
     return rhs.length === 1 && ParseTree.isTraceryExpr (rhs[0]);
   }
@@ -465,7 +478,7 @@ class MapView extends Component {
           extend (node, this.parseCoord (coord))
         topLevelNodes = topLevelNodes.filter ((n) => n.id !== node.id);
 	pushNode (topLevelNodes, node, { insertAtStart: node.nodeType === this.startNodeType });
-      } else if (ParseTree.isStaticExpr ([braceryNode]))
+      } else if (this.isStaticExpr ([braceryNode]))
         startRhs.push (braceryNode);
       else
         break;

@@ -335,7 +335,7 @@ function peg$parse(input, options) {
       peg$c191 = function(text, link) { return makeFunction ('link', [wrapNodes(text), pseudoQuote(link)]) },
       peg$c192 = "&link@",
       peg$c193 = peg$literalExpectation("&link@", false),
-      peg$c194 = function(coord, text, link) { return makeLayout (coord, arrayWithPos (makeFunction ('link', [wrapNodes(text), pseudoQuote(link)]))) },
+      peg$c194 = function(coord, text, link) { return makeLayoutNoQuote (coord, makeFunction ('link', [wrapNodes(text), pseudoQuote(link)])) },
       peg$c195 = "&reveal",
       peg$c196 = peg$literalExpectation("&reveal", false),
       peg$c197 = function(text, link) { return makeFunction ('reveal', [wrapNodes(text), wrapNodes(link)]) },
@@ -353,7 +353,7 @@ function peg$parse(input, options) {
       peg$c209 = peg$literalExpectation("]", false),
       peg$c210 = "&layout",
       peg$c211 = peg$literalExpectation("&layout", false),
-      peg$c212 = function(coord, arg) { return makeLayout (coord, arg) },
+      peg$c212 = function(coord, arg) { return makeLayoutNoQuote (coord, wrapNodes(arg)) },
       peg$c213 = "&placeholder",
       peg$c214 = peg$literalExpectation("&placeholder", false),
       peg$c215 = function(arg, coord) { return makePlaceholder (arg, coord) },
@@ -8507,8 +8507,8 @@ function peg$parse(input, options) {
     return makeLayoutNoQuote (coord, pseudoQuote (args))
   }
 
-  function makeLayoutNoQuote (coord, args) {
-    return makeFunction ('layout', [coord, args])
+  function makeLayoutNoQuote (coord, arg) {
+    return makeFunction ('layout', [coord, arg])
   }
 
   function makePlaceholder (args, coord) {

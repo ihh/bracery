@@ -400,15 +400,6 @@ function getSymbolNodes (rhs, gsnConfig) {
   })
 }
 
-// Specialized findNodes for checking if a tree contains no variables or symbols
-function isStaticExpr (rhs) {
-  return this.findNodes (rhs, {
-    nodePredicate: function (nodeConfig, node) {
-      return typeof(node) === 'object' && (node.type === 'sym' || node.type === 'lookup')
-    }
-  }).length === 0
-}
-
 // parseTreeEmpty returns true if a tree contains no nonwhite characters OR unexpanded symbols
 // TODO: rewrite using findNodes
 function parseTreeEmpty (rhs) {
@@ -2511,7 +2502,6 @@ module.exports = {
   findNodes: findNodes,
   getSymbolNodes: getSymbolNodes,
   parseTreeEmpty: parseTreeEmpty,
-  isStaticExpr: isStaticExpr,
   isPlainSymExpr: isPlainSymExpr,
   isTraceryExpr: isTraceryExpr,
   traceryVarName: traceryVarName,

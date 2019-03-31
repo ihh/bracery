@@ -206,6 +206,8 @@ Bracery.prototype._expandRhs = function (config) {
 }
 
 Bracery.prototype._expandSymbol = function (config) {
+  if (!config.node.name)
+    console.error('Bad expandSymbol node:',JSON.stringify(config.node))
   var symbolName = config.node.name.toLowerCase()
   var rhs
   var rules = this.rules[symbolName]

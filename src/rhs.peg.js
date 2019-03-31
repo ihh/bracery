@@ -203,7 +203,7 @@ MathFunction
 
 LinkFunction
   = "&link" text:FunctionArg link:FunctionArg { return makeFunction ('link', [wrapNodes(text), pseudoQuote(link)]) }
-  / "&link@" coord:XYCoord text:FunctionArg link:FunctionArg { return makeLayout (coord, arrayWithPos (makeFunction ('link', [wrapNodes(text), pseudoQuote(link)]))) }
+  / "&link@" coord:XYCoord text:FunctionArg link:FunctionArg { return makeLayoutNoQuote (coord, makeFunction ('link', [wrapNodes(text), pseudoQuote(link)])) }
   / "&reveal" text:FunctionArg link:FunctionArg { return makeFunction ('reveal', [wrapNodes(text), wrapNodes(link)]) }
 
 LinkShortcut
@@ -212,7 +212,7 @@ LinkShortcut
   / "[" text:NodeList "]" link:DelimitedNodeList { return makeFunction ('link', [wrapNodes(text), pseudoQuote(link)]) }
 
 LayoutFunction
-  = "&layout" coord:DelimitedXYCoord arg:FunctionArg { return makeLayout (coord, arg) }
+  = "&layout" coord:DelimitedXYCoord arg:FunctionArg { return makeLayoutNoQuote (coord, wrapNodes(arg)) }
   / "&placeholder" arg:PlaceholderArg coord:DelimitedXYCoord _ { return makePlaceholder (arg, coord) }
   / "@" coord:XYCoord arg:PlaceholderArg _ { return makePlaceholder (arg, coord) }
 

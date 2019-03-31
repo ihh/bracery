@@ -14321,6 +14321,8 @@ Bracery.prototype._expandRhs = function (config) {
 }
 
 Bracery.prototype._expandSymbol = function (config) {
+  if (!config.node.name)
+    console.error('Bad expandSymbol node:',JSON.stringify(config.node))
   var symbolName = config.node.name.toLowerCase()
   var rhs
   var rules = this.rules[symbolName]
@@ -15272,15 +15274,6 @@ function getSymbolNodes (rhs, gsnConfig) {
   })
 }
 
-// Specialized findNodes for checking if a tree contains no variables or symbols
-function isStaticExpr (rhs) {
-  return this.findNodes (rhs, {
-    nodePredicate: function (nodeConfig, node) {
-      return typeof(node) === 'object' && (node.type === 'sym' || node.type === 'lookup')
-    }
-  }).length === 0
-}
-
 // parseTreeEmpty returns true if a tree contains no nonwhite characters OR unexpanded symbols
 // TODO: rewrite using findNodes
 function parseTreeEmpty (rhs) {
@@ -15447,7 +15440,9 @@ function getLayoutCoord (node) {
 }
 
 function getLayoutContent (node) {
-  return node.args[1].args
+  return (typeof(node.args[1]) === 'object' && node.args[1].type === 'func' && node.args[1].funcname === 'quote'
+          ? node.args[1].args
+          : [node.args[1]])
 }
 
 // &layout{x,y}&link{src}{target}
@@ -15602,6 +15597,9 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
                     status ? [leftBraceChar, pt.makeRhsTree (status, makeSymbolName), rightBraceChar] : ' ']
         } else
           switch (funcType (tok.funcname)) {
+          case 'layout':
+            result = [funcChar, tok.funcname].concat ([[getLayoutCoord(tok)], getLayoutContent(tok)].map (function (args) { return makeFuncArgTree (pt, args, makeSymbolName, true) }))
+            break
           case 'link':
             result = [funcChar, tok.funcname].concat ([[tok.args[0]], tok.args[1].args].map (function (args) { return makeFuncArgTree (pt, args, makeSymbolName, true) }))
             break
@@ -16290,9 +16288,9 @@ var binaryFunction = {
 
 // funcType(funcname) returns the function that is the canonical example of how funcname's arguments are rendered
 function funcType (funcname) {
-  if (funcname === 'reduce' || funcname === 'vars' || funcname === 'math' || funcname === 'parse' || funcname === 'placeholder' || funcname === 'reveal')
+  if (funcname === 'reduce' || funcname === 'vars' || funcname === 'math' || funcname === 'parse' || funcname === 'placeholder' || funcname === 'reveal' || funcname === 'layout')
     return funcname
-  if (funcname === 'link' || funcname === 'layout')
+  if (funcname === 'link')
     return 'link'
   if (funcname === 'call' || funcname === 'xcall')
     return 'call'
@@ -16691,6 +16689,7 @@ function makeExpansionPromise (config) {
                   return makeRhsExpansionPromiseFor ([node.args[1]])
                     .then (function (linkArg) {
                       expansion.nodes += textArg.nodes + linkArg.nodes
+                      console.warn('makeLink',linkArg)
                       expansion.text = (config.makeLink
                                         ? config.makeLink (textArg, linkArg, node.funcname)
                                         : (funcChar + node.funcname
@@ -17378,7 +17377,6 @@ module.exports = {
   findNodes: findNodes,
   getSymbolNodes: getSymbolNodes,
   parseTreeEmpty: parseTreeEmpty,
-  isStaticExpr: isStaticExpr,
   isPlainSymExpr: isPlainSymExpr,
   isTraceryExpr: isTraceryExpr,
   traceryVarName: traceryVarName,
@@ -17799,7 +17797,7 @@ function peg$parse(input, options) {
       peg$c191 = function(text, link) { return makeFunction ('link', [wrapNodes(text), pseudoQuote(link)]) },
       peg$c192 = "&link@",
       peg$c193 = peg$literalExpectation("&link@", false),
-      peg$c194 = function(coord, text, link) { return makeLayout (coord, arrayWithPos (makeFunction ('link', [wrapNodes(text), pseudoQuote(link)]))) },
+      peg$c194 = function(coord, text, link) { return makeLayoutNoQuote (coord, makeFunction ('link', [wrapNodes(text), pseudoQuote(link)])) },
       peg$c195 = "&reveal",
       peg$c196 = peg$literalExpectation("&reveal", false),
       peg$c197 = function(text, link) { return makeFunction ('reveal', [wrapNodes(text), wrapNodes(link)]) },
@@ -17817,7 +17815,7 @@ function peg$parse(input, options) {
       peg$c209 = peg$literalExpectation("]", false),
       peg$c210 = "&layout",
       peg$c211 = peg$literalExpectation("&layout", false),
-      peg$c212 = function(coord, arg) { return makeLayout (coord, arg) },
+      peg$c212 = function(coord, arg) { return makeLayoutNoQuote (coord, wrapNodes(arg)) },
       peg$c213 = "&placeholder",
       peg$c214 = peg$literalExpectation("&placeholder", false),
       peg$c215 = function(arg, coord) { return makePlaceholder (arg, coord) },
@@ -25971,8 +25969,8 @@ function peg$parse(input, options) {
     return makeLayoutNoQuote (coord, pseudoQuote (args))
   }
 
-  function makeLayoutNoQuote (coord, args) {
-    return makeFunction ('layout', [coord, args])
+  function makeLayoutNoQuote (coord, arg) {
+    return makeFunction ('layout', [coord, arg])
   }
 
   function makePlaceholder (args, coord) {

@@ -1,5 +1,9 @@
-.start-node, .defined-node, .implicit-node {
+.start-node, .defined-node {
     stroke-width: 0.3;
+}
+
+.implicit-node {
+    stroke-width: 0.2;
 }
 
 .start-node, .external-node {

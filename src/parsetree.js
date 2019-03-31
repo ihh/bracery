@@ -575,7 +575,9 @@ function getLayoutCoord (node) {
 }
 
 function getLayoutContent (node) {
-  return node.args[1].args
+  return (typeof(node.args[1]) === 'object' && node.args[1].type === 'func' && node.args[1].funcname === 'quote'
+          ? node.args[1].args
+          : [node.args[1]])
 }
 
 // &layout{x,y}&link{src}{target}
@@ -730,6 +732,9 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
                     status ? [leftBraceChar, pt.makeRhsTree (status, makeSymbolName), rightBraceChar] : ' ']
         } else
           switch (funcType (tok.funcname)) {
+          case 'layout':
+            result = [funcChar, tok.funcname].concat ([[getLayoutCoord(tok)], getLayoutContent(tok)].map (function (args) { return makeFuncArgTree (pt, args, makeSymbolName, true) }))
+            break
           case 'link':
             result = [funcChar, tok.funcname].concat ([[tok.args[0]], tok.args[1].args].map (function (args) { return makeFuncArgTree (pt, args, makeSymbolName, true) }))
             break
@@ -1418,9 +1423,9 @@ var binaryFunction = {
 
 // funcType(funcname) returns the function that is the canonical example of how funcname's arguments are rendered
 function funcType (funcname) {
-  if (funcname === 'reduce' || funcname === 'vars' || funcname === 'math' || funcname === 'parse' || funcname === 'placeholder' || funcname === 'reveal')
+  if (funcname === 'reduce' || funcname === 'vars' || funcname === 'math' || funcname === 'parse' || funcname === 'placeholder' || funcname === 'reveal' || funcname === 'layout')
     return funcname
-  if (funcname === 'link' || funcname === 'layout')
+  if (funcname === 'link')
     return 'link'
   if (funcname === 'call' || funcname === 'xcall')
     return 'call'

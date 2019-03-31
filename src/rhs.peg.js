@@ -208,7 +208,7 @@ LinkFunction
 
 LinkShortcut
   = "[[" text:Text "]]" { return makeLinkShortcut (text) }
-  / "[" text:NodeList "]@" coord:XYCoord link:DelimitedNodeList { return makeLayout (coord, arrayWithPos (makeFunction ('link', [wrapNodes(text), pseudoQuote(link)]))) }
+  / "[" text:NodeList "]@" coord:XYCoord link:DelimitedNodeList { return makeLayoutNoQuote (coord, makeFunction ('link', [wrapNodes(text), pseudoQuote(link)])) }
   / "[" text:NodeList "]" link:DelimitedNodeList { return makeFunction ('link', [wrapNodes(text), pseudoQuote(link)]) }
 
 LayoutFunction

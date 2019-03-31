@@ -284,7 +284,11 @@ function makeRhyme (a, b, tries) {
 }
 
 function makeLayout (coord, args) {
-  return makeFunction ('layout', [coord, pseudoQuote (args)])
+  return makeLayoutNoQuote (coord, pseudoQuote (args))
+}
+
+function makeLayoutNoQuote (coord, args) {
+  return makeFunction ('layout', [coord, args])
 }
 
 function makePlaceholder (args, coord) {

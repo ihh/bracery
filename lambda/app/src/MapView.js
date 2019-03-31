@@ -235,17 +235,25 @@ class MapView extends Component {
     return false;
   }
 
+  makeCoord (node) {
+    if (typeof(node.x) !== 'undefined') {
+      const x = Math.round(node.x), y = Math.round(node.y);
+      return '@' + x + ',' + y;
+    }
+    return '';
+  }
+  
   makeNodeBracery (node) {
-    const x = Math.round(node.x), y = Math.round(node.y);
+    const xy = this.makeCoord(node);
     switch (node.nodeType) {
     case this.externalNodeType:
-      return '@' + x + ',' + y + ParseTree.symChar + node.id.replace(this.SYM_PREFIX,'') + '\n';
+      return xy && (xy + ParseTree.symChar + node.id.replace(this.SYM_PREFIX,'') + '\n');
     case this.placeholderNodeType:
-      return '@' + x + ',' + y + ParseTree.varChar + node.id + '\n';
+      return xy && (xy + ParseTree.varChar + node.id + '\n');
     case this.startNodeType:
-      return '@' + x + ',' + y + ':START\n';
+      return xy && (xy + ':START\n');
     case this.definedNodeType:
-      return '[' + node.id + '@' + x + ',' + y + '=>' + this.escapeTopLevelBraces (this.nodesText (node.rhs)) + ']\n';
+      return '[' + node.id + xy + '=>' + this.escapeTopLevelBraces (this.nodesText (node.rhs)) + ']\n';
     case this.implicitNodeType:
     default:
       return '';
@@ -253,10 +261,10 @@ class MapView extends Component {
   }
   
   makeLinkBracery (node, newLinkText, newLinkTarget) {
-    const x = Math.round(node.x), y = Math.round(node.y);
+    const xy = this.makeCoord(node);
     return '['
       + this.escapeTopLevelBraces (newLinkText)
-      + ']@' + x + ',' + y + '{'
+      + ']' + xy + '{'
       + this.escapeTopLevelBraces (newLinkTarget)
       + '}';
   }
@@ -317,10 +325,10 @@ class MapView extends Component {
             : null);
   }
 
-  selectedEdgeTargetNode (graph, selected) {
+  selectedEdgeLinkNode (graph, selected) {
     selected = selected || this.props.selected;
     return (selected.edge
-            ? graph.nodeByID[selected.edge.target]
+            ? graph.nodeByID[selected.edge.link || selected.edge.target]
             : null);
   }
 
@@ -374,7 +382,7 @@ class MapView extends Component {
                               editorFocus: ((selected.node || selected.edge) && !editorDisabled) });
   }
 
-  setEditorState = (graph, selectedNode, selectedEdge, selectedEdgeSource, selectedEdgeTarget, newEditorState, callback) => {
+  setEditorState = (graph, selectedNode, selectedEdge, selectedEdgeSource, selectedEdgeLink, newEditorState, callback) => {
     const appProp = { focus: 'editorFocus',
                       content: 'editorContent',
                       selection: 'editorSelection' };
@@ -384,7 +392,7 @@ class MapView extends Component {
         .map ((prop) => [appProp[prop], newEditorState[prop]]));
     if (newEditorState.hasOwnProperty('content')) {
       if (selectedEdge && selectedEdge.edgeType === this.linkEdgeType) {
-        newAppState.evalText = this.rebuildBracery (graph, selectedEdgeTarget, selectedEdge.parseTreeNode.pos, newEditorState.content);
+        newAppState.evalText = this.rebuildBracery (graph, selectedEdgeLink, selectedEdge.parseTreeNode.pos, newEditorState.content);
       } else {
         const oldNode = selectedNode || selectedEdgeSource;
         if (oldNode) {
@@ -522,6 +530,8 @@ class MapView extends Component {
           if (linkTargetRhs.length === 1) {
             if (ParseTree.isEvalVar(linkTargetRhs[0]))
               uniqueTarget = ParseTree.getEvalVar(linkTargetRhs[0]);
+            else if (linkTargetRhs[0].type === 'sym')
+              uniqueTarget = this.SYM_PREFIX + linkTargetRhs[0].name;
             else if (ParseTree.isTraceryExpr(linkTargetRhs[0]))
               uniqueTarget = ParseTree.traceryVarName(linkTargetRhs[0]);
           }
@@ -617,10 +627,13 @@ class MapView extends Component {
                                      pos: target.pos }))
     });
     // Create link edges
-    implicitNodes.forEach ((node) => addEdge ({ source: node.parent.id,
-                                                target: node.uniqueTarget || node.id,
-                                                type: mv.linkEdgeType,
-                                                parseTreeNode: node }));
+    implicitNodes.forEach ((node) => addEdge (extend ({ source: node.parent.id,
+                                                        type: mv.linkEdgeType,
+                                                        parseTreeNode: node },
+                                                      (node.uniqueTarget
+                                                       ? { target: node.uniqueTarget,
+                                                           link: node.id }
+                                                       : { target: node.id }))));
     
     // Common processing for edges
     edges.forEach ((edge) => {
@@ -631,10 +644,12 @@ class MapView extends Component {
     });
 
     // Remove any placeholders, implicit, or external nodes that don't have incoming edges
-    const keptNodes = allNodes.filter ((node) => ((node.nodeType !== this.placeholderNodeType
-                                                   && node.nodeType !== this.externalNodeType
-                                                   && node.nodeType !== this.implicitNodeType)
-                                                  || Object.keys(node.incoming).length));
+    const nodeUnreachable = (node) => ((node.nodeType === this.placeholderNodeType
+                                        || node.nodeType === this.externalNodeType
+                                        || node.nodeType === this.implicitNodeType)
+                                       && !Object.keys(node.incoming).length);
+    const removedNodes = allNodes.filter (nodeUnreachable);
+    const keptNodes = allNodes.filter ((node) => !nodeUnreachable(node));
 
     // Create tree structure
     // - Ensure every node (except start) has a parent.
@@ -706,6 +721,7 @@ class MapView extends Component {
     return { nodes: keptNodes,
 	     edges,
              nodeByID,
+             removedNodes: removedNodes,
              text };
   }
 
@@ -726,7 +742,8 @@ class MapView extends Component {
     this.setSelected (graph,
                       edge
                       ? { edge: { source: edge.source,
-                                  target: edge.target } }
+                                  target: edge.target,
+                                  link: edge.link } }
                       : {});
   }
 
@@ -734,7 +751,7 @@ class MapView extends Component {
   selectionTextArea (graph) {
     this.assertSelectionValid (graph);
     return (<NodeEditor
-            setEditorState={this.setEditorState.bind(this,graph,this.selectedNode(graph),this.selectedEdge(graph),this.selectedEdgeSourceNode(graph),this.selectedEdgeTargetNode(graph))}
+            setEditorState={this.setEditorState.bind(this,graph,this.selectedNode(graph),this.selectedEdge(graph),this.selectedEdgeSourceNode(graph),this.selectedEdgeLinkNode(graph))}
             content={this.props.editorContent}
             selection={this.props.editorSelection}
             disabled={this.props.editorDisabled}
@@ -759,30 +776,40 @@ class MapView extends Component {
     //    console.warn(selected);
     const nodeTypes = fromEntries (
       graph.nodes.map (
-        (node) => [
+        (node) => {
+          const nodeClass = node.nodeType + '-node'
+                + (node.selected
+                   ? ' selected-node'
+                   :(node.selectedOutgoingEdge
+                     ? ' selected-edge-source-node'
+                     :(node.selectedIncomingEdge
+                       ? ' selected-edge-target-node'
+                       : '')));
+          return [
           node.id,
           ({ shapeId: '#' + node.id,
              typeText: node.typeText,
-	     shape: (
-                 <symbol viewBox="0 0 25 10" id={node.id} key="0">
-                 <rect x="0" y="0" width="25" height="10" className={node.nodeType+'-node'+(node.selected
-                                                                                            ?' selected-node'
-                                                                                            :(node.selectedOutgoingEdge
-                                                                                              ?' selected-edge-source-node'
-                                                                                              :(node.selectedIncomingEdge
-                                                                                                ?' selected-edge-target-node'
-                                                                                                :'')))}></rect>
-                 </symbol>
-	     )
-           })]));
+	     shape: (node.nodeType === this.implicitNodeType
+                     ? (
+                         <symbol viewBox="0 0 25 10" id={node.id} key="0">
+                         <ellipse cx="9" cy="5" rx="9" ry="5" className={nodeClass}></ellipse>
+                         <ellipse cx="16" cy="5" rx="9" ry="5" className={nodeClass}></ellipse>
+                         <ellipse cx="9" cy="5" rx="9" ry="5" className={nodeClass} style={{stroke:'none'}}></ellipse>
+                         <ellipse cx="16" cy="5" rx="9" ry="5" className={nodeClass} style={{stroke:'none'}}></ellipse>
+                         </symbol>
+	             )
+                     : (
+                         <symbol viewBox="0 0 25 10" id={node.id} key="0">
+                         <rect x="0" y="0" width="25" height="10" className={nodeClass}></rect>
+                         </symbol>
+	             ))
+           })];
+        }));
     const edgeTypes = fromEntries (['',this.selectedEdgeTypeSuffix].reduce ((a, selectedSuffix) => a.concat ([
       ['include'+selectedSuffix, {
 	shapeId: '#includeEdge'+selectedSuffix,
 	shape: (
             <symbol viewBox="0 0 60 60" id={'includeEdge'+selectedSuffix} key="0">
-            {/* Commented out because it appears in the wrong orientation when arrow is right-to-left
-               <path d="M20 20 h15 q 10 0,10 10 q 0 10,-10 10 h-15 q 3 0,3 -10 q 0 -10,-3 -10 Z" className={'includeEdgeLabel'+selectedSuffix}></path> 
-             */}
             </symbol>
 	)
       }],
@@ -790,8 +817,9 @@ class MapView extends Component {
 	shapeId: '#linkEdge'+selectedSuffix,
 	shape: (
             <symbol viewBox="0 0 60 60" id={'linkEdge'+selectedSuffix} key="1">
-            <circle cx="20" cy="30" r="10" className={'linkEdgeLabel'+selectedSuffix}></circle>
-            <circle cx="40" cy="30" r="10" className={'linkEdgeLabel'+selectedSuffix}></circle>
+            <ellipse cx="22" cy="30" rx="10" ry="8" className={'linkEdgeLabel'+selectedSuffix}></ellipse>
+            <ellipse cx="38" cy="30" rx="10" ry="8" className={'linkEdgeLabel'+selectedSuffix}></ellipse>
+            <ellipse cx="22" cy="30" rx="10" ry="8" className={'linkEdgeLabel'+selectedSuffix} style={{fill:'none'}}></ellipse>
             </symbol>
 	)
       }]]), []));

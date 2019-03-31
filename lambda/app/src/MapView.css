@@ -1,4 +1,4 @@
-.start-node, .defined-node {
+.start-node, .defined-node, .implicit-node {
     stroke-width: 0.3;
 }
 
@@ -17,21 +17,12 @@
     stroke-dasharray: .1 .5;
 }
 
-.includeEdge {
-    fill: lightgreen;
-}
-
-.linkEdge {
-    fill: white;
-}
 .selected-edge-source-node {
-    stroke: #00e;
-    fill: #eef;
+    fill: #efe;
 }
 
 .selected-edge-target-node {
-    stroke: #040;
-    fill: #efe;
+    fill: #dfd;
 }
 
 .selected-node {
@@ -40,19 +31,36 @@
 
 .selected-node.start-node,
 .selected-node.defined-node,
+.selected-node.implicit-node,
 .selected-node.placeholder-node {
     fill: #ccf;
 }
 
 .selected-node.external-node {
-    fill: #ecf;
+    fill: #eaa;
 }
 
-.includeEdgeSelected {
-    fill: green;
+.linkEdgeLabel,
+.includeEdgeLabel {
+    fill: white;
 }
 
-.linkEdgeSelected {
+.includeEdgeLabel {
+    stroke: #88f;
+}
+
+.linkEdgeLabel {
+    stroke: #00f;
+}
+
+.includeEdgeLabel,
+.includeEdgeLabelSelected {
+    marker-end: none;
+}
+
+.linkEdgeLabelSelected,
+.includeEdgeLabelSelected {
+    stroke: black;
     fill: #ccf;
 }
 

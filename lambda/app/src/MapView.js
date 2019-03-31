@@ -148,6 +148,8 @@ class MapView extends Component {
   get linkEdgeType() { return 'link'; }
   get selectedEdgeTypeSuffix() { return 'Selected'; }
 
+  get showEdgeRank() { return false; }
+  
   // Helpers
   truncate (text, len) {
     return (text.length <= len
@@ -165,7 +167,7 @@ class MapView extends Component {
       .join('');
   }
   escapeTopLevelBraces (text) {
-    return this.escapeTopLevelRegex (text, /[[\]{}|\\]/g);
+    return this.escapeTopLevelRegex (text, /[@[\]{}|\\]/g);
   }
   
   // isLinkShortcut
@@ -571,7 +573,7 @@ class MapView extends Component {
         title = '';
         break;
       case this.placeholderNodeType:
-        typeText = ParseTree.varChar + node.id;
+        typeText = ParseTree.traceryChar + node.id + ParseTree.traceryChar;
         title = this.placeholderNodeText;
         break;
       case this.implicitNodeType:
@@ -583,7 +585,7 @@ class MapView extends Component {
         title = this.nodesText (node.rhs);
         break;
       default:
-        typeText = node.id + ' =>';
+        typeText = ParseTree.traceryChar + node.id + ParseTree.traceryChar;
         title = this.nodesText (node.rhs);
         break;
       }
@@ -608,8 +610,9 @@ class MapView extends Component {
     // Common processing for edges
     edges.forEach ((edge) => {
       edge.edgeType = edge.type;  // preserve type against later modification of selected edge type
-      if (edge.totalIncluded() > 1)
-        edge.handleText = edge.includeRank.toString();
+      if (this.showEdgeRank)
+        if (edge.totalIncluded() > 1)
+          edge.handleText = edge.includeRank.toString();
     });
 
     // Create tree structure
@@ -636,7 +639,6 @@ class MapView extends Component {
       node.maxChildRank = node.children.length ? node.children[node.children.length-1].childRank : 0;
       node.children.forEach ((child) => { child.relativeChildRank = child.childRank / (node.maxChildRank + 1) });
     });
-    console.warn({allNodes});
 
     // Remove any placeholders or external nodes that don't have incoming edges
     const prunedNodes = allNodes.filter ((node) => ((node.nodeType !== this.placeholderNodeType && node.nodeType !== this.externalNodeType)
@@ -753,16 +755,17 @@ class MapView extends Component {
       ['include'+selectedSuffix, {
 	shapeId: '#includeEdge'+selectedSuffix,
 	shape: (
-            <symbol viewBox="0 0 50 50" id={'includeEdge'+selectedSuffix} key="0">
-            <circle cx="25" cy="25" r="8" className={'includeEdge'+selectedSuffix}></circle>
+            <symbol viewBox="0 0 60 60" id={'includeEdge'+selectedSuffix} key="0">
+            <path d="M20 20 h15 q 10 0,10 10 q 0 10,-10 10 h-15 q 3 0,3 -10 q 0 -10,-3 -10 Z" className={'includeEdgeLabel'+selectedSuffix}></path>
             </symbol>
 	)
       }],
       ['link'+selectedSuffix, {
 	shapeId: '#linkEdge'+selectedSuffix,
 	shape: (
-            <symbol viewBox="0 0 50 50" id={'linkEdge'+selectedSuffix} key="1">
-            <circle cx="25" cy="25" r="8" className={'linkEdge'+selectedSuffix}></circle>
+            <symbol viewBox="0 0 60 60" id={'linkEdge'+selectedSuffix} key="1">
+            <circle cx="20" cy="30" r="10" className={'linkEdgeLabel'+selectedSuffix}></circle>
+            <circle cx="40" cy="30" r="10" className={'linkEdgeLabel'+selectedSuffix}></circle>
             </symbol>
 	)
       }]]), []));

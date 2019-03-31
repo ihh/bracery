@@ -517,6 +517,7 @@ class MapView extends Component {
                                   : (isLayoutLink
                                      ? ParseTree.getLayoutLink(linkNode)
                                      : null));
+          const linkTargetRhs = ParseTree.getLinkTargetRhs(actualLinkNode);
           const implicitNode = extend (
             {
               id: linkNode.graphNodeName,
@@ -524,11 +525,17 @@ class MapView extends Component {
               parent: parent,
               nodeType: this.implicitNodeType,
               linkText: ParseTree.getLinkText(actualLinkNode),
-              rhs: ParseTree.getLinkTargetRhs(actualLinkNode),
+              rhs: linkTargetRhs,
             },
             (isLayoutLink
              ? this.parseCoord (ParseTree.getLayoutCoord(linkNode))
              : {}));
+          if (linkTargetRhs.length === 1) {
+            if (ParseTree.isEvalVar(linkTargetRhs[0]))
+              implicitNode.skipToTarget = ParseTree.getEvalVar(linkTargetRhs[0]);
+            else if (ParseTree.isTraceryExpr(linkTargetRhs[0]))
+              implicitNode.skipToTarget = ParseTree.traceryVarName(linkTargetRhs[0]);
+          }
           pushNode (implicitNodes, implicitNode);
         }));
 
@@ -555,10 +562,11 @@ class MapView extends Component {
     realNodes.forEach (createPlaceholders (getExternalNodes, { nodeType: mv.externalNodeType }));
     
     // Do some common initializing, and create edges
-    const allNodes = realNodes.concat (placeholderNodes);
+    const allNodes = realNodes.concat(placeholderNodes);
     let childRank = fromEntries (allNodes.map ((node) => [node.id, {}]));
     allNodes.forEach ((node) => { node.incoming = {}; node.outgoing = {}; node.includeOrder = []; });
     const addEdge = ((edge) => {
+      console.warn('addEdge',edge);
       edges.push (edge);
       let sourceNode = nodeByID[edge.source], targetNode = nodeByID[edge.target];
       sourceNode.outgoing[edge.target] = (sourceNode.outgoing[edge.target] || []).concat (edge);
@@ -599,18 +607,17 @@ class MapView extends Component {
       node.typeText = this.truncate (typeText, this.maxNodeTypeTextLen);
       node.title = this.truncate (title, this.maxNodeTitleLen);
       // Create outgoing include edges
-      getIncludedNodes (node)
+      if (!node.skipToTarget)
+        getIncludedNodes (node)
         .concat (getExternalNodes (node))
         .map ((target) => addEdge ({ source: node.id,
                                      target: target.graphNodeName,
                                      type: mv.includeEdgeType,
                                      pos: target.pos }))
-        .map ((edge) => extend (edge,
-                                ))
     });
     // Create link edges
     implicitNodes.forEach ((node) => addEdge ({ source: node.parent.id,
-                                                target: node.id,
+                                                target: node.skipToTarget || node.id,
                                                 type: mv.linkEdgeType,
                                                 parseTreeNode: node }));
     // Common processing for edges
@@ -646,9 +653,16 @@ class MapView extends Component {
       node.children.forEach ((child) => { child.relativeChildRank = child.childRank / (node.maxChildRank + 1) });
     });
 
-    // Remove any placeholders or external nodes that don't have incoming edges
-    const prunedNodes = allNodes.filter ((node) => ((node.nodeType !== this.placeholderNodeType && node.nodeType !== this.externalNodeType)
+    // Remove any placeholders, implicit, or external nodes that don't have incoming edges
+    const prunedNodes = allNodes.filter ((node) => ((node.nodeType !== this.placeholderNodeType
+                                                     && node.nodeType !== this.externalNodeType
+                                                     && node.nodeType !== this.implicitNodeType)
                                                     || Object.keys(node.incoming).length));
+    console.warn ('pruned', allNodes.filter ((node) => (!((node.nodeType !== this.placeholderNodeType
+                                                           && node.nodeType !== this.externalNodeType
+                                                           && node.nodeType !== this.implicitNodeType)
+                                                          || Object.keys(node.incoming).length))));
+    console.warn('remaining',prunedNodes);
     
     // Lay things out
     const layoutNode = (node) => {
@@ -737,7 +751,7 @@ class MapView extends Component {
   render() {
     const rhs = this.props.rhs;
     const graph = this.getLayoutGraph (rhs);
-    //    console.warn(graph);
+    console.warn(graph);
     //    console.warn(selected);
     const nodeTypes = fromEntries (
       graph.nodes.map (

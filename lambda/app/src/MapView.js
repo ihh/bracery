@@ -493,8 +493,9 @@ class MapView extends Component {
                                                      linkNamer);
     const getIncludedNodes = (node) => getTargetNodes (node,
                                                        { ignoreSymbols: true,
-                                                         ignoreLinkSubtrees: true },
-                                                       (n) => n.name);
+                                                         ignoreLinkSubtrees: true,
+                                                         reportEvalsAsSymbols: true },
+                                                       (n) => ParseTree.isEvalVar(n) ? ParseTree.getEvalVar(n) : n.name);
     const getExternalNodes = (node) => getTargetNodes (node,
                                                        { ignoreTracery: true,
                                                          ignoreLinkSubtrees: true },

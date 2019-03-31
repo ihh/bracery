@@ -331,7 +331,7 @@ function findNodes (rhs, config) {
 }
 
 // Specialized findNodes for symbol nodes (and common variants)
-// Somewhat misnamed, as it can also be configured to return &link{source}{target} and &layout&link{src}{targ} nodes, tracery-style #symbol# constructs, etc.
+// Somewhat misnamed, as it can also be configured to return &link{source}{target}, &layout&link{src}{targ}, #symbol#, &eval$x, etc.
 function getSymbolNodes (rhs, gsnConfig) {
   gsnConfig = gsnConfig || {}
   return this.findNodes (rhs, {
@@ -364,6 +364,8 @@ function getSymbolNodes (rhs, gsnConfig) {
               && gsnConfig.reportLinksAsSymbols) {
             return addLinkInfo (node)
           }
+          if (isEvalVar(node) && gsnConfig.reportEvalsAsSymbols)
+            return addLinkInfo (node)
           break
         default:
           break

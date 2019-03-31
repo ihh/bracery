@@ -479,6 +479,10 @@ class MapView extends Component {
         .map ((target) => extend (target, { graphNodeName: namer(target) }))
         .filter ((target) => target.graphNodeName !== node.id);
     };
+    // In these searches we need to auto-name some unnamed nodes.
+    // It's generally better if we pick names that are robust to changes in the source text,
+    // otherwise we can confuse react-digraph by changing the graph through the UI component
+    // in a way that invalidates the component's internal state (by changing node names).
     let nLinkedNodes = 0;
     const linkNamer = (n) => this.LINK_PREFIX + (++nLinkedNodes);
     const getLinkedNodes = (node) => getTargetNodes (node,

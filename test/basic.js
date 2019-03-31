@@ -634,6 +634,15 @@ function doTests (testRunner) {
   expectExpand ('[hello]@100,200{world}', '&link{hello}{world}')
   expectExpand ('&quote{[hello]@100,200{world}}', '&layout{100,200}{&link{hello}{world}}')
 
+  // Some weird infinite-loop bug that only showed up with certain self-referential recursions
+  // Turned out to be a missing property in the object returned by the maxDepth terminator.
+  maxDepthConfig = { maxDepth: 5 };
+  expectExpand ('[x=>&link@{a}{b #x#} [[y]]]#x#', '&link@{a}{b &link@{a}{b } &link{}{}} &link{y}{&if{$y}then{&eval{}}else{~y}}', maxDepthConfig)
+  expectExpand ('[x=>&link{a}{#b#}#x#]#x#', '&link{a}{&if{$b}then{&eval{}}else{~b}}&link{}{}', maxDepthConfig)
+  expectExpand ('$x=&quote{&link{a}{#b#}&eval$x}&eval$x', '&link{a}{&if{$b}then{&eval{}}else{~b}}&link{a}{&if{$b}then{&eval{}}else{~b}}&link{a}{&if{$b}then{}else{}}&link{}{}&link{}{}', maxDepthConfig)
+  expectExpand ('$x=&quote{&link{a}{&if{b}{c}{d}}&eval$x}&eval$x', '&link{a}{&if{b}then{c}else{d}}&link{a}{&if{b}then{c}else{d}}&link{a}{&if{b}then{}else{}}&link{}{}&link{}{}', maxDepthConfig)
+  expectExpand ('$x=&quote{&link{a}{&if{b}then{c}else{d}}&eval$x}&eval$x', '&link{a}{&if{b}then{c}else{d}}&link{a}{&if{b}then{c}else{d}}&link{a}{&if{b}then{}else{}}&link{}{}&link{}{}', maxDepthConfig)
+  
   // charclass, alt
   expectExpand ('&charclass{abc}', '[a|b|c]')
   expectExpand ('&charclass{a-e}', '[a|b|c|d|e]')

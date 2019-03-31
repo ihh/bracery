@@ -518,6 +518,13 @@ class MapView extends Component {
                                      ? ParseTree.getLayoutLink(linkNode)
                                      : null));
           const linkTargetRhs = ParseTree.getLinkTargetRhs(actualLinkNode);
+          let uniqueTarget = null;
+          if (linkTargetRhs.length === 1) {
+            if (ParseTree.isEvalVar(linkTargetRhs[0]))
+              uniqueTarget = ParseTree.getEvalVar(linkTargetRhs[0]);
+            else if (ParseTree.isTraceryExpr(linkTargetRhs[0]))
+              uniqueTarget = ParseTree.traceryVarName(linkTargetRhs[0]);
+          }
           const implicitNode = extend (
             {
               id: linkNode.graphNodeName,
@@ -527,15 +534,10 @@ class MapView extends Component {
               linkText: ParseTree.getLinkText(actualLinkNode),
               rhs: linkTargetRhs,
             },
+            uniqueTarget ? {uniqueTarget} : {},
             (isLayoutLink
              ? this.parseCoord (ParseTree.getLayoutCoord(linkNode))
              : {}));
-          if (linkTargetRhs.length === 1) {
-            if (ParseTree.isEvalVar(linkTargetRhs[0]))
-              implicitNode.skipToTarget = ParseTree.getEvalVar(linkTargetRhs[0]);
-            else if (ParseTree.isTraceryExpr(linkTargetRhs[0]))
-              implicitNode.skipToTarget = ParseTree.traceryVarName(linkTargetRhs[0]);
-          }
           pushNode (implicitNodes, implicitNode);
         }));
 
@@ -566,7 +568,6 @@ class MapView extends Component {
     let childRank = fromEntries (allNodes.map ((node) => [node.id, {}]));
     allNodes.forEach ((node) => { node.incoming = {}; node.outgoing = {}; node.includeOrder = []; });
     const addEdge = ((edge) => {
-      console.warn('addEdge',edge);
       edges.push (edge);
       let sourceNode = nodeByID[edge.source], targetNode = nodeByID[edge.target];
       sourceNode.outgoing[edge.target] = (sourceNode.outgoing[edge.target] || []).concat (edge);
@@ -607,7 +608,7 @@ class MapView extends Component {
       node.typeText = this.truncate (typeText, this.maxNodeTypeTextLen);
       node.title = this.truncate (title, this.maxNodeTitleLen);
       // Create outgoing include edges
-      if (!node.skipToTarget)
+      if (!node.uniqueTarget)
         getIncludedNodes (node)
         .concat (getExternalNodes (node))
         .map ((target) => addEdge ({ source: node.id,
@@ -617,9 +618,10 @@ class MapView extends Component {
     });
     // Create link edges
     implicitNodes.forEach ((node) => addEdge ({ source: node.parent.id,
-                                                target: node.skipToTarget || node.id,
+                                                target: node.uniqueTarget || node.id,
                                                 type: mv.linkEdgeType,
                                                 parseTreeNode: node }));
+    
     // Common processing for edges
     edges.forEach ((edge) => {
       edge.edgeType = edge.type;  // preserve type against later modification of selected edge type
@@ -628,41 +630,43 @@ class MapView extends Component {
           edge.handleText = edge.includeRank.toString();
     });
 
+    // Remove any placeholders, implicit, or external nodes that don't have incoming edges
+    const keptNodes = allNodes.filter ((node) => ((node.nodeType !== this.placeholderNodeType
+                                                   && node.nodeType !== this.externalNodeType
+                                                   && node.nodeType !== this.implicitNodeType)
+                                                  || Object.keys(node.incoming).length));
+
     // Create tree structure
-    // Ensure every node (except start) has a parent, and sort children by the order that the parent->child edges appear
-    // This keeps the automatic hierarchical layout stable when we add placeholders, etc.
-    const startNode = allNodes[0];
+    // - Ensure every node (except start) has a parent.
+    // - If a node's parent is a skipped implicit node (i.e. an implicit node with a unique target),
+    //   then set the node's parent to its grandparent; repeat until the parent is not a skipped implicit node.
+    // - Sort children by the order that the parent->child edges appear.
+    //   This keeps the automatic hierarchical layout stable when we add placeholders, etc.
+    const startNode = keptNodes[0];
     let nOrphans = 0;
-    allNodes.forEach ((node) => node.children = []);
-    allNodes.forEach ((node, n) => {
+    keptNodes.forEach ((node) => node.children = []);
+    keptNodes.forEach ((node, n) => {
       if (n > 0) {
         if (!node.parent) {  // if a node is not referenced by any other node, set its parent to be the start node
 	  node.parent = startNode;
           childRank[startNode.id][node.id] = startNode.includeOrder.length + (++nOrphans);
         }
+        while (node.parent.uniqueTarget)
+          node.parent = node.parent.parent;
 	node.parent.children.push (node);
       }
       node.depth = 0;
       for (let n = node; n.parent; n = n.parent)
 	++node.depth;
     });
-    allNodes.forEach ((node) => {
-      node.children.forEach ((child) => { child.childRank = childRank[node.id][child.id] });
+    keptNodes.forEach ((parent) => parent.children.forEach ((child) => {
+      child.childRank = childRank[parent.id][child.id];
+    }));
+    keptNodes.forEach ((node) => {
       node.children = node.children.sort ((a,b) => a.childRank - b.childRank);
       node.maxChildRank = node.children.length ? node.children[node.children.length-1].childRank : 0;
       node.children.forEach ((child) => { child.relativeChildRank = child.childRank / (node.maxChildRank + 1) });
     });
-
-    // Remove any placeholders, implicit, or external nodes that don't have incoming edges
-    const prunedNodes = allNodes.filter ((node) => ((node.nodeType !== this.placeholderNodeType
-                                                     && node.nodeType !== this.externalNodeType
-                                                     && node.nodeType !== this.implicitNodeType)
-                                                    || Object.keys(node.incoming).length));
-    console.warn ('pruned', allNodes.filter ((node) => (!((node.nodeType !== this.placeholderNodeType
-                                                           && node.nodeType !== this.externalNodeType
-                                                           && node.nodeType !== this.implicitNodeType)
-                                                          || Object.keys(node.incoming).length))));
-    console.warn('remaining',prunedNodes);
     
     // Lay things out
     const layoutNode = (node) => {
@@ -681,7 +685,7 @@ class MapView extends Component {
       }
       node.orig = { x: node.x, y: node.y };
     };
-    prunedNodes.forEach (layoutNode);
+    keptNodes.forEach (layoutNode);
 
     // Mark selected node/edge
     if (selected.node && nodeByID[selected.node])
@@ -699,7 +703,7 @@ class MapView extends Component {
     }
     
     // Return
-    return { nodes: prunedNodes,
+    return { nodes: keptNodes,
 	     edges,
              nodeByID,
              text };
@@ -751,7 +755,7 @@ class MapView extends Component {
   render() {
     const rhs = this.props.rhs;
     const graph = this.getLayoutGraph (rhs);
-    console.warn(graph);
+    //    console.warn(graph);
     //    console.warn(selected);
     const nodeTypes = fromEntries (
       graph.nodes.map (

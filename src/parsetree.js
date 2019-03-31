@@ -1058,8 +1058,9 @@ function makeRhsExpansionPromise (config) {
   return rhs.reduce (function (promise, child) {
     return promise.then (function (expansion) {
       if ((expansion.text && expansion.text.length >= maxLength)
-          || (expansion.nodes && expansion.nodes >= maxNodes))
+          || (expansion.nodes && expansion.nodes >= maxNodes)) {
         return expansion
+      }
       return makeExpansionPromise.call (pt,
                                         extend ({},
                                                 config,
@@ -1082,8 +1083,9 @@ function makeRhsExpansionPromiseForConfig (config, resolve, rhs, contextKey) {
 
   var totalDepth = newConfig.totalDepth || 0
   var maxTotalDepth = Math.min (config.maxDepth || pt.maxDepth)
-  if (totalDepth >= maxTotalDepth)
+  if (totalDepth >= maxTotalDepth) {
     atLimit = true
+  }
   newConfig.totalDepth = totalDepth + 1
 
   if (contextKey && !atLimit) {
@@ -1094,10 +1096,12 @@ function makeRhsExpansionPromiseForConfig (config, resolve, rhs, contextKey) {
     newConfig.depth[contextKey] = recursionDepth + 1
   }
 
-  if (atLimit)
+  if (atLimit) {
     return resolve ({ text: '',
+                      tree: [],
                       vars: config.vars,
                       nodes: 0 })
+  }
 
   return this.makeRhsExpansionPromise (newConfig)
 }

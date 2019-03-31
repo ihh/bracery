@@ -739,25 +739,60 @@ class MapView extends Component {
   }
 
   // Event handlers
-  onUpdateNode (graph, node) {
-    if (node.x !== node.orig.x || node.y !== node.orig.y)
-      this.setEvalText (this.rebuildBracery (graph, node));
-  }
+  eventHandlers (graph) {
+    return {
+      onCreateNode: (x, y, event) => {
+        console.warn ('onCreateNode',{x,y,event})
+      },
+      onDeleteNode: (selected, nodeId, nodes) => {
+        console.warn ('onDeleteNode',{selected,nodeId,nodes})
+      },
+      onCreateEdge: (sourceNode, targetNode) => {
+        console.warn ('onCreateEdge',{sourceNode, targetNode})
 
-  onSelectNode (graph, node) {
-    this.setSelected (graph,
-                      node
-                      ? { node: node.id }
-                      : {});
-  }
+      },
+      onSwapEdge: (sourceNode, targetNode, edge) => {
+        console.warn ('onSwapEdge',{sourceNode, targetNode, edge})
+      },
+      onDeleteEdge: (selectedEdge, edges) => {
+        console.warn ('onDeleteEdge',{selectedEdge, edges})
 
-  onSelectEdge (graph, edge) {
-    this.setSelected (graph,
-                      edge
-                      ? { edge: { source: edge.source,
-                                  target: edge.target,
-                                  link: edge.link } }
-                      : {});
+      },
+      canDeleteNode: (selected) => {
+        console.warn ('canDeleteNode',{selected})
+
+      },
+      canCreateEdge: (sourceNode, targetNode) => {
+        console.warn ('canCreateEdge',{sourceNode, targetNode})
+        if (!targetNode) return true;
+      },
+      canDeleteEdge: (selected) => {
+        console.warn ('canDeleteEdge',{selected})
+
+      },
+      afterRenderEdge: (id, element, edge, edgeContainer, isEdgeSelected) => {
+//        console.warn ('afterRenderEdge', {id, element, edge, edgeContainer, isEdgeSelected})
+
+      },
+      onUpdateNode: (node) => {
+        if (node.x !== node.orig.x || node.y !== node.orig.y)
+          this.setEvalText (this.rebuildBracery (graph, node));
+      },
+      onSelectNode: (node) => {
+        this.setSelected (graph,
+                          node
+                          ? { node: node.id }
+                          : {});
+      },
+      onSelectEdge: (edge) => {
+        this.setSelected (graph,
+                          edge
+                          ? { edge: { source: edge.source,
+                                      target: edge.target,
+                                      link: edge.link } }
+                          : {});
+      }
+    };
   }
 
   // <textarea> for selected node/edge
@@ -836,6 +871,7 @@ class MapView extends Component {
             </symbol>
 	)
       }]]), []));
+    const handler = this.eventHandlers(graph);
     return (<div>
             <div className="mapview">
 	    <GraphView
@@ -848,9 +884,18 @@ class MapView extends Component {
             nodeSize={this.nodeSize}
             edgeHandleSize={this.edgeHandleSize}
             edgeArrowSize={this.edgeArrowSize}
-            onUpdateNode={(node)=>this.onUpdateNode(graph,node)}
-            onSelectNode={(node)=>this.onSelectNode(graph,node)}
-            onSelectEdge={(edge)=>this.onSelectEdge(graph,edge)}
+            onUpdateNode={handler.onUpdateNode}
+            onSelectNode={handler.onSelectNode}
+            onSelectEdge={handler.onSelectEdge}
+            onCreateNode={handler.onCreateNode}
+            onDeleteNode={handler.onDeleteNode}
+            onCreateEdge={handler.onCreateEdge}
+            onSwapEdge={handler.onSwapEdge}
+            onDeleteEdge={handler.onDeleteEdge}
+            canDeleteNode={handler.canDeleteNode}
+            canCreateEdge={handler.canCreateEdge}
+            canDeleteEdge={handler.canDeleteEdge}
+            afterRenderEdge={handler.afterRenderEdge}
 	    zoomLevel="1"
 	    />
             </div>

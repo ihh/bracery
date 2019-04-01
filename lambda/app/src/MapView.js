@@ -388,7 +388,8 @@ class MapView extends Component {
 
   // State modification
   setEvalText (newEvalText) {
-    this.props.setAppState ({ evalText: newEvalText });
+    this.props.setAppState ({ evalText: newEvalText,
+                              initText: newEvalText });
   }
 
   setSelected (graph, selected) {
@@ -459,12 +460,14 @@ class MapView extends Component {
     let newGraph = this.cloneLayoutGraph(graph);
     newGraph.nodes.push (newNode);
     newGraph.nodeByID[id] = newNode;
+    const newEvalText = this.rebuildBracery (newGraph, newNode);
     this.props.setAppState ({ mapSelection: { node: id },
                               editorContent: '',
                               editorSelection: { startOffset: 0, endOffset: 0 },
                               editorDisabled: false,
                               editorFocus: true,
-                              evalText: this.rebuildBracery (newGraph, newNode) });
+                              initText: newEvalText,
+                              evalText: newEvalText });
   }
 
   // Get graph by analyzing parsed Bracery expression

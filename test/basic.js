@@ -604,6 +604,7 @@ function doTests (testRunner) {
   expectExpand ('[[ X! ... ]]', '&link{ X! ... }{#x#}')
   expectExpand ('[[Next room.]]', '&link{Next room.}{#next_room#}')
   expectExpand ('[[Next    room.]]', '&link{Next    room.}{#next_room#}')
+  expectExpand ("[[Apostrophe's OK.]]", "&link{Apostrophe's OK.}{#apostrophes_ok#}")
 
   // layout
   expectExpand ('&quote&layout{+001,-0002}{hello}', '&layout{1,-2}{hello}')

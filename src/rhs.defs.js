@@ -109,6 +109,7 @@ function makeLinkShortcut (text) {
   var symName = text.toLowerCase()
       .replace(/^[^a-z0-9_]*/,'')
       .replace(/[^a-z0-9_]*$/,'')
+      .replace(/'/g,'')
       .replace(/[^a-z0-9_]+/g,'_');
   var loc = addLocation({})
   return (symName.length

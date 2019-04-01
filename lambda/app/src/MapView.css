@@ -1,27 +1,28 @@
-.start-node, .defined-node, .implicit-node, .external-node {
+.defined-node, .implicit-node, .placeholder-node, .external-node {
     stroke-width: 0.3;
 }
 
-.start-node, .external-node, .implicit-node {
+.start-node {
+    stroke-width: 1;
+}
+
+.start-node, .external-node {
+    rx: 24;
+    ry: 24;
+}
+
+.implicit-node {
     rx: 12;
     ry: 12;
 }
 
 .placeholder-node {
-    stroke-width: 0.1;
-    stroke-dasharray: 3 1;    
+    stroke-dasharray: 5 1;    
 }
 
-.external-node {
-    stroke-dasharray: 10 1;
-}
-
-.selected-edge-source-node {
-    fill: #efe;
-}
-
+.selected-edge-source-node,
 .selected-edge-target-node {
-    fill: #dfd;
+    fill: #eee;
 }
 
 .selected-node {
@@ -36,7 +37,7 @@
 }
 
 .selected-node.external-node {
-    fill: #eaa;
+    fill: #eee;
 }
 
 .linkEdgeHandle,

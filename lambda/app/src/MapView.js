@@ -808,6 +808,10 @@ class MapView extends Component {
         console.warn ('onCreateEdge',{sourceNode, targetNode})
 
       },
+      canSwapEdge: (sourceNode, targetNode, edge) => {
+        console.warn ('canSwapEdge',{sourceNode, targetNode, edge})
+        return false;
+      },
       onSwapEdge: (sourceNode, targetNode, edge) => {
         console.warn ('onSwapEdge',{sourceNode, targetNode, edge})
       },
@@ -949,6 +953,7 @@ class MapView extends Component {
             onCreateEdge={handler.onCreateEdge}
             onSwapEdge={handler.onSwapEdge}
             onDeleteEdge={handler.onDeleteEdge}
+            canSwapEdge={handler.canSwapEdge}
             canDeleteNode={handler.canDeleteNode}
             canCreateEdge={handler.canCreateEdge}
             canDeleteEdge={handler.canDeleteEdge}

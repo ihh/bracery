@@ -897,7 +897,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
           edgeEndNode &&
           !this.getEdgeBySourceTarget(draggedEdge.source, edgeEndNode[nodeKey]) &&
             this.canSwap(sourceNode, edgeEndNode, draggedEdge)
-            && (canSwapEdge ? canSwapEdge(sourceNode, edgeEndNode, draggedEdge) : true)
+            && (!canSwapEdge || canSwapEdge(sourceNode, edgeEndNode, draggedEdge))
         ) {
           // determine the target node and update the edge
           draggedEdgeCopy.target = edgeEndNode[nodeKey];

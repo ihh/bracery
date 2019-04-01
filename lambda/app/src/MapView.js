@@ -900,16 +900,16 @@ class MapView extends Component {
              typeText: node.typeText,
 	     shape: (node.nodeType === this.implicitNodeType
                      ? (
-                         <symbol viewBox="0 0 25 10" id={node.id} key="0">
-                         <ellipse cx="9" cy="5" rx="9" ry="5" className={nodeClass}></ellipse>
-                         <ellipse cx="16" cy="5" rx="9" ry="5" className={nodeClass}></ellipse>
-                         <ellipse cx="9" cy="5" rx="9" ry="5" className={nodeClass} style={{stroke:'none'}}></ellipse>
-                         <ellipse cx="16" cy="5" rx="9" ry="5" className={nodeClass} style={{stroke:'none'}}></ellipse>
+                         <symbol viewBox="0 0 150 60" id={node.id} key="0">
+                         <ellipse cx="54" cy="30" rx="54" ry="30" className={nodeClass}></ellipse>
+                         <ellipse cx="96" cy="30" rx="54" ry="30" className={nodeClass}></ellipse>
+                         <ellipse cx="54" cy="30" rx="54" ry="30" className={nodeClass} style={{stroke:'none'}}></ellipse>
+                         <ellipse cx="96" cy="30" rx="54" ry="30" className={nodeClass} style={{stroke:'none'}}></ellipse>
                          </symbol>
 	             )
                      : (
-                         <symbol viewBox="0 0 25 10" id={node.id} key="0">
-                         <rect x="0" y="0" width="25" height="10" className={nodeClass}></rect>
+                         <symbol viewBox="0 0 150 60" id={node.id} key="0">
+                         <rect x="0" y="0" width="150" height="60" className={nodeClass}></rect>
                          </symbol>
 	             ))
            })];

@@ -185,7 +185,6 @@ class Edge extends React.Component<IEdgeProps> {
     const rotatedPoly = poly.map(p => p.transform(rotation));
 
     // find intersections
-    console.warn({params:line.params, rotatedPoly})
     const pathIntersect = Intersection.intersectLinePolygon(line.params[0], line.params[1], rotatedPoly);
 
     if (pathIntersect.points.length > 0) {
@@ -425,7 +424,6 @@ class Edge extends React.Component<IEdgeProps> {
       }
     }
 
-    console.warn('calculateOffset',{src,trg,nodeSize,includesArrow,defSvgRectElement,response});
     return response;
   }
 

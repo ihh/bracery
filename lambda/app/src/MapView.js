@@ -832,7 +832,7 @@ class MapView extends Component {
 
       },
       afterRenderEdge: (id, element, edge, edgeContainer, isEdgeSelected) => {
-        console.warn ('afterRenderEdge', {id, element, edge, edgeContainer, isEdgeSelected})
+//        console.warn ('afterRenderEdge', {id, element, edge, edgeContainer, isEdgeSelected})
 
       },
       onUpdateNode: (node) => {

@@ -42,6 +42,7 @@
 
 .linkEdgeHandle,
 .includeEdgeHandle {
+    stroke-width: 1;
     fill: white;
 }
 

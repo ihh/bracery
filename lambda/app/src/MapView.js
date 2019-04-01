@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 import { ParseTree } from 'bracery';
 import { extend } from './bracery-web';
-import { GraphView } from 'react-digraph';
+//import GraphView from 'react-digraph';
+import GraphView from './react-digraph/components/graph-view';
 
 import './MapView.css';
 

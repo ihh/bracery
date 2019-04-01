@@ -15204,8 +15204,9 @@ function findNodes (rhs, config) {
   }, [])
 }
 
-// Specialized findNodes for symbol nodes (and common variants)
-// Somewhat misnamed, as it can also be configured to return &link{source}{target}, &layout&link{src}{targ}, #symbol#, &eval$x, etc.
+// Specialized findNodes for symbol nodes
+// Somewhat misnamed, as it does not just return symbol nodes;
+// it can also be configured to return &link{source}{target}, &layout&link{src}{targ}, #symbol#, &eval$x, $x, etc.
 function getSymbolNodes (rhs, gsnConfig) {
   gsnConfig = gsnConfig || {}
   return this.findNodes (rhs, {
@@ -15232,13 +15233,21 @@ function getSymbolNodes (rhs, gsnConfig) {
           if (!gsnConfig.ignoreSymbols)
 	    return addLinkInfo (node)
           break
+        case 'lookup':
+          if (gsnConfig.reportLookups)
+	    return addLinkInfo (node)
+          break
+        case 'assign':
+          if (gsnConfig.reportAssigns)
+	    return addLinkInfo (node)
+          break
         case 'func':
           if (((isLinkExpr(node) && !(nodeConfig.layoutNode && isLayoutLinkExpr(nodeConfig.layoutNode)))
                || isLayoutLinkExpr(node))
-              && gsnConfig.reportLinksAsSymbols) {
+              && gsnConfig.reportLinks) {
             return addLinkInfo (node)
           }
-          if (isEvalVar(node) && gsnConfig.reportEvalsAsSymbols)
+          if (isEvalVar(node) && gsnConfig.reportEvals)
             return addLinkInfo (node)
           break
         default:
@@ -15258,7 +15267,7 @@ function getSymbolNodes (rhs, gsnConfig) {
                               { inLink: true,
                                 linkText: node.args[0],
                                 link: node }))
-          else if (node.funcname === 'layout' && gsnConfig.reportLinksAsSymbols)
+          else if (node.funcname === 'layout' && gsnConfig.reportLinks)
             return extend ({}, nodeConfig, { layoutNode: node });
           break
         case 'cond':
@@ -16689,7 +16698,6 @@ function makeExpansionPromise (config) {
                   return makeRhsExpansionPromiseFor ([node.args[1]])
                     .then (function (linkArg) {
                       expansion.nodes += textArg.nodes + linkArg.nodes
-                      console.warn('makeLink',linkArg)
                       expansion.text = (config.makeLink
                                         ? config.makeLink (textArg, linkArg, node.funcname)
                                         : (funcChar + node.funcname

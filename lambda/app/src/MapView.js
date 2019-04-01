@@ -162,15 +162,21 @@ class MapView extends Component {
 
   // escapeTopLevelRegex
   // Parse an expression as Bracery, prefix top-level danger chars with backslashes, then regenerate it as Bracery
-  escapeTopLevelRegex (text, regex) {
-    return ParseTree.parseRhs(text)
-      .map ((node) => (typeof(node) === 'string'
-                       ? node.replace (regex, (m) => '\\'+m)
-                       : this.nodeText(node,text)))
-      .join('');
+  escapeTopLevelRegex (text, regex, config) {
+    const rhs = ParseTree.parseRhs(text);
+    let result = rhs
+	  .map ((node) => (typeof(node) === 'string'
+			   ? (config.noEscape
+			      ? node
+			      : node.replace (regex, (m) => '\\'+m))
+			   : this.nodeText(node,text)))
+	  .join('');
+    if (config.stripBracketsFromAlt && rhs.length === 1 && typeof(rhs[0]) === 'object' && rhs[0].type === 'alt')
+      result = result.substr(1,result.length-2);
+    return result;
   }
-  escapeTopLevelBraces (text) {
-    return this.escapeTopLevelRegex (text, /[@[\]{}|\\]/g);
+  escapeTopLevelBraces (text, config) {
+    return this.escapeTopLevelRegex (text, new RegExp ('[@{}[\\]|\\\\]', 'g'), config);
   }
   
   // isLinkShortcut
@@ -208,9 +214,13 @@ class MapView extends Component {
   }
 
   implicitBracery (rhs) {
-    return (this.isSingleTraceryNode (rhs)
-            ? this.makeTraceryText (rhs)
-            : this.nodesText (rhs));
+    if (this.isSingleTraceryNode (rhs))
+      return this.makeTraceryText (rhs);
+    let result = this.nodesText (rhs);
+    if (rhs.length === 1 && typeof(rhs[0]) === 'object' && rhs[0].type === 'alt'
+	&& result[0] !== ParseTree.leftSquareBraceChar)
+      result = ParseTree.leftSquareBraceChar + result + ParseTree.rightSquareBraceChar;
+    return result;
   }
 
   maxVarSuffix (rhs, prefix) {
@@ -287,7 +297,7 @@ class MapView extends Component {
     case this.startNodeType:
       return xy && (xy + ':START\n');
     case this.definedNodeType:
-      return '[' + node.id + xy + '=>' + this.escapeTopLevelBraces (this.nodesText (node.rhs)) + ']\n';
+      return '[' + node.id + xy + '=>' + this.escapeTopLevelBraces (this.implicitBracery (node.rhs), { stripBracketsFromAlt: true }) + ']\n';
     case this.implicitNodeType:
     default:
       return '';
@@ -669,7 +679,7 @@ class MapView extends Component {
         break;
       default:
         typeText = ParseTree.traceryChar + node.id + ParseTree.traceryChar;
-        title = this.nodesText (node.rhs);
+        title = this.implicitBracery (node.rhs);
         break;
       }
       node.type = node.id;

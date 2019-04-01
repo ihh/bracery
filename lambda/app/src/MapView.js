@@ -649,7 +649,7 @@ class MapView extends Component {
       let typeText = null, title = null;
       switch (node.nodeType) {
       case this.externalNodeType:
-        typeText = node.id.replace (this.SYM_PREFIX, ParseTree.symChar);
+        typeText = node.id.replace (this.SYM_PREFIX, ParseTree.symChar) + ' ';
         title = '';
         break;
       case this.placeholderNodeType:
@@ -661,7 +661,7 @@ class MapView extends Component {
         title = this.implicitBracery (node.rhs);
         break;
       case this.startNodeType:
-        typeText = ParseTree.symChar + symName;
+        typeText = ParseTree.symChar + symName + ' ';
         title = this.nodesText (node.rhs);
         break;
       default:
@@ -832,7 +832,7 @@ class MapView extends Component {
 
       },
       afterRenderEdge: (id, element, edge, edgeContainer, isEdgeSelected) => {
-//        console.warn ('afterRenderEdge', {id, element, edge, edgeContainer, isEdgeSelected})
+        console.warn ('afterRenderEdge', {id, element, edge, edgeContainer, isEdgeSelected})
 
       },
       onUpdateNode: (node) => {
@@ -901,10 +901,11 @@ class MapView extends Component {
 	     shape: (node.nodeType === this.implicitNodeType
                      ? (
                          <symbol viewBox="0 0 150 60" id={node.id} key="0">
-                         <ellipse cx="54" cy="30" rx="54" ry="30" className={nodeClass}></ellipse>
-                         <ellipse cx="96" cy="30" rx="54" ry="30" className={nodeClass}></ellipse>
-                         <ellipse cx="54" cy="30" rx="54" ry="30" className={nodeClass} style={{stroke:'none'}}></ellipse>
-                         <ellipse cx="96" cy="30" rx="54" ry="30" className={nodeClass} style={{stroke:'none'}}></ellipse>
+                         <rect x="0" y="0" width="150" height="60" style={{fill:'none',stroke:'none'}}></rect>
+                         <rect x="0" y="0" width="80" height="60" className={nodeClass}></rect>
+                         <rect x="70" y="0" width="80" height="60" className={nodeClass}></rect>
+                         <rect x="0" y="0" width="80" height="60" className={nodeClass} style={{stroke:'none'}}></rect>
+                         <rect x="70" y="0" width="80" height="60" className={nodeClass} style={{stroke:'none'}}></rect>
                          </symbol>
 	             )
                      : (
@@ -918,7 +919,7 @@ class MapView extends Component {
       ['include'+selectedSuffix, {
 	shapeId: '#includeEdge'+selectedSuffix,
 	shape: (
-            <symbol viewBox="0 0 60 60" id={'includeEdge'+selectedSuffix} key="0">
+            <symbol viewBox="0 0 60 60" id={'includeEdgeHandle'+selectedSuffix} key="0">
             </symbol>
 	)
       }],
@@ -926,9 +927,9 @@ class MapView extends Component {
 	shapeId: '#linkEdge'+selectedSuffix,
 	shape: (
             <symbol viewBox="0 0 60 60" id={'linkEdge'+selectedSuffix} key="1">
-            <ellipse cx="22" cy="30" rx="10" ry="8" className={'linkEdgeLabel'+selectedSuffix}></ellipse>
-            <ellipse cx="38" cy="30" rx="10" ry="8" className={'linkEdgeLabel'+selectedSuffix}></ellipse>
-            <ellipse cx="22" cy="30" rx="10" ry="8" className={'linkEdgeLabel'+selectedSuffix} style={{fill:'none'}}></ellipse>
+            <ellipse cx="22" cy="30" rx="10" ry="8" className={'linkEdgeHandle'+selectedSuffix}></ellipse>
+            <ellipse cx="38" cy="30" rx="10" ry="8" className={'linkEdgeHandle'+selectedSuffix}></ellipse>
+            <ellipse cx="22" cy="30" rx="10" ry="8" className={'linkEdgeHandle'+selectedSuffix} style={{fill:'none'}}></ellipse>
             </symbol>
 	)
       }]]), []));
@@ -942,6 +943,7 @@ class MapView extends Component {
 	    edgeTypes={edgeTypes}
 	    nodeTypes={nodeTypes}
 	    nodeSubtypes={{}}
+            selected={this.props.selected && (this.props.selected.node || this.props.selected.edge)}
             nodeSize={this.nodeSize}
             edgeHandleSize={this.edgeHandleSize}
             edgeArrowSize={this.edgeArrowSize}

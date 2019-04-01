@@ -74,9 +74,7 @@ $background-color: #f9f9f9;
   }
 
   .edge {
-    color: $light-color;
     stroke: $primary-color;
-    stroke-width: 2px;
     marker-end: url(#end-arrow);
     cursor: pointer;
 
@@ -98,8 +96,22 @@ $background-color: #f9f9f9;
         stroke: $light-color;
       }
     }
+  }
+  
+  .link-edge:not(.selected) {
+      stroke-width: 2px;
+      stroke-opacity: 0.5;
+  }
+  
+  .include-edge:not(.selected) {
+      stroke-width: 2px;
+      stroke-opacity: 0.2;
+  }
 
-
+  .link-edge.selected,
+  .include-edge.selected {
+      stroke-width: 3px;
+      stroke-opacity: 1;
   }
 
   .edge-mouse-handler {

@@ -556,7 +556,7 @@ class Edge extends React.Component<IEdgeProps> {
     const id = `${data.source || ''}_${data.target}`;
     const className = GraphUtils.classNames('edge', {
       selected: this.props.isSelected
-    });
+    }, this.props.edgeType && (this.props.edgeType + '-edge'));
 
     return (
       <g className="edge-container" data-source={data.source} data-target={data.target}>

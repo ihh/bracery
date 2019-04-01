@@ -1136,6 +1136,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
         nodeKey={nodeKey}
         viewWrapperElem={this.viewWrapper.current}
         isSelected={this.isEdgeSelected(edge)}
+        edgeType={edge.edgeType}
       />
     );
   }

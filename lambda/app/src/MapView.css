@@ -1,24 +1,19 @@
-.start-node, .defined-node {
+.start-node, .defined-node, .implicit-node, .external-node {
     stroke-width: 0.3;
 }
 
-.implicit-node {
-    stroke-width: 0.2;
-}
-
-.start-node, .external-node {
+.start-node, .external-node, .implicit-node {
     rx: 12;
     ry: 12;
 }
 
 .placeholder-node {
     stroke-width: 0.1;
-    stroke-dasharray: 2 1;    
+    stroke-dasharray: 3 1;    
 }
 
 .external-node {
-    stroke-width: 0.1;
-    stroke-dasharray: .1 .5;
+    stroke-dasharray: 10 1;
 }
 
 .selected-edge-source-node {
@@ -44,27 +39,28 @@
     fill: #eaa;
 }
 
-.linkEdgeLabel,
-.includeEdgeLabel {
+.linkEdgeHandle,
+.includeEdgeHandle {
     fill: white;
 }
 
-.includeEdgeLabel {
+.includeEdgeHandle {
     stroke: #88f;
 }
 
-.linkEdgeLabel {
+.linkEdgeHandle {
     stroke: #00f;
 }
 
-.includeEdgeLabel,
-.includeEdgeLabelSelected {
+.includeEdgeHandle,
+.includeEdgeHandleSelected {
     marker-end: none;
 }
 
-.linkEdgeLabelSelected,
-.includeEdgeLabelSelected {
-    stroke: black;
+.linkEdgeHandleSelected,
+.includeEdgeHandleSelected {
+    stroke-width: 1;
+    stroke: #00f;
     fill: #ccf;
 }
 

@@ -719,7 +719,8 @@ class MapView extends Component {
       if (n > 0) {
         if (!node.parent) {  // if a node is not referenced by any other node, set its parent to be the start node
 	  node.parent = startNode;
-          childRank[startNode.id][node.id] = startNode.includeOrder.length + (++nOrphans);
+          if (typeof(node.x) === 'undefined')
+            childRank[startNode.id][node.id] = startNode.includeOrder.length + (++nOrphans);
         }
         while (node.parent.uniqueTarget)
           node.parent = node.parent.parent;
@@ -734,7 +735,7 @@ class MapView extends Component {
     }));
     keptNodes.forEach ((node) => {
       node.children = node.children.sort ((a,b) => a.childRank - b.childRank);
-      node.maxChildRank = node.children.length ? node.children[node.children.length-1].childRank : 0;
+      node.maxChildRank = node.children.reduce ((max, c) => typeof(c.childRank) === 'undefined' ? max : Math.max (max, c.childRank), 0);
       node.children.forEach ((child) => { child.relativeChildRank = child.childRank / (node.maxChildRank + 1) });
     });
     

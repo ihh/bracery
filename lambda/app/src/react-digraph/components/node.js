@@ -42,8 +42,10 @@ type INodeProps = {
   nodeSize?: number;
   onNodeMouseEnter: (event: any, data: any, hovered: boolean) => void;
   onNodeMouseLeave: (event: any, data: any) => void;
+  // eslint-disable-next-line
   onNodeMove: (point: IPoint, id: string, shiftKey: boolean) => void;
   onNodeSelected: (data: any, id: string, shiftKey: boolean) => void;
+  // eslint-disable-next-line
   onNodeUpdate: (point: IPoint, id: string, shiftKey: boolean) => void;
   renderNode?: (
     nodeRef: any,
@@ -169,6 +171,7 @@ class Node extends React.Component<INodeProps, INodeState> {
       return;
     }
     const { x, y, drawingEdge } = this.state;
+    // eslint-disable-next-line
     const { data, index, nodeKey } = this.props;
     this.setState({ mouseDown: false, drawingEdge: false });
 
@@ -276,6 +279,7 @@ class Node extends React.Component<INodeProps, INodeState> {
   }
 
   renderText() {
+    // eslint-disable-next-line
     const { data, index, id, nodeTypes, renderNodeText, isSelected } = this.props;
     if (renderNodeText) {
       return renderNodeText(data, id, isSelected);

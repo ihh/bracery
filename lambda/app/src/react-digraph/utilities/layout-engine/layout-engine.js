@@ -37,6 +37,7 @@ export default class LayoutEngine {
 
   adjustNodes(nodes: INode[], nodesMap?: any): INode[] {
     let node = null;
+    // eslint-disable-next-line
     let position = {
       x: 0,
       y: 0

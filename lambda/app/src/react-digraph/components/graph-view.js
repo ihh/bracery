@@ -21,14 +21,17 @@ import ReactDOM from 'react-dom';
 import '../styles/main.scss';
 
 import { LayoutEngines } from '../utilities/layout-engine/layout-engine-config';
+// eslint-disable-next-line
 import { type LayoutEngineType } from '../utilities/layout-engine/layout-engine-types';
 import { type IGraphViewProps } from './graph-view-props';
 import Background from './background';
 import Defs from './defs';
+// eslint-disable-next-line
 import Edge, { type IEdge, type ITargetPosition } from './edge';
 import GraphControls from './graph-controls';
 import GraphUtils, { type INodeMapNode } from './graph-util';
 import Node, { type INode, type IPoint } from './node';
+// eslint-disable-next-line
 import { Transform } from 'stream';
 
 type IViewTransform = {
@@ -495,6 +498,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
         return;
       }
       const originalArrIndex = (this.getEdgeBySourceTarget(source, target): any).originalArrIndex;
+      // eslint-disable-next-line
       const previousSelection = (this.state.selectedEdgeObj && this.state.selectedEdgeObj.edge) || null;
       newState = {
         ...newState,
@@ -524,6 +528,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
       });
     } else {
       const previousSelection = (this.state.selectedNodeObj && this.state.selectedNodeObj.node) || null;
+      // eslint-disable-next-line
       const previousSelectionIndex = (this.state.selectedNodeObj && this.state.selectedNodeObj.index) || -1;
 
       // de-select the current selection
@@ -565,6 +570,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
   }
 
   handleNodeMove = (position: IPoint, nodeId: string, shiftKey: boolean) => {
+      // eslint-disable-next-line
     const { nodeKey, canCreateEdge, readOnly } = this.props;
     const nodeMapNode: INodeMapNode | null = this.getNodeById(nodeId);
     if (!nodeMapNode) {
@@ -694,7 +700,9 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
 
   handleNodeSelected = (node: INode, nodeId: string, creatingEdge: boolean) => {
     // if creatingEdge then de-select nodes and select new edge instead
+    // eslint-disable-next-line
     const previousSelection = (this.state.selectedNodeObj && this.state.selectedNodeObj.node) || null;
+    // eslint-disable-next-line
     const previousSelectionIndex = previousSelection ? this.state.selectedNodeObj.index : -1;
     const newState = {
       componentUpToDate: false,
@@ -714,6 +722,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
   // If the click occurs within a certain radius of edge target, assume the click
   // occurred on the arrow
   isArrowClicked(edge: IEdge | null) {
+    // eslint-disable-next-line
     const { nodeSize, edgeArrowSize } = this.props;
     const eventTarget = d3.event.sourceEvent.target;
     const arrowSize = edgeArrowSize || 0;
@@ -725,6 +734,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
     if (!edge.target) {
       return false;
     }
+    // eslint-disable-next-line
     const targetNodeMapNode = this.getNodeById(edge.target);
     const source = {
       x: xycoords[0],
@@ -820,6 +830,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
 
   // View 'zoom' handler
   handleZoom = () => {
+    // eslint-disable-next-line
     const { draggingEdge, draggedEdge, hoveredNode } = this.state;
     const transform: IViewTransform = d3.event.transform;
 
@@ -844,6 +855,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
   }
 
   handleZoomEnd = () => {
+    // eslint-disable-next-line
     const { draggingEdge, draggedEdge, edgeEndNode, edgesMap } = this.state;
 
     const { nodeKey } = this.props;

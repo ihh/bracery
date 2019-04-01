@@ -41,6 +41,7 @@ class GraphControls extends React.Component<IGraphControlProps> {
     minZoom: 0.15
   };
 
+  // eslint-disable-next-line
   constructor(props: IGraphControlProps) {
     super(props);
   }

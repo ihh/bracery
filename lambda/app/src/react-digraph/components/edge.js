@@ -17,6 +17,7 @@
 
 import * as d3 from 'd3';
 import * as React from 'react';
+// eslint-disable-next-line
 import * as lineIntersect from 'line-intersect';
 import { intersect, shape } from 'svg-intersections';
 import { Point2D, Matrix2D } from 'kld-affine';
@@ -392,6 +393,7 @@ class Edge extends React.Component<IEdgeProps> {
     // Conditionally trying to select the element in other ways is faster than trying to
     // do the selection.
     const defSvgPathElement: SVGPathElement | null = (
+      // eslint-disable-next-line
       !defSvgPathElement ?
         viewWrapperElem.querySelector(`defs>${xlinkHref} path`) :
         null
@@ -442,6 +444,7 @@ class Edge extends React.Component<IEdgeProps> {
   }
 
   getEdgeHandleTranslation = () => {
+    // eslint-disable-next-line
     const { nodeSize, nodeKey, sourceNode, targetNode, data } = this.props;
 
     let pathDescription = this.getPathDescription(data);

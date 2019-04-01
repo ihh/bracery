@@ -121,6 +121,8 @@ class MapView extends Component {
   }
 
   // Constants
+  get newVarPrefix() { return 'scene' }
+
   get START() { return 'START'; }
   get SYM_PREFIX() { return 'SYM_'; }
   get LINK_PREFIX() { return 'LINK_'; }
@@ -195,7 +197,7 @@ class MapView extends Component {
       }
     }).length === 0
   }
-  
+
   isSingleTraceryNode (rhs) {
     return rhs.length === 1 && ParseTree.isTraceryExpr (rhs[0]);
   }
@@ -210,6 +212,24 @@ class MapView extends Component {
             : this.nodesText (rhs));
   }
 
+  maxVarSuffix (rhs, prefix) {
+    prefix = prefix || this.newVarPrefix;
+    const prefixRegex = new RegExp ('^' + prefix + '([0-9]+)$');
+    return ParseTree.getSymbolNodes (rhs,
+                                     { reportLookups: true,
+                                       reportAssigns: true })
+      .map ((node) => (node.name || node.varname))
+      .map ((name) => prefixRegex.exec (name))
+      .filter ((match) => match)
+      .map ((match) => parseInt(match[1]))
+      .reduce ((max, n) => Math.max (max, n), 0);
+  }
+  
+  newVar (rhs, prefix) {
+    prefix = prefix || this.newVarPrefix;
+    return prefix + (this.maxVarSuffix (rhs, prefix) + 1);
+  }
+  
   // graphNodeText is to be called on a graph node
   graphNodeText (node) {
     return this.nodeText(node) + (node.nodeType === this.startNodeType
@@ -395,7 +415,7 @@ class MapView extends Component {
                               editorFocus: ((selected.node || selected.edge) && !editorDisabled) });
   }
 
-  setEditorState = (graph, selectedNode, selectedEdge, selectedEdgeSource, selectedEdgeLink, newEditorState, callback) => {
+  setEditorState (graph, selectedNode, selectedEdge, selectedEdgeSource, selectedEdgeLink, newEditorState, callback) {
     const appProp = { focus: 'editorFocus',
                       content: 'editorContent',
                       selection: 'editorSelection' };
@@ -424,7 +444,28 @@ class MapView extends Component {
     }
     this.props.setAppState (newAppState, callback);
   }
-  
+
+  createNode (graph, x, y) {
+    const id = this.newVar (graph.rhs);
+    let newNode = { id: id,
+                    x: Math.round(x),
+                    y: Math.round(y),
+                    type: this.definedNodeType,
+                    nodeType: this.definedNodeType,
+                    typeText: ParseTree.traceryChar + id + ParseTree.traceryChar,
+                    title: this.emptyNodeText,
+                    rhs: [] };
+    let newGraph = this.cloneLayoutGraph(graph);
+    newGraph.nodes.push (newNode);
+    newGraph.nodeByID[id] = newNode;
+    this.props.setAppState ({ mapSelection: { node: id },
+                              editorContent: '',
+                              editorSelection: { startOffset: 0, endOffset: 0 },
+                              editorDisabled: false,
+                              editorFocus: true,
+                              evalText: this.rebuildBracery (newGraph, newNode) });
+  }
+
   // Get graph by analyzing parsed Bracery expression
   getLayoutGraph() {
     const mv = this;
@@ -509,13 +550,13 @@ class MapView extends Component {
     const getLinkedNodes = (node) => getTargetNodes (node,
                                                      { ignoreSymbols: true,
                                                        ignoreTracery: true,
-                                                       reportLinksAsSymbols: true,
+                                                       reportLinks: true,
                                                        addParentLinkInfo: true },
                                                      linkNamer);
     const getIncludedNodes = (node) => getTargetNodes (node,
                                                        { ignoreSymbols: true,
                                                          ignoreLinkSubtrees: true,
-                                                         reportEvalsAsSymbols: true },
+                                                         reportEvals: true },
                                                        (n) => ParseTree.isEvalVar(n) ? ParseTree.getEvalVar(n) : n.name);
     const getExternalNodes = (node) => getTargetNodes (node,
                                                        { ignoreTracery: true,
@@ -735,14 +776,29 @@ class MapView extends Component {
 	     edges,
              nodeByID,
              removedNodes: removedNodes,
-             text };
+             text,
+             rhs,
+           };
+  }
+
+  // Clone layout graph
+  // Not a pure clone, e.g. does not deep-clone incoming & outgoing edge lists in each node, or hierarchical layout, or parse tree
+  cloneLayoutGraph (graph) {
+    return { nodes: graph.nodes.slice(0),
+	     edges: graph.edges.slice(0),
+             nodeByID: extend ({}, graph.nodeByID),
+             removedNodes: graph.removedNodes.slice(0),
+             text: graph.text,
+             rhs: graph.rhs,
+           };
   }
 
   // Event handlers
   eventHandlers (graph) {
     return {
       onCreateNode: (x, y, event) => {
-        console.warn ('onCreateNode',{x,y,event})
+        console.warn ('onCreateNode',{x,y,event});
+        this.createNode (graph, x, y);
       },
       onDeleteNode: (selected, nodeId, nodes) => {
         console.warn ('onDeleteNode',{selected,nodeId,nodes})

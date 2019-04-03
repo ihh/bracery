@@ -746,7 +746,6 @@ class MapView extends Component {
                                         || node.nodeType === this.externalNodeType
                                         || node.nodeType === this.implicitNodeType)
                                        && !Object.keys(node.incoming).length);
-    const removedNodes = allNodes.filter (nodeUnreachable);
     const keptNodes = allNodes.filter ((node) => !nodeUnreachable(node));
 
     // Create tree structure
@@ -820,7 +819,6 @@ class MapView extends Component {
     return { nodes: keptNodes,
 	     edges,
              nodeByID,
-             removedNodes: removedNodes,
              text,
              rhs,
            };
@@ -833,7 +831,6 @@ class MapView extends Component {
     return { nodes: newNodes,
 	     edges: graph.edges.slice(0),
              nodeByID: fromEntries (newNodes.map ((node) => [node.id, node])),
-             removedNodes: graph.removedNodes.slice(0),
              text: graph.text,
              rhs: graph.rhs,
            };

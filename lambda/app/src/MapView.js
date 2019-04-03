@@ -312,20 +312,27 @@ class MapView extends Component {
       + '}';
   }
 
-  rebuildBracery (graph, changedNode, changedPos, newLinkText) {
-    // If we're changing an implicit node or an edge to an implicit node, then just rewrite the substring.
+  makeLinkTargetBracery (node) {
+    switch (node.nodeType) {
+    case this.externalNodeType:
+    case this.startNodeType:
+      return ParseTree.symChar + node.id.replace(this.SYM_PREFIX,'');
+    case this.definedNodeType:
+    case this.placeholderNodeType:
+      return ParseTree.traceryChar + node.id + ParseTree.traceryChar;
+    case this.implicitNodeType:
+    default:
+      return '';
+    }
+  }
+        
+  rebuildBracery (graph, changedNode) {
+    // If we're changing an implicit node or an edge to an implicit node, then just rewrite the substring at changedPos.
     // If we're changing a defined or start node (i.e. at the top level of the file), then rebuild the whole string.
     // This is a bit messy but is consistent with the top-level entities being autonomous, with the implicit ones dangling off them
     // (and being able to select smaller and smaller substrings by clicking on implicit nodes).
     if (changedNode.nodeType === this.implicitNodeType) {
-      changedPos = changedPos || changedNode.pos;
-      return graph.text.substr (0, changedPos[0])
-        + this.makeLinkBracery (changedNode,
-                                typeof(newLinkText) === 'undefined'
-                                ? this.nodeText(changedNode.linkText)
-                                : newLinkText,
-                                this.implicitBracery (changedNode.rhs))
-        + graph.text.substr (changedPos[0] + changedPos[1]);
+      return this.replaceLink (graph, changedNode);
     } else {
       return graph.nodes
         .filter ((graphNode) => graphNode.nodeType !== this.implicitNodeType)
@@ -335,6 +342,33 @@ class MapView extends Component {
 	  : this.nodeText(graphNode)
       )).join('') + this.startNodeText(graph);
     }
+  }
+
+  replaceLink (graph, linkNode, changedPos, newLinkText, newLinkTargetText) {
+    changedPos = changedPos || linkNode.pos;
+    return this.replaceText (graph.text,
+                             [{ startOffset: changedPos[0],
+                                endOffset: changedPos[0] + changedPos[1],
+                                replacementText: this.makeLinkBracery (linkNode,
+                                                                       typeof(newLinkText) === 'undefined'
+                                                                       ? this.nodeText(linkNode.linkText)
+                                                                       : newLinkText,
+                                                                       typeof(newLinkTargetText) === 'undefined'
+                                                                       ? this.implicitBracery(linkNode.rhs)
+                                                                       : newLinkTargetText) }]);
+  }
+
+  replaceText (text, edits) {
+    edits = edits.sort ((a, b) => a.startOffset - b.startOffset);
+    edits.forEach ((edit, n) => {
+      if (n > 0 && edit.startOffset < edits[n-1].endOffset)
+        throw new Error ("overlapping edits");
+    });
+    const info = edits.reverse().reduce ((info, edit) => ({ startOffset: edit.startOffset,
+                                                            text: edit.replacementText + text.slice (edit.endOffset, info.startOffset) + info.text }),
+                                         { startOffset: text.length,
+                                           text: '' });
+    return text.slice (0, info.startOffset) + info.text;
   }
   
   selectedNode (graph, selected) {
@@ -435,7 +469,7 @@ class MapView extends Component {
         .map ((prop) => [appProp[prop], newEditorState[prop]]));
     if (newEditorState.hasOwnProperty('content')) {
       if (selectedEdge && selectedEdge.edgeType === this.linkEdgeType) {
-        newAppState.evalText = this.rebuildBracery (graph, selectedEdgeLink, selectedEdge.parseTreeNode.pos, newEditorState.content);
+        newAppState.evalText = this.replaceLink (graph, selectedEdgeLink, selectedEdge.parseTreeNode.pos, newEditorState.content);
       } else {
         const oldNode = selectedNode || selectedEdgeSource;
         if (oldNode) {
@@ -502,11 +536,28 @@ class MapView extends Component {
                               editorSelection: { startOffset: linkText.length, endOffset: linkText.length },
                               editorDisabled: false,
                               editorFocus: true,
-                              initText: newEvalText,
                               evalText: newEvalText });
     
   }
+  
+  swapEdge (graph, sourceNode, targetNode, edge) {
+    const newTargetText = this.makeLinkTargetBracery (targetNode);
+    const newEvalText = (edge.edgeType === this.includeEdgeType
+                         ? this.replaceText (graph.text,
+                                             [{ startOffset: edge.pos[0],
+                                                endOffset: edge.pos[0] + edge.pos[1],
+                                                replacementText: newTargetText }])
+                         : this.replaceLink (graph, graph.nodeByID[edge.link], edge.parseTreeNode.pos, undefined, newTargetText));
 
+    this.props.setAppState ({ evalText: newEvalText,
+                              mapSelection: {},
+                              editorContent: '',
+                              editorSelection: { startOffset: 0, endOffset: 0 },
+                              editorDisabled: true,
+                              editorFocus: false });
+  }
+
+  // Graph-building helpers
   afterAddEdge (edge, nodeByID, childRank) {
     let sourceNode = nodeByID[edge.source], targetNode = nodeByID[edge.target];
     sourceNode.outgoing[edge.target] = (sourceNode.outgoing[edge.target] || []).concat (edge);
@@ -521,10 +572,6 @@ class MapView extends Component {
     }
     edge.edgeType = edge.type;  // preserve type against later modification of selected edge type
     return edge;
-  }
-  
-  swapEdge (graph, sourceNode, targetNode, edge) {
-    
   }
 
   // Get graph by analyzing parsed Bracery expression
@@ -856,11 +903,11 @@ class MapView extends Component {
 	this.createEdge (graph, sourceNode, targetNode);
       },
       canSwapEdge: (sourceNode, targetNode, edge) => {
-        console.warn ('canSwapEdge',{sourceNode, targetNode, edge})
+//        console.warn ('canSwapEdge',{sourceNode, targetNode, edge})
         return targetNode.nodeType !== this.implicitNodeType;
       },
       onSwapEdge: (sourceNode, targetNode, edge) => {
-        console.warn ('onSwapEdge',{sourceNode, targetNode, edge})
+//        console.warn ('onSwapEdge',{sourceNode, targetNode, edge})
         this.swapEdge (graph, sourceNode, targetNode, edge);
       },
       onDeleteEdge: (selectedEdge, edges) => {

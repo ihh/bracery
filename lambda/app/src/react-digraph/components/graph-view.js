@@ -1124,6 +1124,9 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
     const targetPosition = edge.targetPosition;
     const { edgeTypes, edgeHandleSize, nodeSize, nodeKey} = this.props;
 
+    if (!sourceNode || !(targetNode || targetPosition))
+      return null;
+    
     return (
       <Edge
         data={edge}
@@ -1198,7 +1201,8 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
     const idVar = edge.target ? `${edge.source}-${edge.target}` : 'custom';
     const id = `edge-${idVar}`;
     const element = this.getEdgeComponent(edge);
-    this.renderEdge(id, element, edge, nodeMoving);
+    if (element)
+      this.renderEdge(id, element, edge, nodeMoving);
   }
 
 

@@ -487,14 +487,14 @@ class MapView extends Component {
                     type: this.linkEdgeType };
     newGraph.edges.push (newEdge);
     this.afterAddEdge (newEdge, newGraph.nodeByID);
-    const linkText = (target.nodeType === this.externalNodeType
-		      ? target.id.replace(this.SYM_PREFIX,'')
-		      : target.id);
-    const linkTargetText = (target.nodeType === this.externalNodeType
-			    ? target.id.replace(this.SYM_PREFIX,ParseTree.symChar)
-			    : (ParseTree.traceryChar + target.id + ParseTree.traceryChar));
-    newSource.rhs = [this.implicitBracery(newSource.rhs)
-		     + this.makeLinkBracery (null, linkText, linkTargetText)];
+
+    let link = null, linkText = null;
+    if (target.nodeType === this.externalNodeType) {
+      linkText = target.id.replace(this.SYM_PREFIX,'');
+      link = this.makeLinkBracery (null, linkText, ParseTree.symChar + linkText);
+    } else
+      link = '[[' + (linkText = target.id) + ']]';
+    newSource.rhs = [this.implicitBracery(newSource.rhs) + link];
     
     const newEvalText = this.rebuildBracery (newGraph, newSource);
 
@@ -853,7 +853,7 @@ class MapView extends Component {
 	console.error ('onDeleteNode should be unreachable through the UI');
       },
       onCreateEdge: (sourceNode, targetNode) => {
-        console.warn ('onCreateEdge',{sourceNode, targetNode})
+//        console.warn ('onCreateEdge',{sourceNode, targetNode})
 	this.createEdge (graph, sourceNode, targetNode);
       },
       canSwapEdge: (sourceNode, targetNode, edge) => {
@@ -874,8 +874,11 @@ class MapView extends Component {
 	return false;
       },
       canCreateEdge: (sourceNode, targetNode) => {
-        console.warn ('canCreateEdge',{sourceNode, targetNode})
-        if (!targetNode) return true;
+//        console.warn ('canCreateEdge',{sourceNode, targetNode})
+        if (!targetNode) {
+	  sourceNode = typeof(sourceNode) === 'object' ? sourceNode : graph.nodeByID[sourceNode];
+	  return sourceNode && sourceNode.nodeType !== this.placeholderNodeType;
+	}
 	return targetNode.nodeType !== this.implicitNodeType;
       },
       canDeleteEdge: (selected) => {

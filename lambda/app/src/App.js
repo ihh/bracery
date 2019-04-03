@@ -276,7 +276,10 @@ class App extends Component {
   setAppStateFromMapView = (newState) => {
     if (newState.hasOwnProperty('evalText'))
       extend (newState,
-              { evalTextEdited: true,
+              { currentSourceText: newState.evalText,
+                initText: newState.evalText,
+                initVars: {},
+                evalTextEdited: true,
                 warning: this.warning.unsaved });
     this.setState (newState);
   }

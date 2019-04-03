@@ -388,8 +388,7 @@ class MapView extends Component {
 
   // State modification
   setEvalText (newEvalText) {
-    this.props.setAppState ({ evalText: newEvalText,
-                              initText: newEvalText });
+    this.props.setAppState ({ evalText: newEvalText });
   }
 
   setSelected (graph, selected) {
@@ -466,7 +465,6 @@ class MapView extends Component {
                               editorSelection: { startOffset: 0, endOffset: 0 },
                               editorDisabled: false,
                               editorFocus: true,
-                              initText: newEvalText,
                               evalText: newEvalText });
   }
 

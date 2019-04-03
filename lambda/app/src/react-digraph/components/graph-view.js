@@ -887,7 +887,6 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
         const sourceNodeById = this.getNodeById(draggedEdge.source);
         const targetNodeById = this.getNodeById(draggedEdge.target);
 
-
         if (!sourceNodeById || !targetNodeById) {
           return;
         }

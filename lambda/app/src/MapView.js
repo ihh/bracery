@@ -151,8 +151,6 @@ class MapView extends Component {
   get linkEdgeType() { return 'link'; }
   get selectedEdgeTypeSuffix() { return 'Selected'; }
 
-  get showEdgeRank() { return false; }
-  
   // Helpers
   truncate (text, len) {
     return (text.length <= len
@@ -162,15 +160,22 @@ class MapView extends Component {
 
   // escapeTopLevelRegex
   // Parse an expression as Bracery, prefix top-level danger chars with backslashes, then regenerate it as Bracery
-  escapeTopLevelRegex (text, regex) {
-    return ParseTree.parseRhs(text)
-      .map ((node) => (typeof(node) === 'string'
-                       ? node.replace (regex, (m) => '\\'+m)
-                       : this.nodeText(node,text)))
-      .join('');
+  escapeTopLevelRegex (text, regex, config) {
+    config = config || {};
+    const rhs = ParseTree.parseRhs(text);
+    let result = rhs
+	  .map ((node) => (typeof(node) === 'string'
+			   ? (config.noEscape
+			      ? node
+			      : node.replace (regex, (m) => '\\'+m))
+			   : this.nodeText(node,text)))
+	  .join('');
+    if (config.stripBracketsFromAlt && rhs.length === 1 && typeof(rhs[0]) === 'object' && rhs[0].type === 'alt')
+      result = result.substr(1,result.length-2);
+    return result;
   }
-  escapeTopLevelBraces (text) {
-    return this.escapeTopLevelRegex (text, /[@[\]{}|\\]/g);
+  escapeTopLevelBraces (text, config) {
+    return this.escapeTopLevelRegex (text, new RegExp ('[@{}[\\]|\\\\]', 'g'), config);
   }
   
   // isLinkShortcut
@@ -208,9 +213,13 @@ class MapView extends Component {
   }
 
   implicitBracery (rhs) {
-    return (this.isSingleTraceryNode (rhs)
-            ? this.makeTraceryText (rhs)
-            : this.nodesText (rhs));
+    if (this.isSingleTraceryNode (rhs))
+      return this.makeTraceryText (rhs);
+    let result = this.nodesText (rhs);
+    if (rhs.length === 1 && typeof(rhs[0]) === 'object' && rhs[0].type === 'alt'
+	&& result[0] !== ParseTree.leftSquareBraceChar)
+      result = ParseTree.leftSquareBraceChar + result + ParseTree.rightSquareBraceChar;
+    return result;
   }
 
   maxVarSuffix (rhs, prefix) {
@@ -270,7 +279,7 @@ class MapView extends Component {
   }
 
   makeCoord (node) {
-    if (typeof(node.x) !== 'undefined') {
+    if (node && typeof(node.x) !== 'undefined') {
       const x = Math.round(node.x), y = Math.round(node.y);
       return '@' + x + ',' + y;
     }
@@ -287,7 +296,7 @@ class MapView extends Component {
     case this.startNodeType:
       return xy && (xy + ':START\n');
     case this.definedNodeType:
-      return '[' + node.id + xy + '=>' + this.escapeTopLevelBraces (this.nodesText (node.rhs)) + ']\n';
+      return '[' + node.id + xy + '=>' + this.escapeTopLevelBraces (this.implicitBracery (node.rhs), { stripBracketsFromAlt: true }) + ']\n';
     case this.implicitNodeType:
     default:
       return '';
@@ -468,6 +477,52 @@ class MapView extends Component {
                               evalText: newEvalText });
   }
 
+  createEdge (graph, source, target) {
+    let newGraph = this.cloneLayoutGraph(graph);
+    let newSource = newGraph.nodeByID[source.id];
+    let newEdge = { source: source.id,
+		    target: target.id,
+                    type: this.linkEdgeType };
+    newGraph.edges.push (newEdge);
+    this.afterAddEdge (newEdge, newGraph.nodeByID);
+    const linkText = (target.nodeType === this.externalNodeType
+		      ? target.id.replace(this.SYM_PREFIX,'')
+		      : target.id);
+    const linkTargetText = (target.nodeType === this.externalNodeType
+			    ? target.id.replace(this.SYM_PREFIX,ParseTree.symChar)
+			    : (ParseTree.traceryChar + target.id + ParseTree.traceryChar));
+    newSource.rhs = [this.implicitBracery(newSource.rhs)
+		     + this.makeLinkBracery (null, linkText, linkTargetText)];
+    
+    const newEvalText = this.rebuildBracery (newGraph, newSource);
+
+    this.props.setAppState ({ mapSelection: { edge: { source: source.id,
+						      target: target.id } },
+                              editorContent: linkText,
+                              editorSelection: { startOffset: linkText.length, endOffset: linkText.length },
+                              editorDisabled: false,
+                              editorFocus: true,
+                              initText: newEvalText,
+                              evalText: newEvalText });
+    
+  }
+
+  afterAddEdge (edge, nodeByID, childRank) {
+    let sourceNode = nodeByID[edge.source], targetNode = nodeByID[edge.target];
+    sourceNode.outgoing[edge.target] = (sourceNode.outgoing[edge.target] || []).concat (edge);
+    targetNode.incoming[edge.target] = (targetNode.incoming[edge.source] || []).concat (edge);
+    sourceNode.includeOrder.push (targetNode);
+    edge.totalIncluded = () => sourceNode.includeOrder.length;
+    edge.includeRank = edge.totalIncluded();
+    if (childRank) {
+      let srcChildRank = childRank[edge.source];
+      if (!srcChildRank[edge.target])
+	srcChildRank[edge.target] = edge.includeRank;
+    }
+    edge.edgeType = edge.type;  // preserve type against later modification of selected edge type
+    return edge;
+  };
+  
   // Get graph by analyzing parsed Bracery expression
   getLayoutGraph() {
     const mv = this;
@@ -491,7 +546,9 @@ class MapView extends Component {
       if (ParseTree.isQuoteAssignExpr (braceryNode)
           || ParseTree.isLayoutAssign (braceryNode)
           || ParseTree.isPlaceholderExpr (braceryNode)) {
-        let node = { pos: braceryNode.pos }, coord = null;
+        let node = { pos: braceryNode.pos,
+		     parseTreeNode: braceryNode };
+	let coord = null;
         if (ParseTree.isPlaceholderExpr (braceryNode)) {
 	  const heldNode = ParseTree.getPlaceholderNode (braceryNode);
 	  const heldNodeType = heldNode && heldNode.type;
@@ -595,6 +652,7 @@ class MapView extends Component {
             {
               id: linkNode.graphNodeName,
               pos: linkNode.pos,
+	      parseTreeNode: linkNode,
               parent: parent,
               nodeType: this.implicitNodeType,
               linkText: ParseTree.getLinkText(actualLinkNode),
@@ -618,6 +676,7 @@ class MapView extends Component {
 	    targetNode.parent = node;
 	} else {
 	  const newNode = extend ({ id: target.graphNodeName,
+				    parseTreeNode: target,
                                     pos: [0, 0],
                                     parent: node,
                                     rhs: [] },
@@ -635,16 +694,7 @@ class MapView extends Component {
     allNodes.forEach ((node) => { node.incoming = {}; node.outgoing = {}; node.includeOrder = []; });
     const addEdge = ((edge) => {
       edges.push (edge);
-      let sourceNode = nodeByID[edge.source], targetNode = nodeByID[edge.target];
-      sourceNode.outgoing[edge.target] = (sourceNode.outgoing[edge.target] || []).concat (edge);
-      targetNode.incoming[edge.target] = (targetNode.incoming[edge.source] || []).concat (edge);
-      sourceNode.includeOrder.push (targetNode);
-      edge.totalIncluded = () => sourceNode.includeOrder.length;
-      edge.includeRank = edge.totalIncluded();
-      let srcChildRank = childRank[edge.source];
-      if (!srcChildRank[edge.target])
-	srcChildRank[edge.target] = edge.includeRank;
-      return edge;
+      return this.afterAddEdge (edge, nodeByID, childRank);
     });
     allNodes.forEach ((node) => {
       let typeText = null, title = null;
@@ -667,7 +717,7 @@ class MapView extends Component {
         break;
       default:
         typeText = ParseTree.traceryChar + node.id + ParseTree.traceryChar;
-        title = this.nodesText (node.rhs);
+        title = this.implicitBracery (node.rhs);
         break;
       }
       node.type = node.id;
@@ -690,14 +740,6 @@ class MapView extends Component {
                                                        ? { target: node.uniqueTarget,
                                                            link: node.id }
                                                        : { target: node.id }))));
-    
-    // Common processing for edges
-    edges.forEach ((edge) => {
-      edge.edgeType = edge.type;  // preserve type against later modification of selected edge type
-      if (this.showEdgeRank)
-        if (edge.totalIncluded() > 1)
-          edge.handleText = edge.includeRank.toString();
-    });
 
     // Remove any placeholders, implicit, or external nodes that don't have incoming edges
     const nodeUnreachable = (node) => ((node.nodeType === this.placeholderNodeType
@@ -787,9 +829,10 @@ class MapView extends Component {
   // Clone layout graph
   // Not a pure clone, e.g. does not deep-clone incoming & outgoing edge lists in each node, or hierarchical layout, or parse tree
   cloneLayoutGraph (graph) {
-    return { nodes: graph.nodes.slice(0),
+    const newNodes = graph.nodes.slice(0).map ((node) => extend ({}, node, { rhs: node.rhs.slice(0) }));
+    return { nodes: newNodes,
 	     edges: graph.edges.slice(0),
-             nodeByID: extend ({}, graph.nodeByID),
+             nodeByID: fromEntries (newNodes.map ((node) => [node.id, node])),
              removedNodes: graph.removedNodes.slice(0),
              text: graph.text,
              rhs: graph.rhs,
@@ -800,38 +843,42 @@ class MapView extends Component {
   eventHandlers (graph) {
     return {
       onCreateNode: (x, y, event) => {
-        console.warn ('onCreateNode',{x,y,event});
+//        console.warn ('onCreateNode',{x,y,event});
         this.createNode (graph, x, y);
       },
       onDeleteNode: (selected, nodeId, nodes) => {
         console.warn ('onDeleteNode',{selected,nodeId,nodes})
+	console.error ('onDeleteNode should be unreachable through the UI');
       },
       onCreateEdge: (sourceNode, targetNode) => {
         console.warn ('onCreateEdge',{sourceNode, targetNode})
-
+	this.createEdge (graph, sourceNode, targetNode);
       },
       canSwapEdge: (sourceNode, targetNode, edge) => {
         console.warn ('canSwapEdge',{sourceNode, targetNode, edge})
+	// WRITE ME
         return false;
       },
       onSwapEdge: (sourceNode, targetNode, edge) => {
         console.warn ('onSwapEdge',{sourceNode, targetNode, edge})
+	// WRITE ME
       },
       onDeleteEdge: (selectedEdge, edges) => {
         console.warn ('onDeleteEdge',{selectedEdge, edges})
-
+	console.error ('onDeleteEdge should be unreachable through the UI');
       },
       canDeleteNode: (selected) => {
-        console.warn ('canDeleteNode',{selected})
-
+//        console.warn ('canDeleteNode',{selected})
+	return false;
       },
       canCreateEdge: (sourceNode, targetNode) => {
         console.warn ('canCreateEdge',{sourceNode, targetNode})
         if (!targetNode) return true;
+	return targetNode.nodeType !== this.implicitNodeType;
       },
       canDeleteEdge: (selected) => {
-        console.warn ('canDeleteEdge',{selected})
-
+//        console.warn ('canDeleteEdge',{selected})
+	return false;
       },
       afterRenderEdge: (id, element, edge, edgeContainer, isEdgeSelected) => {
 //        console.warn ('afterRenderEdge', {id, element, edge, edgeContainer, isEdgeSelected})

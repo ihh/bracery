@@ -97,7 +97,11 @@ $background-color: #f9f9f9;
       }
     }
   }
-  
+
+  .include-edge {
+      stroke-dasharray: 10 5;
+  }
+
   .link-edge:not(.selected) {
       stroke-width: 2px;
       stroke-opacity: 0.5;

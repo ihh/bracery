@@ -521,8 +521,12 @@ class MapView extends Component {
     }
     edge.edgeType = edge.type;  // preserve type against later modification of selected edge type
     return edge;
-  };
+  }
   
+  swapEdge (graph, sourceNode, targetNode, edge) {
+    
+  }
+
   // Get graph by analyzing parsed Bracery expression
   getLayoutGraph() {
     const mv = this;
@@ -853,12 +857,11 @@ class MapView extends Component {
       },
       canSwapEdge: (sourceNode, targetNode, edge) => {
         console.warn ('canSwapEdge',{sourceNode, targetNode, edge})
-	// WRITE ME
-        return false;
+        return targetNode.nodeType !== this.implicitNodeType;
       },
       onSwapEdge: (sourceNode, targetNode, edge) => {
         console.warn ('onSwapEdge',{sourceNode, targetNode, edge})
-	// WRITE ME
+        this.swapEdge (graph, sourceNode, targetNode, edge);
       },
       onDeleteEdge: (selectedEdge, edges) => {
         console.warn ('onDeleteEdge',{selectedEdge, edges})

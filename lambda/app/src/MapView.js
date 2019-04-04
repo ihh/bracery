@@ -980,6 +980,7 @@ class MapView extends Component {
   render() {
     const rhs = this.props.rhs;
     const graph = this.getLayoutGraph (rhs);
+    console.warn('start node:',graph.nodes[0].x,graph.nodes[0].y);
     //    console.warn(graph);
     //    console.warn(selected);
     const nodeTypes = fromEntries (

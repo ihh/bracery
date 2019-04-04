@@ -35,6 +35,7 @@ class App extends Component {
 
       warning: props.INITIAL_WARNING,
 
+      mapEvalText: props.SYMBOL_DEFINITION,
       mapSelection: {},
       editorContent: '',
       editorSelection: this.emptyEditorSelection(),
@@ -282,6 +283,7 @@ class App extends Component {
                 evalTextEdited: true,
                 warning: this.warning.unsaved });
     this.setState (newState);
+    return this.debounceEvalChangedUpdate();
   }
   
   // Event handlers
@@ -301,7 +303,8 @@ class App extends Component {
   }
 
   evalChangedUpdate = () => {
-    this.promiseBraceryExpansion (this.state.evalText, this.state.initVars, { rerollMeansRestart: false });
+    this.setState ({ mapEvalText: this.state.evalText },
+                   () => this.promiseBraceryExpansion (this.state.evalText, this.state.initVars, { rerollMeansRestart: false }));
   }
   
   nameChanged (event) {
@@ -371,7 +374,10 @@ class App extends Component {
 
   // Bracery parsing & analysis
   parseBracery() {
-    return ParseTree.parseRhs (this.state.evalText);
+    const now = Date.now();
+    const rhs = ParseTree.parseRhs (this.state.mapEvalText);
+    console.warn ('parsed in ' + (Date.now() - now) + 'ms');
+    return rhs;
   }
   
   usingRefSets (rhs) {
@@ -451,7 +457,7 @@ class App extends Component {
        ? (<MapView
           setAppState={this.setAppStateFromMapView}
           name={this.state.name}
-          evalText={this.state.evalText}
+          evalText={this.state.mapEvalText}
           rhs={rhs}
           selected={this.state.mapSelection}
           editorContent={this.state.editorContent}

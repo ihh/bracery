@@ -339,8 +339,7 @@ function getSymbolNodes (rhs, gsnConfig) {
     nodePredicate: function (nodeConfig, node) {
       function addLinkInfo (foundNode) {
 	return (gsnConfig.addParentLinkInfo
-                ? extend ({},
-                          foundNode,
+                ? extend (foundNode,
                           nodeConfig.inLink
                           ? { inLink: true,
                               linkText: nodeConfig.linkText,

@@ -681,8 +681,8 @@ class MapView extends Component {
         .forEach ((linkNode) => {
           const isLink = ParseTree.isLinkExpr(linkNode);
           const isLayoutLink = ParseTree.isLayoutLinkExpr(linkNode);
-          const parent = (linkNode.inLink
-                          ? nodeByID[linkNamer(linkNode.link)]
+          const parent = (linkNode.inLink && linkNode.link
+                          ? nodeByID[linkNode.link.graphNodeName]
                           : topLevelNode);
           const actualLinkNode = (isLink
                                   ? linkNode

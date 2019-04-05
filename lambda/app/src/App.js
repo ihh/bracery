@@ -279,11 +279,11 @@ class App extends Component {
       extend (newState,
               { currentSourceText: newState.evalText,
                 initText: newState.evalText,
+		mapEvalText: newState.evalText,
                 initVars: {},
                 evalTextEdited: true,
                 warning: this.warning.unsaved });
     this.setState (newState);
-    return this.debounceEvalChangedUpdate();
   }
   
   // Event handlers
@@ -303,8 +303,7 @@ class App extends Component {
   }
 
   evalChangedUpdate = () => {
-    this.setState ({ mapEvalText: this.state.evalText },
-                   () => this.promiseBraceryExpansion (this.state.evalText, this.state.initVars, { rerollMeansRestart: false }));
+    this.promiseBraceryExpansion (this.state.evalText, this.state.initVars, { rerollMeansRestart: false });
   }
   
   nameChanged (event) {

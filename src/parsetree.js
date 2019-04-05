@@ -333,6 +333,7 @@ function findNodes (rhs, config) {
 // Specialized findNodes for symbol nodes
 // Somewhat misnamed, as it does not just return symbol nodes;
 // it can also be configured to return &link{source}{target}, &layout&link{src}{targ}, #symbol#, &eval$x, $x, etc.
+// In other words it's a general Swiss Army knife for IDEs that do static analysis of Bracery.
 function getSymbolNodes (rhs, gsnConfig) {
   gsnConfig = gsnConfig || {}
   return this.findNodes (rhs, {

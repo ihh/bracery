@@ -320,7 +320,6 @@ class MapView extends Component {
       if (entity.implicitBracery.isSingleTraceryNode)
 	return this.makeTraceryText (entityText);
       if (entity.implicitBracery.isAlternation)
-//	rhs.length === 1 && typeof(rhs[0]) === 'object' && rhs[0].type === 'alt' && result[0] !== ParseTree.leftSquareBraceChar)
 	return ParseTree.leftSquareBraceChar + entityText + ParseTree.rightSquareBraceChar;
     }
     return entityText;
@@ -373,7 +372,7 @@ class MapView extends Component {
   }
 
   // rebuildBracery - regenerate entire Bracery string, with a single node changed/replaced.
-  // TODO: rewrite this. Graph should *always* generate a valid Bracery string that parses back to itself.
+  // TODO: rewrite/rethink this. Graph should *always* generate a valid Bracery string that parses back to itself.
   // Our job is to keep the graph maintained so that this serialization-deserialization is always consistent.
   // The edit operations below will then involve updating the 'pos', 'headerPos', and 'bodyPosArray' properties of all graph entities
   // that land after the specified modifications.
@@ -462,24 +461,9 @@ class MapView extends Component {
             : null);
   }
 
-  calculateSelectionRange (rhs, pos) {
-    let offset = 0, range = null;
-    range = rhs.reduce ((r, rhsNode) => {
-      if (!r) {
-        if (typeof(rhsNode) === 'string')
-          offset += rhsNode.length;
-        else if (rhsNode.pos) {
-          if (pos[0] >= rhsNode.pos[0] && pos[0] < rhsNode.pos[0] + rhsNode.pos[1])
-            r = [offset + pos[0] - rhsNode.pos[0], pos[1]];
-          else
-            offset += rhsNode.pos[1];
-        } else
-          console.error ('rhsNode without pos', rhsNode);
-      }
-        return r;
-    }, range);
-    range = range || [offset, 0];
-    return { startOffset: range[0], endOffset: range[0] + range[1] };
+  calculateSelectionRange (enclosingPos, pos) {
+    return { startOffset: pos[0] - enclosingPos[0],
+	     endOffset: pos[0] + pos[1] - enclosingPos[0] };
   }
 
   // State modification
@@ -498,7 +482,7 @@ class MapView extends Component {
       if (selectedEdge.edgeType === this.includeEdgeType)
         editorSelection = (selectedSource.nodeType === this.implicitNodeType && this.isSingleTraceryNode(selectedSource.rhs)
                            ? { startOffset: 0, endOffset: editorContent.length }
-                           : this.calculateSelectionRange (selectedSource.rhs, selectedEdge.pos));
+                           : this.calculateSelectionRange (selectedSource.pos, selectedEdge.pos));
     } else if (selected.node)
       editorContent = this.selectedNodeText (graph, selected);
     editorSelection = editorSelection || { startOffset: editorContent.length,
@@ -522,7 +506,7 @@ class MapView extends Component {
         .map ((prop) => [appProp[prop], newEditorState[prop]]));
     if (newEditorState.hasOwnProperty('content')) {
       if (selectedEdge && selectedEdge.edgeType === this.linkEdgeType) {
-        newAppState.evalText = this.replaceLink (graph, selectedEdgeLink, selectedEdge.linkPos, newEditorState.content);
+        newAppState.evalText = this.replaceLink (graph, selectedEdgeLink, selectedEdge.pos, newEditorState.content);
       } else {
         const oldNode = selectedNode || selectedEdgeSource;
         if (oldNode) {
@@ -600,7 +584,7 @@ class MapView extends Component {
                                              [{ startOffset: edge.pos[0],
                                                 endOffset: edge.pos[0] + edge.pos[1],
                                                 replacementText: newTargetText }])
-                         : this.replaceLink (graph, graph.nodeByID[edge.link], edge.linkPos, undefined, newTargetText));
+                         : this.replaceLink (graph, graph.nodeByID[edge.link], edge.pos, undefined, newTargetText));
 
     this.props.setAppState ({ evalText: newEvalText,
                               mapSelection: {},
@@ -613,8 +597,8 @@ class MapView extends Component {
   // Graph-building helpers
   afterAddEdge (edge, nodeByID, childRank) {
     let sourceNode = nodeByID[edge.source], targetNode = nodeByID[edge.target];
-    sourceNode.outgoing[edge.target] = (sourceNode.outgoing[edge.target] || []).concat (edge);
-    targetNode.incoming[edge.target] = (targetNode.incoming[edge.source] || []).concat (edge);
+    sourceNode.outgoing[edge.target] = (sourceNode.outgoing[edge.target] || []).concat ([edge.childRank]);
+    targetNode.incoming[edge.source] = (targetNode.incoming[edge.source] || []).concat ([edge.childRank]);
     sourceNode.includeOrder.push (targetNode);
     edge.totalIncluded = () => sourceNode.includeOrder.length;
     edge.includeRank = edge.totalIncluded();
@@ -636,17 +620,21 @@ class MapView extends Component {
     const selected = this.props.selected;
     const startNodeName = this.SYM_PREFIX + symName;
     // Scan parsed Bracery code for top-level global variable assignments of the form $variable=&quote{...} or $variable=&let$_xy{...}&quote{...}
-    let nodeOffset = 0, topLevelNodes = [], edges = [], startRhs = [];
-    let nodeByID = {};
-    const pushNode = (nodes, node, config) => {
+    let nodeOffset = 0, startPosOffset = 0, topLevelNodes = [], edges = [], braceryStartNodeRhs = [], startBodyPosArray = [];
+    let nodeByID = {}, braceryNodeByID = {}, braceryNodeRhsByID = {};  // We will not keep the maps to the Bracery parse tree, but use them for analysis when building the graph
+    const pushNode = (nodes, node, parseTreeNode, parseTreeNodeRhs, config) => {
       nodeByID[node.id] = node;
+      if (parseTreeNode)
+	braceryNodeByID[node.id] = parseTreeNode;
+      if (parseTreeNodeRhs)
+	braceryNodeRhsByID[node.id] = parseTreeNodeRhs;
       if (config && config.insertAtStart)
         nodes.splice(0,0,node);
       else
         nodes.push(node);
     };
     while (nodeOffset < rhs.length) {
-      let braceryNode = rhs[nodeOffset];
+      let braceryNode = rhs[nodeOffset], braceryNodeRhs = [];
       if (ParseTree.isQuoteAssignExpr (braceryNode)
           || ParseTree.isLayoutAssign (braceryNode)
           || ParseTree.isPlaceholderExpr (braceryNode)) {
@@ -666,25 +654,38 @@ class MapView extends Component {
 	    node.id = startNodeName;
 	    node.nodeType = mv.startNodeType;
 	  }
-	  node.rhs = [];
         } else {
 	  node.id = braceryNode.varname.toLowerCase();
           node.nodeType = this.definedNodeType;
 	  if (ParseTree.isLayoutAssign (braceryNode)) {
 	    let expr = ParseTree.getLayoutExpr (braceryNode);
 	    coord = ParseTree.getLayoutCoord (expr);
-	    node.rhs = ParseTree.getLayoutContent (expr);
+	    braceryNodeRhs = ParseTree.getLayoutContent (expr);
 	  } else
-	    node.rhs = ParseTree.getQuoteAssignRhs (braceryNode);
+	    braceryNodeRhs = ParseTree.getQuoteAssignRhs (braceryNode);
         }
         if (coord)
           extend (node, this.parseCoord (coord))
         topLevelNodes = topLevelNodes.filter ((n) => n.id !== node.id);
-	pushNode (topLevelNodes, node, { insertAtStart: node.nodeType === this.startNodeType });
-      } else if (this.isStaticExpr ([braceryNode]))
-        startRhs.push (braceryNode);
-      else
+	pushNode (topLevelNodes,
+		  node,
+		  braceryNode,
+		  braceryNodeRhs,
+		  { insertAtStart: node.nodeType === this.startNodeType,
+		    implicitBracery: { isAlternation: (braceryNodeRhs.length === 1
+						       && typeof(braceryNodeRhs[0]) === 'object'
+						       && braceryNodeRhs[0].type === 'alt') } });
+	startOffset = braceryNode.pos[0] + braceryNode.pos[1];
+      } else if (this.isStaticExpr ([braceryNode])) {
+	braceryStartNodeRhs.push (braceryNode);
+        startBodyPosArray.push (braceryNode.pos);
+	startOffset = (typeof(braceryNode) === 'string'
+		       ? braceryNode.length
+		       : (braceryNode.pos[0] + braceryNode.pos[1]));
+      } else {
+	console.warn ('header ends at ' + startOffset)
         break;
+      }
       ++nodeOffset;
     }
 
@@ -693,13 +694,21 @@ class MapView extends Component {
       const startNode = { id: startNodeName,
 	                  pos: [0, 0],
                           nodeType: this.startNodeType };
-      pushNode (topLevelNodes, startNode, { insertAtStart: true });
+      pushNode (topLevelNodes,
+		startNode,
+		null,
+		null,
+		{ insertAtStart: true });
     }
-    topLevelNodes[0].rhs = startRhs.concat (rhs.slice (nodeOffset));
+    let startNode = topLevelNodes[0];
+    startNode.headerPos = startNode.pos;
+    if (startOffset < text.length)
+      startNode.bodyPosArray = startBodyPosArray.concat ([startOffset, text.length - startOffset]);
+    delete startNode.pos;
 
     // Define some searches of the parse tree
     const getTargetNodes = (node, config, namer) => {
-      return ParseTree.getSymbolNodes (node.rhs, config)
+      return ParseTree.getSymbolNodes (braceryNodeRhsByID[node.id], config)
         .map ((target) => extend (target, { graphNodeName: namer(target) }))
         .filter ((target) => target.graphNodeName !== node.id);
     };
@@ -757,14 +766,13 @@ class MapView extends Component {
               pos: linkNode.pos,
               parent: parent,
               nodeType: this.implicitNodeType,
-              linkText: ParseTree.getLinkText(actualLinkNode),
-              rhs: linkTargetRhs,
+              linkText: ParseTree.getLinkText (actualLinkNode),
             },
             uniqueTarget ? {uniqueTarget} : {},
             (isLayoutLink
-             ? this.parseCoord (ParseTree.getLayoutCoord(linkNode))
+             ? this.parseCoord (ParseTree.getLayoutCoord (linkNode))
              : {}));
-          pushNode (implicitNodes, implicitNode);
+          pushNode (implicitNodes, implicitNode, linkNode, linkTargetRhs);
         }));
 
     // Create placeholders for unknown & external nodes
@@ -810,7 +818,7 @@ class MapView extends Component {
     // Create link edges
     implicitNodes.forEach ((node) => addEdge (extend ({ source: node.parent.id,
                                                         type: mv.linkEdgeType,
-                                                        linkPos: node.pos,
+                                                        pos: node.pos,
 							linkTextPos: node.linkText.pos },
                                                       (node.uniqueTarget
                                                        ? { target: node.uniqueTarget,
@@ -830,7 +838,6 @@ class MapView extends Component {
     //   then set the node's parent to its grandparent; repeat until the parent is not a skipped implicit node.
     // - Sort children by the order that the parent->child edges appear.
     //   This keeps the automatic hierarchical layout stable when we add placeholders, etc.
-    const startNode = keptNodes[0];
     let nOrphans = 0;
     keptNodes.forEach ((node) => node.children = []);
     keptNodes.forEach ((node, n) => {
@@ -916,7 +923,7 @@ class MapView extends Component {
         break;
       case this.startNodeType:
         typeText = ParseTree.symChar + symName + ' ';
-        title = this.nodesText (node.rhs);
+        title = this.nodesText (braceryNodeRhsById[node.id]);
         break;
       default:
         typeText = ParseTree.traceryChar + node.id + ParseTree.traceryChar;
@@ -935,7 +942,7 @@ class MapView extends Component {
   // Clone layout graph
   // Not a pure clone, e.g. does not deep-clone incoming & outgoing edge lists in each node, or hierarchical layout, or parse tree
   cloneLayoutGraph (graph) {
-    const newNodes = graph.nodes.slice(0).map ((node) => extend ({}, node, { rhs: node.rhs.slice(0) }));
+    const newNodes = graph.nodes.slice(0).map ((node) => extend ({}, node));
     return { nodes: newNodes,
 	     edges: graph.edges.slice(0),
              nodeByID: fromEntries (newNodes.map ((node) => [node.id, node])),

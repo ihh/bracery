@@ -1093,14 +1093,14 @@ function findNodes (rhs, config) {
 // Specialized findNodes for symbol nodes
 // Somewhat misnamed, as it does not just return symbol nodes;
 // it can also be configured to return &link{source}{target}, &layout&link{src}{targ}, #symbol#, &eval$x, $x, etc.
+// In other words it's a general Swiss Army knife for IDEs that do static analysis of Bracery.
 function getSymbolNodes (rhs, gsnConfig) {
   gsnConfig = gsnConfig || {}
   return this.findNodes (rhs, {
     nodePredicate: function (nodeConfig, node) {
       function addLinkInfo (foundNode) {
 	return (gsnConfig.addParentLinkInfo
-                ? extend ({},
-                          foundNode,
+                ? extend (foundNode,
                           nodeConfig.inLink
                           ? { inLink: true,
                               linkText: nodeConfig.linkText,
@@ -11690,7 +11690,7 @@ function peg$parse(input, options) {
     var loc = addLocation({})
     return (symName.length
   	  ? makeFunction ('link',
-                            [text,
+                            [makeRoot ([text]),
                              makeQuote ([copyLocation (makeTraceryExpr (symName, []),
                                                        { pos: [loc.pos[0]+2, loc.pos[1]-4] })])])
   	  : ('[[' + text + ']]'))

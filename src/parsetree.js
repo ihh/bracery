@@ -520,8 +520,12 @@ function isQuoteAssignExpr (node) {
     && node.value.length === 1 && node.value[0].type === 'func' && node.value[0].funcname === 'quote'
 }
 
+function getQuoteAssignRhsNode (node) {
+  return node.value[0]
+}
+
 function getQuoteAssignRhs (node) {
-  return node.value[0].args
+  return getQuoteAssignRhsNode(node).args
 }
 
 // &tag{x} expands to $tags={$tags x}
@@ -574,10 +578,15 @@ function getLayoutCoord (node) {
   return node.args[0]
 }
 
+function getLayoutContentExpr (node) {
+  return node.args[1]
+}
+
 function getLayoutContent (node) {
-  return (typeof(node.args[1]) === 'object' && node.args[1].type === 'func' && node.args[1].funcname === 'quote'
-          ? node.args[1].args
-          : [node.args[1]])
+  var content = getLayoutContentExpr (node)
+  return (typeof(content) === 'object' && content.type === 'func' && content.funcname === 'quote'
+          ? content.args
+          : [content])
 }
 
 // &layout{x,y}&link{src}{target}
@@ -2518,6 +2527,7 @@ module.exports = {
   isQuoteAssignKeywordExpr: isQuoteAssignKeywordExpr,
   isQuoteAssignExpr: isQuoteAssignExpr,
   getQuoteAssignRhs: getQuoteAssignRhs,
+  getQuoteAssignRhsNode: getQuoteAssignRhsNode,
   isTagExpr: isTagExpr,
   getTagExprRhs: getTagExprRhs,
   isMeterExpr: isMeterExpr,
@@ -2527,6 +2537,7 @@ module.exports = {
   isLayoutExpr: isLayoutExpr,
   getLayoutCoord: getLayoutCoord,
   getLayoutContent: getLayoutContent,
+  getLayoutContentExpr: getLayoutContentExpr,
   isLayoutAssign: isLayoutAssign,
   getLayoutExpr: getLayoutExpr,
   isLinkExpr: isLinkExpr,

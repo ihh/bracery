@@ -8334,7 +8334,7 @@ function peg$parse(input, options) {
     var loc = addLocation({})
     return (symName.length
   	  ? makeFunction ('link',
-                            [text,
+                            [makeRoot ([text]),
                              makeQuote ([copyLocation (makeTraceryExpr (symName, []),
                                                        { pos: [loc.pos[0]+2, loc.pos[1]-4] })])])
   	  : ('[[' + text + ']]'))

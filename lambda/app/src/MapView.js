@@ -168,7 +168,7 @@ class MapView extends Component {
 			   ? (config.noEscape
 			      ? node
 			      : node.replace (regex, (m) => '\\'+m))
-			   : this.nodeText(node,text)))
+			   : this.parseTreeNodeText(node,text)))
 	  .join('');
     if (config.stripBracketsFromAlt && rhs.length === 1 && typeof(rhs[0]) === 'object' && rhs[0].type === 'alt')
       result = result.substr(1,result.length-2);
@@ -247,31 +247,6 @@ class MapView extends Component {
     return newVarName;
   }
   
-  // graphPosText uses a pos tuple (start,length) to grab a substring of the Bracery text for the graph.
-  // The (start,length) correspond to the parse tree node for the expression, so there may be enclosing curly braces; we strip these off.
-  graphPosText (graph, pos) {
-    return this.stripEnclosingBraces (graph.text.substr (pos[0], pos[1]));
-  }
-
-  // graphPosArrayText is like graphPosText, but works on an array of pos tuples
-  // (effectively splicing together non-contiguous regions of the text)
-  graphPosArrayText (graph, posArray) {
-    return posArray.map (this.graphPosText.bind (this, graph)).join('');
-  }
-  
-  // graphEntityText is a wrapper for graphPosText and graphPosArrayText, to be called on a graph entity (node or edge).
-  // In general, the start node has a headerPos and a bodyPosArray; all other entities (nodes and edges) have a pos.
-  graphEntityText (graph, entity) {
-    return this.graphPosArrayText (graph, (entity.headerPos
-					   ? [entity.headerPos].concat (entity.bodyPosArray)
-					   : [entity.pos]));
-  }
-  
-  // startNodeText is graphEntityText for the start node
-  graphStartNodeText (graph) {
-    return this.graphText (graph, graph.nodes[0]);
-  }
-
   // parseTreeNodeText is to be called on a Bracery parse tree node,
   // along with the text that was parsed.
   parseTreeNodeText (node, text) {
@@ -290,13 +265,54 @@ class MapView extends Component {
     return nodes.reduce ((pre, node) => pre + this.parseTreeNodeText (node, text), '') || '';
   }
 
-  // Detect if a node is another node's ancestor
-  // TODO: rewrite this using node IDs
-  nodeInSubtree (node, subtreeRoot) {
+  // parseTreeRhsTextOffset is a wrapper for parseTreeNodesText that deals with the syntactic sugar
+  // [abc=>x|y|z] for $abc=&quote{[x|y|z]}, restoring the enclosing square braces
+  parseTreeRhsTextOffset (rhs, defNode, origText) {
+    const text = this.parseTreeNodesText (rhs, origText);
+    const offset = defNode ? defNode.pos[0] : 0;
+    return (this.parseTreeRhsIsAlternation(rhs)  // x|y|z
+            ? { text: (ParseTree.leftSquareBraceChar + text + ParseTree.rightSquareBraceChar),  // [x|y|z]
+                offset: [offset - 1, text.length] }
+            : { text: text,
+                offset: [offset, text.length] });
+  }
+
+  parseTreeRhsIsAlternation (rhs) {
+    return rhs.length === 1 && typeof(rhs[0]) === 'object' && rhs[0].type === 'alt';
+  }
+
+  // Text for a graph entity
+  getPosSubstr (text, pos) {
+    return (text && pos
+            ? text.substr (pos[0], pos[1])
+            : '');
+  }
+
+  // Text for a graph node, or substring associated with a node (pos is optional, defaults to node pos)
+  nodeText (graph, node, pos) {
+    if (node.defText)
+      return node.defText;
+    let ancestor = this.getAncestor (graph, node);
+    return this.getPosSubstr (ancestor.defText, pos || node.pos);
+  }
+
+  getAncestor (graph, node) {
+    return node.topLevelAncestorID ? graph.nodeByID[node.topLevelAncestorID] : node;
+  }
+  
+  // Text for a graph edge
+  edgeText (graph, edge) {
+    let source = graph.nodeByID[edge.source];
+    let ancestor = this.getAncestor (graph, source);
+    return this.getPosSubstr (ancestor.defText, edge.pos);
+  }
+
+  // Detect if a graph node is another node's ancestor
+  nodeInSubtree (node, subtreeRoot, nodeByID) {
     while (node) {
       if (node.id === subtreeRoot.id)  // compare IDs not nodes themselves, as we do a fair bit of object cloning
 	return true;
-      node = node.parent;
+      node = nodeByID[node.parentID];
     }
     return false;
   }
@@ -310,26 +326,11 @@ class MapView extends Component {
     return '';
   }
 
-  // implicitBracery - calculate the "implicit Bracery" for a graph entity,
-  // i.e. what will appear in the editor text window when this entity is selected
-  // (which may differ from whatever syntactic sugar is used to represent the entity in the Bracery text).
-  // The implicit Bracery is controlled by the entity's 'implicitBracery' object.
-  implicitBracery (graph, entity) {
-    let entityText = this.graphEntityText (graph, entity);
-    if (entity.implicitBracery) {
-      if (entity.implicitBracery.isSingleTraceryNode)
-	return this.makeTraceryText (entityText);
-      if (entity.implicitBracery.isAlternation)
-	return ParseTree.leftSquareBraceChar + entityText + ParseTree.rightSquareBraceChar;
-    }
-    return entityText;
-  }
-
   // makeNodeBracery - regenerate the Bracery for a graph node,
   // overriding the (X,Y) coordinates with whatever is in the graph,
   // and using syntactic sugar for the &layout, &link, and &placeholder functions,
   // i.e. [name@X,Y=>definition...] and so on.
-  makeNodeBracery (graph, node) {
+  makeNodeBracery (node) {
     const xy = this.makeCoord(node);
     switch (node.nodeType) {
     case this.externalNodeType:
@@ -337,15 +338,15 @@ class MapView extends Component {
     case this.placeholderNodeType:
       return xy && (xy + ParseTree.varChar + node.id + '\n');
     case this.startNodeType:
-      return xy && (xy + ':START\n');
+      return (xy ? (xy + ':START\n') : '') + node.defText;
     case this.definedNodeType:
-      return '[' + node.id + xy + '=>' + this.escapeTopLevelBraces (this.implicitBracery (graph, node), { stripBracketsFromAlt: true }) + ']\n';
+      return '[' + node.id + xy + '=>' + this.escapeTopLevelBraces (node.defText, { stripBracketsFromAlt: true }) + ']\n';
     case this.implicitNodeType:
     default:
       return '';
     }
   }
-
+  
   // makeLinkBracery - regenerate a link of the form [text]{target}
   makeLinkBracery (node, newLinkText, newLinkTarget) {
     const xy = this.makeCoord(node);
@@ -371,29 +372,9 @@ class MapView extends Component {
     }
   }
 
-  // rebuildBracery - regenerate entire Bracery string, with a single node changed/replaced.
-  // TODO: rewrite/rethink this. Graph should *always* generate a valid Bracery string that parses back to itself.
-  // Our job is to keep the graph maintained so that this serialization-deserialization is always consistent.
-  // The edit operations below will then involve updating the 'pos', 'headerPos', and 'bodyPosArray' properties of all graph entities
-  // that land after the specified modifications.
-  // Eventually ParseTreeGraph should be its own class (or MST model), and these edit operations the actions on the model.
-  // But for incremental development, let's first keep it a JSON object that we update consistently.
-  rebuildBracery (graph, changedNode) {
-    // If we're changing an implicit node or an edge to an implicit node, then just rewrite the substring at changedPos.
-    // If we're changing a defined or start node (i.e. at the top level of the file), then rebuild the whole string.
-    // This is a bit messy but is consistent with the top-level entities being autonomous, with the implicit ones dangling off them
-    // (and being able to select smaller and smaller substrings by clicking on implicit nodes).
-    if (changedNode.nodeType === this.implicitNodeType) {
-      return this.replaceLink (graph, changedNode);
-    } else {
-      return graph.nodes
-        .filter ((graphNode) => graphNode.nodeType !== this.implicitNodeType)
-        .map ((graphNode) => (
-        this.nodeInSubtree (graphNode, changedNode)
-	    ? this.makeNodeBracery(graph,graphNode)
-	  : this.nodeText(graphNode)
-      )).join('') + this.startNodeText(graph);
-    }
+  // rebuildBracery - regenerate entire Bracery string.
+  rebuildBracery (graph) {
+    return graph.nodes.slice(1).concat([0]).reduce ((s, node) => s + this.makeNodeBracery(node),'');
   }
 
   replaceLink (graph, linkNode, changedPos, newLinkText, newLinkTargetText) {
@@ -403,10 +384,10 @@ class MapView extends Component {
                                 endOffset: changedPos[0] + changedPos[1],
                                 replacementText: this.makeLinkBracery (linkNode,
                                                                        typeof(newLinkText) === 'undefined'
-                                                                       ? this.nodeText(linkNode.linkText)
+                                                                       ? linkNode.defText
                                                                        : newLinkText,
                                                                        typeof(newLinkTargetText) === 'undefined'
-                                                                       ? this.implicitBracery (graph, linkNode)
+                                                                       ? linkNode.defText
                                                                        : newLinkTargetText) }]);
   }
 
@@ -432,7 +413,7 @@ class MapView extends Component {
 
   selectedNodeText (graph, selected, node) {
     node = node || this.selectedNode (graph, selected);
-    return this.implicitBracery (graph, node);
+    return node.defText || '';
   }
 
   selectedEdges (graph, selected) {
@@ -477,7 +458,7 @@ class MapView extends Component {
       const selectedEdge = this.selectedEdge (graph, selected);
       const selectedSource = this.selectedEdgeSourceNode (graph, selected);
       editorContent = (selectedEdge.edgeType === this.linkEdgeType
-                       ? this.nodeText (selectedEdge.linkTextPos)
+                       ? this.graphEdgeText (graph, selectedEdge)
                        : this.selectedNodeText (graph, selected, selectedSource));
       if (selectedEdge.edgeType === this.includeEdgeType)
         editorSelection = (selectedSource.nodeType === this.implicitNodeType && this.isSingleTraceryNode(selectedSource.rhs)
@@ -554,8 +535,7 @@ class MapView extends Component {
     let newEdge = { source: source.id,
 		    target: target.id,
                     type: this.linkEdgeType };
-    newGraph.edges.push (newEdge);
-    this.afterAddEdge (newEdge, newGraph.nodeByID);
+    this.addEdge (newGraph.edges, newEdge, newGraph.nodeByID);
 
     let link = null, linkText = null;
     if (target.nodeType === this.externalNodeType) {
@@ -595,13 +575,14 @@ class MapView extends Component {
   }
 
   // Graph-building helpers
-  afterAddEdge (edge, nodeByID, childRank) {
-    let sourceNode = nodeByID[edge.source], targetNode = nodeByID[edge.target];
-    sourceNode.outgoing[edge.target] = (sourceNode.outgoing[edge.target] || []).concat ([edge.childRank]);
-    targetNode.incoming[edge.source] = (targetNode.incoming[edge.source] || []).concat ([edge.childRank]);
-    sourceNode.includeOrder.push (targetNode);
-    edge.totalIncluded = () => sourceNode.includeOrder.length;
-    edge.includeRank = edge.totalIncluded();
+  addEdge (edges, edge, nodeByID, childRank) {
+    edges.push (edge);
+//    console.warn({edge});
+    let sourceNode = nodeByID[edge.source], targetNode = nodeByID[edge.target], newEdgeIndex = edges.length - 1;
+    sourceNode.outgoing.push (newEdgeIndex);
+    targetNode.incoming.push (newEdgeIndex);
+    sourceNode.includeOrder.push (targetNode.id);
+    edge.includeRank = sourceNode.includeOrder.length;
     if (childRank) {
       let srcChildRank = childRank[edge.source];
       if (!srcChildRank[edge.target])
@@ -619,28 +600,33 @@ class MapView extends Component {
     const symName = this.props.name;
     const selected = this.props.selected;
     const startNodeName = this.SYM_PREFIX + symName;
-    // Scan parsed Bracery code for top-level global variable assignments of the form $variable=&quote{...} or $variable=&let$_xy{...}&quote{...}
-    let nodeOffset = 0, startPosOffset = 0, topLevelNodes = [], edges = [], braceryStartNodeRhs = [], startBodyPosArray = [];
-    let nodeByID = {}, braceryNodeByID = {}, braceryNodeRhsByID = {};  // We will not keep the maps to the Bracery parse tree, but use them for analysis when building the graph
+    // Scan parsed Bracery code for top-level global variable assignments,
+    // of the form $variable=&quote{...} or $variable=&let$_xy{...}&quote{...}
+    let topLevelNodes = [], edges = [], startDefText = '';
+    let nodeByID = {};
+    // We will not keep these references to the originally parsed text and the Bracery parse tree,
+    // but we use them for analysis when building the graph
+    let startOffset = 0, rhsOffset = 0, braceryStartNodeRhs = [], braceryNodeByID = {}, braceryNodeRhsByID = {};
+    let braceryNodeOffset = {};
     const pushNode = (nodes, node, parseTreeNode, parseTreeNodeRhs, config) => {
       nodeByID[node.id] = node;
-      if (parseTreeNode)
-	braceryNodeByID[node.id] = parseTreeNode;
-      if (parseTreeNodeRhs)
-	braceryNodeRhsByID[node.id] = parseTreeNodeRhs;
+      braceryNodeByID[node.id] = parseTreeNode || null;
+      braceryNodeRhsByID[node.id] = parseTreeNodeRhs || [];
+      // Push or unshift the node to the given list of nodes
       if (config && config.insertAtStart)
         nodes.splice(0,0,node);
       else
         nodes.push(node);
     };
-    while (nodeOffset < rhs.length) {
-      let braceryNode = rhs[nodeOffset], braceryNodeRhs = [];
-      if (ParseTree.isQuoteAssignExpr (braceryNode)
-          || ParseTree.isLayoutAssign (braceryNode)
-          || ParseTree.isPlaceholderExpr (braceryNode)) {
-        let node = { pos: braceryNode.pos };
+    // Loop through top-level nodes
+    while (rhsOffset < rhs.length) {
+      let braceryNode = rhs[rhsOffset], braceryDefNode = null, braceryNodeRhs = [];
+      if (ParseTree.isQuoteAssignExpr (braceryNode)  // [var=>...]
+          || ParseTree.isLayoutAssign (braceryNode)  // [var@x,y=>...]
+          || ParseTree.isPlaceholderExpr (braceryNode)) {  // @x,y$var or @x,y~var
+        let node = {};
 	let coord = null;
-        if (ParseTree.isPlaceholderExpr (braceryNode)) {
+        if (ParseTree.isPlaceholderExpr (braceryNode)) {  // @x,y$var or @x,y~var
 	  const heldNode = ParseTree.getPlaceholderNode (braceryNode);
 	  const heldNodeType = heldNode && heldNode.type;
 	  coord = ParseTree.getPlaceholderCoord (braceryNode);
@@ -655,38 +641,42 @@ class MapView extends Component {
 	    node.nodeType = mv.startNodeType;
 	  }
         } else {
+          // [var@x,y=>...] or [var=>...]
 	  node.id = braceryNode.varname.toLowerCase();
           node.nodeType = this.definedNodeType;
-	  if (ParseTree.isLayoutAssign (braceryNode)) {
+	  if (ParseTree.isLayoutAssign (braceryNode)) {  // [var@x,y=>...]
 	    let expr = ParseTree.getLayoutExpr (braceryNode);
 	    coord = ParseTree.getLayoutCoord (expr);
+            braceryDefNode = ParseTree.getLayoutContentExpr (expr);
 	    braceryNodeRhs = ParseTree.getLayoutContent (expr);
-	  } else
+	  } else {  // [var=>...]
+            braceryDefNode = ParseTree.getQuoteAssignRhsNode (braceryNode);
 	    braceryNodeRhs = ParseTree.getQuoteAssignRhs (braceryNode);
+          }
         }
         if (coord)
           extend (node, this.parseCoord (coord))
         topLevelNodes = topLevelNodes.filter ((n) => n.id !== node.id);
+        const defTextOffset = this.parseTreeRhsTextOffset (braceryNodeRhs, braceryDefNode, text);
+        extend (node, { defText: defTextOffset.text });
+        braceryNodeOffset[node.id] = defTextOffset.offset;
 	pushNode (topLevelNodes,
 		  node,
 		  braceryNode,
 		  braceryNodeRhs,
-		  { insertAtStart: node.nodeType === this.startNodeType,
-		    implicitBracery: { isAlternation: (braceryNodeRhs.length === 1
-						       && typeof(braceryNodeRhs[0]) === 'object'
-						       && braceryNodeRhs[0].type === 'alt') } });
+		  { insertAtStart: node.nodeType === this.startNodeType });
 	startOffset = braceryNode.pos[0] + braceryNode.pos[1];
       } else if (this.isStaticExpr ([braceryNode])) {
 	braceryStartNodeRhs.push (braceryNode);
-        startBodyPosArray.push (braceryNode.pos);
+        startDefText += text.substr (braceryNode.pos[0], braceryNode.pos[1]);
 	startOffset = (typeof(braceryNode) === 'string'
 		       ? braceryNode.length
 		       : (braceryNode.pos[0] + braceryNode.pos[1]));
       } else {
-	console.warn ('header ends at ' + startOffset)
+//	console.warn ('header ends at char ' + startOffset)
         break;
       }
-      ++nodeOffset;
+      ++rhsOffset;
     }
 
     // Add a start node for everything that is *not* part of a top-level global variable assignment
@@ -701,13 +691,13 @@ class MapView extends Component {
 		{ insertAtStart: true });
     }
     let startNode = topLevelNodes[0];
-    startNode.headerPos = startNode.pos;
     if (startOffset < text.length)
-      startNode.bodyPosArray = startBodyPosArray.concat ([startOffset, text.length - startOffset]);
-    delete startNode.pos;
+      startDefText += text.slice (startOffset);
+    startNode.defText = startDefText;
 
     // Define some searches of the parse tree
     const getTargetNodes = (node, config, namer) => {
+//      console.warn ('getTargetNodes',node.id,braceryNodeRhsByID[node.id]);
       return ParseTree.getSymbolNodes (braceryNodeRhsByID[node.id], config)
         .map ((target) => extend (target, { graphNodeName: namer(target) }))
         .filter ((target) => target.graphNodeName !== node.id);
@@ -750,6 +740,7 @@ class MapView extends Component {
                                   : (isLayoutLink
                                      ? ParseTree.getLayoutLink(linkNode)
                                      : null));
+          const linkTextNode = ParseTree.getLinkText (actualLinkNode);
           const linkTargetRhs = ParseTree.getLinkTargetRhs(actualLinkNode);
           let uniqueTarget = null;
           if (linkTargetRhs.length === 1) {
@@ -760,13 +751,17 @@ class MapView extends Component {
             else if (ParseTree.isTraceryExpr(linkTargetRhs[0]))
               uniqueTarget = ParseTree.traceryVarName(linkTargetRhs[0]);
           }
+          const topOffset = braceryNodeOffset[topLevelNode.id] || 0;
           const implicitNode = extend (
             {
               id: linkNode.graphNodeName,
-              pos: linkNode.pos,
-              parent: parent,
+              pos: [linkNode.pos[0] - topOffset,
+                    linkNode.pos[1]],
+              parentID: parent.id,
+              topLevelAncestorID: topLevelNode.id,
               nodeType: this.implicitNodeType,
-              linkText: ParseTree.getLinkText (actualLinkNode),
+              linkTextPos: [linkTextNode.pos[0] + topOffset,
+                            linkTextNode.pos[1]],
             },
             uniqueTarget ? {uniqueTarget} : {},
             (isLayoutLink
@@ -782,13 +777,13 @@ class MapView extends Component {
       getter(node).forEach ((target) => {
 	const targetNode = nodeByID[target.graphNodeName];
         if (targetNode) {
-	  if (!targetNode.parent && targetNode.nodeType !== mv.startNodeType && !mv.nodeInSubtree (node, targetNode))
-	    targetNode.parent = node;
+	  if (!targetNode.parentID
+              && targetNode.nodeType !== mv.startNodeType
+              && !mv.nodeInSubtree (node, targetNode, nodeByID))
+	    targetNode.parentID = node.id;
 	} else {
 	  const newNode = extend ({ id: target.graphNodeName,
-				    pos: [0, 0],
-                                    parent: node,
-                                    rhs: [] },
+                                    parentID: node.id },
 				  attrs);
           pushNode (placeholderNodes, newNode);
         }
@@ -800,11 +795,8 @@ class MapView extends Component {
     // Do some common initializing, and create edges
     const allNodes = realNodes.concat(placeholderNodes);
     let childRank = fromEntries (allNodes.map ((node) => [node.id, {}]));
-    allNodes.forEach ((node) => { node.incoming = {}; node.outgoing = {}; node.includeOrder = []; });
-    const addEdge = ((edge) => {
-      edges.push (edge);
-      return this.afterAddEdge (edge, nodeByID, childRank);
-    });
+    const addEdge = (edge) => { this.addEdge (edges, edge, nodeByID, childRank); };
+    allNodes.forEach ((node) => { node.incoming = []; node.outgoing = []; node.includeOrder = []; });
     allNodes.forEach ((node) => {
       // Create outgoing include edges
       if (!node.uniqueTarget)
@@ -816,22 +808,22 @@ class MapView extends Component {
                                      pos: target.pos }))
     });
     // Create link edges
-    implicitNodes.forEach ((node) => addEdge (extend ({ source: node.parent.id,
+    implicitNodes.forEach ((node) => addEdge (extend ({ source: node.parentID,
                                                         type: mv.linkEdgeType,
                                                         pos: node.pos,
-							linkTextPos: node.linkText.pos },
+							linkTextPos: node.linkTextPos },
                                                       (node.uniqueTarget
                                                        ? { target: node.uniqueTarget,
                                                            link: node.id }
                                                        : { target: node.id }))));
 
-    // Remove any placeholders, implicit, or external nodes that don't have incoming edges
-    const nodeUnreachable = (node) => ((node.nodeType === this.placeholderNodeType
-                                        || node.nodeType === this.externalNodeType
-                                        || node.nodeType === this.implicitNodeType)
-                                       && !Object.keys(node.incoming).length);
-    const keptNodes = allNodes.filter ((node) => !nodeUnreachable(node));
-
+    // Remove any placeholders, implicit, or external nodes that don't have incoming or outgoing edges
+    const nodeDetached = (node) => ((node.nodeType === this.placeholderNodeType
+                                     || node.nodeType === this.externalNodeType
+                                     || node.nodeType === this.implicitNodeType)
+                                    && !node.incoming.length && !node.outgoing.length);
+    const keptNodes = allNodes.filter ((node) => !nodeDetached(node));
+    console.warn({keptNodes});
     // Create tree structure
     // - Ensure every node (except start) has a parent.
     // - If a node's parent is a skipped implicit node (i.e. an implicit node with a unique target),
@@ -842,39 +834,43 @@ class MapView extends Component {
     keptNodes.forEach ((node) => node.children = []);
     keptNodes.forEach ((node, n) => {
       if (n > 0) {
-        if (!node.parent) {  // if a node is not referenced by any other node, set its parent to be the start node
-	  node.parent = startNode;
+        if (!node.parentID) {  // if a node is not referenced by any other node, set its parent to be the start node
+	  node.parentID = startNode.id;
           if (typeof(node.x) === 'undefined')
             childRank[startNode.id][node.id] = startNode.includeOrder.length + (++nOrphans);
         }
-        while (node.parent.uniqueTarget)
-          node.parent = node.parent.parent;
-	node.parent.children.push (node);
+        while (nodeByID[node.parentID].uniqueTarget)
+          node.parentID = nodeByID[node.parentID].parentID;
+        let parent = nodeByID[node.parentID];
+	parent.children.push (node.id);
       }
       node.depth = 0;
-      for (let n = node; n.parent; n = n.parent)
+      for (let n = node; n.parentID && nodeByID[n.parentID]; n = nodeByID[n.parentID]) {
+//        console.warn(n,node);
 	++node.depth;
+      }
     });
-    keptNodes.forEach ((parent) => parent.children.forEach ((child) => {
-      child.childRank = childRank[parent.id][child.id];
+    keptNodes.forEach ((parent) => parent.children.forEach ((childID) => {
+      nodeByID[childID].childRank = childRank[parent.id][childID];
     }));
     keptNodes.forEach ((node) => {
-      node.children = node.children.sort ((a,b) => a.childRank - b.childRank);
-      node.maxChildRank = node.children.reduce ((max, c) => typeof(c.childRank) === 'undefined' ? max : Math.max (max, c.childRank), 0);
-      node.children.forEach ((child) => { child.relativeChildRank = child.childRank / (node.maxChildRank + 1) });
+      node.children = node.children.sort ((a,b) => nodeByID[a].childRank - nodeByID[b].childRank);
+      node.maxChildRank = node.children.reduce ((max, c) => (!nodeByID[c] || typeof(nodeByID[c].childRank) === 'undefined') ? max : Math.max (max, nodeByID[c].childRank), 0);
+      node.children.forEach ((child) => { nodeByID[child].relativeChildRank = nodeByID[child].childRank / (node.maxChildRank + 1) });
     });
     
     // Lay things out
     const layoutNode = (node) => {
       // If no (x,y) specified, lay out nodes from the parent node
       if (typeof(node.x) === 'undefined') {
-        if (node.parent) {
-	  layoutNode (node.parent);
+        if (node.parentID) {
+          const parent = nodeByID[node.parentID];
+	  layoutNode (parent);
 	  const angleRange = Math.PI, angleOffset = -angleRange/2;
 	  const angle = angleOffset + angleRange * node.relativeChildRank;
 	  const radius = mv.layoutRadius;
-	  node.x = node.parent.x + Math.cos(angle) * radius;
-	  node.y = node.parent.y + Math.sin(angle) * radius;
+	  node.x = parent.x + Math.cos(angle) * radius;
+	  node.y = parent.y + Math.sin(angle) * radius;
         } else
           node.x = node.y = 0;
 	node.autoLayout = true;
@@ -918,16 +914,16 @@ class MapView extends Component {
         title = this.placeholderNodeText;
         break;
       case this.implicitNodeType:
-        typeText = this.nodeText (node.linkText);
-        title = this.implicitBracery (graph, node);
+        typeText = this.nodeText (graph, node, node.linkTextPos);
+        title = this.nodeText (graph, node);
         break;
       case this.startNodeType:
         typeText = ParseTree.symChar + symName + ' ';
-        title = this.nodesText (braceryNodeRhsById[node.id]);
+        title = this.parseTreeNodesText (braceryNodeRhsByID[node.id]);
         break;
       default:
         typeText = ParseTree.traceryChar + node.id + ParseTree.traceryChar;
-        title = this.implicitBracery (graph, node);
+        title = node.defText;
         break;
       }
       node.type = node.id;
@@ -1045,7 +1041,7 @@ class MapView extends Component {
     const rhs = this.props.rhs;
     const graph = this.getLayoutGraph (rhs);
 //    console.warn('start node:',graph.nodes[0].x,graph.nodes[0].y);
-    console.dir(graph);
+//    console.warn({graph});
     //    console.dir(selected);
     const nodeTypes = fromEntries (
       graph.nodes.map (

@@ -599,8 +599,12 @@ function getLinkText (node) {
   return node.args[0]
 }
 
+function getLinkTargetRhsNode (node) {
+  return node.args[1]
+}
+
 function getLinkTargetRhs (node) {
-  return node.args[1].args
+  return getLinkTargetRhsNode(node).args
 }
 
 function isLayoutLinkExpr (node) {
@@ -2543,6 +2547,7 @@ module.exports = {
   isLinkExpr: isLinkExpr,
   getLinkText: getLinkText,
   getLinkTargetRhs: getLinkTargetRhs,
+  getLinkTargetRhsNode: getLinkTargetRhsNode,
   isLayoutLinkExpr: isLayoutLinkExpr,
   getLayoutLink: getLayoutLink,
   isPlaceholderExpr: isPlaceholderExpr,

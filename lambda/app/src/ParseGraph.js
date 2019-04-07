@@ -3,6 +3,10 @@ import { extend } from './bracery-web';
 import { fromEntries } from './fromEntries';
 
 // ParseGraph
+// A graph representation of a Bracery parse tree that
+//  - can be passed to react-digraph
+//  - knows how to consistently update itself
+//  - has no circular references (at least in this.nodes & this.edges)
 class ParseGraph {
   constructor (props) {
     this.props = { text: props.text,
@@ -795,6 +799,5 @@ class ParseGraph {
     }
   }
 }
-
 
 export default ParseGraph;

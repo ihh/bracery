@@ -126,7 +126,7 @@ class MapView extends Component {
 
   get START() { return 'START'; }
   get SYM_PREFIX() { return 'SYM_'; }
-  get LINK_PREFIX() { return 'LINK_'; }
+  get LINK_SUFFIX() { return '_LINK'; }
 
   get nodeSize() { return 150; }
   get edgeHandleSize() { return 50; }
@@ -208,6 +208,42 @@ class MapView extends Component {
                         && node.funcname === 'link')))
       }
     }).length === 0
+  }
+
+  // Wrappers for ParseTree.getSymbolNodes that find various types of nodes
+  getTargetNodes (rhs, config, namer) {
+    return ParseTree.getSymbolNodes (rhs, config)
+      .map ((target) => extend (target, { graphNodeName: namer(target) }))
+  }
+
+  getLinkedNodes (prefix, rhs) {
+    // In these searches we need to auto-name some unnamed nodes.
+    // It's generally better if we pick names that are robust to changes in the source text,
+    // otherwise we can confuse react-digraph by changing the graph through the UI component
+    // in a way that invalidates the component's internal state (by changing node names).
+    let nLinkedNodes = 0;
+    const linkNamer = (n) => prefix + this.LINK_SUFFIX + (++nLinkedNodes);
+    return this.getTargetNodes (rhs,
+                                { ignoreSymbols: true,
+                                  ignoreTracery: true,
+                                  reportLinks: true,
+                                  addParentLinkInfo: true },
+                                linkNamer);
+  }
+
+  getIncludedNodes (rhs) {
+    return this.getTargetNodes (rhs,
+                                { ignoreSymbols: true,
+                                  ignoreLinkSubtrees: true,
+                                  reportEvals: true },
+                                (n) => ParseTree.isEvalVar(n) ? ParseTree.getEvalVar(n) : n.name);
+  }
+  
+  getExternalNodes (rhs) {
+    return this.getTargetNodes (rhs,
+                                { ignoreTracery: true,
+                                  ignoreLinkSubtrees: true },
+                                (n) => this.SYM_PREFIX + n.name);
   }
 
   // Detect if a node in a Bracery parse tree represents an expression of the form #xxx# (a "Tracery-style expression"),
@@ -582,8 +618,9 @@ class MapView extends Component {
 
   // Graph-building helpers
   addEdge (edges, edge, childRank) {
+    if (edge.source === edge.target)  // no self-looping edges
+      return null;
     edges.push (edge);
-//    console.warn({edge});
     let { outgoing } = this.getEdgesByNode (edges);
     edge.includeRank = outgoing[edge.source].length + 1;
     if (childRank) {
@@ -614,10 +651,258 @@ class MapView extends Component {
   findNodeByID (graph, id) {
     return graph.nodes.find ((node) => node.id === id);
   }
+
+  // Helper pseudo-class for parse tree analysis
+  newParseTreeAnalyzer (text) {
+    let nodeByID = {}, braceryNodeRhsByID = {};
+    const pushNode = (nodes, node, parseTreeNode, parseTreeNodeRhs, config) => {
+      nodeByID[node.id] = node;
+      braceryNodeRhsByID[node.id] = parseTreeNodeRhs || [];
+      // Push or unshift the node to the given list of nodes
+      if (config && config.insertAtStart)
+        nodes.splice(0,0,node);
+      else
+        nodes.push(node);
+    };
+    return { text,
+             nodeByID,
+             braceryNodeRhsByID,
+             pushNode,
+             braceryNodeOffset: {},
+             layoutParent: {},
+             childRank: {},
+           };
+  }
   
+  // Get subgraph corresponding to a Bracery expression
+  getImplicitNodesAndEdges (topLevelNode, rhs, pta) {
+    let { text, nodeByID, layoutParent, braceryNodeOffset, pushNode, braceryNodeRhsByID } = pta;
+    let implicitNodes = [], edges = [];
+    braceryNodeRhsByID[topLevelNode.id] = rhs;
+    this.getLinkedNodes (topLevelNode.id, rhs)
+      .forEach ((linkNode) => {
+        const isLink = ParseTree.isLinkExpr(linkNode);
+        const isLayoutLink = ParseTree.isLayoutLinkExpr(linkNode);
+        const parent = (linkNode.inLink && linkNode.link
+                        ? nodeByID[linkNode.link.graphNodeName]
+                        : topLevelNode);
+        const actualLinkNode = (isLink
+                                ? linkNode
+                                : (isLayoutLink
+                                   ? ParseTree.getLayoutLink(linkNode)
+                                   : null));
+        const linkBracery = this.parseTreeNodeText (actualLinkNode, text);
+        const linkIsShortcut = this.isLinkShortcut (linkBracery);
+        const linkTextNode = ParseTree.getLinkText (actualLinkNode);
+        const linkTargetRhs = ParseTree.getLinkTargetRhs (actualLinkNode);
+        const linkTargetRhsNode = ParseTree.getLinkTargetRhsNode (actualLinkNode);
+        const linkTargetTextOffset = this.parseTreeRhsTextOffset (linkTargetRhs, linkTargetRhsNode, text);
+        let uniqueTarget = null, defText = linkTargetTextOffset.text;
+        if (linkTargetRhs.length === 1) {
+          const linkTargetNode = linkTargetRhs[0];
+          if (ParseTree.isEvalVar(linkTargetNode)) {
+            uniqueTarget = ParseTree.getEvalVar(linkTargetNode);
+          } else if (linkTargetNode.type === 'sym') {
+            uniqueTarget = this.SYM_PREFIX + linkTargetNode.name;
+          } else if (ParseTree.isTraceryExpr(linkTargetNode)) {
+            uniqueTarget = ParseTree.traceryVarName (linkTargetNode);;
+            defText = this.makeTraceryText (linkTargetRhs);
+          }
+        }
+        const topOffset = braceryNodeOffset[topLevelNode.id] || 0;
+        const implicitNodeID = linkNode.graphNodeName;
+        braceryNodeOffset[implicitNodeID] = linkTargetTextOffset.offset;
+        layoutParent[implicitNodeID] = parent;
+        const implicitNode = extend (
+          {
+            id: implicitNodeID,
+            pos: [linkNode.pos[0] - topOffset,
+                  linkNode.pos[1]],
+            topLevelAncestorID: topLevelNode.id,
+            nodeType: this.implicitNodeType,
+            linkTextPos: [linkTextNode.pos[0] + (linkIsShortcut ? 2 : 1) - topOffset,
+                          linkTextNode.pos[1] - (linkIsShortcut ? 4 : 2)],  // strip braces from &link{...}
+            defText: defText,
+          },
+          uniqueTarget ? {uniqueTarget} : {},
+          (isLayoutLink
+           ? this.parseCoord (ParseTree.getLayoutCoord (linkNode))
+           : {}));
+//          console.warn(implicitNode);
+        pushNode (implicitNodes, implicitNode, linkNode, linkTargetRhs);
+      });
+    
+    // Create include & link edges
+    const realNodes = [topLevelNode].concat (implicitNodes);
+    let childRank = fromEntries (realNodes.map ((node) => [node.id, {}]));
+    const addEdge = (edge) => { this.addEdge (edges, edge, childRank); };
+    realNodes.forEach ((node) => {
+      // Create outgoing include edges from every node
+      if (!node.uniqueTarget) {
+        const srcOffset = braceryNodeOffset[node.id];
+        const nodeRhs = braceryNodeRhsByID[node.id];
+        this.getIncludedNodes (nodeRhs)
+          .concat (this.getExternalNodes (nodeRhs))
+          .map ((target) => addEdge ({ source: node.id,
+                                       target: target.graphNodeName,
+                                       type: this.includeEdgeType,
+                                       pos: [target.pos[0] - srcOffset,
+                                             target.pos[1]] }))
+      }
+    });
+
+    // Create link edges for every implicit node
+    implicitNodes.forEach ((node) => addEdge (extend ({ source: layoutParent[node.id].id,
+                                                        type: this.linkEdgeType,
+                                                        pos: node.pos,
+							linkTextPos: node.linkTextPos },
+                                                      (node.uniqueTarget
+                                                       ? { target: node.uniqueTarget,
+                                                           link: node.id }
+                                                       : { target: node.id }))));
+
+    // Return
+    return { implicitNodes, edges, braceryNodeOffset, braceryNodeRhsByID, layoutParent, childRank, nodeByID };
+  }
+
+  // Create placeholders for unknown & external nodes
+  addPlaceholders (node, rhs, pta) {
+    let { nodeByID, layoutParent, pushNode } = pta;
+    let placeholderNodes = [];
+    const createPlaceholders = (nodes, attrs) => {
+      nodes.forEach ((target) => {
+	const targetNode = nodeByID[target.graphNodeName];
+        if (targetNode) {
+	  if (!layoutParent[targetNode.id]
+              && targetNode.nodeType !== this.startNodeType
+              && !this.nodeInSubtree (node, targetNode, layoutParent))
+	    layoutParent[targetNode.id] = node;
+	} else {
+	  const newNode = extend ({ id: target.graphNodeName },
+				  attrs);
+          layoutParent[newNode.id] = node;
+          pushNode (placeholderNodes, newNode);
+        }
+      });
+    }
+    createPlaceholders (this.getIncludedNodes(rhs), { nodeType: this.placeholderNodeType });
+    createPlaceholders (this.getExternalNodes(rhs), { nodeType: this.externalNodeType });
+
+    return placeholderNodes;
+  }
+
+  filterOutDetachedNodes (nodes, edges) {
+    // Remove any placeholders, implicit, or external nodes that don't have incoming or outgoing edges
+    const { incoming, outgoing } = this.getEdgesByNode (edges);
+    const nodeDetached = (node) => ((node.nodeType === this.placeholderNodeType
+                                     || node.nodeType === this.externalNodeType
+                                     || node.nodeType === this.implicitNodeType)
+                                    && !(incoming[node.id] && incoming[node.id].length)
+                                    && !(outgoing[node.id] && outgoing[node.id].length));
+    return nodes.filter ((node) => !nodeDetached(node));
+  }
+
+  doTreeLayout (nodes, edges, pta) {
+    // Create layout tree structure
+    // - Ensure every node (except start) has a parent.
+    // - If a node's parent is a skipped implicit node (i.e. an implicit node with a unique target),
+    //   then set the node's parent to its grandparent; repeat until the parent is not a skipped implicit node.
+    // - Sort children by the order that the parent->child edges appear.
+    //   This keeps the automatic hierarchical layout stable when we add placeholders, etc.
+    let { layoutParent, childRank, nodeByID } = pta;
+    const { outgoing } = this.getEdgesByNode (edges);
+    const startNode = nodes[0];
+    let nOrphans = 0;
+    let layoutChildren = fromEntries (nodes.map ((node) => [node.id, []]));
+    let layoutDepth = fromEntries (nodes.map ((node) => [node.id, 0]));
+    nodes.forEach ((node, n) => {
+      if (n > 0) {
+        if (!layoutParent[node.id]) {  // if a node is not referenced by any other node, set its parent to be the start node
+	  layoutParent[node.id] = startNode;
+          if (typeof(node.x) === 'undefined')
+            childRank[startNode.id][node.id] = (outgoing[startNode.id] || []).length + (++nOrphans);
+        }
+        while (layoutParent[node.id].uniqueTarget)
+          layoutParent[node.id] = layoutParent[layoutParent[node.id].id];
+        let parent = layoutParent[node.id];
+	layoutChildren[parent.id].push (node);
+      }
+      for (let n = node; layoutParent[n.id]; n = layoutParent[n.id]) {
+//        console.warn(n,node);
+	++layoutDepth[node.id];
+      }
+    });
+
+    let nodeChildRank = {}, maxChildRank = {}, relativeChildRank = {};
+    nodes.forEach ((parent) => layoutChildren[parent.id].forEach ((child) => {
+      nodeChildRank[child.id] = childRank[parent.id][child.id];
+    }));
+    nodes.forEach ((node) => {
+      layoutChildren[node.id] = layoutChildren[node.id].sort ((a,b) => nodeChildRank[a.id] - nodeChildRank[b.id]);
+      maxChildRank[node.id] = layoutChildren[node.id].reduce ((max, c) => (!nodeByID[c.id] || typeof(nodeChildRank[c.id]) === 'undefined') ? max : Math.max (max, nodeChildRank[c.id]), 0);
+      layoutChildren[node.id].forEach ((child) => { relativeChildRank[child.id] = nodeChildRank[child.id] / (maxChildRank[node.id] + 1) });
+    });
+    
+    // Lay things out
+    const layoutNode = (node) => {
+      // If no (x,y) specified, lay out nodes from the parent node
+      if (typeof(node.x) === 'undefined') {
+        const parent = layoutParent[node.id];
+        if (parent) {
+	  layoutNode (parent);
+	  const angleRange = Math.PI, angleOffset = -angleRange/2;
+	  const angle = angleOffset + angleRange * relativeChildRank[node.id];
+	  const radius = this.layoutRadius;
+	  node.x = parent.x + Math.cos(angle) * radius;
+	  node.y = parent.y + Math.sin(angle) * radius;
+        } else
+          node.x = node.y = 0;
+      }
+      node.orig = { x: node.x, y: node.y };
+    };
+    nodes.forEach (layoutNode);
+  }
+
+  bridgeNodesToStyles (nodes, pta) {
+    let { nodeByID } = pta;
+    const symName = this.props.name;
+    // react-digraph has an awkward enforced separation between nodes and styling information,
+    // that we have to bridge.
+    // The 'typeText' and 'title' fields correspond to what would more commonly be called 'title' & 'subtitle'.
+    // However, while a 'title' (i.e. subtitle) can be specified at the node level,
+    // the 'typeText' (i.e. title) must be specified in the styling information.
+    nodes.forEach ((node) => {
+      let typeText = null, title = null;
+      switch (node.nodeType) {
+      case this.externalNodeType:
+        typeText = node.id.replace (this.SYM_PREFIX, ParseTree.symChar) + ' ';
+        title = '';
+        break;
+      case this.placeholderNodeType:
+        typeText = ParseTree.traceryChar + node.id + ParseTree.traceryChar;
+        title = this.placeholderNodeText;
+        break;
+      case this.implicitNodeType:
+        typeText = this.nodeText (nodeByID, node, node.linkTextPos);
+        title = this.nodeText (nodeByID, node, node.linkTargetPos);
+        break;
+      case this.startNodeType:
+        typeText = ParseTree.symChar + symName + ' ';
+        title = node.defText;
+        break;
+      default:
+        typeText = ParseTree.traceryChar + node.id + ParseTree.traceryChar;
+        title = node.defText;
+        break;
+      }
+      node.styleInfo = { typeText: this.truncate (typeText, this.maxNodeTypeTextLen) };  // pass info to the nodeTypes
+      node.type = node.id;  // required by react-digraph to match this node to the correct (unique, in our case) nodeType
+      node.title = this.truncate (title, this.maxNodeTitleLen);  // required by react-digraph to display the (sub)title
+    });
+  }
+
   // Get graph by analyzing parsed Bracery expression
   getLayoutGraph() {
-    const mv = this;
     const rhs = this.props.rhs;
     const text = this.props.evalText;
     const symName = this.props.name;
@@ -626,21 +911,15 @@ class MapView extends Component {
     // Scan parsed Bracery code for top-level global variable assignments,
     // of the form $variable=&quote{...} or $variable=&let$_xy{...}&quote{...}
     let topLevelNodes = [], edges = [], startDefText = '';
-    let nodeByID = {}, layoutParent = {};
     // We will not keep these references to the originally parsed text and the Bracery parse tree,
     // but we use them for analysis when building the graph
-    let startOffset = 0, rhsOffset = 0, braceryStartNodeRhs = [], braceryNodeByID = {}, braceryNodeRhsByID = {};
-    let braceryNodeOffset = {};  // node.defText.charAt(N) === text.charAt(N + braceryNodeOffset[node.id])
-    const pushNode = (nodes, node, parseTreeNode, parseTreeNodeRhs, config) => {
-      nodeByID[node.id] = node;
-      braceryNodeByID[node.id] = parseTreeNode || null;
-      braceryNodeRhsByID[node.id] = parseTreeNodeRhs || [];
-      // Push or unshift the node to the given list of nodes
-      if (config && config.insertAtStart)
-        nodes.splice(0,0,node);
-      else
-        nodes.push(node);
-    };
+    let startOffset = 0, rhsOffset = 0, braceryStartNodeRhs = [];
+    const pta = this.newParseTreeAnalyzer (text);
+    let { pushNode,
+          braceryNodeRhsByID,
+          nodeByID,
+          braceryNodeOffset,  // node.defText.charAt(N) === text.charAt(N + braceryNodeOffset[node.id])
+        } = pta;
     // Loop through top-level nodes
     while (rhsOffset < rhs.length) {
       let braceryNode = rhs[rhsOffset], braceryDefNode = null, braceryNodeRhs = [];
@@ -655,13 +934,13 @@ class MapView extends Component {
 	  coord = ParseTree.getPlaceholderCoord (braceryNode);
 	  if (heldNodeType === 'lookup') {
 	    node.id = heldNode.varname;
-	    node.nodeType = mv.placeholderNodeType;
+	    node.nodeType = this.placeholderNodeType;
 	  } else if (heldNodeType === 'sym') {
-	    node.id = mv.SYM_PREFIX + heldNode.name;
-	    node.nodeType = mv.externalNodeType;
+	    node.id = this.SYM_PREFIX + heldNode.name;
+	    node.nodeType = this.externalNodeType;
 	  } else {
 	    node.id = startNodeID;
-	    node.nodeType = mv.startNodeType;
+	    node.nodeType = this.startNodeType;
 	  }
         } else {
           // [var@x,y=>...] or [var=>...]
@@ -719,203 +998,27 @@ class MapView extends Component {
     }
     startNode.defText = startDefText;
 
-    // Define some searches of the parse tree
-    const getTargetNodes = (node, config, namer) => {
-      return ParseTree.getSymbolNodes (braceryNodeRhsByID[node.id], config)
-        .map ((target) => extend (target, { graphNodeName: namer(target) }))
-        .filter ((target) => target.graphNodeName !== node.id);
-    };
-    // In these searches we need to auto-name some unnamed nodes.
-    // It's generally better if we pick names that are robust to changes in the source text,
-    // otherwise we can confuse react-digraph by changing the graph through the UI component
-    // in a way that invalidates the component's internal state (by changing node names).
-    let nLinkedNodes = 0;
-    const linkNamer = (n) => this.LINK_PREFIX + (++nLinkedNodes);
-    const getLinkedNodes = (node) => getTargetNodes (node,
-                                                     { ignoreSymbols: true,
-                                                       ignoreTracery: true,
-                                                       reportLinks: true,
-                                                       addParentLinkInfo: true },
-                                                     linkNamer);
-    const getIncludedNodes = (node) => getTargetNodes (node,
-                                                       { ignoreSymbols: true,
-                                                         ignoreLinkSubtrees: true,
-                                                         reportEvals: true },
-                                                       (n) => ParseTree.isEvalVar(n) ? ParseTree.getEvalVar(n) : n.name);
-    const getExternalNodes = (node) => getTargetNodes (node,
-                                                       { ignoreTracery: true,
-                                                         ignoreLinkSubtrees: true },
-                                                       (n) => this.SYM_PREFIX + n.name);
-
-    // Create implicit nodes for links
-    let implicitNodes = [];
-    topLevelNodes.forEach (
-      (topLevelNode) =>
-        getLinkedNodes(topLevelNode)
-        .forEach ((linkNode) => {
-          const isLink = ParseTree.isLinkExpr(linkNode);
-          const isLayoutLink = ParseTree.isLayoutLinkExpr(linkNode);
-          const parent = (linkNode.inLink && linkNode.link
-                          ? nodeByID[linkNode.link.graphNodeName]
-                          : topLevelNode);
-          const actualLinkNode = (isLink
-                                  ? linkNode
-                                  : (isLayoutLink
-                                     ? ParseTree.getLayoutLink(linkNode)
-                                     : null));
-          const linkBracery = this.parseTreeNodeText (actualLinkNode, text);
-          const linkIsShortcut = this.isLinkShortcut (linkBracery);
-          const linkTextNode = ParseTree.getLinkText (actualLinkNode);
-          const linkTargetRhs = ParseTree.getLinkTargetRhs (actualLinkNode);
-          const linkTargetRhsNode = ParseTree.getLinkTargetRhsNode (actualLinkNode);
-          const linkTargetTextOffset = this.parseTreeRhsTextOffset (linkTargetRhs, linkTargetRhsNode, text);
-          let uniqueTarget = null, defText = linkTargetTextOffset.text;
-          if (linkTargetRhs.length === 1) {
-            const linkTargetNode = linkTargetRhs[0];
-            if (ParseTree.isEvalVar(linkTargetNode)) {
-              uniqueTarget = ParseTree.getEvalVar(linkTargetNode);
-            } else if (linkTargetNode.type === 'sym') {
-              uniqueTarget = this.SYM_PREFIX + linkTargetNode.name;
-            } else if (ParseTree.isTraceryExpr(linkTargetNode)) {
-              uniqueTarget = ParseTree.traceryVarName (linkTargetNode);;
-              defText = this.makeTraceryText (linkTargetRhs);
-            }
-          }
-          const topOffset = braceryNodeOffset[topLevelNode.id];
-          const implicitNodeID = linkNode.graphNodeName;
-          braceryNodeOffset[implicitNodeID] = linkTargetTextOffset.offset;
-          layoutParent[implicitNodeID] = parent;
-          const implicitNode = extend (
-            {
-              id: implicitNodeID,
-              pos: [linkNode.pos[0] - topOffset,
-                    linkNode.pos[1]],
-              topLevelAncestorID: topLevelNode.id,
-              nodeType: this.implicitNodeType,
-              linkTextPos: [linkTextNode.pos[0] + (linkIsShortcut ? 2 : 1) - topOffset,
-                            linkTextNode.pos[1] - (linkIsShortcut ? 4 : 2)],  // strip braces from &link{...}
-              defText: defText,
-            },
-            uniqueTarget ? {uniqueTarget} : {},
-            (isLayoutLink
-             ? this.parseCoord (ParseTree.getLayoutCoord (linkNode))
-             : {}));
-//          console.warn(implicitNode);
-          pushNode (implicitNodes, implicitNode, linkNode, linkTargetRhs);
-        }));
+    // Create implicit nodes for links, and create include & link edges
+    const implicitNodes = topLevelNodes.reduce ((implicitNodes, topLevelNode) => {
+      const subgraph = this.getImplicitNodesAndEdges (topLevelNode, braceryNodeRhsByID[topLevelNode.id], pta);
+      edges = edges.concat (subgraph.edges);
+      Object.keys(pta)
+        .filter ((prop) => subgraph.hasOwnProperty(prop))
+        .forEach ((prop) => extend (pta[prop], subgraph[prop]));
+      return implicitNodes.concat (subgraph.implicitNodes);
+    }, []);
+    const realNodes = topLevelNodes.concat (implicitNodes);
 
     // Create placeholders for unknown & external nodes
-    const realNodes = topLevelNodes.concat (implicitNodes);
-    let placeholderNodes = [];
-    const createPlaceholders = (getter, attrs) => (node) => {
-      getter(node).forEach ((target) => {
-	const targetNode = nodeByID[target.graphNodeName];
-        if (targetNode) {
-	  if (!layoutParent[targetNode.id]
-              && targetNode.nodeType !== mv.startNodeType
-              && !mv.nodeInSubtree (node, targetNode, layoutParent))
-	    layoutParent[targetNode.id] = node;
-	} else {
-	  const newNode = extend ({ id: target.graphNodeName },
-				  attrs);
-          layoutParent[newNode.id] = node;
-          pushNode (placeholderNodes, newNode);
-        }
-      });
-    }
-    realNodes.forEach (createPlaceholders (getIncludedNodes, { nodeType: mv.placeholderNodeType }));
-    realNodes.forEach (createPlaceholders (getExternalNodes, { nodeType: mv.externalNodeType }));
-    
-    // Do some common initializing, and create edges
-    const allNodes = realNodes.concat(placeholderNodes);
-    let childRank = fromEntries (allNodes.map ((node) => [node.id, {}]));
-    const addEdge = (edge) => { this.addEdge (edges, edge, childRank); };
-    allNodes.forEach ((node) => {
-      // Create outgoing include edges
-      if (!node.uniqueTarget) {
-        const srcOffset = braceryNodeOffset[node.id];
-        getIncludedNodes (node)
-        .concat (getExternalNodes (node))
-        .map ((target) => addEdge ({ source: node.id,
-                                     target: target.graphNodeName,
-                                     type: mv.includeEdgeType,
-                                     pos: [target.pos[0] - srcOffset,
-                                           target.pos[1]] }))
-      }
-    });
-    // Create link edges
-    implicitNodes.forEach ((node) => addEdge (extend ({ source: layoutParent[node.id].id,
-                                                        type: mv.linkEdgeType,
-                                                        pos: node.pos,
-							linkTextPos: node.linkTextPos },
-                                                      (node.uniqueTarget
-                                                       ? { target: node.uniqueTarget,
-                                                           link: node.id }
-                                                       : { target: node.id }))));
+    const placeholderNodes = realNodes.reduce ((nodes, node) => {
+      return nodes.concat (this.addPlaceholders (node, braceryNodeRhsByID[node.id], pta));
+    }, []);
+    const allNodes = realNodes.concat (placeholderNodes);
+    const keptNodes = this.filterOutDetachedNodes (allNodes, edges);
 
-    // Remove any placeholders, implicit, or external nodes that don't have incoming or outgoing edges
-    const { incoming, outgoing } = this.getEdgesByNode (edges);
-    const nodeDetached = (node) => ((node.nodeType === this.placeholderNodeType
-                                     || node.nodeType === this.externalNodeType
-                                     || node.nodeType === this.implicitNodeType)
-                                    && !(incoming[node.id] && incoming[node.id].length)
-                                    && !(outgoing[node.id] && outgoing[node.id].length));
-    const keptNodes = allNodes.filter ((node) => !nodeDetached(node));
-
-    // Create layout tree structure
-    // - Ensure every node (except start) has a parent.
-    // - If a node's parent is a skipped implicit node (i.e. an implicit node with a unique target),
-    //   then set the node's parent to its grandparent; repeat until the parent is not a skipped implicit node.
-    // - Sort children by the order that the parent->child edges appear.
-    //   This keeps the automatic hierarchical layout stable when we add placeholders, etc.
-    let nOrphans = 0;
-    let layoutChildren = fromEntries (keptNodes.map ((node) => [node.id, []]));
-    let layoutDepth = fromEntries (keptNodes.map ((node) => [node.id, 0]));
-    keptNodes.forEach ((node, n) => {
-      if (n > 0) {
-        if (!layoutParent[node.id]) {  // if a node is not referenced by any other node, set its parent to be the start node
-	  layoutParent[node.id] = startNode;
-          if (typeof(node.x) === 'undefined')
-            childRank[startNode.id][node.id] = (outgoing[startNode.id] || []).length + (++nOrphans);
-        }
-        while (layoutParent[node.id].uniqueTarget)
-          layoutParent[node.id] = layoutParent[layoutParent[node.id].id];
-        let parent = layoutParent[node.id];
-	layoutChildren[parent.id].push (node);
-      }
-      for (let n = node; layoutParent[n.id]; n = layoutParent[n.id]) {
-//        console.warn(n,node);
-	++layoutDepth[node.id];
-      }
-    });
-    let nodeChildRank = {}, maxChildRank = {}, relativeChildRank = {};
-    keptNodes.forEach ((parent) => layoutChildren[parent.id].forEach ((child) => {
-      nodeChildRank[child.id] = childRank[parent.id][child.id];
-    }));
-    keptNodes.forEach ((node) => {
-      layoutChildren[node.id] = layoutChildren[node.id].sort ((a,b) => nodeChildRank[a.id] - nodeChildRank[b.id]);
-      maxChildRank[node.id] = layoutChildren[node.id].reduce ((max, c) => (!nodeByID[c.id] || typeof(nodeChildRank[c.id]) === 'undefined') ? max : Math.max (max, nodeChildRank[c.id]), 0);
-      layoutChildren[node.id].forEach ((child) => { relativeChildRank[child.id] = nodeChildRank[child.id] / (maxChildRank[node.id] + 1) });
-    });
-    
-    // Lay things out
-    const layoutNode = (node) => {
-      // If no (x,y) specified, lay out nodes from the parent node
-      if (typeof(node.x) === 'undefined') {
-        const parent = layoutParent[node.id];
-        if (parent) {
-	  layoutNode (parent);
-	  const angleRange = Math.PI, angleOffset = -angleRange/2;
-	  const angle = angleOffset + angleRange * relativeChildRank[node.id];
-	  const radius = mv.layoutRadius;
-	  node.x = parent.x + Math.cos(angle) * radius;
-	  node.y = parent.y + Math.sin(angle) * radius;
-        } else
-          node.x = node.y = 0;
-      }
-      node.orig = { x: node.x, y: node.y };
-    };
-    keptNodes.forEach (layoutNode);
+    // Do layout, add styling info
+    this.doTreeLayout (keptNodes, edges, pta);
+    this.bridgeNodesToStyles (keptNodes, pta);
 
     // Mark selected node/edge
     if (selected.node && nodeByID[selected.node])
@@ -923,58 +1026,19 @@ class MapView extends Component {
     else if (selected.edge
              && nodeByID[selected.edge.source]
              && nodeByID[selected.edge.target]) {
-      (outgoing[selected.edge.source] || [])
-        .map ((edgeIndex) => edges[edgeIndex])
+      edges
+        .filter ((edge) => edge.source === selected.edge.source)
         .filter ((edge) => edge.target === selected.edge.target)
         .forEach ((edge) => {
           edge.selected = true;
-          edge.type += mv.selectedEdgeTypeSuffix;
+          edge.type += this.selectedEdgeTypeSuffix;
         });
       nodeByID[selected.edge.source].selectedOutgoingEdge = true;
       nodeByID[selected.edge.target].selectedIncomingEdge = true;
     }
     
-    // Return
-    let graph = { nodes: keptNodes,
-		  edges,
-		};
-
-    // react-digraph has an awkward enforced separation between nodes and styling information,
-    // that we have to bridge.
-    // The 'typeText' and 'title' fields correspond to what would more commonly be called 'title' & 'subtitle'.
-    // However, while a 'title' (i.e. subtitle) can be specified at the node level,
-    // the 'typeText' (i.e. title) must be specified in the styling information.
-    allNodes.forEach ((node) => {
-      let typeText = null, title = null;
-      switch (node.nodeType) {
-      case this.externalNodeType:
-        typeText = node.id.replace (this.SYM_PREFIX, ParseTree.symChar) + ' ';
-        title = '';
-        break;
-      case this.placeholderNodeType:
-        typeText = ParseTree.traceryChar + node.id + ParseTree.traceryChar;
-        title = this.placeholderNodeText;
-        break;
-      case this.implicitNodeType:
-        typeText = this.nodeText (nodeByID, node, node.linkTextPos);
-        title = this.nodeText (nodeByID, node, node.linkTargetPos);
-        break;
-      case this.startNodeType:
-        typeText = ParseTree.symChar + symName + ' ';
-        title = node.defText;
-        break;
-      default:
-        typeText = ParseTree.traceryChar + node.id + ParseTree.traceryChar;
-        title = node.defText;
-        break;
-      }
-      node.styleInfo = { typeText: this.truncate (typeText, this.maxNodeTypeTextLen) };  // pass info to the nodeTypes
-      node.type = node.id;  // required by react-digraph to match this node to the correct (unique, in our case) nodeType
-      node.title = this.truncate (title, this.maxNodeTitleLen);  // required by react-digraph to display the (sub)title
-    });
-    
-    // Return
-    return graph;
+    // Return the graph
+    return { nodes: keptNodes, edges };
   }
 
   // Clone layout graph

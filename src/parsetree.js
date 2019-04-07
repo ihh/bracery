@@ -578,12 +578,12 @@ function getLayoutCoord (node) {
   return node.args[0]
 }
 
-function getLayoutContentExpr (node) {
+function getLayoutContentNode (node) {
   return node.args[1]
 }
 
 function getLayoutContent (node) {
-  var content = getLayoutContentExpr (node)
+  var content = getLayoutContentNode (node)
   return (typeof(content) === 'object' && content.type === 'func' && content.funcname === 'quote'
           ? content.args
           : [content])
@@ -2537,7 +2537,7 @@ module.exports = {
   isLayoutExpr: isLayoutExpr,
   getLayoutCoord: getLayoutCoord,
   getLayoutContent: getLayoutContent,
-  getLayoutContentExpr: getLayoutContentExpr,
+  getLayoutContentNode: getLayoutContentNode,
   isLayoutAssign: isLayoutAssign,
   getLayoutExpr: getLayoutExpr,
   isLinkExpr: isLinkExpr,

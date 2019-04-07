@@ -269,12 +269,12 @@ class MapView extends Component {
   // [abc=>x|y|z] for $abc=&quote{[x|y|z]}, restoring the enclosing square braces
   parseTreeRhsTextOffset (rhs, defNode, origText) {
     const text = this.parseTreeNodesText (rhs, origText);
-    const offset = defNode ? defNode.pos[0] : 0;
+    const offset = (defNode && defNode.pos) ? defNode.pos[0] : 0;
     return (this.parseTreeRhsIsAlternation(rhs)  // x|y|z
             ? { text: (ParseTree.leftSquareBraceChar + text + ParseTree.rightSquareBraceChar),  // [x|y|z]
-                offset: [offset - 1, text.length] }
+                offset: offset - 1 }
             : { text: text,
-                offset: [offset, text.length] });
+                offset: offset });
   }
 
   parseTreeRhsIsAlternation (rhs) {
@@ -647,7 +647,7 @@ class MapView extends Component {
 	  if (ParseTree.isLayoutAssign (braceryNode)) {  // [var@x,y=>...]
 	    let expr = ParseTree.getLayoutExpr (braceryNode);
 	    coord = ParseTree.getLayoutCoord (expr);
-            braceryDefNode = ParseTree.getLayoutContentExpr (expr);
+            braceryDefNode = ParseTree.getLayoutContentNode (expr);
 	    braceryNodeRhs = ParseTree.getLayoutContent (expr);
 	  } else {  // [var=>...]
             braceryDefNode = ParseTree.getQuoteAssignRhsNode (braceryNode);
@@ -682,7 +682,6 @@ class MapView extends Component {
     // Add a start node for everything that is *not* part of a top-level global variable assignment
     if (!nodeByID[startNodeName]) {
       const startNode = { id: startNodeName,
-	                  pos: [0, 0],
                           nodeType: this.startNodeType };
       pushNode (topLevelNodes,
 		startNode,

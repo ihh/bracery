@@ -1,11 +1,10 @@
 import React, { Component } from 'react';
 import { ParseTree } from 'bracery';
-import { extend } from './bracery-web';
+import { extend, fromEntries } from './bracery-web';
 //import GraphView from 'react-digraph';
 import GraphView from './react-digraph/components/graph-view';
 import NodeEditor from './NodeEditor';
 import ParseGraph from './ParseGraph';
-import { fromEntries } from './fromEntries';
 
 import './MapView.css';
 
@@ -14,6 +13,8 @@ class MapView extends Component {
   constructor(props) {
     super(props);
     this.ParseTree = ParseTree;
+    this.state = { text: props.text,
+                   graph: new ParseGraph (props) };
   }
 
   replaceLink (graph, linkNode, changedPos, newLinkText, newLinkTargetText) {
@@ -44,8 +45,8 @@ class MapView extends Component {
   }
 
   // State modification
-  setEvalText (newEvalText) {
-    this.props.setAppState ({ evalText: newEvalText });
+  setText (newText) {
+    this.setState ({ text: newText });
   }
 
   setSelected (graph, selected) {
@@ -65,11 +66,13 @@ class MapView extends Component {
                                            endOffset: editorContent.length };
     const editorDisabled = !(selected.node || selected.edge)
           || (selected.node && graph.selectedNode(selected).nodeType === graph.externalNodeType);
+/*
     this.props.setAppState ({ mapSelection: selected,
                               editorContent: editorContent,
                               editorSelection: editorSelection,
                               editorDisabled: editorDisabled,
                               editorFocus: ((selected.node || selected.edge) && !editorDisabled) });
+*/
   }
 
   setEditorState (graph, selectedNode, selectedEdge, selectedEdgeSource, selectedEdgeLink, newEditorState, callback) {
@@ -93,11 +96,11 @@ class MapView extends Component {
                                                ? graph.definedNodeType
                                                : oldNode.nodeType) });
           graph.nodes = graph.nodes.map ((node) => (node === oldNode ? newNode : node));
-          newAppState.evalText = this.rebuildBracery (graph, newNode);
+          newAppState.evalText = graph.bracery();
         }
       }
     }
-    this.props.setAppState (newAppState, callback);
+//    this.props.setAppState (newAppState, callback);
   }
 
   createNode (graph, x, y) {
@@ -111,13 +114,15 @@ class MapView extends Component {
                     title: this.emptyNodeText,
                     rhs: [] };
     graph.nodes.push (newNode);
-    const newEvalText = this.rebuildBracery (graph, newNode);
+    const newEvalText = graph.bracery();
+/*
     this.props.setAppState ({ mapSelection: { node: id },
                               editorContent: '',
                               editorSelection: { startOffset: 0, endOffset: 0 },
                               editorDisabled: false,
                               editorFocus: true,
                               evalText: newEvalText });
+*/
   }
 
   createEdge (graph, source, target) {
@@ -135,8 +140,9 @@ class MapView extends Component {
       link = '[[' + (linkText = target.id) + ']]';
     newSource.rhs = [this.implicitBracery (graph, newSource) + link];
     
-    const newEvalText = graph.rebuildBracery();
+    const newEvalText = graph.bracery();
 
+/*
     this.props.setAppState ({ mapSelection: { edge: { source: source.id,
 						      target: target.id } },
                               editorContent: linkText,
@@ -144,7 +150,7 @@ class MapView extends Component {
                               editorDisabled: false,
                               editorFocus: true,
                               evalText: newEvalText });
-    
+*/    
   }
   
   swapEdge (graph, sourceNode, targetNode, edge) {
@@ -156,12 +162,14 @@ class MapView extends Component {
                                                 replacementText: newTargetText }])
                          : this.replaceLink (graph, this.findNodeByID (graph, edge.link), edge.pos, undefined, newTargetText));
 
+    /*
     this.props.setAppState ({ evalText: newEvalText,
                               mapSelection: {},
                               editorContent: '',
                               editorSelection: { startOffset: 0, endOffset: 0 },
                               editorDisabled: true,
                               editorFocus: false });
+    */
   }
 
   // Event handlers
@@ -213,7 +221,7 @@ class MapView extends Component {
       },
       onUpdateNode: (node) => {
         if (node.x !== node.orig.x || node.y !== node.orig.y)
-          this.setEvalText (this.rebuildBracery (graph, node));
+          this.setText (graph.bracery());
       },
       onSelectNode: (node) => {
         this.setSelected (graph,
@@ -255,12 +263,8 @@ class MapView extends Component {
   
   // Render graph
   render() {
-    const rhs = this.props.rhs;
-    const text = this.props.evalText;
-    const name = this.props.name;
-    const selected = this.props.selected;
-    const graph = new ParseGraph ({ rhs, text, name, selected });
-//    console.warn('start node:',graph.nodes[0].x,graph.nodes[0].y);
+    const graph = this.state.graph;
+    //    console.warn('start node:',graph.nodes[0].x,graph.nodes[0].y);
     console.warn(graph);
     //    console.dir(selected);
     const nodeTypes = fromEntries (
@@ -345,6 +349,9 @@ class MapView extends Component {
             </div>
             <div className="editorcontainer">
 	    {this.selectionTextArea (graph)}
+            </div>
+            <div style={{'fontSize':'small'}}>
+            {this.state.text}
             </div>
 	    </div>);
   }

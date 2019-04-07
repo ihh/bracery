@@ -7,6 +7,18 @@ function extend (dest) {
   return dest;
 }
 
+function cloneDeep (obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function fromEntries (props_values) {
+  var obj = {};
+  props_values.forEach (function (prop_value) {
+    obj[prop_value[0]] = prop_value[1];
+  });
+  return obj;
+}
+
 function escapeHTML (str) {
   if (typeof(str) !== 'string')
     return str;
@@ -162,6 +174,8 @@ function getWords (text, ParseTree) {
 
 module.exports = {
   extend: extend,
+  cloneDeep: cloneDeep,
+  fromEntries: fromEntries,
   escapeHTML: escapeHTML,
   expandMarkdown: expandMarkdown,
   digestText: digestText,

@@ -18,6 +18,7 @@ class App extends Component {
       name: props.SYMBOL_NAME,
       evalText: props.SYMBOL_DEFINITION,  // text entered into evaluation window
       evalTextEdited: false,
+      parsedEvalText: this.parseBracery (props.SYMBOL_DEFINITION),
       revision: props.REVISION,
       locked: !!props.LOCKED_BY_USER,
       saveAsName: props.SYMBOL_NAME,
@@ -35,7 +36,6 @@ class App extends Component {
 
       warning: props.INITIAL_WARNING,
 
-      mapEvalText: props.SYMBOL_DEFINITION,
       mapSelection: {},
       editorContent: '',
       editorSelection: this.emptyEditorSelection(),
@@ -182,6 +182,7 @@ class App extends Component {
     this.setState ({ initText: '',
 		     initVars: {},
 		     evalText: '',
+                     parsedEvalText: [],
 		     currentSourceText: '',
 		     evalTextEdited: true,
 		     rerollMeansRestart: false,
@@ -198,6 +199,7 @@ class App extends Component {
 			 initText: text,
 			 initVars: {},
 			 evalText: text,
+                         parsedEvalText: this.parseBracery(text),
 			 currentSourceText: text,
 			 evalTextEdited: false,
 			 rerollMeansRestart: false,
@@ -279,7 +281,6 @@ class App extends Component {
       extend (newState,
               { currentSourceText: newState.evalText,
                 initText: newState.evalText,
-		mapEvalText: newState.evalText,
                 initVars: {},
                 evalTextEdited: true,
                 warning: this.warning.unsaved });
@@ -289,17 +290,21 @@ class App extends Component {
   // Event handlers
   evalChanged (event) {
     let text = event.target.value;
-    this.setState ({ initText: text,
-		     evalText: text,
-		     currentSourceText: text,
-		     evalTextEdited: true,
-                     mapSelection: {},
-                     editorFocus: false,
-                     editorContent: '',
-                     editorSelection: this.emptyEditorSelection(),
-		     warning: this.warning.unsaved
+    if (text !== this.state.evalText) {
+      this.setState ({ initText: text,
+		       evalText: text,
+                       parsedEvalText: this.parseBracery(text),
+		       currentSourceText: text,
+		       evalTextEdited: true,
+                       mapSelection: {},
+                       editorFocus: false,
+                       editorContent: '',
+                       editorSelection: this.emptyEditorSelection(),
+		       warning: this.warning.unsaved
 		   });
-    return this.debounceEvalChangedUpdate();
+      return this.debounceEvalChangedUpdate();
+    }
+    return Promise.resolve();
   }
 
   evalChangedUpdate = () => {
@@ -372,15 +377,15 @@ class App extends Component {
   }
 
   // Bracery parsing & analysis
-  parseBracery() {
+  parseBracery (text) {
     const now = Date.now();
-    const rhs = ParseTree.parseRhs (this.state.mapEvalText);
+    const rhs = ParseTree.parseRhs (text);
     console.warn ('parsed in ' + (Date.now() - now) + 'ms');
     return rhs;
   }
   
-  usingRefSets (rhs) {
-    rhs = rhs || this.parseBracery();
+  usingRefSets() {
+    const rhs = this.state.parsedEvalText;
     let isRef = {}, isTracery = {};
     ParseTree.getSymbolNodes (rhs, { ignoreTracery: true })
       .forEach (function (node) { isRef[node.name] = true; });
@@ -403,7 +408,6 @@ class App extends Component {
 
   render() {
     const app = this;
-    const rhs = this.parseBracery();
     return (
       <div className="main">
         <div className="banner">
@@ -456,8 +460,8 @@ class App extends Component {
        ? (<MapView
           setAppState={this.setAppStateFromMapView}
           name={this.state.name}
-          evalText={this.state.mapEvalText}
-          rhs={rhs}
+          text={this.state.evalText}
+          rhs={this.state.parsedEvalText}
           selected={this.state.mapSelection}
           editorContent={this.state.editorContent}
           editorSelection={this.state.editorSelection}
@@ -476,7 +480,7 @@ class App extends Component {
 	          <div className="evalcontainer">
 	            <textarea className="eval" value={this.state.evalText} onChange={(event)=>this.evalChanged(event)}></textarea>
 	          </div>
-	  <Refs className="refs" prefix="References" view={this.addHostPrefix(this.state.view)} refSets={this.usingRefSets(rhs)} />
+	  <Refs className="refs" prefix="References" view={this.addHostPrefix(this.state.view)} refSets={this.usingRefSets()} />
 	          <Refs className="referring" prefix="Used by" view={this.addHostPrefix(this.state.view)} refSets={[{ symbols: this.state.referring }]} />
 	          <br/>
 	          <p>

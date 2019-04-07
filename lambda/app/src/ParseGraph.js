@@ -1,6 +1,5 @@
 import { ParseTree } from 'bracery';
-import { extend } from './bracery-web';
-import { fromEntries } from './fromEntries';
+import { extend, fromEntries } from './bracery-web';
 
 // ParseGraph
 // A graph representation of a Bracery parse tree that
@@ -9,20 +8,24 @@ import { fromEntries } from './fromEntries';
 //  - has no circular references (at least in this.nodes & this.edges)
 class ParseGraph {
   constructor (props) {
-    this.props = { text: props.text,
-                   rhs: props.rhs,
-                   name: props.name,
-                   selected: props.selected };
     this.ParseTree = ParseTree;
-    this.buildGraphFromParseTree();
+    this.state = this.buildGraphFromParseTree ({ text: props.text,
+                                                 rhs: props.rhs,
+                                                 name: props.name,
+                                                 selected: props.selected });
   }
 
+  // State accessors
+  get nodes() { return this.state.nodes; }
+  get edges() { return this.state.edges; }
+  get selected() { return this.state.selected; }
+  
   // Main build method: constructs graph by analyzing parsed Bracery expression
-  buildGraphFromParseTree() {
-    const { rhs, text, selected } = this.props;
+  buildGraphFromParseTree (props) {
+    const { rhs, text, selected, name } = props;
 
     // Create parse tree analyzer. This object holds useful temporary info & pointers to the parse tree
-    const pta = this.newParseTreeAnalyzer (rhs, text);
+    const pta = this.newParseTreeAnalyzer (rhs, text, name);
     let { braceryNodeRhsByID } = pta;
 
     // Scan parse tree for top-level global variable assignments
@@ -53,7 +56,7 @@ class ParseGraph {
     this.markSelected (selected, edges, pta);
     
     // We now have the graph
-    extend (this, { nodes, edges });
+    return { nodes, edges, selected };
   }
 
   // Constants
@@ -349,13 +352,13 @@ class ParseGraph {
     }
   }
 
-  // rebuildBracery - regenerate entire Bracery string.
-  rebuildBracery() {
+  // bracery - regenerate entire Bracery string.
+  bracery() {
     return this.nodes.slice(1).concat(this.nodes[0]).reduce ((s, node) => s + this.makeNodeBracery(node),'');
   }
 
   selectedNode (selected) {
-    selected = selected || this.props.selected;
+    selected = selected || this.state.selected;
     return (selected.node
             ? this.nodes.find ((node) => node.id === selected.node)
             : null);
@@ -367,7 +370,7 @@ class ParseGraph {
   }
 
   selectedEdges (selected) {
-    selected = selected || this.props.selected;
+    selected = selected || this.state.selected;
     return (selected.edge
             ? this.edges.filter ((edge) => (edge.source === selected.edge.source
                                              && edge.target === selected.edge.target))
@@ -380,14 +383,14 @@ class ParseGraph {
   }
 
   selectedEdgeSourceNode (selected) {
-    selected = selected || this.props.selected;
+    selected = selected || this.state.selected;
     return (selected.edge
             ? this.findNodeByID (selected.edge.source)
             : null);
   }
 
   selectedEdgeLinkNode (selected) {
-    selected = selected || this.props.selected;
+    selected = selected || this.state.selected;
     return (selected.edge
             ? this.findNodeByID (selected.edge.target)
             : null);
@@ -435,7 +438,7 @@ class ParseGraph {
   }
 
   // Helper pseudo-class for parse tree analysis
-  newParseTreeAnalyzer (rhs, text) {
+  newParseTreeAnalyzer (rhs, text, symName) {
     let nodeByID = {}, braceryNodeRhsByID = {};
     const pushNode = (nodes, node, parseTreeNode, parseTreeNodeRhs, config) => {
       nodeByID[node.id] = node;
@@ -448,6 +451,7 @@ class ParseGraph {
     };
     let pta = { rhs,
                 text,
+                symName,
                 nodeByID,
                 braceryNodeRhsByID,
                 pushNode,
@@ -652,7 +656,6 @@ class ParseGraph {
 
   bridgeNodesToStyles (nodes, pta) {
     let { nodeByID } = pta;
-    const symName = this.props.name;
     // react-digraph has an awkward enforced separation between nodes and styling information,
     // that we have to bridge.
     // The 'typeText' and 'title' fields correspond to what would more commonly be called 'title' & 'subtitle'.
@@ -674,7 +677,7 @@ class ParseGraph {
         title = this.nodeText (nodeByID, node, node.linkTargetPos);
         break;
       case this.startNodeType:
-        typeText = ParseTree.symChar + symName + ' ';
+        typeText = ParseTree.symChar + pta.symName + ' ';
         title = node.defText;
         break;
       default:
@@ -691,8 +694,7 @@ class ParseGraph {
   // Scan parsed Bracery code for top-level global variable assignments,
   // of the form $variable=&quote{...} or $variable=&layout{x,y}&quote{...}
   parseTopLevel (pta) {
-    let { rhs, text, nodeByID, braceryNodeOffset, braceryNodeRhsByID, pushNode } = pta;
-    const symName = this.props.name;
+    let { symName, rhs, text, nodeByID, braceryNodeOffset, braceryNodeRhsByID, pushNode } = pta;
     const startNodeID = this.SYM_PREFIX + symName;
     let topLevelNodes = [], startDefText = '';
     // We will not keep these references to the originally parsed text and the Bracery parse tree,

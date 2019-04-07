@@ -81,7 +81,7 @@ class MapView extends Component {
         .filter ((prop) => newEditorState.hasOwnProperty(prop))
         .map ((prop) => [appProp[prop], newEditorState[prop]]));
     if (newEditorState.hasOwnProperty('content')) {
-      if (selectedEdge && selectedEdge.edgeType === this.linkEdgeType) {
+      if (selectedEdge && selectedEdge.edgeType === graph.linkEdgeType) {
         newAppState.evalText = this.replaceLink (graph, selectedEdgeLink, selectedEdge.pos, newEditorState.content);
       } else {
         const oldNode = selectedNode || selectedEdgeSource;
@@ -89,8 +89,8 @@ class MapView extends Component {
           const newNode = extend ({},
                                   oldNode,
                                   { rhs: [newEditorState.content],
-                                    nodeType: (oldNode.nodeType === this.placeholderNodeType
-                                               ? this.definedNodeType
+                                    nodeType: (oldNode.nodeType === graph.placeholderNodeType
+                                               ? graph.definedNodeType
                                                : oldNode.nodeType) });
           graph.nodes = graph.nodes.map ((node) => (node === oldNode ? newNode : node));
           newAppState.evalText = this.rebuildBracery (graph, newNode);
@@ -105,8 +105,8 @@ class MapView extends Component {
     let newNode = { id: id,
                     x: Math.round(x),
                     y: Math.round(y),
-                    type: this.definedNodeType,
-                    nodeType: this.definedNodeType,
+                    type: graph.definedNodeType,
+                    nodeType: graph.definedNodeType,
                     typeText: ParseTree.traceryChar + id + ParseTree.traceryChar,
                     title: this.emptyNodeText,
                     rhs: [] };
@@ -124,11 +124,11 @@ class MapView extends Component {
     let newSource = this.findNodeByID (graph, source.id);
     let newEdge = { source: source.id,
 		    target: target.id,
-                    type: this.linkEdgeType };
+                    type: graph.linkEdgeType };
     this.addEdge (graph.edges, newEdge);
 
     let link = null, linkText = null;
-    if (target.nodeType === this.externalNodeType) {
+    if (target.nodeType === graph.externalNodeType) {
       linkText = target.id.replace(graph.SYM_PREFIX,'');
       link = this.makeLinkBracery (null, linkText, ParseTree.symChar + linkText);
     } else
@@ -149,7 +149,7 @@ class MapView extends Component {
   
   swapEdge (graph, sourceNode, targetNode, edge) {
     const newTargetText = this.makeLinkTargetBracery (targetNode);
-    const newEvalText = (edge.edgeType === this.includeEdgeType
+    const newEvalText = (edge.edgeType === graph.includeEdgeType
                          ? this.replaceText (graph.text,
                                              [{ startOffset: edge.pos[0],
                                                 endOffset: edge.pos[0] + edge.pos[1],
@@ -181,7 +181,7 @@ class MapView extends Component {
       },
       canSwapEdge: (sourceNode, targetNode, edge) => {
 //        console.warn ('canSwapEdge',{sourceNode, targetNode, edge})
-        return targetNode.nodeType !== this.implicitNodeType;
+        return targetNode.nodeType !== graph.implicitNodeType;
       },
       onSwapEdge: (sourceNode, targetNode, edge) => {
 //        console.warn ('onSwapEdge',{sourceNode, targetNode, edge})
@@ -199,9 +199,9 @@ class MapView extends Component {
 //        console.warn ('canCreateEdge',{sourceNode, targetNode})
         if (!targetNode) {
 	  sourceNode = typeof(sourceNode) === 'object' ? sourceNode : this.findNodeByID (graph, sourceNode);
-	  return sourceNode && sourceNode.nodeType !== this.placeholderNodeType;
+	  return sourceNode && sourceNode.nodeType !== graph.placeholderNodeType;
 	}
-	return targetNode.nodeType !== this.implicitNodeType;
+	return targetNode.nodeType !== graph.implicitNodeType;
       },
       canDeleteEdge: (selected) => {
 //        console.warn ('canDeleteEdge',{selected})
@@ -245,9 +245,9 @@ class MapView extends Component {
 
   assertSelectionValid (graph) {
     if (this.props && this.props.selected) {
-      if (this.props.selected.node && !graph.selectedNode (this.props.selected.node))
+      if (this.props.selected.node && !graph.selectedNode (this.props.selected))
         console.error("Lost selected.node",this.props.selected.node);
-      if (this.props.selected.edge && !graph.selectedEdge (this.props.selected.edge))
+      if (this.props.selected.edge && !graph.selectedEdge (this.props.selected))
         console.error("Lost selected.edge",this.props.selected.edge);
     } else
       throw new Error ('no props.selected');
@@ -278,7 +278,7 @@ class MapView extends Component {
           node.type,
           ({ shapeId: '#' + node.type,
              typeText: node.styleInfo.typeText,
-	     shape: (node.nodeType === this.implicitNodeType
+	     shape: (node.nodeType === graph.implicitNodeType
                      ? (
                          <symbol viewBox="0 0 150 60" id={node.type} key="0">
                          <rect x="0" y="0" width="150" height="60" style={{fill:'none',stroke:'none'}}></rect>
@@ -324,9 +324,9 @@ class MapView extends Component {
 	    nodeTypes={nodeTypes}
 	    nodeSubtypes={{}}
             selected={this.props.selected && (this.props.selected.node || this.props.selected.edge)}
-            nodeSize={this.nodeSize}
-            edgeHandleSize={this.edgeHandleSize}
-            edgeArrowSize={this.edgeArrowSize}
+            nodeSize={graph.nodeSize}
+            edgeHandleSize={graph.edgeHandleSize}
+            edgeArrowSize={graph.edgeArrowSize}
             onUpdateNode={handler.onUpdateNode}
             onSelectNode={handler.onSelectNode}
             onSelectEdge={handler.onSelectEdge}

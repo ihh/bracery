@@ -5,6 +5,7 @@
   "dependencies": {
     "awesome-debounce-promise": "^2.1.0",
     "bracery": "file:../../",
+    "canonical-json": "0.0.4",
     "react": "^16.4.2",
     "react-dom": "^16.4.2",
     "react-scripts": "2.1.8"

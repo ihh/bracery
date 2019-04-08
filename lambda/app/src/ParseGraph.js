@@ -5,7 +5,24 @@ import { extend, fromEntries } from './bracery-web';
 // A graph representation of a Bracery parse tree that
 //  - can be passed to react-digraph
 //  - knows how to consistently update itself
-//  - has no circular references (at least in this.nodes & this.edges)
+//  - is readily serializable (no circular references, at least in this.nodes & this.edges)
+
+// TODO. Implement the following actions:
+
+// Edit include edge (replace local text in ancestral node, rebuild ancestor's subgraph)
+// Edit link edge (replace local text in ancestral node, replace edge; no rebuild needed)
+// Edit node (replace local text in ancestral node, or global if ancestor=self; rebuild ancestor's subgraph)
+// Add node
+// Add edge
+// Swap include edge target
+// Swap link edge target
+// Delete implicit node, or edge to implicit node (rebuild ancestor's subgraph)
+// Delete defined node (and delete its subgraph)
+// Delete include edge (equivalent to editing it)
+// Delete link edge (equivalent to doing "delete include edge" on it)
+// Convert implicit node to defined node
+// Duplicate node
+
 class ParseGraph {
   constructor (props) {
     this.ParseTree = ParseTree;
@@ -15,11 +32,17 @@ class ParseGraph {
                                                  selected: props.selected });
   }
 
-  // State accessors
+  // State accessors.
+  // The setters can be simple because we're a plain object,
+  // not a React component or MobX state tree or whatever.
   get nodes() { return this.state.nodes; }
   get edges() { return this.state.edges; }
   get selected() { return this.state.selected; }
-  
+
+  set nodes (n) { this.state.nodes = n; }
+  set edges (e) { this.state.edges = e; }
+  set selected (s) { this.state.selected = s; this.unselectAll(); this.markSelected(); }
+
   // Main build method: constructs graph by analyzing parsed Bracery expression
   buildGraphFromParseTree (props) {
     const { rhs, text, selected, name } = props;
@@ -53,6 +76,7 @@ class ParseGraph {
     this.bridgeNodesToStyles (nodes, pta);
 
     // Mark selected node/edge
+    this.unselectAll (nodes, edges);
     this.markSelected (selected, edges, pta);
     
     // We now have the graph
@@ -357,6 +381,7 @@ class ParseGraph {
     return this.nodes.slice(1).concat(this.nodes[0]).reduce ((s, node) => s + this.makeNodeBracery(node),'');
   }
 
+  // Various methods for working with the representation of the current selection (node or edge)
   selectedNode (selected) {
     selected = selected || this.state.selected;
     return (selected.node
@@ -396,27 +421,13 @@ class ParseGraph {
             : null);
   }
 
+  // calculateSelectionRange converts a ParseGraph-style pos=[start,len] tuple to an HTML-style {startOffset,endOffset}
   calculateSelectionRange (pos) {
     return { startOffset: pos[0],
 	     endOffset: pos[0] + pos[1] };
   }
 
-  // Graph-building helpers
-  addEdge (edges, edge, childRank) {
-    if (edge.source === edge.target)  // no self-looping edges
-      return null;
-    edges.push (edge);
-    let { outgoing } = this.getEdgesByNode (edges);
-    edge.includeRank = outgoing[edge.source].length + 1;
-    if (childRank) {
-      let srcChildRank = childRank[edge.source];
-      if (!srcChildRank[edge.target])
-	srcChildRank[edge.target] = edge.includeRank;
-    }
-    edge.edgeType = edge.type;  // preserve type against later modification of selected edge type
-    return edge;
-  }
-
+  // Graph-indexing helpers
   getEdgesByNode (edges) {
     let incoming = {}, outgoing = {};
     edges.forEach ((edge, n) => {
@@ -429,12 +440,29 @@ class ParseGraph {
     return { incoming, outgoing };
   }
 
-  getNodesByID() {
-    return fromEntries (this.nodes.map ((node) => [node.id, node]));
+  getNodesByID (nodes) {
+    return fromEntries ((nodes || this.nodes).map ((node) => [node.id, node]));
   }
 
   findNodeByID (id) {
     return this.nodes.find ((node) => node.id === id);
+  }
+  
+
+  // Graph-building helpers
+  addEdge (edges, edge, childRank) {
+    if (edge.source === edge.target)  // No self-looping edges allowed. react-digraph won't display them anyway
+      return null;
+    edges.push (edge);
+    let { outgoing } = this.getEdgesByNode (edges);
+    edge.includeRank = outgoing[edge.source].length + 1;
+    if (childRank) {
+      let srcChildRank = childRank[edge.source];
+      if (!srcChildRank[edge.target])
+	srcChildRank[edge.target] = edge.includeRank;
+    }
+    edge.edgeType = edge.type;  // preserve type against later modification of selected edge type
+    return edge;
   }
 
   // Helper pseudo-class for parse tree analysis
@@ -464,7 +492,7 @@ class ParseGraph {
       .forEach ((prop) => extend (pta[prop], subgraph[prop]));
     return pta;
   }
-  
+
   // Get subgraph corresponding to a Bracery expression
   getImplicitNodesAndEdges (topLevelNode, rhs, pta) {
     let { text, nodeByID, layoutParent, braceryNodeOffset, pushNode, braceryNodeRhsByID } = pta;
@@ -781,8 +809,19 @@ class ParseGraph {
     return topLevelNodes;
   }
 
+  unselectAll (nodes, edges) {
+    nodes = nodes || this.nodes;
+    edges = edges || this.edges;
+    nodes.forEach ((node) => { delete node.selectedOutgoingEdge; delete node.selectedIncomingEdge; delete node.selected; });
+    (
+      (regex) => edges.forEach ((edge) => { delete edge.selected; edge.type = edge.type.replace (regex, ''); })
+    ) (new RegExp (this.selectedEdgeTypeSuffix + '$', 'g'));
+  }
+
   markSelected (selected, edges, pta) {
-    const { nodeByID } = pta;
+    selected = selected || this.selected;
+    edges = edges || this.edges;
+    const { nodeByID } = pta || { nodeByID: this.getNodesByID() };
     // Mark selected node/edge
     if (selected.node && nodeByID[selected.node])
       nodeByID[selected.node].selected = true;

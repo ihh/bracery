@@ -36,6 +36,7 @@ class App extends Component {
 
       warning: props.INITIAL_WARNING,
 
+      mapText: props.SYMBOL_DEFINITION,
       mapSelection: {},
       editorContent: '',
       editorSelection: this.emptyEditorSelection(),

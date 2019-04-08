@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { ParseTree } from 'bracery';
-import { extend, fromEntries } from './bracery-web';
+import { extend, fromEntries, cloneDeep } from './bracery-web';
 //import GraphView from 'react-digraph';
 import GraphView from './react-digraph/components/graph-view';
 import NodeEditor from './NodeEditor';
@@ -8,16 +8,31 @@ import ParseGraph from './ParseGraph';
 
 import './MapView.css';
 
+const canonicalStringify = require('canonical-json');
+
 // MapView
 class MapView extends Component {
   constructor(props) {
     super(props);
     this.ParseTree = ParseTree;
+    this.graph = new ParseGraph ({ text: props.text,
+                                   rhs: props.rhs,
+                                   name: props.name,
+                                   selected: props.selected });
     this.state = { text: props.text,
-                   graph: new ParseGraph (props) };
+                   nodes: cloneDeep (this.graph.nodes),
+                   edges: cloneDeep (this.graph.edges),
+                   selected: props.selected,
+                   editorContent: '',
+                   editorSelection: extend ({}, props.editorSelection),
+                   editorFocus: props.editorFocus || false,
+                   editorDisabled: props.hasOwnProperty('editorDisabled') ? props.editorDisabled : true,
+                 };
   }
-
+  
+  // TODO: Move the following state-changing logic into the model.
   replaceLink (graph, linkNode, changedPos, newLinkText, newLinkTargetText) {
+    console.warn ('replaceLink', graph, linkNode, changedPos, newLinkText, newLinkTargetText);
     changedPos = changedPos || linkNode.pos;
     return this.replaceText (graph.text,
                              [{ startOffset: changedPos[0],
@@ -45,8 +60,16 @@ class MapView extends Component {
   }
 
   // State modification
-  setText (newText) {
-    this.setState ({ text: newText });
+  graphState() {
+    return { text: this.graph.bracery(),
+             nodes: cloneDeep (this.graph.nodes),
+             edges: cloneDeep (this.graph.edges) };
+  }
+
+  updateGraph() {
+    return new Promise ((resolve) =>
+                        this.setState (this.graphState(),
+                                       resolve));
   }
 
   setSelected (graph, selected) {
@@ -66,41 +89,39 @@ class MapView extends Component {
                                            endOffset: editorContent.length };
     const editorDisabled = !(selected.node || selected.edge)
           || (selected.node && graph.selectedNode(selected).nodeType === graph.externalNodeType);
-/*
-    this.props.setAppState ({ mapSelection: selected,
-                              editorContent: editorContent,
-                              editorSelection: editorSelection,
-                              editorDisabled: editorDisabled,
-                              editorFocus: ((selected.node || selected.edge) && !editorDisabled) });
-*/
+    this.graph.selected = selected;
+    this.setState (extend (this.graphState(),
+                           { selected,
+                             editorContent,
+                             editorSelection,
+                             editorDisabled,
+                             editorFocus: ((selected.node || selected.edge) && !editorDisabled)
+                           }));
   }
 
-  setEditorState (graph, selectedNode, selectedEdge, selectedEdgeSource, selectedEdgeLink, newEditorState, callback) {
-    const appProp = { focus: 'editorFocus',
-                      content: 'editorContent',
-                      selection: 'editorSelection' };
-    let newAppState = fromEntries (
-      Object.keys(appProp)
-        .filter ((prop) => newEditorState.hasOwnProperty(prop))
-        .map ((prop) => [appProp[prop], newEditorState[prop]]));
-    if (newEditorState.hasOwnProperty('content')) {
+  setEditorState (graph, selectedNode, selectedEdge, selectedEdgeSource, selectedEdgeLink, newEditorState) {
+    let newState = fromEntries (['content','focus','disabled','selection']
+                                .filter ((prop) => newEditorState.hasOwnProperty(prop))
+                                .map ((prop) => ['editor'+prop[0].toUpperCase()+prop.slice(1),
+                                                 newEditorState[prop]]));
+    if (newState.hasOwnProperty('editorContent')) {
       if (selectedEdge && selectedEdge.edgeType === graph.linkEdgeType) {
-        newAppState.evalText = this.replaceLink (graph, selectedEdgeLink, selectedEdge.pos, newEditorState.content);
+        this.replaceLink (graph, selectedEdgeLink, selectedEdge.pos, newState.content);
       } else {
         const oldNode = selectedNode || selectedEdgeSource;
         if (oldNode) {
           const newNode = extend ({},
                                   oldNode,
-                                  { rhs: [newEditorState.content],
+                                  { rhs: [newState.content],
                                     nodeType: (oldNode.nodeType === graph.placeholderNodeType
                                                ? graph.definedNodeType
                                                : oldNode.nodeType) });
           graph.nodes = graph.nodes.map ((node) => (node === oldNode ? newNode : node));
-          newAppState.evalText = graph.bracery();
         }
       }
     }
-//    this.props.setAppState (newAppState, callback);
+    extend (newState, this.graphState());
+    this.setState (newState);
   }
 
   createNode (graph, x, y) {
@@ -220,8 +241,10 @@ class MapView extends Component {
 
       },
       onUpdateNode: (node) => {
-        if (node.x !== node.orig.x || node.y !== node.orig.y)
-          this.setText (graph.bracery());
+        if (node.x !== node.orig.x || node.y !== node.orig.y) {
+          this.graph.nodes = this.graph.nodes.map ((n) => (n.id === node.id ? node : n));
+          this.updateGraph();
+        }
       },
       onSelectNode: (node) => {
         this.setSelected (graph,
@@ -245,10 +268,10 @@ class MapView extends Component {
     this.assertSelectionValid (graph);
     return (<NodeEditor
             setEditorState={(newEditorState)=>this.setEditorState(graph,graph.selectedNode(),graph.selectedEdge(),graph.selectedEdgeSourceNode(),graph.selectedEdgeLinkNode(),newEditorState)}
-            content={this.props.editorContent}
-            selection={this.props.editorSelection}
-            disabled={this.props.editorDisabled}
-            focus={this.props.editorFocus} />);
+            content={this.state.editorContent}
+            selection={this.state.editorSelection}
+            disabled={this.state.editorDisabled}
+            focus={this.state.editorFocus} />);
   }
 
   assertSelectionValid (graph) {
@@ -263,12 +286,8 @@ class MapView extends Component {
   
   // Render graph
   render() {
-    const graph = this.state.graph;
-    //    console.warn('start node:',graph.nodes[0].x,graph.nodes[0].y);
-    console.warn(graph);
-    //    console.dir(selected);
     const nodeTypes = fromEntries (
-      graph.nodes.map (
+      this.state.nodes.map (
         (node) => {
           const nodeClass = node.nodeType + '-node'
                 + (node.selected
@@ -282,7 +301,7 @@ class MapView extends Component {
           node.type,
           ({ shapeId: '#' + node.type,
              typeText: node.styleInfo.typeText,
-	     shape: (node.nodeType === graph.implicitNodeType
+	     shape: (node.nodeType === this.implicitNodeType
                      ? (
                          <symbol viewBox="0 0 150 60" id={node.type} key="0">
                          <rect x="0" y="0" width="150" height="60" style={{fill:'none',stroke:'none'}}></rect>
@@ -299,7 +318,7 @@ class MapView extends Component {
 	             ))
            })];
         }));
-    const edgeTypes = fromEntries (['',graph.selectedEdgeTypeSuffix].reduce ((a, selectedSuffix) => a.concat ([
+    const edgeTypes = fromEntries (['',this.graph.selectedEdgeTypeSuffix].reduce ((a, selectedSuffix) => a.concat ([
       ['include'+selectedSuffix, {
 	shapeId: '#includeEdge'+selectedSuffix,
 	shape: (
@@ -317,20 +336,20 @@ class MapView extends Component {
             </symbol>
 	)
       }]]), []));
-    const handler = this.eventHandlers(graph);
+    const handler = this.eventHandlers(this.graph);
     return (<div>
             <div className="mapview">
 	    <GraphView
             nodeKey="id"
-	    nodes={graph.nodes}
-	    edges={graph.edges}
+	    nodes={this.state.nodes}
+	    edges={this.state.edges}
 	    edgeTypes={edgeTypes}
 	    nodeTypes={nodeTypes}
 	    nodeSubtypes={{}}
-            selected={this.props.selected && (this.props.selected.node || this.props.selected.edge)}
-            nodeSize={graph.nodeSize}
-            edgeHandleSize={graph.edgeHandleSize}
-            edgeArrowSize={graph.edgeArrowSize}
+            selected={this.state.selected && (this.state.selected.node || this.state.selected.edge)}
+            nodeSize={this.graph.nodeSize}
+            edgeHandleSize={this.graph.edgeHandleSize}
+            edgeArrowSize={this.graph.edgeArrowSize}
             onUpdateNode={handler.onUpdateNode}
             onSelectNode={handler.onSelectNode}
             onSelectEdge={handler.onSelectEdge}
@@ -348,7 +367,7 @@ class MapView extends Component {
 	    />
             </div>
             <div className="editorcontainer">
-	    {this.selectionTextArea (graph)}
+	    {this.selectionTextArea (this.graph)}
             </div>
             <div style={{'fontSize':'small'}}>
             {this.state.text}

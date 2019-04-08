@@ -19,6 +19,7 @@ class MapView extends Component {
                                    rhs: props.rhs,
                                    name: props.name,
                                    selected: props.selected });
+    console.warn(this.graph.state);
     this.state = { text: props.text,
                    nodes: cloneDeep (this.graph.nodes),
                    edges: cloneDeep (this.graph.edges),
@@ -106,8 +107,13 @@ class MapView extends Component {
                                 .map ((prop) => ['editor'+prop[0].toUpperCase()+prop.slice(1),
                                                  newEditorState[prop]]));
     if (newState.hasOwnProperty('editorContent')) {
-      if (selectedEdge && selectedEdge.edgeType === graph.linkEdgeType) {
-        this.replaceLink (graph, selectedEdgeLink, selectedEdge.pos, newState.content);
+      if (selectedEdge) {
+        if (selectedEdge.edgeType === graph.linkEdgeType)
+          this.graph.replaceLinkEdgeText (selectedEdge, newState.editorContent);
+        else {
+          this.graph.replaceIncludeEdgeText (selectedEdge, newState.editorContent);
+          this.graph.selected = { node: selectedEdge.source };
+        }
       } else {
         const oldNode = selectedNode || selectedEdgeSource;
         if (oldNode) {

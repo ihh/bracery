@@ -440,7 +440,7 @@ class App extends Component {
 	<p>
 	  {(this.state.editing
 	    ? (<span>
-	         Editing template text (<button onClick={()=>this.setState({editing:false})}>hide</button>
+	         Editing (<button onClick={()=>this.setState({editing:false})}>hide</button>
 		 <span> / </span> <button onClick={()=>this.erase()}>erase</button>
 		 <span> / </span> <button onClick={()=>this.reload()}>reload</button>
 		 <span> / </span> <button onClick={()=>this.setState({debugging:!this.state.debugging})}>debug{this.state.debugging?' off':''}</button>

@@ -73,21 +73,22 @@ class ParseGraph {
   get linkEdgeType() { return 'link'; }
   get selectedEdgeTypeSuffix() { return 'Selected'; }
 
-  // Main build method: constructs graph by analyzing parsed Bracery expression
+  // Main build method: constructs graph (or rooted subgraph) by analyzing parsed Bracery expression
   buildGraphFromParseTree (props) {
-    const { rhs, text, name, selected } = props;
+    const { rhs, text, name, selected, root, existingNodes } = props;
 
     // Create parse tree analyzer. This object holds useful temporary info & pointers to the parse tree
-    const pta = this.newParseTreeAnalyzer (rhs, text, name);
+    const pta = this.newParseTreeAnalyzer (rhs, text, name, existingNodes);
     let { braceryNodeRhsByID } = pta;
 
     // Scan parse tree for top-level global variable assignments
-    const topLevelNodes = this.parseTopLevel (pta);
+    // (unless we have been called at a specified root)
+    const topLevelNodes = root ? [root] : this.parseTopLevel(pta);
 
     // Create implicit nodes for links, and create include & link edges
     let edges = [];
     const implicitNodes = topLevelNodes.reduce ((implicitNodes, topLevelNode) => {
-      const subgraph = this.getImplicitNodesAndEdges (topLevelNode, braceryNodeRhsByID[topLevelNode.id], pta);
+      const subgraph = this.getImplicitNodesAndEdges (topLevelNode, topLevelNode, braceryNodeRhsByID[topLevelNode.id], pta);
       edges = edges.concat (subgraph.edges);
       pta.extend (subgraph);
       return implicitNodes.concat (subgraph.implicitNodes);
@@ -180,37 +181,42 @@ class ParseGraph {
         } = config;
     const oldEndOffset = pos[0] + pos[1], delta = newSubstr.length - pos[1];
     const nodeByID = this.getNodesByID();
+    const updateEntity = edge || node;
     node = node || nodeByID[edge.source];
     const ancNode = this.getAncestor (node, nodeByID);
     ancNode.defText = ancNode.defText.slice(0,pos[0]) + newSubstr + ancNode.defText.slice(oldEndOffset);
+    let updateSubgraph = null, getUpdateSubgraph = () => { updateSubgraph = this.getImplicitSubgraph (ancNode, nodeByID); };
     if (rebuild) {
-      // rebuild required: delete node's subgraph and recompute
       this.deleteSubgraph (node, nodeByID);
+      getUpdateSubgraph();
       this.buildSubgraph (node);
-    } else {
-      // no rebuild required, just updated pos[] arrays in ancestral subgraph
-      const subgraph = this.getImplicitSubgraph (ancNode, nodeByID);
-      const posEqual = (p, q) => { return p[0] === q[0] && p[1] === q[1]; };
-      const updatePos = (p) => {
-        if (p) {
-          if (posEqual (p, node.pos))
-            p[1] = newSubstr.length;
-          else if (p[0] >= oldEndOffset)
-            p[0] += delta;
-          else if (newLinkTextPos && posEqual (p, node.linkTextPos)) {
-            p[0] = newLinkTextPos[0];
-            p[1] = newLinkTextPos[1];
-          }
+    } else
+      getUpdateSubgraph();
+    const oldPos = updateEntity.pos;
+    const oldLinkTextPos = newLinkTextPos && updateEntity.linkTextPos.slice(0);
+    const posEqual = (p, q) => { return p[0] === q[0] && p[1] === q[1]; };
+    const updatePos = (p) => {
+      if (p) {
+        if (posEqual (p, oldPos))
+          p[1] = newSubstr.length;
+        else if (p[0] >= oldEndOffset)
+          p[0] += delta;
+        else if (newLinkTextPos && posEqual (p, oldLinkTextPos)) {
+          p[0] = newLinkTextPos[0];
+          p[1] = newLinkTextPos[1];
         }
-      };
-      subgraph.nodes
-        .concat (subgraph.edges)
-        .concat ([node])
-        .forEach ((entity) => {
-          updatePos (entity.pos);
-          updatePos (entity.linkTextPos);
-        });
-    }
+      }
+    };
+    // update pos[] arrays in subgraph
+    updateSubgraph.nodes
+      .concat (updateSubgraph.edges)
+      .filter ((entity) => entity !== node && entity !== edge)
+      .concat ([node])
+      .concat (edge ? [edge] : [])
+      .forEach ((entity) => {
+        updatePos (entity.pos);
+        updatePos (entity.linkTextPos);
+      });
   }
 
   // Delete a node's implicit subgraph
@@ -226,12 +232,15 @@ class ParseGraph {
     const text = node.defText;
     const rhs = ParseTree.parseRhs (text);
     const selected = this.selected;
-    let pta = this.newParseTreeAnalyzer (rhs, text, this.symName, this.nodes);
-    // TODO: write me
-    // Possibilities:
-    //  Node is a defined node
-    //  Node is the start node
-    //  Node is an implicit node (ancestral is defined or start)
+    const newSubgraph = this.buildGraphFromParseTree ({ rhs,
+                                                        text,
+                                                        name: this.symName,
+                                                        selected: this.selected,
+                                                        root: node,
+                                                        existingNodes: this.nodes
+                                                      });
+    this.nodes = this.nodes.concat (newSubgraph.nodes);
+    this.edges = this.edges.concat (newSubgraph.edges);
   }
   
   // escapeTopLevelRegex
@@ -589,17 +598,17 @@ class ParseGraph {
 
   // Main build methods
   // Get subgraph corresponding to a Bracery expression
-  getImplicitNodesAndEdges (topLevelNode, rhs, pta) {
+  getImplicitNodesAndEdges (rootNode, topLevelNode, rhs, pta) {
     let { text, nodeByID, layoutParent, braceryNodeOffset, pushNode, braceryNodeRhsByID } = pta;
     let implicitNodes = [], edges = [];
-    braceryNodeRhsByID[topLevelNode.id] = rhs;
-    this.getLinkedNodes (topLevelNode.id, rhs)
+    braceryNodeRhsByID[rootNode.id] = rhs;
+    this.getLinkedNodes (rootNode.id, rhs)
       .forEach ((linkNode) => {
         const isLink = ParseTree.isLinkExpr(linkNode);
         const isLayoutLink = ParseTree.isLayoutLinkExpr(linkNode);
         const parent = (linkNode.inLink && linkNode.link
                         ? nodeByID[linkNode.link.graphNodeName]
-                        : topLevelNode);
+                        : rootNode);
         const actualLinkNode = (isLink
                                 ? linkNode
                                 : (isLayoutLink
@@ -623,7 +632,7 @@ class ParseGraph {
             defText = this.makeTraceryText (linkTargetRhs);
           }
         }
-        const topOffset = braceryNodeOffset[topLevelNode.id] || 0;
+        const topOffset = braceryNodeOffset[rootNode.id] || 0;
         const implicitNodeID = linkNode.graphNodeName;
         parent.implicitChildren = (parent.implicitChildren || []).concat ([implicitNodeID]);
         braceryNodeOffset[implicitNodeID] = linkTargetTextOffset.offset;
@@ -648,7 +657,7 @@ class ParseGraph {
       });
     
     // Create include & link edges
-    const realNodes = [topLevelNode].concat (implicitNodes);
+    const realNodes = [rootNode].concat (implicitNodes);
     let childRank = fromEntries (realNodes.map ((node) => [node.id, {}]));
     const addEdge = (edge) => { this.addEdge (edges, edge, childRank); };
     realNodes.forEach ((node) => {

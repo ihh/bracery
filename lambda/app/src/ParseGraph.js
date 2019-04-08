@@ -199,7 +199,6 @@ class ParseGraph {
   // Build a node's implicit subgraph
   buildSubgraph (node, rhs) {
     const text = node.defText;
-    const selected = this.selected;
     const newSubgraph = this.buildGraphFromParseTree ({ rhs,
                                                         text,
                                                         name: this.symName,

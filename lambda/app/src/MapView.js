@@ -67,6 +67,7 @@ class MapView extends Component {
   }
 
   updateGraph() {
+    console.warn(this.graphState());
     return new Promise ((resolve) =>
                         this.setState (this.graphState(),
                                        resolve));
@@ -241,6 +242,7 @@ class MapView extends Component {
 
       },
       onUpdateNode: (node) => {
+        // TODO: if node is implicit, need to rebuild the link
         if (node.x !== node.orig.x || node.y !== node.orig.y) {
           this.graph.nodes = this.graph.nodes.map ((n) => (n.id === node.id ? node : n));
           this.updateGraph();

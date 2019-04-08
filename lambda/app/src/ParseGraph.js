@@ -42,6 +42,35 @@ class ParseGraph {
   set nodes (n) { this.state.nodes = n; }
   set edges (e) { this.state.edges = e; }
   set selected (s) { this.state.selected = s; this.unselectAll(); this.markSelected(); }
+  
+  // Constants
+  get newVarPrefix() { return 'scene' }
+
+  get START() { return 'START'; }
+  get SYM_PREFIX() { return 'SYM_'; }
+  get LINK_SUFFIX() { return '_LINK'; }
+
+  get nodeSize() { return 150; }
+  get edgeHandleSize() { return 50; }
+  get edgeArrowSize() { return 10; }
+
+  get layoutRadius() { return 300; }
+
+  get maxNodeTypeTextLen() { return 24; }
+  get maxNodeTitleLen() { return 24; }
+
+  get startNodeType() { return 'start'; }
+  get definedNodeType() { return 'defined'; }
+  get implicitNodeType() { return 'implicit'; }
+  get externalNodeType() { return 'external'; }
+  get placeholderNodeType() { return 'placeholder'; }
+
+  get placeholderNodeText() { return 'Click to edit'; }
+  get emptyNodeText() { return ' '; }
+
+  get includeEdgeType() { return 'include'; }
+  get linkEdgeType() { return 'link'; }
+  get selectedEdgeTypeSuffix() { return 'Selected'; }
 
   // Main build method: constructs graph by analyzing parsed Bracery expression
   buildGraphFromParseTree (props) {
@@ -83,36 +112,59 @@ class ParseGraph {
     return { nodes, edges, selected };
   }
 
-  // Constants
-  get newVarPrefix() { return 'scene' }
+  // Methods to generate Bracery code
+  // makeNodeBracery - regenerate the Bracery for a graph node,
+  // overriding the (X,Y) coordinates with whatever is in the graph,
+  // and using syntactic sugar for the &layout, &link, and &placeholder functions,
+  // i.e. [name@X,Y=>definition...] and so on.
+  makeNodeBracery (node) {
+    const xy = this.makeCoord(node);
+    switch (node.nodeType) {
+    case this.externalNodeType:
+      return xy && (xy + ParseTree.symChar + node.id.replace(this.SYM_PREFIX,'') + '\n');
+    case this.placeholderNodeType:
+      return xy && (xy + ParseTree.varChar + node.id + '\n');
+    case this.startNodeType:
+      return (xy ? (xy + ':START\n') : '') + node.defText;
+    case this.definedNodeType:
+      return '[' + node.id + xy + '=>' + this.escapeTopLevelBraces (node.defText, { stripBracketsFromAlt: true }) + ']\n';
+    case this.implicitNodeType:
+    default:
+      return '';
+    }
+  }
+  
+  // makeLinkBracery - regenerate a link of the form [text]{target}
+  makeLinkBracery (node, newLinkText, newLinkTarget) {
+    const xy = this.makeCoord(node);
+    return '['
+      + this.escapeTopLevelBraces (newLinkText)
+      + ']' + xy + '{'
+      + this.escapeTopLevelBraces (newLinkTarget)
+      + '}';
+  }
 
-  get START() { return 'START'; }
-  get SYM_PREFIX() { return 'SYM_'; }
-  get LINK_SUFFIX() { return '_LINK'; }
+  // makeLinkTargetBracery - for a node, generate the Bracery that should appear in the target field of a link, to link to it.
+  makeLinkTargetBracery (node) {
+    switch (node.nodeType) {
+    case this.externalNodeType:
+    case this.startNodeType:
+      return ParseTree.symChar + node.id.replace(this.SYM_PREFIX,'');
+    case this.definedNodeType:
+    case this.placeholderNodeType:
+      return ParseTree.traceryChar + node.id + ParseTree.traceryChar;
+    case this.implicitNodeType:
+    default:
+      return '';
+    }
+  }
 
-  get nodeSize() { return 150; }
-  get edgeHandleSize() { return 50; }
-  get edgeArrowSize() { return 10; }
+  // bracery - regenerate entire Bracery string.
+  bracery() {
+    return this.nodes.slice(1).concat(this.nodes[0]).reduce ((s, node) => s + this.makeNodeBracery(node),'');
+  }
 
-  get layoutRadius() { return 300; }
-
-  get maxNodeTypeTextLen() { return 24; }
-  get maxNodeTitleLen() { return 24; }
-
-  get startNodeType() { return 'start'; }
-  get definedNodeType() { return 'defined'; }
-  get implicitNodeType() { return 'implicit'; }
-  get externalNodeType() { return 'external'; }
-  get placeholderNodeType() { return 'placeholder'; }
-
-  get placeholderNodeText() { return 'Click to edit'; }
-  get emptyNodeText() { return ' '; }
-
-  get includeEdgeType() { return 'include'; }
-  get linkEdgeType() { return 'link'; }
-  get selectedEdgeTypeSuffix() { return 'Selected'; }
-
-  // Helpers
+  // Text helpers
   truncate (text, len) {
     return (text.length <= len
             ? text
@@ -140,6 +192,7 @@ class ParseGraph {
     return this.escapeTopLevelRegex (text, new RegExp ('[@{}[\\]|\\\\]', 'g'), config);
   }
   
+  // Bracery text analysis & manipulation
   // isLinkShortcut - detects shortcuts of the form [[link to another page]]
   isLinkShortcut (text) {
     return text.match(/^\[\[.*\]\]$/)
@@ -158,6 +211,7 @@ class ParseGraph {
 	     y: parseFloat (xy[1]) };
   }
 
+  // Bracery parse tree analysis
   // Specialized version of ParseTree.findNodes for checking if a tree contains no variables, symbols, or links
   isStaticExpr (rhs) {
     return ParseTree.findNodes (rhs, {
@@ -225,25 +279,6 @@ class ParseGraph {
                                        reportAssigns: true })
       .map ((node) => (node.name || node.varname));
   }
-
-  // Find the max suffix of any autogenerated variable names
-  maxVarSuffix (isVarName, prefix) {
-    prefix = prefix || this.newVarPrefix;
-    const prefixRegex = new RegExp ('^' + prefix + '([0-9]+)$');
-    return Object.keys (isVarName)
-      .map ((name) => prefixRegex.exec (name))
-      .filter ((match) => match)
-      .map ((match) => parseInt(match[1]))
-      .reduce ((max, n) => Math.max (max, n), 0);
-  }
-
-  // Autogenerate a variable name
-  newVar (isVarName, prefix) {
-    prefix = prefix || this.newVarPrefix;
-    const newVarName = prefix + (this.maxVarSuffix (isVarName, prefix) + 1);
-    isVarName[newVarName] = true;
-    return newVarName;
-  }
   
   // parseTreeNodeText is to be called on a Bracery parse tree node,
   // along with the text that was parsed.
@@ -285,6 +320,54 @@ class ParseGraph {
     return rhs.length === 1 && typeof(rhs[0]) === 'object' && rhs[0].type === 'alt';
   }
 
+  // Helper pseudo-class for parse tree analysis
+  newParseTreeAnalyzer (rhs, text, symName) {
+    let nodeByID = {}, braceryNodeRhsByID = {};
+    const pushNode = (nodes, node, parseTreeNode, parseTreeNodeRhs, config) => {
+      nodeByID[node.id] = node;
+      braceryNodeRhsByID[node.id] = parseTreeNodeRhs || [];
+      // Push or unshift the node to the given list of nodes
+      if (config && config.insertAtStart)
+        nodes.splice(0,0,node);
+      else
+        nodes.push(node);
+    };
+    let pta = { rhs,
+                text,
+                symName,
+                nodeByID,
+                braceryNodeRhsByID,
+                pushNode,
+                braceryNodeOffset: {},
+                layoutParent: {},
+                childRank: {},
+              };
+    pta.extend = (subgraph) => Object.keys(pta)
+      .filter ((prop) => subgraph.hasOwnProperty(prop))
+      .forEach ((prop) => extend (pta[prop], subgraph[prop]));
+    return pta;
+  }
+
+  // Graph analysis
+  // Find the max suffix of any autogenerated variable names
+  maxVarSuffix (isVarName, prefix) {
+    prefix = prefix || this.newVarPrefix;
+    const prefixRegex = new RegExp ('^' + prefix + '([0-9]+)$');
+    return Object.keys (isVarName)
+      .map ((name) => prefixRegex.exec (name))
+      .filter ((match) => match)
+      .map ((match) => parseInt(match[1]))
+      .reduce ((max, n) => Math.max (max, n), 0);
+  }
+
+  // Autogenerate a variable name
+  newVar (isVarName, prefix) {
+    prefix = prefix || this.newVarPrefix;
+    const newVarName = prefix + (this.maxVarSuffix (isVarName, prefix) + 1);
+    isVarName[newVarName] = true;
+    return newVarName;
+  }
+
   // Text for a graph entity
   getPosSubstr (text, pos) {
     return (text && pos
@@ -296,18 +379,23 @@ class ParseGraph {
   nodeText (nodeByID, node, pos) {
     if (node.defText && !pos)
       return node.defText;
-    let ancestor = this.getAncestor (nodeByID, node);
+    let ancestor = this.getAncestor (node, nodeByID);
     return this.getPosSubstr (ancestor.defText, pos || node.pos);
   }
 
-  getAncestor (nodeByID, node) {
-    return node.topLevelAncestorID ? nodeByID[node.topLevelAncestorID] : node;
+  // Get a node's top-level ancestor (which "owns" its text definition)
+  getAncestor (node, nodeByID) {
+    return (node.topLevelAncestorID
+            ? (nodeByID
+               ? nodeByID[node.topLevelAncestorID]
+               : this.findNodeByID (node.topLevelAncestorID))
+            : node);
   }
   
   // Text for a graph edge
   edgeText (nodeByID, edge) {
     let source = nodeByID[edge.source];
-    let ancestor = this.getAncestor (nodeByID, source);
+    let ancestor = this.getAncestor (source, nodeByID);
     return this.getPosSubstr (ancestor.defText, edge.linkTextPos || edge.pos);
   }
 
@@ -330,55 +418,27 @@ class ParseGraph {
     return '';
   }
 
-  // makeNodeBracery - regenerate the Bracery for a graph node,
-  // overriding the (X,Y) coordinates with whatever is in the graph,
-  // and using syntactic sugar for the &layout, &link, and &placeholder functions,
-  // i.e. [name@X,Y=>definition...] and so on.
-  makeNodeBracery (node) {
-    const xy = this.makeCoord(node);
-    switch (node.nodeType) {
-    case this.externalNodeType:
-      return xy && (xy + ParseTree.symChar + node.id.replace(this.SYM_PREFIX,'') + '\n');
-    case this.placeholderNodeType:
-      return xy && (xy + ParseTree.varChar + node.id + '\n');
-    case this.startNodeType:
-      return (xy ? (xy + ':START\n') : '') + node.defText;
-    case this.definedNodeType:
-      return '[' + node.id + xy + '=>' + this.escapeTopLevelBraces (node.defText, { stripBracketsFromAlt: true }) + ']\n';
-    case this.implicitNodeType:
-    default:
-      return '';
-    }
-  }
-  
-  // makeLinkBracery - regenerate a link of the form [text]{target}
-  makeLinkBracery (node, newLinkText, newLinkTarget) {
-    const xy = this.makeCoord(node);
-    return '['
-      + this.escapeTopLevelBraces (newLinkText)
-      + ']' + xy + '{'
-      + this.escapeTopLevelBraces (newLinkTarget)
-      + '}';
+  // Build incoming & outgoing lookups
+  getEdgesByNode (edges) {
+    let incoming = {}, outgoing = {};
+    edges.forEach ((edge, n) => {
+      const pushEdgeIndex = (obj, prop) => {
+        obj[prop] = (obj[prop] || []).concat ([n]);
+      };
+      pushEdgeIndex (incoming, edge.target);
+      pushEdgeIndex (outgoing, edge.source);
+    });
+    return { incoming, outgoing };
   }
 
-  // makeLinkTargetBracery - for a node, generate the Bracery that should appear in the target field of a link, to link to it.
-  makeLinkTargetBracery (node) {
-    switch (node.nodeType) {
-    case this.externalNodeType:
-    case this.startNodeType:
-      return ParseTree.symChar + node.id.replace(this.SYM_PREFIX,'');
-    case this.definedNodeType:
-    case this.placeholderNodeType:
-      return ParseTree.traceryChar + node.id + ParseTree.traceryChar;
-    case this.implicitNodeType:
-    default:
-      return '';
-    }
+  // Index nodes by ID
+  getNodesByID (nodes) {
+    return fromEntries ((nodes || this.nodes).map ((node) => [node.id, node]));
   }
 
-  // bracery - regenerate entire Bracery string.
-  bracery() {
-    return this.nodes.slice(1).concat(this.nodes[0]).reduce ((s, node) => s + this.makeNodeBracery(node),'');
+  // Find node by ID
+  findNodeByID (id) {
+    return this.nodes.find ((node) => node.id === id);
   }
 
   // Various methods for working with the representation of the current selection (node or edge)
@@ -427,29 +487,8 @@ class ParseGraph {
 	     endOffset: pos[0] + pos[1] };
   }
 
-  // Graph-indexing helpers
-  getEdgesByNode (edges) {
-    let incoming = {}, outgoing = {};
-    edges.forEach ((edge, n) => {
-      const pushEdgeIndex = (obj, prop) => {
-        obj[prop] = (obj[prop] || []).concat ([n]);
-      };
-      pushEdgeIndex (incoming, edge.target);
-      pushEdgeIndex (outgoing, edge.source);
-    });
-    return { incoming, outgoing };
-  }
-
-  getNodesByID (nodes) {
-    return fromEntries ((nodes || this.nodes).map ((node) => [node.id, node]));
-  }
-
-  findNodeByID (id) {
-    return this.nodes.find ((node) => node.id === id);
-  }
-  
-
   // Graph-building helpers
+  // Add an edge and note its child rank
   addEdge (edges, edge, childRank) {
     if (edge.source === edge.target)  // No self-looping edges allowed. react-digraph won't display them anyway
       return null;
@@ -465,34 +504,7 @@ class ParseGraph {
     return edge;
   }
 
-  // Helper pseudo-class for parse tree analysis
-  newParseTreeAnalyzer (rhs, text, symName) {
-    let nodeByID = {}, braceryNodeRhsByID = {};
-    const pushNode = (nodes, node, parseTreeNode, parseTreeNodeRhs, config) => {
-      nodeByID[node.id] = node;
-      braceryNodeRhsByID[node.id] = parseTreeNodeRhs || [];
-      // Push or unshift the node to the given list of nodes
-      if (config && config.insertAtStart)
-        nodes.splice(0,0,node);
-      else
-        nodes.push(node);
-    };
-    let pta = { rhs,
-                text,
-                symName,
-                nodeByID,
-                braceryNodeRhsByID,
-                pushNode,
-                braceryNodeOffset: {},
-                layoutParent: {},
-                childRank: {},
-              };
-    pta.extend = (subgraph) => Object.keys(pta)
-      .filter ((prop) => subgraph.hasOwnProperty(prop))
-      .forEach ((prop) => extend (pta[prop], subgraph[prop]));
-    return pta;
-  }
-
+  // Main build methods
   // Get subgraph corresponding to a Bracery expression
   getImplicitNodesAndEdges (topLevelNode, rhs, pta) {
     let { text, nodeByID, layoutParent, braceryNodeOffset, pushNode, braceryNodeRhsByID } = pta;
@@ -621,8 +633,8 @@ class ParseGraph {
     return nodes.filter ((node) => !nodeDetached(node));
   }
 
+  // Create layout tree structure
   doTreeLayout (nodes, edges, pta) {
-    // Create layout tree structure
     // - Ensure every node (except start) has a parent.
     // - If a node's parent is a skipped implicit node (i.e. an implicit node with a unique target),
     //   then set the node's parent to its grandparent; repeat until the parent is not a skipped implicit node.
@@ -682,13 +694,13 @@ class ParseGraph {
     nodes.forEach (layoutNode);
   }
 
+  // react-digraph has an awkward enforced separation between nodes and styling information,
+  // that we have to bridge.
+  // The 'typeText' and 'title' fields correspond to what would more commonly be called 'title' & 'subtitle'.
+  // However, while a 'title' (i.e. subtitle) can be specified at the node level,
+  // the 'typeText' (i.e. title) must be specified in the styling information.
   bridgeNodesToStyles (nodes, pta) {
     let { nodeByID } = pta;
-    // react-digraph has an awkward enforced separation between nodes and styling information,
-    // that we have to bridge.
-    // The 'typeText' and 'title' fields correspond to what would more commonly be called 'title' & 'subtitle'.
-    // However, while a 'title' (i.e. subtitle) can be specified at the node level,
-    // the 'typeText' (i.e. title) must be specified in the styling information.
     nodes.forEach ((node) => {
       let typeText = null, title = null;
       switch (node.nodeType) {
@@ -818,6 +830,7 @@ class ParseGraph {
     ) (new RegExp (this.selectedEdgeTypeSuffix + '$', 'g'));
   }
 
+  // Mark selected node/edge
   markSelected (selected, edges, pta) {
     selected = selected || this.selected;
     edges = edges || this.edges;

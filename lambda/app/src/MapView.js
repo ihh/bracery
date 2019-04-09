@@ -76,9 +76,7 @@ class MapView extends Component {
   setEditorState (newEditorState) {
     let graph = this.graph;
     let selectedNode = graph.selectedNode(),
-        selectedEdge = graph.selectedEdge(),
-        selectedEdgeSource = graph.selectedEdgeSourceNode(),
-        selectedEdgeLink = graph.selectedEdgeLinkNode();
+        selectedEdge = graph.selectedEdge();
     let newState = fromEntries (['content','focus','disabled','selection']
                                 .filter ((prop) => newEditorState.hasOwnProperty(prop))
                                 .map ((prop) => ['editor'+prop[0].toUpperCase()+prop.slice(1),
@@ -215,7 +213,6 @@ class MapView extends Component {
 
       },
       onUpdateNode: (node) => {
-        // TODO: if node is implicit, need to rebuild the link
         if (node.x !== node.orig.x || node.y !== node.orig.y) {
           this.graph.updateNodeCoord (node);
           this.updateGraph();

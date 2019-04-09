@@ -7,6 +7,18 @@ import { extend, fromEntries } from './bracery-web';
 //  - knows how to consistently update itself
 //  - is readily serializable (no circular references, at least in this.nodes & this.edges)
 
+// TODO:
+// Add node
+// Add edge
+// Swap include edge target
+// Swap link edge target
+// Delete implicit node, or edge to implicit node (rebuild ancestor's subgraph)
+// Delete defined node (and delete its subgraph)
+// Delete include edge (equivalent to editing it)
+// Delete link edge (equivalent to doing "delete include edge" on it)
+// Convert implicit node to defined node
+// Duplicate node
+
 class ParseGraph {
   constructor (props) {
     this.ParseTree = ParseTree;
@@ -86,7 +98,7 @@ class ParseGraph {
       return nodes.concat (this.makePlaceholders (node, braceryNodeRhsByID[node.id], pta));
     }, []);
     const nodesIncludingDetached = realNodes.concat (placeholderNodes);
-    const nodes = this.filterOutDetachedNodes (nodesIncludingDetached, edges);
+    const nodes = this.filterOutDetachedNodes (nodesIncludingDetached, edges, pta);
 
     // Do layout, add styling info
     this.doTreeLayout (nodes, edges, pta, deletedNodes);
@@ -111,8 +123,12 @@ class ParseGraph {
 
   // Edit include edge (replace parent node definition, i.e. local text in ancestral node; rebuild ancestor's subgraph)
   replaceIncludeEdgeText (edge, newText) {
-    // TODO: fix this by handling include edges from implicit nodes properly (currently deletes whole implicit node)
-    this.replaceDefTextSubstr ({ edge,  // node defaults to edge.source
+    let nodeByID = this.getNodesByID();
+    let source = nodeByID[edge.source];
+    this.replaceDefTextSubstr ({ edge,
+                                 node: source,
+                                 pos: source.linkTargetPos,
+                                 nodeByID,
                                  newSubstr: newText,
                                  escape: true,
                                  rebuild: true });
@@ -159,39 +175,28 @@ class ParseGraph {
 
   // Edit node (replace local text in ancestral node, or global if ancestor=self; rebuild ancestor's subgraph)
   replaceNodeText (node, newText) {
-    if (node.nodeType === this.implicitNodeType) {
-      node.defText = newText;
-      this.replaceIncomingEdgeText (node);
-    } else {
-      let nodeByID = this.getNodesByID();
-      if (node.nodeType === this.placeholderNodeType) {
-        let implicitParent = nodeByID[node.implicitParent];
-        implicitParent.implicitChildren = implicitParent.implicitChildren.filter ((c) => c !== node.id);
-        delete node.implicitParent;
-        node.nodeType = this.definedNodeType;
-      }
-      this.replaceDefTextSubstr ({ node,
-                                   newSubstr: newText,
-                                   escape: node.nodeType === this.implicitNodeType,
-                                   rebuild: true });
+    let nodeByID = this.getNodesByID();
+    if (node.nodeType === this.placeholderNodeType) {
+      let implicitParent = nodeByID[node.implicitParent];
+      if (!implicitParent)
+        console.error(node,nodeByID);
+      implicitParent.implicitChildren = implicitParent.implicitChildren.filter ((c) => c !== node.id);
+      delete node.implicitParent;
+      node.nodeType = this.definedNodeType;
     }
+    this.replaceDefTextSubstr (extend ({ node,
+                                         newSubstr: newText,
+                                         rebuild: true },
+                                       (node.nodeType === this.implicitNodeType
+                                        ? { escape: true,
+                                            pos: node.linkTargetPos }
+                                        : {})));
   }
 
   updateNode (node) {
     this.nodes = this.nodes.map ((n) => (n.id === node.id ? node : n));
   }
   
-  // Add node
-  // Add edge
-  // Swap include edge target
-  // Swap link edge target
-  // Delete implicit node, or edge to implicit node (rebuild ancestor's subgraph)
-  // Delete defined node (and delete its subgraph)
-  // Delete include edge (equivalent to editing it)
-  // Delete link edge (equivalent to doing "delete include edge" on it)
-  // Convert implicit node to defined node
-  // Duplicate node
-
   // Methods for modifying the text labels of the graph, maintaining consistency
   // Replace a substring of a graph entity's definition
   replaceDefTextSubstr (config) {
@@ -369,20 +374,48 @@ class ParseGraph {
     // which is something we should probably try to fix.
     let pos = [linkTextNode.pos[0] - topOffset,
                linkTextNode.pos[1]];
-    if (linkBracery.match(/^\[\[.*\]\]$/)) {
+    if (this.isTwineStyleLink (linkBracery)) {
       // [[Twine style]]
       // Needs correction to remove double square braces
       pos[0] += 2;
       pos[1] -= 4;
-    } else if (linkBracery.match(/^&link(@[-0-9]+,[-0-9]+|){/)) {
+    } else if (this.isBraceryStyleLink (linkBracery)) {
       //  &link{Bracery function}{style}
       //  &link@123,-456{Positioned Bracery function}{style}
       // Needs correction to remove curly braces
       pos[0] += 1;
       pos[1] -= 2;
-    } else if (linkBracery.match(/^\[/)) {
+    } else if (this.isMarkdownStyleLink (linkBracery)) {
       // [Markdown]{style}
       // Parser gets co-ordinates right for this one, so do nothing
+    }
+    return pos;
+  }
+
+  // [[Twine style]]
+  isTwineStyleLink (linkBracery) {
+    return linkBracery.match(/^\[\[.*\]\]$/);
+  }
+
+  // &link{Bracery function}{style}
+  isBraceryStyleLink (linkBracery) {
+    return linkBracery.match(/^&link(@[-0-9]+,[-0-9]+|){/);
+  }
+
+  // [Markdown]{style}
+  isMarkdownStyleLink (linkBracery) {
+    return linkBracery.match(/^\[/);
+  }
+
+  // getLinkTargetPos - get the target text for a link
+  // This is a little easier than getLinkTextPos, as we can ignore Twine-style links
+  // (where the link target is synthesized from the link text, and not actually present in the parsed text)
+  getLinkTargetPos (linkBracery, linkTargetNode, topOffset) {
+    let pos = [linkTargetNode.pos[0] - topOffset,
+               linkTargetNode.pos[1]];
+    if (this.isBraceryStyleLink (linkBracery)) {
+      pos[0] += 1;
+      pos[1] -= 2;
     }
     return pos;
   }
@@ -494,7 +527,7 @@ class ParseGraph {
             ? { text: (ParseTree.leftSquareBraceChar + text + ParseTree.rightSquareBraceChar),  // [x|y|z]
                 offset: offset - 1 }
             : { text: text,
-                offset: offset + (origText.charAt(offset) === ParseTree.leftBraceChar
+                offset: offset + (origText.charAt(offset) === ParseTree.leftBraceChar  // remove enclosing braces
                                   && origText.charAt(offset) !== text.charAt(0)
                                   ? 1
                                   : 0) });
@@ -550,11 +583,6 @@ class ParseGraph {
     nodeByID = nodeByID || this.getNodesByID();
     return (node.implicitChildren || [])
       .map ((id) => nodeByID[id])
-      .map ((id) => {
-        if (!id)
-          console.warn ('implicitChild not found', node, nodeByID);
-        return id;
-      })
       .filter ((id) => id)
       .reduce ((descendants, child) => descendants.concat ([child]).concat (this.getImplicitDescendants (child)),
                []);
@@ -747,23 +775,28 @@ class ParseGraph {
             uniqueTarget = this.SYM_PREFIX + linkTargetNode.name;
           } else if (ParseTree.isTraceryExpr(linkTargetNode)) {
             uniqueTarget = ParseTree.traceryVarName (linkTargetNode);
-            defText = this.makeTraceryText (linkTargetRhs);
+            if (this.isTwineStyleLink (linkBracery))
+              defText = this.makeTraceryText (linkTargetRhs);
           }
         }
         const topOffset = braceryNodeOffset[rootNode.id] || 0;
+        const linkTextPos = this.getLinkTextPos (linkBracery, linkTextNode, topOffset);
+        const linkTargetPos = this.getLinkTargetPos (linkBracery, linkTargetRhsNode, topOffset);
         const implicitNodeID = linkNode.graphNodeName;
-        parent.implicitChildren = (parent.implicitChildren || []).concat ([implicitNodeID]);
         braceryNodeOffset[implicitNodeID] = linkTargetTextOffset.offset;
+        parent.implicitChildren = (parent.implicitChildren || []).concat ([implicitNodeID]);
         layoutParent[implicitNodeID] = parent;
         const implicitNode = extend (
           {
             id: implicitNodeID,
             pos: [linkNode.pos[0] - topOffset,
                   linkNode.pos[1]],
-            topLevelAncestorID: topLevelNode.id,
             nodeType: this.implicitNodeType,
-            linkTextPos: this.getLinkTextPos (linkBracery, linkTextNode, topOffset),
-            defText: defText,
+            implicitParent: parent.id,
+            topLevelAncestorID: topLevelNode.id,
+            linkTextPos,
+            linkTargetPos,
+            defText,
           },
           uniqueTarget ? {uniqueTarget} : {},
           (isLayoutLink
@@ -835,21 +868,28 @@ class ParseGraph {
     return placeholderNodes;
   }
 
-  filterOutDetachedNodes (nodes, edges) {
+  filterOutDetachedNodes (nodes, edges, pta) {
     // Remove any placeholders, implicit, or external nodes that don't have incoming or outgoing edges
+    const { nodeByID } = pta;
     const { incoming, outgoing } = this.getEdgesByNode (edges);
     const nodeDetached = (node) => ((node.nodeType === this.placeholderNodeType
                                      || node.nodeType === this.externalNodeType
                                      || node.nodeType === this.implicitNodeType)
                                     && !(incoming[node.id] && incoming[node.id].length)
                                     && !(outgoing[node.id] && outgoing[node.id].length));
-    const isDetached = this.makeNodePredicateObject (nodes.filter ((node) => nodeDetached(node)));
-    return nodes
-      .filter ((node) => !isDetached[node.id])
-      .map ((node) => extend (node,
-                              node.implicitChildren
-                              ? { implicitChildren: node.implicitChildren.filter ((c) => !isDetached[c]) }
-                              : {}));
+    const detachedNodes = nodes.filter ((node) => nodeDetached(node));
+    const isDetached = this.makeNodePredicateObject (detachedNodes);
+    const attachedNodes = nodes
+          .filter ((node) => !isDetached[node.id])
+          .map ((node) => extend (node,
+                                  node.implicitChildren
+                                  ? { implicitChildren: node.implicitChildren.filter ((c) => !isDetached[c]) }
+                                  : {},
+                                  node.implicitParent && isDetached[node.implicitParent]
+                                  ? { implicitParent: nodeByID[node.implicitParent].implicitParent }
+                                  : {}));
+    detachedNodes.forEach ((node) => { delete nodeByID[node]; });
+    return attachedNodes;
   }
 
   // Create layout tree structure
@@ -933,7 +973,7 @@ class ParseGraph {
         title = '';
         break;
       case this.placeholderNodeType:
-        typeText = ParseTree.traceryChar + node.id + ParseTree.traceryChar;
+        typeText = node.id;
         title = this.placeholderNodeText;
         break;
       case this.implicitNodeType:
@@ -945,7 +985,7 @@ class ParseGraph {
         title = node.defText;
         break;
       default:
-        typeText = ParseTree.traceryChar + node.id + ParseTree.traceryChar;
+        typeText = node.id;
         title = node.defText;
         break;
       }

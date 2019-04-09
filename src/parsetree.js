@@ -368,7 +368,7 @@ function getSymbolNodes (rhs, gsnConfig) {
 	    return addLinkInfo (node)
           break
         case 'func':
-          if (((isLinkExpr(node) && !(nodeConfig.layoutNode && isLayoutLinkExpr(nodeConfig.layoutNode)))
+          if (((isLinkExpr(node) && !nodeConfig.parentLayoutLink)
                || isLayoutLinkExpr(node))
               && gsnConfig.reportLinks) {
             return addLinkInfo (node)
@@ -392,9 +392,14 @@ function getSymbolNodes (rhs, gsnConfig) {
                               nodeConfig,
                               { inLink: true,
                                 linkText: node.args[0],
-                                link: node }))
-          else if (node.funcname === 'layout' && gsnConfig.reportLinks)
-            return extend ({}, nodeConfig, { layoutNode: node });
+                                link: nodeConfig.parentLayoutLink || node },
+                              nodeConfig.parentLayoutLink
+                              ? { parentLayoutLink: null }
+                              : {}))
+          else if (isLayoutLinkExpr(node) && gsnConfig.reportLinks)
+            return extend ({},
+                           nodeConfig,
+                           { parentLayoutLink: node });
           break
         case 'cond':
           if (isTraceryExpr(node))

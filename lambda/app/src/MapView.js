@@ -10,7 +10,7 @@ import './MapView.css';
 
 // const canonicalStringify = require('canonical-json');
 
-// MapView
+// MapView has a ParseGraph and controls a GraphView & NodeEditor
 class MapView extends Component {
   constructor(props) {
     super(props);
@@ -43,34 +43,14 @@ class MapView extends Component {
   }
 
   setSelected (selected) {
-    let graph = this.graph;
-    let editorContent = '', editorSelection = null;
-    const nodeByID = graph.getNodesByID();
-    if (selected.edge) {
-      const selectedEdge = graph.selectedEdge (selected);
-      const selectedSource = graph.selectedEdgeSourceNode (selected);
-      editorContent = (selectedEdge.edgeType === graph.linkEdgeType
-                       ? graph.edgeText (nodeByID, selectedEdge)
-                       : graph.selectedNodeText (selected, selectedSource));
-      if (selectedEdge.edgeType === graph.includeEdgeType)
-        editorSelection = graph.calculateSelectionRange (selectedEdge.pos);
-    } else if (selected.node)
-      editorContent = graph.selectedNodeText (selected);
-    editorSelection = editorSelection || { startOffset: editorContent.length,
-                                           endOffset: editorContent.length };
-    const editorDisabled = !(selected.node || selected.edge)
-          || (selected.node && graph.selectedNode(selected).nodeType === graph.externalNodeType);
-    this.graph.selected = selected;
-//    console.warn(selected,graph.selectedNode(selected),editorContent);
+    this.graph.selected = selected;  // setter automatically updates graph selection markers
     this.setState (extend (this.graphState(),
-                           { selected,
-                             editorContent,
-                             editorSelection,
-                             editorDisabled,
-                             editorFocus: ((selected.node || selected.edge) && !editorDisabled)
-                           }));
+                           { selected },
+                           this.graph.getEditorState()));
   }
 
+  // setEditorState is called by the (tightly-controlled) node editor, to update its own state
+  // We use this opportunity to update the graph as well
   setEditorState (newEditorState) {
     let graph = this.graph;
     let selectedNode = graph.selectedNode(),

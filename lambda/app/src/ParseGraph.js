@@ -244,6 +244,31 @@ class ParseGraph {
                                         : {})));
   }
 
+  // getEditorState
+  getEditorState() {
+    const selected = this.selected;
+    let editorContent = '', editorSelection = null;
+    const nodeByID = this.getNodesByID();
+    if (selected.edge) {
+      const selectedEdge = this.selectedEdge (selected);
+      const selectedSource = this.selectedEdgeSourceNode (selected);
+      editorContent = (selectedEdge.edgeType === this.linkEdgeType
+                       ? this.edgeText (nodeByID, selectedEdge)
+                       : this.selectedNodeText (selected, selectedSource));
+      if (selectedEdge.edgeType === this.includeEdgeType)
+        editorSelection = this.calculateSelectionRange (selectedEdge.pos);
+    } else if (selected.node)
+      editorContent = this.selectedNodeText (selected);
+    editorSelection = editorSelection || { startOffset: editorContent.length,
+                                           endOffset: editorContent.length };
+    const editorDisabled = !(selected.node || selected.edge)
+          || (selected.node && this.selectedNode(selected).nodeType === this.externalNodeType);
+    return { editorContent,
+             editorSelection,
+             editorDisabled,
+             editorFocus: ((selected.node || selected.edge) && !editorDisabled) };
+  }
+
   // Methods for modifying the text labels of the graph, maintaining consistency
   // Replace a substring of a graph entity's definition
   replaceDefTextSubstr (config) {

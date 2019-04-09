@@ -8,7 +8,7 @@ import { extend, fromEntries } from './bracery-web';
 //  - is readily serializable (no circular references, at least in this.nodes & this.edges)
 
 // TODO:
-// Display some info about currently selected node/edge: name, incoming/outgoing (or source/target), "rename" link
+// Selection-contextual buttons in graph controls
 // Delete implicit node, or edge to implicit node (rebuild ancestor's subgraph)
 // Delete defined node (and delete its subgraph)
 // Delete include edge (equivalent to editing it)

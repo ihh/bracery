@@ -914,6 +914,16 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
     );
   }
 
+  // Create a node through graph controls
+  handleCreateNode = () => {
+    const transform = this.state.viewTransform;
+    const entities = d3.select(this.entities).node();
+    const viewBBox = entities.getBBox ? entities.getBBox() : null;
+    console.warn (viewBBox, transform);
+
+    this.props.onCreateNode(0,0);
+  }
+  
   // Zooms to contents of this.refs.entities
   handleZoomToFit = () => {
     const parent = d3.select(this.viewWrapper.current).node();
@@ -1236,6 +1246,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
           maxZoom={this.props.maxZoom}
           zoomLevel={this.state.viewTransform ? this.state.viewTransform.k : 1}
           zoomToFit={this.handleZoomToFit}
+          createNode={this.handleCreateNode}
           modifyZoom={this.modifyZoom}
         />,
         graphControlsWrapper

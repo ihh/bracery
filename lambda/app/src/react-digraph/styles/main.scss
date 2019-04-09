@@ -148,6 +148,7 @@ $background-color: #f9f9f9;
       border: solid 1px lightgray;
       padding: 6.5px;
       border-radius: 2px;
+      grid-row: 1;
 
       > span {
         display: inline-block;
@@ -164,6 +165,7 @@ $background-color: #f9f9f9;
     }
 
     > .slider-button {
+      grid-row: 1;
       background-color: white;
       fill: $primary-color;
       border: solid 1px lightgray;

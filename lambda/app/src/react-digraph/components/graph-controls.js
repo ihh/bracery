@@ -22,10 +22,16 @@
 import React from 'react';
 import Parse from 'html-react-parser';
 import faExpand from '../icons/expand';
+import faNew from '../icons/plus';
+import faDelete from '../icons/trash-can';
 
 const steps = 100; // Slider steps
-const parsedIcon = Parse(faExpand); //  parse SVG once
-const ExpandIcon = () => parsedIcon; // convert SVG to react component
+const [ExpandIcon, NewIcon, DeleteIcon]
+      = [faExpand, faNew, faDelete]
+      .map ((svgStr) => {
+        const parsedSvg = Parse(svgStr); //  parse SVG once
+        return () => parsedSvg; // convert SVG to react component
+      });
 
 type IGraphControlProps = {
   maxZoom?: number;
@@ -33,6 +39,7 @@ type IGraphControlProps = {
   zoomLevel: number;
   zoomToFit: (event: SyntheticMouseEvent<HTMLButtonElement>) => void;
   modifyZoom: (delta: number) => boolean;
+  onCreateNode: (x: number, y: number) => void;
 }
 
 class GraphControls extends React.Component<IGraphControlProps> {
@@ -92,6 +99,13 @@ class GraphControls extends React.Component<IGraphControlProps> {
           onMouseDown={this.props.zoomToFit}
         >
           <ExpandIcon />
+        </button>
+        <button
+          type="button"
+          className="slider-button"
+          onClick={(evt) => { evt.stopPropagation(); this.props.createNode() }}
+        >
+          <NewIcon />
         </button>
       </div>
     );

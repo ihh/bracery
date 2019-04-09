@@ -1,0 +1,23 @@
+#!/usr/bin/env node
+// emacs mode -*-JavaScript-*-
+
+var fs = require ('fs');
+
+/*
+var getopt = require ('getopt');
+var opt = getopt.create([
+  ['h' , 'help'             , 'display this help message']
+])              // create Getopt instance
+    .bindHelp()     // bind option 'help' to default action
+    .parseSystem() // parse command line
+
+var filename = opt.argv[0];
+*/
+var filename = process.argv[2];
+
+if (!filename)
+  throw new Error ('please supply an SVG filename');
+var svg = fs.readFileSync(filename).toString();
+svg = svg.replace(/\s+/g,' ');
+svg = svg.replace(/<!-- .*? -->/g,'');
+console.log ("module.exports = '" + svg + "';\n");

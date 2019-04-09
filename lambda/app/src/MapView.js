@@ -71,7 +71,7 @@ class MapView extends Component {
   }
 
   createNode (x, y) {
-    const newNode = this.graph.createNode (x, y);
+    const newNode = this.graph.createNode (x || 0, y || 0);
     this.setSelected ({ node: newNode.id });
   }
 

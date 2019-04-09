@@ -95,7 +95,6 @@ class App extends Component {
   
   // Global methods
   handleBraceryLink = (newEvalText, linkType, linkName) => {
-    var app = this;
     window.event.preventDefault();
     if (linkType === 'reveal') {
       let newLinkRevealed = extend ({}, this.state.linkRevealed);
@@ -104,7 +103,7 @@ class App extends Component {
     } else {
       // linkType === 'link'
       this.promiseBraceryExpansion (newEvalText, this.state.varsAfterCurrentExpansion, { rerollMeansRestart: true })
-	.then (function() { app.saveAppStateToServer(false); });
+	.then (() => { this.saveAppStateToServer(false); });
     }
   }
 
@@ -148,7 +147,7 @@ class App extends Component {
   decodeURIParams (url) {
     url = url || window.location.href;
     let params = {};
-    url.replace (/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+    url.replace (/[?&]+([^=&]+)=([^&]*)/gi, (m,key,value) => {
       params[key] = window.decodeURIComponent (value);
     });
     return params;
@@ -166,6 +165,10 @@ class App extends Component {
     return (window.location.host === this.state.base ? '' : this.state.base) + this.encodeURIParams (path, params);
   }
 
+  viewURL (name, params) {
+    return this.addHostPrefix (this.state.view + (name || ''), params);
+  }
+  
   redirect (url) {
     window.location.href = url;
   }
@@ -210,26 +213,24 @@ class App extends Component {
   }
 
   suggest() {
-    const app = this;
     this.getBracery (braceryWeb.suggestionsSymbolName)
       .then ((suggestions) => {
-	return app.bracery.expand (suggestions, extend ({ vars: {} }, app.braceryExpandCallbacks));
+	return this.bracery.expand (suggestions, extend ({ vars: {} }, this.braceryExpandCallbacks));
       }).then ((expansion) => {
-	app.setState ({ suggestions: braceryWeb.expandMarkdown (expansion.text, marked) });
+	this.setState ({ suggestions: braceryWeb.expandMarkdown (expansion.text, marked) });
       });
   }
   
   tweet() {
-    const app = this;
     const html = this.expandMarkdown();
     this.saveAppStateToServer(true)
-      .then (function (bookmark) {
-	return braceryWeb.digestText (app.getTextContent(html), app.maxTweetLen - (bookmark.url.length + 1))
-	  .then (function (tweet) {
-            const webIntentUrl = app.encodeURIParams ('https://twitter.com/intent/tweet',
+      .then ((bookmark) => {
+	return braceryWeb.digestText (this.getTextContent(html), this.maxTweetLen - (bookmark.url.length + 1))
+	  .then ((tweet) => {
+            const webIntentUrl = this.encodeURIParams ('https://twitter.com/intent/tweet',
 						      { text: tweet,
 							url: bookmark.url });
-            app.openTab (webIntentUrl);
+            this.openTab (webIntentUrl);
 	  });
       });
   }
@@ -255,7 +256,6 @@ class App extends Component {
   }
 
   publish() {
-    const app = this;
     const saveAsName = this.state.saveAsName;
     if (!saveAsName)
       return this.setState ({ warning: this.warning.noName });
@@ -270,22 +270,15 @@ class App extends Component {
 			  { method: 'PUT',
 			    headers: { 'Content-Type': 'application/json;charset=UTF-8' },
 			    body: JSON.stringify (data) }))
-      .then (() => app.setState ({ warning: app.warning.saved,
+      .then (() => this.setState ({ warning: this.warning.saved,
 				   evalTextEdited: false,
 				   rerollMeansRestart: false,
 				   name: saveAsName }));
   }
 
-  // Editor setState callback
-  setAppStateFromMapView = (newState) => {
-    if (newState.hasOwnProperty('evalText'))
-      extend (newState,
-              { currentSourceText: newState.evalText,
-                initText: newState.evalText,
-                initVars: {},
-                evalTextEdited: true,
-                warning: this.warning.unsaved });
-    this.setState (newState);
+  // Editor open page callback
+  openSymPage (symName) {
+    this.openTab (this.viewURL (symName));
   }
   
   // Event handlers
@@ -325,7 +318,6 @@ class App extends Component {
   
   // Interactions with store
   getBracery (symbolName) {
-    var app = this;
     if (this.braceryCache[symbolName])
       return Promise.resolve (this.braceryCache[symbolName]);
     else
@@ -334,7 +326,7 @@ class App extends Component {
       .catch (() => { return { bracery: '' }; })
       .then ((body) => {
         let result = body.bracery;
-        app.braceryCache[symbolName] = result;
+        this.braceryCache[symbolName] = result;
 	return result;
       });
   }
@@ -354,20 +346,19 @@ class App extends Component {
 
   // Bracery update method
   promiseBraceryExpansion (text, vars, newState) {
-    const app = this;
-    text = typeof(text) !== 'undefined' ? text : app.state.currentSourceText;
-    vars = extend ({}, typeof(vars) !== 'undefined' ? vars : app.state.varsBeforeCurrentExpansion);
+    text = typeof(text) !== 'undefined' ? text : this.state.currentSourceText;
+    vars = extend ({}, typeof(vars) !== 'undefined' ? vars : this.state.varsBeforeCurrentExpansion);
     const varsBefore = extend ({}, vars);
-    return new Promise (function (resolve, reject) {
+    return new Promise ((resolve, reject) => {
       try {
-	app.bracery.expand (text, extend ({ vars: vars }, app.braceryExpandCallbacks))
+	this.bracery.expand (text, extend ({ vars: vars }, this.braceryExpandCallbacks))
 	  .then (resolve);
       } catch (e) {
 	console.error(e);
 	reject (e);
       }
-    }).then (function (expansion) {
-      app.setState (extend ({ currentSourceText: text,
+    }).then ((expansion) => {
+      this.setState (extend ({ currentSourceText: text,
 			      varsBeforeCurrentExpansion: varsBefore,
 			      currentExpansionText: expansion.text,
 			      varsAfterCurrentExpansion: expansion.vars,
@@ -389,9 +380,9 @@ class App extends Component {
     const rhs = this.state.parsedEvalText;
     let isRef = {}, isTracery = {};
     ParseTree.getSymbolNodes (rhs, { ignoreTracery: true })
-      .forEach (function (node) { isRef[node.name] = true; });
+      .forEach ((node) => { isRef[node.name] = true; });
     ParseTree.getSymbolNodes (rhs, { ignoreSymbols: true })
-      .forEach (function (node) { isTracery[node.name] = true; });
+      .forEach ((node) => { isTracery[node.name] = true; });
     return [ { symbols: Object.keys(isRef) },
 	     { symbols: Object.keys(isTracery), lSym: ParseTree.traceryChar, rSym: ParseTree.traceryChar } ];
   }
@@ -408,12 +399,11 @@ class App extends Component {
   }
 
   render() {
-    const app = this;
     return (
       <div className="main">
         <div className="banner">
 	  <span>
-	    <a href={this.addHostPrefix(this.state.view)}>bracery</a> <span> / </span>
+	    <a href={this.viewURL()}>bracery</a> <span> / </span>
 	    <span>{this.state.name}</span>
 	  </span>
 	  <span>{(this.state.rerollMeansRestart
@@ -459,7 +449,7 @@ class App extends Component {
 
       {this.state.editing
        ? (<MapView
-          setAppState={this.setAppStateFromMapView}
+          openSymPage={this.openSymPage.bind(this)}
           name={this.state.name}
           text={this.state.evalText}
           rhs={this.state.parsedEvalText}
@@ -476,16 +466,16 @@ class App extends Component {
 	        <div className="sourcepanel">
 	          <div className="revision">Revision: {this.state.revision}
 	            <span>{this.state.revision > 1
-		           ? (<span> (<a href={this.addHostPrefix(this.state.view + this.state.name,{edit:'true',rev:this.state.revision-1})}>{this.state.revision-1}</a>)</span>)
+		           ? (<span> (<a href={this.viewURL(this.state.name,{edit:'true',rev:this.state.revision-1})}>{this.state.revision-1}</a>)</span>)
 		           : ''}</span></div>
-	          <div className="evalcontainer">
+	          <div className="eval-container">
 	            <textarea className="eval" value={this.state.evalText} onChange={(event)=>this.evalChanged(event)}></textarea>
 	          </div>
-	  <Refs className="refs" prefix="References" view={this.addHostPrefix(this.state.view)} refSets={this.usingRefSets()} />
-	          <Refs className="referring" prefix="Used by" view={this.addHostPrefix(this.state.view)} refSets={[{ symbols: this.state.referring }]} />
+	          <Refs className="refs" prefix="References" view={this.viewURL()} refSets={this.usingRefSets()} />
+	          <Refs className="referring" prefix="Used by" view={this.viewURL()} refSets={[{ symbols: this.state.referring }]} />
 	          <br/>
 	          <p>
-	            <span>{this.addHostPrefix(this.state.view)}</span>
+	            <span>{this.viewURL()}</span>
 	            <input type="text" className="name" name="name" size="20" value={this.state.saveAsName} onChange={(event)=>this.nameChanged(event)}></input>
 	            <button onClick={()=>this.publish()}>Publish</button>
 	          </p>
@@ -509,12 +499,12 @@ class App extends Component {
 	  {(Object.keys(this.state.bots).length
             ? (<div>
 	         <span>Current auto-tweets </span>
-                 (<button onClick={()=>app.revokeAll()}>revoke all</button>)
-	         <ul>{Object.keys (this.state.bots).map (function (botName, j) {
+                 (<button onClick={()=>this.revokeAll()}>revoke all</button>)
+	         <ul>{Object.keys (this.state.bots).map ((botName, j) => {
 	           return (<li key={'bots'+j}>As <span> @<a href={'https://twitter.com/' + botName}>{botName}</a></span>
-		  <ul>{app.state.bots[botName].map (function (sym, k) {
-		    return (<li key={'bots'+j+'_'+k}><span>~<a href={app.state.view + sym}>{sym}</a> </span>
-			      (<button onClick={()=>app.revoke(sym)}>revoke</button>)
+		  <ul>{this.state.bots[botName].map ((sym, k) => {
+		    return (<li key={'bots'+j+'_'+k}><span>~<a href={this.viewURL(sym)}>{sym}</a> </span>
+			      (<button onClick={()=>this.revoke(sym)}>revoke</button>)
 	                    </li>);
 		             })}</ul>
                </li>);})}</ul>
@@ -526,7 +516,7 @@ class App extends Component {
 	  <span> to auto-tweets</span>
 	</div>
 	<hr/>
-	<Refs className="recent" prefix="Recently updated" view={this.addHostPrefix(this.state.view)} refSets={[{ symbols: this.state.recent }]} />
+	<Refs className="recent" prefix="Recently updated" view={this.viewURL()} refSets={[{ symbols: this.state.recent }]} />
       </div>
     );
   }
@@ -536,7 +526,7 @@ class Vars extends Component {
   render() {
     const vars = this.props.vars, className = this.props.className;
     return (<div className={this.props.className}>{
-      Object.keys(vars).sort().map (function (name, k) {
+      Object.keys(vars).sort().map ((name, k) => {
 	return (<span key={className+k}><span className="var">${name}</span>=<span className="val">{vars[name]}</span></span>);
       })
     }</div>);

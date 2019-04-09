@@ -142,7 +142,7 @@ class ParseGraph {
   createEdge (source, target) {
     let link = null;
     if (target.nodeType === this.externalNodeType) {
-      const sym = target.id.replace(this.SYM_PREFIX,'');
+      const sym = this.removeSymPrefix (target.id);
       link = this.makeMarkdownStyleLink (null, sym, ParseTree.symChar + sym);
     } else
       link = this.makeTwineStyleLink (target.id);
@@ -388,7 +388,7 @@ class ParseGraph {
     const xy = this.makeCoord(node);
     switch (node.nodeType) {
     case this.externalNodeType:
-      return xy && (xy + ParseTree.symChar + node.id.replace(this.SYM_PREFIX,'') + '\n');
+      return xy && (xy + ParseTree.symChar + this.removeSymPrefix (node.id) + '\n');
     case this.placeholderNodeType:
       return xy && (xy + ParseTree.varChar + node.id + '\n');
     case this.startNodeType:
@@ -421,7 +421,7 @@ class ParseGraph {
     switch (node.nodeType) {
     case this.externalNodeType:
     case this.startNodeType:
-      return ParseTree.symChar + node.id.replace(this.SYM_PREFIX,'');
+      return ParseTree.symChar + this.removeSymPrefix (node.id);
     case this.definedNodeType:
     case this.placeholderNodeType:
       return ParseTree.traceryChar + node.id + ParseTree.traceryChar;
@@ -429,6 +429,23 @@ class ParseGraph {
     default:
       return '';
     }
+  }
+
+  // Convert a node ID to/from displayable form
+  removeSymPrefix (id) {
+    return id.replace (this.SYM_PREFIX, '');
+  }
+
+  addSymPrefix (symName) {
+    return this.SYM_PREFIX + symName;
+  }
+
+  titleForID (id) {
+    return id.replace (this.SYM_PREFIX, ParseTree.symChar);
+  }
+
+  titleForNode (node) {
+    return this.titleForID (node.id);
   }
 
   // Truncate a string
@@ -591,7 +608,7 @@ class ParseGraph {
     return this.getTargetNodes (rhs,
                                 { ignoreTracery: true,
                                   ignoreLinkSubtrees: true },
-                                (n) => this.SYM_PREFIX + n.name);
+                                (n) => this.addSymPrefix (n.name));
   }
 
   // Detect if a node in a Bracery parse tree represents an expression of the form #xxx# (a "Tracery-style expression"),
@@ -708,7 +725,7 @@ class ParseGraph {
       this.nodes
         .filter ((node) => node.nodeType !== this.implicitNodeType)
         .reduce ((names, node) => names
-                 .concat ([node.id.replace (this.SYM_PREFIX, '')])
+                 .concat ([this.removeSymPrefix (node.id)])
                  .concat (node.symAndVarNames || []),
                  [])
         .map ((name) => [name, true]));
@@ -801,20 +818,22 @@ class ParseGraph {
   }
 
   // Find node by ID
-  findNodeByID (id) {
-    return this.nodes.find ((node) => node.id === id);
+  findNodeByID (id, nodeByID) {
+    return (nodeByID
+            ? nodeByID[id]
+            : this.nodes.find ((node) => node.id === id));
   }
 
   // Various methods for working with the representation of the current selection (node or edge)
-  selectedNode (selected) {
+  selectedNode (selected, nodeByID) {
     selected = selected || this.state.selected;
     return (selected.node
-            ? this.nodes.find ((node) => node.id === selected.node)
+            ? this.findNodeByID (selected.node, nodeByID)
             : null);
   }
 
-  selectedNodeText (selected, node) {
-    node = node || this.selectedNode (selected);
+  selectedNodeText (selected, node, nodeByID) {
+    node = node || this.selectedNode (selected, nodeByID);
     return node.defText || '';
   }
 
@@ -831,17 +850,17 @@ class ParseGraph {
     return edges && edges.length && edges[0];
   }
 
-  selectedEdgeSourceNode (selected) {
+  selectedEdgeSourceNode (selected, nodeByID) {
     selected = selected || this.state.selected;
     return (selected.edge
-            ? this.findNodeByID (selected.edge.source)
+            ? this.findNodeByID (selected.edge.source, nodeByID)
             : null);
   }
 
-  selectedEdgeLinkNode (selected) {
+  selectedEdgeTargetNode (selected, nodeByID) {
     selected = selected || this.state.selected;
     return (selected.edge
-            ? this.findNodeByID (selected.edge.target)
+            ? this.findNodeByID (selected.edge.target, nodeByID)
             : null);
   }
 
@@ -896,7 +915,7 @@ class ParseGraph {
           if (ParseTree.isEvalVar(linkTargetNode)) {
             uniqueTarget = ParseTree.getEvalVar(linkTargetNode);
           } else if (linkTargetNode.type === 'sym') {
-            uniqueTarget = this.SYM_PREFIX + linkTargetNode.name;
+            uniqueTarget = this.addSymPrefix (linkTargetNode.name);
           } else if (ParseTree.isTraceryExpr(linkTargetNode)) {
             uniqueTarget = ParseTree.traceryVarName (linkTargetNode);
             if (this.isTwineStyleLink (linkBracery))
@@ -1077,7 +1096,7 @@ class ParseGraph {
       let typeText = null, title = null;
       switch (node.nodeType) {
       case this.externalNodeType:
-        typeText = node.id.replace (this.SYM_PREFIX, ParseTree.symChar) + ' ';
+        typeText = this.titleForNode (node) + ' ';
         title = '';
         break;
       case this.placeholderNodeType:
@@ -1107,7 +1126,7 @@ class ParseGraph {
   // of the form $variable=&quote{...} or $variable=&layout{x,y}&quote{...}
   parseTopLevel (pta) {
     let { symName, rhs, text, nodeByID, braceryNodeOffset, braceryNodeRhsByID, pushNode } = pta;
-    const startNodeID = this.SYM_PREFIX + symName;
+    const startNodeID = this.addSymPrefix (symName);
     let topLevelNodes = [], startDefText = '';
     // We will not keep these references to the originally parsed text and the Bracery parse tree,
     // but we use them for analysis when building the graph
@@ -1128,7 +1147,7 @@ class ParseGraph {
 	    node.id = heldNode.varname;
 	    node.nodeType = this.placeholderNodeType;
 	  } else if (heldNodeType === 'sym') {
-	    node.id = this.SYM_PREFIX + heldNode.name;
+	    node.id = this.addSymPrefix (heldNode.name);
 	    node.nodeType = this.externalNodeType;
 	  } else {
 	    node.id = startNodeID;

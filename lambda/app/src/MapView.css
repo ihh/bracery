@@ -74,7 +74,13 @@
     background: white;
 }
 
-.editorcontainer {
+.editor-banner {
+    font-size: small;
+    width: 100%;
+    min-height: 1.2em;
+}
+
+.editor-container {
     display: flex;
     flex-direction: row;
 }

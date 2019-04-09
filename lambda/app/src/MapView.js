@@ -195,7 +195,9 @@ class MapView extends Component {
     this.assertSelectionValid();
     return (<div>
             {this.renderGraphView()}
+            {this.renderEditorBanner()}
             {this.renderNodeEditor()}
+            {this.renderCurrentText()}
             </div>);
   }
 
@@ -229,20 +231,60 @@ class MapView extends Component {
             </div>);
   }
 
+  renderEditorBanner() {
+    const selected = this.state.selected;
+    const title = (id) => this.graph.titleForID (id);
+    if (selected.node) {
+      const node = this.graph.selectedNode();
+      return (<div className="editor-banner editor-banner-node">
+              {this.nodeBanner(node)}
+              </div>);
+    } else if (selected.edge) {
+//      const target = this.graph.selectedEdgeTargetNode();
+      return (<div className="editor-banner editor-banner-edge">
+              Selected edge: {title(selected.edge.source)} &rarr; {title(selected.edge.target)}
+              </div>);
+    }
+    return (<div className="editor-banner editor-banner-no-selection"></div>);
+  }
+
+  makeNodeSelector (id, text) {
+    text = text || this.graph.removeSymPrefix (id);
+    return (<button onClick={() => this.setSelected ({ node: id })}>{text}</button>);
+  }
+  
+  nodeBanner (node) {
+    const showName = (info) => (<span>Selected scene: {node.styleInfo.typeText}. {info}</span>);
+    switch (node.nodeType) {
+    case this.graph.externalNodeType:
+      return showName (<button onClick={() => this.props.openSymPage (this.graph.removeSymPrefix (node.id))}>
+                       View definition</button>);
+    case this.graph.startNodeType:
+      return showName ('This is the starting scene for this story. You can edit it below.');
+    case this.graph.placeholderNodeType:
+      return showName ('This scene has no definition yet. You can write it below.');
+    case this.graph.implicitNodeType:
+      return (<span>This scene is unnamed (it is an offshoot of another scene, {this.makeNodeSelector (node.topLevelAncestorID)}). You can edit it below.</span>);
+    default:
+      return '';
+    }
+  }
+
   renderNodeEditor() {
-    return (<div>
-            <div className="editorcontainer">
+    return (<div className="editor-container">
             <NodeEditor
             setEditorState={this.setEditorState.bind(this)}
             content={this.state.editorContent}
             selection={this.state.editorSelection}
             disabled={this.state.editorDisabled}
             focus={this.state.editorFocus} />
-            </div>
-            <div style={{'fontSize':'small'}}>
-            {this.state.text}
-            </div>
             </div>);
+  }
+
+  renderCurrentText() {
+    return (<div style={{'fontSize':'small'}}>
+            {this.state.text}
+            </div>)
   }
 }
 

@@ -97,7 +97,7 @@ button {
     position: relative;
 }
 
-.evalcontainer {
+.eval-container {
     display: flex;
     flex-direction: row;
 }

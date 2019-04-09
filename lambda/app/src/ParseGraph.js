@@ -61,6 +61,7 @@ class ParseGraph {
   get placeholderNodeType() { return 'placeholder'; }
 
   get placeholderNodeText() { return 'Click to edit'; }
+  get implicitNodeTitle() { return '(unnamed)'; }
   get emptyNodeText() { return ' '; }
 
   get includeEdgeType() { return 'include'; }
@@ -127,6 +128,7 @@ class ParseGraph {
                             defText: '',
                           });
     this.nodes.push (newNode);
+    return newNode;
   }
 
   // Can we create an edge?
@@ -441,7 +443,9 @@ class ParseGraph {
   }
 
   titleForID (id) {
-    return id.replace (this.SYM_PREFIX, ParseTree.symChar);
+    return (id.indexOf (this.LINK_SUFFIX) >= 0
+            ? this.implicitNodeTitle
+            : id.replace (this.SYM_PREFIX, ParseTree.symChar));
   }
 
   titleForNode (node) {

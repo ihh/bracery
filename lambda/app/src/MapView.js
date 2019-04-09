@@ -271,7 +271,7 @@ class MapView extends Component {
           node.type,
           ({ shapeId: '#' + node.type,
              typeText: node.styleInfo.typeText,
-	     shape: (node.nodeType === this.implicitNodeType
+	     shape: (node.nodeType === this.graph.implicitNodeType
                      ? (
                          <symbol viewBox="0 0 150 60" id={node.type} key="0">
                          <rect x="0" y="0" width="150" height="60" style={{fill:'none',stroke:'none'}}></rect>

@@ -8,7 +8,6 @@ import { extend, fromEntries } from './bracery-web';
 //  - is readily serializable (no circular references, at least in this.nodes & this.edges)
 
 // TODO:
-// Add node
 // Add edge
 // Swap include edge target
 // Swap link edge target
@@ -16,7 +15,8 @@ import { extend, fromEntries } from './bracery-web';
 // Delete defined node (and delete its subgraph)
 // Delete include edge (equivalent to editing it)
 // Delete link edge (equivalent to doing "delete include edge" on it)
-// Convert implicit node to defined node
+// Rename node
+// Name node (convert implicit node to defined node)
 // Duplicate node
 
 class ParseGraph {

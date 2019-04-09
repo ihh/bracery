@@ -94,26 +94,8 @@ class MapView extends Component {
   }
 
   createNode (x, y) {
-    let graph = this.graph;
-    const id = this.newVar (graph.isVarName);
-    let newNode = { id: id,
-                    x: Math.round(x),
-                    y: Math.round(y),
-                    type: graph.definedNodeType,
-                    nodeType: graph.definedNodeType,
-                    typeText: ParseTree.traceryChar + id + ParseTree.traceryChar,
-                    title: this.emptyNodeText,
-                    rhs: [] };
-    graph.nodes.push (newNode);
-    const newEvalText = graph.bracery();
-/*
-    this.props.setAppState ({ mapSelection: { node: id },
-                              editorContent: '',
-                              editorSelection: { startOffset: 0, endOffset: 0 },
-                              editorDisabled: false,
-                              editorFocus: true,
-                              evalText: newEvalText });
-*/
+    this.graph.createNode (x, y);
+    this.updateGraph();
   }
 
   createEdge (source, target) {
@@ -213,10 +195,8 @@ class MapView extends Component {
 
       },
       onUpdateNode: (node) => {
-        if (node.x !== node.orig.x || node.y !== node.orig.y) {
-          this.graph.updateNodeCoord (node);
-          this.updateGraph();
-        }
+        this.graph.updateNodeCoord (node);
+        this.updateGraph();
       },
       onSelectNode: (node) => {
         this.setSelected (node

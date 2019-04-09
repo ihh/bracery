@@ -8,7 +8,6 @@ import { extend, fromEntries } from './bracery-web';
 //  - is readily serializable (no circular references, at least in this.nodes & this.edges)
 
 // TODO:
-// Remove coords where possible, eg by putting coords in placeholders at the start instead of embedding (for defined nodes) & by using parse tree to strip @x,y layout expressions from editorContent (for implicit nodes)
 // Add node
 // Add edge
 // Swap include edge target
@@ -84,6 +83,9 @@ class ParseGraph {
     // (unless we have been called at a specified root)
     const topLevelNodes = root ? [root] : this.parseTopLevel(pta);
 
+    // Collect variable names
+    topLevelNodes.forEach ((node) => { node.symAndVarNames = this.symAndVarNames (braceryNodeRhsByID[node.id]); });
+    
     // Create implicit nodes for links, and create include & link edges
     let edges = [];
     const implicitNodes = topLevelNodes.reduce ((implicitNodes, topLevelNode) => {
@@ -114,6 +116,30 @@ class ParseGraph {
   }
 
   // Actions
+  // Create a node
+  createNode (x, y) {
+    const id = this.newVar();
+    const xy = {  };
+    let newNode = extend ({ id: id,
+                            type: id,
+                            nodeType: this.definedNodeType,
+                            x: Math.round(x),
+                            y: Math.round(y),
+                            styleInfo: { typeText: id },
+                            title: this.emptyNodeText,
+                            defText: '',
+                          });
+    this.nodes.push (newNode);
+  }
+
+  // Create an edge
+  createEdge (source, target) {
+  }
+  
+  // Change an edge target
+  swapEdge (sourceNode, targetNode, edge) {
+  }
+
   // Edit an edge. Delegate depending on whether it's a link or include edge
   replaceEdgeText (edge, newText) {
     if (edge.edgeType === this.linkEdgeType)
@@ -141,26 +167,7 @@ class ParseGraph {
     this.replaceLinkEdge (edge, newText);
   }
 
-  replaceLinkEdge (edge, newText) {
-//    console.warn('replaceLinkEdge', edge, newText);
-    const nodeByID = this.getNodesByID();
-    const source = nodeByID[edge.source], target = nodeByID[edge.target];
-    const isImplicit = target.nodeType === this.implicitNodeType;
-    const newLinkText = this.makeLinkBracery (isImplicit ? target : null,
-                                              newText || this.edgeText (nodeByID, edge),
-                                              (isImplicit
-                                               ? target.defText
-                                               : this.makeLinkTargetBracery (target)));
-
-    this.replaceDefTextSubstr ({ node: source,
-                                 pos: edge.pos,
-                                 newSubstr: newLinkText,
-                                 escape: false,
-                                 rebuild: true });
-  }
-  
   updateNodeCoord (node) {
-//    console.warn('updateNodeCoord', node);
     this.updateNode (node);
     if (node.nodeType === this.implicitNodeType)
       this.replaceIncomingEdgeText (node);
@@ -188,10 +195,6 @@ class ParseGraph {
                                         : {})));
   }
 
-  updateNode (node) {
-    this.nodes = this.nodes.map ((n) => (n.id === node.id ? node : n));
-  }
-  
   // Methods for modifying the text labels of the graph, maintaining consistency
   // Replace a substring of a graph entity's definition
   replaceDefTextSubstr (config) {
@@ -274,6 +277,30 @@ class ParseGraph {
                                                       });
     this.nodes = this.nodes.concat (newSubgraph.nodes.slice(1));  // newSubgraph.nodes[0] === node, don't count it twice
     this.edges = this.edges.concat (newSubgraph.edges);
+  }
+
+  // Rebuild a link to an implicit node
+    replaceLinkEdge (edge, newText) {
+//    console.warn('replaceLinkEdge', edge, newText);
+    const nodeByID = this.getNodesByID();
+    const source = nodeByID[edge.source], target = nodeByID[edge.target];
+    const isImplicit = target.nodeType === this.implicitNodeType;
+    const newLinkText = this.makeLinkBracery (isImplicit ? target : null,
+                                              newText || this.edgeText (nodeByID, edge),
+                                              (isImplicit
+                                               ? target.defText
+                                               : this.makeLinkTargetBracery (target)));
+
+    this.replaceDefTextSubstr ({ node: source,
+                                 pos: edge.pos,
+                                 newSubstr: newLinkText,
+                                 escape: false,
+                                 rebuild: true });
+  }
+
+  // Replace a node in the node list
+  updateNode (node) {
+    this.nodes = this.nodes.map ((n) => (n.id === node.id ? node : n));
   }
 
   // General Bracery text analysis & manipulation methods
@@ -422,7 +449,7 @@ class ParseGraph {
   }
 
   // Bracery parse tree analysis
-  // Specialized version of ParseTree.findNodes for checking if a tree contains no variables, symbols, or links
+  // Specialized version of ParseTree.findNodes for checking if a tree contains no variable lookups, symbols, or links
   isStaticExpr (rhs) {
     return ParseTree.findNodes (rhs, {
       nodePredicate: function (nodeConfig, node) {
@@ -433,6 +460,21 @@ class ParseGraph {
                         && node.funcname === 'link')))
       }
     }).length === 0
+  }
+
+  // Specialized version of ParseTree.findNodes that returns names of variables (assignments and lookups) and symbols
+  symAndVarNames (rhs) {
+    return Object.keys (fromEntries (ParseTree.findNodes (rhs, {
+      nodePredicate: function (nodeConfig, node) {
+        if (typeof(node) === 'object') {
+          if (node.type === 'sym')
+            return node.name;
+          if (node.type === 'lookup' || node.type === 'assign')
+            return node.varname;
+        }
+        return false;
+      }
+    }).map ((name) => [name, true]))).sort();
   }
 
   // Wrappers for ParseTree.getSymbolNodes that find various types of nodes
@@ -569,17 +611,32 @@ class ParseGraph {
              edges: this.edges.filter ((edge) => isDescendant[edge.source] || edge.source === node.id) };
   }
 
-  makeNodePredicateObject (nodeList) {
-    return fromEntries (nodeList.map ((node) => [node.id, true]));
-  }
-  
+  // Get all nodes whose top-level ancestor "owner" is a given node
   getImplicitDescendants (node) {
     return this.nodes.filter ((n) => n.topLevelAncestorID === node.id);
   }
   
+  // Make an object mapping node IDs to true
+  makeNodePredicateObject (nodeList) {
+    return fromEntries (nodeList.map ((node) => [node.id, true]));
+  }
+
+  // Make an object mapping names in the namespace to true
+  isVarName() {
+    return fromEntries (
+      this.nodes
+        .filter ((node) => node.nodeType !== this.implicitNodeType)
+        .reduce ((names, node) => names
+                 .concat ([node.id.replace (this.SYM_PREFIX, '')])
+                 .concat (node.symAndVarNames || []),
+                 [])
+        .map ((name) => [name, true]));
+  }
+
   // Find the max suffix of any autogenerated variable names
-  maxVarSuffix (isVarName, prefix) {
+  maxVarSuffix (prefix) {
     prefix = prefix || this.newVarPrefix;
+    const isVarName = this.isVarName();
     const prefixRegex = new RegExp ('^' + prefix + '([0-9]+)$');
     return Object.keys (isVarName)
       .map ((name) => prefixRegex.exec (name))
@@ -589,11 +646,9 @@ class ParseGraph {
   }
 
   // Autogenerate a variable name
-  newVar (isVarName, prefix) {
+  newVar (prefix) {
     prefix = prefix || this.newVarPrefix;
-    const newVarName = prefix + (this.maxVarSuffix (isVarName, prefix) + 1);
-    isVarName[newVarName] = true;
-    return newVarName;
+    return prefix + (this.maxVarSuffix (prefix) + 1);
   }
 
   // Text for a graph entity
@@ -930,7 +985,6 @@ class ParseGraph {
         } else
           node.x = node.y = 0;
       }
-      node.orig = { x: node.x, y: node.y };
     };
     nodes.forEach (layoutNode);
   }

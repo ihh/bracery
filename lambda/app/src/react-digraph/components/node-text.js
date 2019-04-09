@@ -38,10 +38,10 @@ class NodeText extends React.Component<INodeTextProps> {
 
   render() {
     const { data, nodeTypes, isSelected } = this.props;
-    const lineOffset = 18;
     const title = data.title;
     const className = GraphUtils.classNames('node-text', { selected: isSelected });
     const typeText = this.getTypeText(data, nodeTypes);
+    const lineOffset = typeText ? 18 : 5;
 
     return (
       <text className={className} textAnchor="middle">
@@ -49,7 +49,7 @@ class NodeText extends React.Component<INodeTextProps> {
           <tspan opacity="0.5">{typeText}</tspan>
         )}
         {title && (
-          <tspan x={0} dy={lineOffset} fontSize="10px">
+            <tspan x={0} dy={lineOffset} fontSize="10px">
             {title}
           </tspan>
         )}

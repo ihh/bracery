@@ -8,6 +8,7 @@ import { extend, fromEntries } from './bracery-web';
 //  - is readily serializable (no circular references, at least in this.nodes & this.edges)
 
 // TODO:
+// Remove coords where possible, eg by putting coords in placeholders at the start instead of embedding (for defined nodes) & by using parse tree to strip @x,y layout expressions from editorContent (for implicit nodes)
 // Add node
 // Add edge
 // Swap include edge target
@@ -977,7 +978,7 @@ class ParseGraph {
         title = this.placeholderNodeText;
         break;
       case this.implicitNodeType:
-        typeText = this.nodeText (nodeByID, node, node.linkTextPos);
+        typeText = ''; // this.nodeText (nodeByID, node, node.linkTextPos);
         title = this.nodeText (nodeByID, node, node.linkTargetPos);
         break;
       case this.startNodeType:
@@ -1042,7 +1043,14 @@ class ParseGraph {
         }
         if (coord)
           extend (node, this.parseCoord (coord))
-        topLevelNodes = topLevelNodes.filter ((n) => n.id !== node.id);
+        topLevelNodes = topLevelNodes.filter ((n) => {
+          if (n.id === node.id) {
+            extend (node, { x: n.x,
+                            y: n.y });
+            return false;
+          }
+          return true;
+        });
         const defTextOffset = this.parseTreeRhsTextOffset (braceryNodeRhs, braceryDefNode, text, { addBracketsToAlt: true });
         extend (node, { defText: defTextOffset.text });
         braceryNodeOffset[node.id] = defTextOffset.offset;

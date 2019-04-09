@@ -274,11 +274,11 @@ class MapView extends Component {
 	     shape: (node.nodeType === this.graph.implicitNodeType
                      ? (
                          <symbol viewBox="0 0 150 60" id={node.type} key="0">
-                         <rect x="0" y="0" width="150" height="60" style={{fill:'none',stroke:'none'}}></rect>
-                         <rect x="0" y="0" width="80" height="60" className={nodeClass}></rect>
-                         <rect x="70" y="0" width="80" height="60" className={nodeClass}></rect>
-                         <rect x="0" y="0" width="80" height="60" className={nodeClass} style={{stroke:'none'}}></rect>
-                         <rect x="70" y="0" width="80" height="60" className={nodeClass} style={{stroke:'none'}}></rect>
+                         <rect x="0" y="10" width="150" height="40" style={{fill:'none',stroke:'none'}}></rect>
+                         <rect x="0" y="10" width="80" height="40" className={nodeClass}></rect>
+                         <rect x="70" y="10" width="80" height="40" className={nodeClass}></rect>
+                         <rect x="0" y="10" width="80" height="40" className={nodeClass} style={{stroke:'none'}}></rect>
+                         <rect x="70" y="10" width="80" height="40" className={nodeClass} style={{stroke:'none'}}></rect>
                          </symbol>
 	             )
                      : (

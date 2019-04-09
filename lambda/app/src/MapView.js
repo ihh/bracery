@@ -31,35 +31,6 @@ class MapView extends Component {
                  };
   }
   
-  // TODO: Move the following state-changing logic into the model.
-  replaceLink (graph, linkNode, changedPos, newLinkText, newLinkTargetText) {
-    console.warn ('replaceLink', graph, linkNode, changedPos, newLinkText, newLinkTargetText);
-    changedPos = changedPos || linkNode.pos;
-    return this.replaceText (graph.text,
-                             [{ startOffset: changedPos[0],
-                                endOffset: changedPos[0] + changedPos[1],
-                                replacementText: this.makeLinkBracery (linkNode,
-                                                                       typeof(newLinkText) === 'undefined'
-                                                                       ? linkNode.defText
-                                                                       : newLinkText,
-                                                                       typeof(newLinkTargetText) === 'undefined'
-                                                                       ? linkNode.defText
-                                                                       : newLinkTargetText) }]);
-  }
-
-  replaceText (text, edits) {
-    edits = edits.sort ((a, b) => a.startOffset - b.startOffset);
-    edits.forEach ((edit, n) => {
-      if (n > 0 && edit.startOffset < edits[n-1].endOffset)
-        throw new Error ("overlapping edits");
-    });
-    const info = edits.reverse().reduce ((info, edit) => ({ startOffset: edit.startOffset,
-                                                            text: edit.replacementText + text.slice (edit.endOffset, info.startOffset) + info.text }),
-                                         { startOffset: text.length,
-                                           text: '' });
-    return text.slice (0, info.startOffset) + info.text;
-  }
-
   // State modification
   graphState() {
     return { text: this.graph.bracery(),
@@ -68,13 +39,13 @@ class MapView extends Component {
   }
 
   updateGraph() {
-    console.warn(this.graphState());
     return new Promise ((resolve) =>
                         this.setState (this.graphState(),
                                        resolve));
   }
 
-  setSelected (graph, selected) {
+  setSelected (selected) {
+    let graph = this.graph;
     let editorContent = '', editorSelection = null;
     const nodeByID = graph.getNodesByID();
     if (selected.edge) {
@@ -92,6 +63,7 @@ class MapView extends Component {
     const editorDisabled = !(selected.node || selected.edge)
           || (selected.node && graph.selectedNode(selected).nodeType === graph.externalNodeType);
     this.graph.selected = selected;
+//    console.warn(selected,graph.selectedNode(selected),editorContent);
     this.setState (extend (this.graphState(),
                            { selected,
                              editorContent,
@@ -101,37 +73,30 @@ class MapView extends Component {
                            }));
   }
 
-  setEditorState (graph, selectedNode, selectedEdge, selectedEdgeSource, selectedEdgeLink, newEditorState) {
+  setEditorState (newEditorState) {
+    let graph = this.graph;
+    let selectedNode = graph.selectedNode(),
+        selectedEdge = graph.selectedEdge(),
+        selectedEdgeSource = graph.selectedEdgeSourceNode(),
+        selectedEdgeLink = graph.selectedEdgeLinkNode();
     let newState = fromEntries (['content','focus','disabled','selection']
                                 .filter ((prop) => newEditorState.hasOwnProperty(prop))
                                 .map ((prop) => ['editor'+prop[0].toUpperCase()+prop.slice(1),
                                                  newEditorState[prop]]));
     if (newState.hasOwnProperty('editorContent')) {
-      if (selectedEdge) {
-        if (selectedEdge.edgeType === graph.linkEdgeType)
-          this.graph.replaceLinkEdgeText (selectedEdge, newState.editorContent);
-        else {
-          this.graph.replaceIncludeEdgeText (selectedEdge, newState.editorContent);
-          this.graph.selected = { node: selectedEdge.source };
-        }
-      } else {
-        const oldNode = selectedNode || selectedEdgeSource;
-        if (oldNode) {
-          const newNode = extend ({},
-                                  oldNode,
-                                  { rhs: [newState.content],
-                                    nodeType: (oldNode.nodeType === graph.placeholderNodeType
-                                               ? graph.definedNodeType
-                                               : oldNode.nodeType) });
-          graph.nodes = graph.nodes.map ((node) => (node === oldNode ? newNode : node));
-        }
-      }
+      if (selectedEdge)
+        this.graph.replaceEdgeText (selectedEdge, newState.editorContent);
+      else if (selectedNode)
+        this.graph.replaceNodeText (selectedNode, newState.editorContent);
+      else
+        console.error('oops: editor content with no selected node or edge');
     }
     extend (newState, this.graphState());
     this.setState (newState);
   }
 
-  createNode (graph, x, y) {
+  createNode (x, y) {
+    let graph = this.graph;
     const id = this.newVar (graph.isVarName);
     let newNode = { id: id,
                     x: Math.round(x),
@@ -153,8 +118,9 @@ class MapView extends Component {
 */
   }
 
-  createEdge (graph, source, target) {
-    let newSource = this.findNodeByID (graph, source.id);
+  createEdge (source, target) {
+    let graph = this.graph;
+    let newSource = graph.findNodeByID (graph, source.id);
     let newEdge = { source: source.id,
 		    target: target.id,
                     type: graph.linkEdgeType };
@@ -181,14 +147,15 @@ class MapView extends Component {
 */    
   }
   
-  swapEdge (graph, sourceNode, targetNode, edge) {
+  swapEdge (sourceNode, targetNode, edge) {
+    let graph = this.graph;
     const newTargetText = this.makeLinkTargetBracery (targetNode);
     const newEvalText = (edge.edgeType === graph.includeEdgeType
                          ? this.replaceText (graph.text,
                                              [{ startOffset: edge.pos[0],
                                                 endOffset: edge.pos[0] + edge.pos[1],
                                                 replacementText: newTargetText }])
-                         : this.replaceLink (graph, this.findNodeByID (graph, edge.link), edge.pos, undefined, newTargetText));
+                         : this.replaceLink (graph.findNodeByID (edge.link), edge.pos, undefined, newTargetText));
 
     /*
     this.props.setAppState ({ evalText: newEvalText,
@@ -201,11 +168,11 @@ class MapView extends Component {
   }
 
   // Event handlers
-  eventHandlers (graph) {
+  eventHandlers() {
     return {
       onCreateNode: (x, y, event) => {
 //        console.warn ('onCreateNode',{x,y,event});
-        this.createNode (graph, x, y);
+        this.createNode (x, y);
       },
       onDeleteNode: (selected, nodeId, nodes) => {
         console.warn ('onDeleteNode',{selected,nodeId,nodes})
@@ -213,15 +180,15 @@ class MapView extends Component {
       },
       onCreateEdge: (sourceNode, targetNode) => {
 //        console.warn ('onCreateEdge',{sourceNode, targetNode})
-	this.createEdge (graph, sourceNode, targetNode);
+	this.createEdge (sourceNode, targetNode);
       },
       canSwapEdge: (sourceNode, targetNode, edge) => {
 //        console.warn ('canSwapEdge',{sourceNode, targetNode, edge})
-        return targetNode.nodeType !== graph.implicitNodeType;
+        return targetNode.nodeType !== this.graph.implicitNodeType;
       },
       onSwapEdge: (sourceNode, targetNode, edge) => {
 //        console.warn ('onSwapEdge',{sourceNode, targetNode, edge})
-        this.swapEdge (graph, sourceNode, targetNode, edge);
+        this.swapEdge (sourceNode, targetNode, edge);
       },
       onDeleteEdge: (selectedEdge, edges) => {
         console.warn ('onDeleteEdge',{selectedEdge, edges})
@@ -234,10 +201,10 @@ class MapView extends Component {
       canCreateEdge: (sourceNode, targetNode) => {
 //        console.warn ('canCreateEdge',{sourceNode, targetNode})
         if (!targetNode) {
-	  sourceNode = typeof(sourceNode) === 'object' ? sourceNode : this.findNodeByID (graph, sourceNode);
-	  return sourceNode && sourceNode.nodeType !== graph.placeholderNodeType;
+	  sourceNode = typeof(sourceNode) === 'object' ? sourceNode : this.findNodeByID (sourceNode);
+	  return sourceNode && sourceNode.nodeType !== this.graph.placeholderNodeType;
 	}
-	return targetNode.nodeType !== graph.implicitNodeType;
+	return targetNode.nodeType !== this.graph.implicitNodeType;
       },
       canDeleteEdge: (selected) => {
 //        console.warn ('canDeleteEdge',{selected})
@@ -250,19 +217,17 @@ class MapView extends Component {
       onUpdateNode: (node) => {
         // TODO: if node is implicit, need to rebuild the link
         if (node.x !== node.orig.x || node.y !== node.orig.y) {
-          this.graph.nodes = this.graph.nodes.map ((n) => (n.id === node.id ? node : n));
+          this.graph.updateNodeCoord (node);
           this.updateGraph();
         }
       },
       onSelectNode: (node) => {
-        this.setSelected (graph,
-                          node
+        this.setSelected (node
                           ? { node: node.id }
                           : {});
       },
       onSelectEdge: (edge) => {
-        this.setSelected (graph,
-                          edge
+        this.setSelected (edge
                           ? { edge: { source: edge.source,
                                       target: edge.target,
                                       link: edge.link } }
@@ -275,7 +240,7 @@ class MapView extends Component {
   selectionTextArea (graph) {
     this.assertSelectionValid (graph);
     return (<NodeEditor
-            setEditorState={(newEditorState)=>this.setEditorState(graph,graph.selectedNode(),graph.selectedEdge(),graph.selectedEdgeSourceNode(),graph.selectedEdgeLinkNode(),newEditorState)}
+            setEditorState={(s)=>this.setEditorState(s)}
             content={this.state.editorContent}
             selection={this.state.editorSelection}
             disabled={this.state.editorDisabled}

@@ -124,30 +124,19 @@ class MapView extends Component {
     console.error ('deleteEdge should be unreachable through the UI');
   }
 
-  // <textarea> for selected node/edge
-  selectionTextArea (graph) {
-    this.assertSelectionValid (graph);
-    return (<NodeEditor
-            setEditorState={(s)=>this.setEditorState(s)}
-            content={this.state.editorContent}
-            selection={this.state.editorSelection}
-            disabled={this.state.editorDisabled}
-            focus={this.state.editorFocus} />);
-  }
-
-  assertSelectionValid (graph) {
+  assertSelectionValid() {
     if (this.props && this.props.selected) {
-      if (this.props.selected.node && !graph.selectedNode (this.props.selected))
+      if (this.props.selected.node && !this.graph.selectedNode (this.props.selected))
         console.error("Lost selected.node",this.props.selected.node);
-      if (this.props.selected.edge && !graph.selectedEdge (this.props.selected))
+      if (this.props.selected.edge && !this.graph.selectedEdge (this.props.selected))
         console.error("Lost selected.edge",this.props.selected.edge);
     } else
       throw new Error ('no props.selected');
   }
-  
-  // Render graph
-  render() {
-    const nodeTypes = fromEntries (
+
+  // Shapes
+  nodeTypes() {
+    return fromEntries (
       this.state.nodes.map (
         (node) => {
           const nodeClass = node.nodeType + '-node'
@@ -159,27 +148,30 @@ class MapView extends Component {
                        ? ' selected-edge-target-node'
                        : '')));
           return [
-          node.type,
-          ({ shapeId: '#' + node.type,
-             typeText: node.styleInfo.typeText,
-	     shape: (node.nodeType === this.graph.implicitNodeType
-                     ? (
-                         <symbol viewBox="0 0 150 60" id={node.type} key="0">
-                         <rect x="0" y="10" width="150" height="40" style={{fill:'none',stroke:'none'}}></rect>
-                         <rect x="0" y="10" width="80" height="40" className={nodeClass}></rect>
-                         <rect x="70" y="10" width="80" height="40" className={nodeClass}></rect>
-                         <rect x="0" y="10" width="80" height="40" className={nodeClass} style={{stroke:'none'}}></rect>
-                         <rect x="70" y="10" width="80" height="40" className={nodeClass} style={{stroke:'none'}}></rect>
-                         </symbol>
-	             )
-                     : (
-                         <symbol viewBox="0 0 150 60" id={node.type} key="0">
-                         <rect x="0" y="0" width="150" height="60" className={nodeClass}></rect>
-                         </symbol>
-	             ))
-           })];
+            node.type,
+            ({ shapeId: '#' + node.type,
+               typeText: node.styleInfo.typeText,
+	       shape: (node.nodeType === this.graph.implicitNodeType
+                       ? (
+                           <symbol viewBox="0 0 150 60" id={node.type} key="0">
+                           <rect x="0" y="10" width="150" height="40" style={{fill:'none',stroke:'none'}}></rect>
+                           <rect x="0" y="10" width="80" height="40" className={nodeClass}></rect>
+                           <rect x="70" y="10" width="80" height="40" className={nodeClass}></rect>
+                           <rect x="0" y="10" width="80" height="40" className={nodeClass} style={{stroke:'none'}}></rect>
+                           <rect x="70" y="10" width="80" height="40" className={nodeClass} style={{stroke:'none'}}></rect>
+                           </symbol>
+	               )
+                       : (
+                           <symbol viewBox="0 0 150 60" id={node.type} key="0">
+                           <rect x="0" y="0" width="150" height="60" className={nodeClass}></rect>
+                           </symbol>
+	               ))
+             })];
         }));
-    const edgeTypes = fromEntries (['',this.graph.selectedEdgeTypeSuffix].reduce ((a, selectedSuffix) => a.concat ([
+  }
+
+  edgeTypes() {
+    return fromEntries (['',this.graph.selectedEdgeTypeSuffix].reduce ((a, selectedSuffix) => a.concat ([
       ['include'+selectedSuffix, {
 	shapeId: '#includeEdge'+selectedSuffix,
 	shape: (
@@ -197,14 +189,25 @@ class MapView extends Component {
             </symbol>
 	)
       }]]), []));
+  }
+  
+  // Render graph
+  render() {
+    this.assertSelectionValid();
     return (<div>
-            <div className="mapview">
+            {this.renderGraphView()}
+            {this.renderNodeEditor()}
+            </div>);
+  }
+
+  renderGraphView() {
+    return (<div className="mapview">
 	    <GraphView
             nodeKey="id"
 	    nodes={this.state.nodes}
 	    edges={this.state.edges}
-	    edgeTypes={edgeTypes}
-	    nodeTypes={nodeTypes}
+	    edgeTypes={this.edgeTypes()}
+	    nodeTypes={this.nodeTypes()}
 	    nodeSubtypes={{}}
             selected={this.state.selected && (this.state.selected.node || this.state.selected.edge)}
             nodeSize={this.graph.nodeSize}
@@ -224,14 +227,23 @@ class MapView extends Component {
             onDeleteEdge={this.unreachableDeleteEdge.bind(this)}
 	    zoomLevel="1"
 	    />
-            </div>
+            </div>);
+  }
+
+  renderNodeEditor() {
+    return (<div>
             <div className="editorcontainer">
-	    {this.selectionTextArea (this.graph)}
+            <NodeEditor
+            setEditorState={this.setEditorState.bind(this)}
+            content={this.state.editorContent}
+            selection={this.state.editorSelection}
+            disabled={this.state.editorDisabled}
+            focus={this.state.editorFocus} />
             </div>
             <div style={{'fontSize':'small'}}>
             {this.state.text}
             </div>
-	    </div>);
+            </div>);
   }
 }
 

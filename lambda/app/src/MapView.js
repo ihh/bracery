@@ -263,7 +263,7 @@ class MapView extends Component {
     case this.graph.placeholderNodeType:
       return showName ('This scene has no definition yet. You can start it below:');
     case this.graph.implicitNodeType:
-      return (<span>This scene is unnamed (it is contained within scene {this.makeNodeSelector (node.topLevelAncestorID)}). You can edit it below:</span>);
+      return (<span>This scene is unnamed (it is part of {this.makeNodeSelector (node.topLevelAncestorID)}). You can edit it below:</span>);
     default:
       return showName (node.defText
                        ? 'You can edit this scene below:'

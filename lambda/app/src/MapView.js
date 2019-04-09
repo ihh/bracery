@@ -39,9 +39,7 @@ class MapView extends Component {
   }
 
   updateGraph() {
-    return new Promise ((resolve) =>
-                        this.setState (this.graphState(),
-                                       resolve));
+    this.setState (this.graphState());
   }
 
   setSelected (selected) {
@@ -98,91 +96,52 @@ class MapView extends Component {
     this.updateGraph();
   }
 
+  canCreateEdge (source, target) {
+    return this.graph.canCreateEdge (source, target);
+  }
+
   createEdge (source, target) {
     this.graph.createEdge (source, target);
     this.updateGraph();
   }
+
+  canSwapEdge (source, target, edge) {
+    return this.graph.canSwapEdge (source, target, edge);
+  }
   
   swapEdge (sourceNode, targetNode, edge) {
-    let graph = this.graph;
-    const newTargetText = this.makeLinkTargetBracery (targetNode);
-    const newEvalText = (edge.edgeType === graph.includeEdgeType
-                         ? this.replaceText (graph.text,
-                                             [{ startOffset: edge.pos[0],
-                                                endOffset: edge.pos[0] + edge.pos[1],
-                                                replacementText: newTargetText }])
-                         : this.replaceLink (graph.findNodeByID (edge.link), edge.pos, undefined, newTargetText));
-
-    /*
-    this.props.setAppState ({ evalText: newEvalText,
-                              mapSelection: {},
-                              editorContent: '',
-                              editorSelection: { startOffset: 0, endOffset: 0 },
-                              editorDisabled: true,
-                              editorFocus: false });
-    */
+    this.graph.swapEdge (sourceNode, targetNode, edge);
+    this.setSelected ({ edge: { source: sourceNode.id,
+                                target: targetNode.id } });
   }
 
-  // Event handlers
-  eventHandlers() {
-    return {
-      onCreateNode: (x, y, event) => {
-//        console.warn ('onCreateNode',{x,y,event});
-        this.createNode (x, y);
-      },
-      onDeleteNode: (selected, nodeId, nodes) => {
-        console.warn ('onDeleteNode',{selected,nodeId,nodes})
-	console.error ('onDeleteNode should be unreachable through the UI');
-      },
-      onCreateEdge: (sourceNode, targetNode) => {
-//        console.warn ('onCreateEdge',{sourceNode, targetNode})
-	this.createEdge (sourceNode, targetNode);
-      },
-      canSwapEdge: (sourceNode, targetNode, edge) => {
-//        console.warn ('canSwapEdge',{sourceNode, targetNode, edge})
-        return targetNode.nodeType !== this.graph.implicitNodeType;
-      },
-      onSwapEdge: (sourceNode, targetNode, edge) => {
-//        console.warn ('onSwapEdge',{sourceNode, targetNode, edge})
-        this.swapEdge (sourceNode, targetNode, edge);
-      },
-      onDeleteEdge: (selectedEdge, edges) => {
-        console.warn ('onDeleteEdge',{selectedEdge, edges})
-	console.error ('onDeleteEdge should be unreachable through the UI');
-      },
-      canDeleteNode: (selected) => {
-//        console.warn ('canDeleteNode',{selected})
-	return false;
-      },
-      canCreateEdge: (sourceNode, targetNode) => {
-//        console.warn ('canCreateEdge',{sourceNode, targetNode})
-        return this.graph.canCreateEdge (sourceNode, targetNode);
-      },
-      canDeleteEdge: (selected) => {
-//        console.warn ('canDeleteEdge',{selected})
-	return false;
-      },
-      afterRenderEdge: (id, element, edge, edgeContainer, isEdgeSelected) => {
-//        console.warn ('afterRenderEdge', {id, element, edge, edgeContainer, isEdgeSelected})
+  updateNode (node) {
+    this.graph.updateNodeCoord (node);
+    this.updateGraph();
+  }
 
-      },
-      onUpdateNode: (node) => {
-        this.graph.updateNodeCoord (node);
-        this.updateGraph();
-      },
-      onSelectNode: (node) => {
-        this.setSelected (node
-                          ? { node: node.id }
-                          : {});
-      },
-      onSelectEdge: (edge) => {
-        this.setSelected (edge
-                          ? { edge: { source: edge.source,
-                                      target: edge.target,
-                                      link: edge.link } }
-                          : {});
-      }
-    };
+  selectNode (node) {
+    this.setSelected (node
+                      ? { node: node.id }
+                      : {});
+  }
+  
+  selectEdge (edge) {
+    this.setSelected (edge
+                      ? { edge: { source: edge.source,
+                                  target: edge.target,
+                                  link: edge.link } }
+                      : {});
+  }
+
+  unreachableDeleteNode (selected, nodeId, nodes) {
+    console.warn ('deleteNode',{selected,nodeId,nodes})
+    console.error ('deleteNode should be unreachable through the UI');
+  }
+
+  unreachableDeleteEdge (selectedEdge, edges) {
+    console.warn ('deleteEdge',{selectedEdge, edges})
+    console.error ('deleteEdge should be unreachable through the UI');
   }
 
   // <textarea> for selected node/edge
@@ -258,7 +217,6 @@ class MapView extends Component {
             </symbol>
 	)
       }]]), []));
-    const handler = this.eventHandlers(this.graph);
     return (<div>
             <div className="mapview">
 	    <GraphView
@@ -272,19 +230,18 @@ class MapView extends Component {
             nodeSize={this.graph.nodeSize}
             edgeHandleSize={this.graph.edgeHandleSize}
             edgeArrowSize={this.graph.edgeArrowSize}
-            onUpdateNode={handler.onUpdateNode}
-            onSelectNode={handler.onSelectNode}
-            onSelectEdge={handler.onSelectEdge}
-            onCreateNode={handler.onCreateNode}
-            onDeleteNode={handler.onDeleteNode}
-            onCreateEdge={handler.onCreateEdge}
-            onSwapEdge={handler.onSwapEdge}
-            onDeleteEdge={handler.onDeleteEdge}
-            canSwapEdge={handler.canSwapEdge}
-            canDeleteNode={handler.canDeleteNode}
-            canCreateEdge={handler.canCreateEdge}
-            canDeleteEdge={handler.canDeleteEdge}
-            afterRenderEdge={handler.afterRenderEdge}
+            onUpdateNode={this.updateNode.bind(this)}
+            onSelectNode={this.selectNode.bind(this)}
+            onSelectEdge={this.selectEdge.bind(this)}
+            onCreateNode={this.createNode.bind(this)}
+            onCreateEdge={this.createEdge.bind(this)}
+            onSwapEdge={this.swapEdge.bind(this)}
+            canSwapEdge={this.canSwapEdge.bind(this)}
+            canCreateEdge={this.canCreateEdge.bind(this)}
+            canDeleteNode={() => false}
+            canDeleteEdge={() => false}
+            onDeleteNode={this.unreachableDeleteNode.bind(this)}
+            onDeleteEdge={this.unreachableDeleteEdge.bind(this)}
 	    zoomLevel="1"
 	    />
             </div>

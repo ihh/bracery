@@ -8,9 +8,6 @@ import { extend, fromEntries } from './bracery-web';
 //  - is readily serializable (no circular references, at least in this.nodes & this.edges)
 
 // TODO:
-// Add edge
-// Swap include edge target
-// Swap link edge target
 // Delete implicit node, or edge to implicit node (rebuild ancestor's subgraph)
 // Delete defined node (and delete its subgraph)
 // Delete include edge (equivalent to editing it)
@@ -152,9 +149,41 @@ class ParseGraph {
     const sourceNode = this.findNodeByID (source.id);
     this.replaceNodeText (sourceNode, sourceNode.defText + link);
   }
+
+  // Can we swap an edge target?
+  canSwapEdge (source, target, edge) {
+    return target.nodeType !== this.implicitNodeType
+      && this.findNodeByID(edge.target).nodeType !== this.implicitNodeType;
+  }
   
-  // Change an edge target
-  swapEdge (sourceNode, targetNode, edge) {
+  // Swap an edge target
+  swapEdge (source, target, edge) {
+    if (edge.edgeType === this.linkEdgeType)
+      this.swapLinkEdge (source, target, edge);
+    else
+      this.swapIncludeEdge (source, target, edge);
+    this.selected = {};
+  }
+
+  swapIncludeEdge (source, target, edge) {
+    this.replaceIncludeEdgeText (edge, this.makeLinkTargetBracery (target));
+  }
+
+  swapLinkEdge (source, target, edge) {
+    this.replaceLinkEdgeTarget (edge, target);
+  }
+
+  // Replace include edge
+  replaceIncludeEdgeText (edge, newText) {
+    let nodeByID = this.getNodesByID();
+    let source = nodeByID[edge.source];
+    this.replaceDefTextSubstr ({ edge,
+                                 node: source,
+                                 pos: edge.pos,
+                                 nodeByID,
+                                 newSubstr: newText,
+                                 escape: true,
+                                 rebuild: true });
   }
 
   // Edit an edge. Delegate depending on whether it's a link or include edge
@@ -162,11 +191,11 @@ class ParseGraph {
     if (edge.edgeType === this.linkEdgeType)
       this.replaceLinkEdgeText (edge, newText);
     else
-      this.replaceIncludeEdgeText (edge, newText);
+      this.replaceEdgeSourceText (edge, newText);
   }
 
   // Edit include edge (replace parent node definition, i.e. local text in ancestral node; rebuild ancestor's subgraph)
-  replaceIncludeEdgeText (edge, newText) {
+  replaceEdgeSourceText (edge, newText) {
     let nodeByID = this.getNodesByID();
     let source = nodeByID[edge.source];
     this.replaceDefTextSubstr ({ edge,
@@ -181,7 +210,11 @@ class ParseGraph {
 
   // Edit link edge (replace local text in ancestral node, replace edge; no rebuild needed)
   replaceLinkEdgeText (edge, newText) {
-    this.replaceLinkEdge (edge, newText);
+    this.replaceLinkEdge (edge, newText, null);
+  }
+
+  replaceLinkEdgeTarget (edge, newTarget) {
+    this.replaceLinkEdge (edge, null, newTarget);
   }
 
   updateNodeCoord (node) {
@@ -296,16 +329,17 @@ class ParseGraph {
   }
 
   // Rebuild a link to an implicit node
-    replaceLinkEdge (edge, newText) {
+  replaceLinkEdge (edge, newText, newTarget) {
 //    console.warn('replaceLinkEdge', edge, newText);
     const nodeByID = this.getNodesByID();
-    const source = nodeByID[edge.source], target = nodeByID[edge.target];
-    const isImplicit = target.nodeType === this.implicitNodeType;
-    const newLinkText = this.makeMarkdownStyleLink (isImplicit ? target : null,
+    const source = nodeByID[edge.source], oldTarget = nodeByID[edge.target];
+    const isImplicit = oldTarget.nodeType === this.implicitNodeType;
+    newTarget = (!isImplicit && newTarget) || oldTarget;
+    const newLinkText = this.makeMarkdownStyleLink (isImplicit ? newTarget : null,
                                                     newText || this.edgeText (nodeByID, edge),
                                                     (isImplicit
-                                                     ? target.defText
-                                                     : this.makeLinkTargetBracery (target)));
+                                                     ? newTarget.defText
+                                                     : this.makeLinkTargetBracery (newTarget)));
 
     this.replaceDefTextSubstr ({ node: source,
                                  pos: edge.pos,

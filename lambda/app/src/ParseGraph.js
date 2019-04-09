@@ -119,7 +119,6 @@ class ParseGraph {
   // Create a node
   createNode (x, y) {
     const id = this.newVar();
-    const xy = {  };
     let newNode = extend ({ id: id,
                             type: id,
                             nodeType: this.definedNodeType,
@@ -132,8 +131,26 @@ class ParseGraph {
     this.nodes.push (newNode);
   }
 
+  // Can we create an edge?
+  canCreateEdge (source, target) {
+    if (!target) {
+      source = typeof(source) === 'object' ? source : this.findNodeByID (source);
+      return source && source.nodeType !== this.placeholderNodeType;
+    }
+    return target.nodeType !== this.implicitNodeType;
+  }
+
   // Create an edge
   createEdge (source, target) {
+    let link = null;
+    if (target.nodeType === this.externalNodeType) {
+      const sym = target.id.replace(this.SYM_PREFIX,'');
+      link = this.makeMarkdownStyleLink (null, sym, ParseTree.symChar + sym);
+    } else
+      link = this.makeTwineStyleLink (target.id);
+
+    const sourceNode = this.findNodeByID (source.id);
+    this.replaceNodeText (sourceNode, sourceNode.defText + link);
   }
   
   // Change an edge target
@@ -183,7 +200,6 @@ class ParseGraph {
 
   // Edit node (replace local text in ancestral node, or global if ancestor=self; rebuild ancestor's subgraph)
   replaceNodeText (node, newText) {
-    let nodeByID = this.getNodesByID();
     if (node.nodeType === this.placeholderNodeType)
       node.nodeType = this.definedNodeType;
     this.replaceDefTextSubstr (extend ({ node,
@@ -285,11 +301,11 @@ class ParseGraph {
     const nodeByID = this.getNodesByID();
     const source = nodeByID[edge.source], target = nodeByID[edge.target];
     const isImplicit = target.nodeType === this.implicitNodeType;
-    const newLinkText = this.makeLinkBracery (isImplicit ? target : null,
-                                              newText || this.edgeText (nodeByID, edge),
-                                              (isImplicit
-                                               ? target.defText
-                                               : this.makeLinkTargetBracery (target)));
+    const newLinkText = this.makeMarkdownStyleLink (isImplicit ? target : null,
+                                                    newText || this.edgeText (nodeByID, edge),
+                                                    (isImplicit
+                                                     ? target.defText
+                                                     : this.makeLinkTargetBracery (target)));
 
     this.replaceDefTextSubstr ({ node: source,
                                  pos: edge.pos,
@@ -325,14 +341,19 @@ class ParseGraph {
     }
   }
   
-  // makeLinkBracery - regenerate a link of the form [text]{target}
-  makeLinkBracery (node, newLinkText, newLinkTarget) {
+  // makeMarkdownStyleLink - regenerate a link of the form [text]{target}
+  makeMarkdownStyleLink (node, newLinkText, newLinkTarget) {
     const xy = this.makeCoord(node);
     return '['
       + this.escapeTopLevelBraces (newLinkText)
       + ']' + xy + '{'
       + this.escapeTopLevelBraces (newLinkTarget)
       + '}';
+  }
+
+  // makeTwineStyleLink - generate a link of the form [[text]]
+  makeTwineStyleLink (target) {
+    return '[[' + target + ']]';
   }
 
   // makeLinkTargetBracery - for a node, generate the Bracery that should appear in the target field of a link, to link to it.
@@ -775,15 +796,14 @@ class ParseGraph {
   addEdge (edges, edge, childRank) {
     if (edge.source === edge.target)  // No self-looping edges allowed. react-digraph won't display them anyway
       return null;
+    edge.edgeType = edge.type;  // preserve type against later modification of selected edge type
     edges.push (edge);
-    let { outgoing } = this.getEdgesByNode (edges);
-    edge.includeRank = outgoing[edge.source].length + 1;
     if (childRank) {
+      let { outgoing } = this.getEdgesByNode (edges);
       let srcChildRank = childRank[edge.source];
       if (!srcChildRank[edge.target])
-	srcChildRank[edge.target] = edge.includeRank;
+	srcChildRank[edge.target] = outgoing[edge.source].length + 1;
     }
-    edge.edgeType = edge.type;  // preserve type against later modification of selected edge type
     return edge;
   }
 
@@ -869,13 +889,10 @@ class ParseGraph {
 
     // Create link edges for every implicit node
     implicitNodes.forEach ((node) => addEdge (extend ({ source: layoutParent[node.id].id,
+                                                        target: node.uniqueTarget || node.id,
                                                         type: this.linkEdgeType,
                                                         pos: node.pos.slice(0),
-							linkTextPos: node.linkTextPos.slice(0) },
-                                                      (node.uniqueTarget
-                                                       ? { target: node.uniqueTarget,
-                                                           link: node.id }
-                                                       : { target: node.id }))));
+							linkTextPos: node.linkTextPos.slice(0) })));
 
     // Return
     return { implicitNodes, edges, braceryNodeOffset, braceryNodeRhsByID, layoutParent, childRank, nodeByID };

@@ -8,7 +8,7 @@ import ParseGraph from './ParseGraph';
 
 import './MapView.css';
 
-const canonicalStringify = require('canonical-json');
+// const canonicalStringify = require('canonical-json');
 
 // MapView
 class MapView extends Component {
@@ -99,32 +99,8 @@ class MapView extends Component {
   }
 
   createEdge (source, target) {
-    let graph = this.graph;
-    let newSource = graph.findNodeByID (graph, source.id);
-    let newEdge = { source: source.id,
-		    target: target.id,
-                    type: graph.linkEdgeType };
-    this.addEdge (graph.edges, newEdge);
-
-    let link = null, linkText = null;
-    if (target.nodeType === graph.externalNodeType) {
-      linkText = target.id.replace(graph.SYM_PREFIX,'');
-      link = this.makeLinkBracery (null, linkText, ParseTree.symChar + linkText);
-    } else
-      link = '[[' + (linkText = target.id) + ']]';
-    newSource.rhs = [this.implicitBracery (graph, newSource) + link];
-    
-    const newEvalText = graph.bracery();
-
-/*
-    this.props.setAppState ({ mapSelection: { edge: { source: source.id,
-						      target: target.id } },
-                              editorContent: linkText,
-                              editorSelection: { startOffset: linkText.length, endOffset: linkText.length },
-                              editorDisabled: false,
-                              editorFocus: true,
-                              evalText: newEvalText });
-*/    
+    this.graph.createEdge (source, target);
+    this.updateGraph();
   }
   
   swapEdge (sourceNode, targetNode, edge) {
@@ -180,11 +156,7 @@ class MapView extends Component {
       },
       canCreateEdge: (sourceNode, targetNode) => {
 //        console.warn ('canCreateEdge',{sourceNode, targetNode})
-        if (!targetNode) {
-	  sourceNode = typeof(sourceNode) === 'object' ? sourceNode : this.findNodeByID (sourceNode);
-	  return sourceNode && sourceNode.nodeType !== this.graph.placeholderNodeType;
-	}
-	return targetNode.nodeType !== this.graph.implicitNodeType;
+        return this.graph.canCreateEdge (sourceNode, targetNode);
       },
       canDeleteEdge: (selected) => {
 //        console.warn ('canDeleteEdge',{selected})

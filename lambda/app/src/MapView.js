@@ -109,8 +109,7 @@ class MapView extends Component {
   selectEdge (edge) {
     this.setSelected (edge
                       ? { edge: { source: edge.source,
-                                  target: edge.target,
-                                  link: edge.link } }
+                                  target: edge.target } }
                       : {});
   }
 

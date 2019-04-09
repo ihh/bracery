@@ -107,6 +107,16 @@ class GraphControls extends React.Component<IGraphControlProps> {
         >
           <NewIcon />
         </button>
+        {this.props.selected
+         ? (<button
+            type="button"
+            className="slider-button"
+            onClick={this.props.deleteNode}
+            >
+            <DeleteIcon />
+            </button>)
+         : ''
+        }
       </div>
     );
   }

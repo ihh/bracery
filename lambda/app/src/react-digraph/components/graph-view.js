@@ -249,6 +249,9 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
     // add new edges
     this.addNewEdges(this.state.edges, prevState.edgesMap, selectedEdgeObj, prevState.selectedEdgeObj, forceReRender);
 
+    // render the graph controls every time because we have contextual buttons that appear/disappear when things are selected
+    this.renderGraphControls();
+
     this.setState({
       componentUpToDate: true
     });
@@ -917,9 +920,15 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
   // Create a node through graph controls
   handleCreateNode = () => {
     const transform = this.state.viewTransform;
+
+    const parent = d3.select(this.viewWrapper.current).node();
+    const width = parent.clientWidth;
+    const height = parent.clientHeight;
+
     const entities = d3.select(this.entities).node();
     const viewBBox = entities.getBBox ? entities.getBBox() : null;
-    console.warn (viewBBox, transform);
+
+    console.warn (viewBBox, transform, width, height);
 
     this.props.onCreateNode(0,0);
   }
@@ -1247,6 +1256,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
           zoomLevel={this.state.viewTransform ? this.state.viewTransform.k : 1}
           zoomToFit={this.handleZoomToFit}
           createNode={this.handleCreateNode}
+          selected={Object.keys(this.props.selected || {}).length > 0}
           modifyZoom={this.modifyZoom}
         />,
         graphControlsWrapper

@@ -8,14 +8,18 @@ import { extend, fromEntries } from './bracery-web';
 //  - is readily serializable (no circular references, at least in this.nodes & this.edges)
 
 // TODO:
-// Selection-contextual buttons in graph controls
-// Delete implicit node, or edge to implicit node (rebuild ancestor's subgraph)
-// Delete defined node (and delete its subgraph)
-// Delete include edge (equivalent to editing it)
-// Delete link edge (equivalent to doing "delete include edge" on it)
-// Rename node
+// Undo slider button (keep in localStorage)
+// Rename node (tightly controlled input & button)
 // Name node (convert implicit node to defined node)
 // Duplicate node
+
+// Save slider button (publish to server using username/symbol format)
+// User preference: by default, all pages start off unlocked (i.e. can be edited by any user)
+// (guest account has this preference checked; key pages like guest/welcome can then be locked again)
+// Users can only lock pages in their own namespace, but can fork pages in others' namespaces.
+// When queried for 'symbol' (without a namespace),
+// the server first looks for username/symbol (if the user is logged in), then guest/symbol.
+// Users can make symbols private (must be logged in to GET).
 
 class ParseGraph {
   constructor (props) {
@@ -181,13 +185,24 @@ class ParseGraph {
     const node = this.findNodeByID (id);
     return node
       && node.nodeType !== this.startNodeType
-      && node.nodeType !== this.placeholderNodeType
-      && node.nodeType !== this.externalNodeType;
+      && node.nodeType !== this.externalNodeType
+      && node.nodeType !== this.placeholderNodeType;
+  }
+
+  nodeIsDetached (id) {
+    return this.incomingEdges(id).length === 0;
   }
 
   // Delete a node
   deleteNode (id) {
     console.warn ('deleteNode', id);
+    let nodeByID = this.getNodesByID();
+    let { incoming } = this.getEdgesByNode();
+    let node = nodeByID[id];
+    this.deleteSubgraph (node, nodeByID);
+    this.deleteEdges ({ target: id }, nodeByID);
+    this.nodes = this.nodes.filter ((n) => n.id !== id);
+    this.edges = this.edges.filter ((e) => e.source !== id && e.target !== id);
   }
   
   // Can we delete an edge?
@@ -195,15 +210,31 @@ class ParseGraph {
     return true;
   }
 
-  // Delete an edge
-  deleteEdge (edge) {
+  // Delete edges
+  // The edge can be partially specified (source or target only),
+  // in which case we'll delete all the edges that match. Beware.
+  deleteEdges (edge, nodeByID) {
     console.warn ('deleteEdge', edge);
+    nodeByID = nodeByID || this.getNodesByID();
+    let target = nodeByID[edge.target];
+    do {  // if target is an implicit node, only delete one edge, to avoid deleting later implicit nodes that get auto-renamed to the same thing
+      let foundEdge = this.edges.find ((e) => ((!edge.source || e.source === edge.source)
+                                               && (!edge.target || e.target === edge.target)));
+      if (!foundEdge)
+        break;
+      this.replaceIncludeEdgeText (foundEdge, '');
+      if ((target.nodeType === this.placeholderNodeType
+           || target.nodeType === this.externalNodeType)
+          && this.nodeIsDetached (edge.target))
+        this.deleteNode (edge.target);
+    } while (target.nodeType !== this.implicitNodeType)
   }
   
-  // Replace include edge
+  // Replace an include edge, or the entirety of a link edge
   replaceIncludeEdgeText (edge, newText) {
     let nodeByID = this.getNodesByID();
     let source = nodeByID[edge.source];
+    console.warn('replaceIncludeEdgeText',source,edge.pos);
     this.replaceDefTextSubstr ({ edge,
                                  node: source,
                                  pos: edge.pos,
@@ -251,13 +282,17 @@ class ParseGraph {
   }
 
   replaceIncomingEdgeText (node, newText) {
-    const { incoming } = this.getEdgesByNode();
+    this.replaceLinkEdge (this.getUniqueIncomingEdge(node), newText);
+  }
+
+  getUniqueIncomingEdge (node, incoming) {
+    incoming = incoming || this.getEdgesByNode().incoming;
     const nodeEntry = incoming[node.id] || [];
     if (nodeEntry.length !== 1)
       throw new Error ('node lacks unique incoming transition');
-    this.replaceLinkEdge (nodeEntry[0], newText);
+    return nodeEntry[0];
   }
-
+  
   // Edit node (replace local text in ancestral node, or global if ancestor=self; rebuild ancestor's subgraph)
   replaceNodeText (node, newText) {
     if (node.nodeType === this.placeholderNodeType)
@@ -838,6 +873,16 @@ class ParseGraph {
       pushEdge (outgoing, edge.source);
     });
     return { incoming, outgoing };
+  }
+
+  incomingEdges (id) {
+    let { incoming } = this.getEdgesByNode();
+    return incoming[id] || [];
+  }
+
+  outgoingEdges (id) {
+    let { outgoing } = this.getEdgesByNode();
+    return outgoing[id] || [];
   }
 
   // Index nodes by ID

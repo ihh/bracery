@@ -18,6 +18,7 @@
 
 .placeholder-node {
     stroke-dasharray: 5 1;    
+    opacity: .7;
 }
 
 .selected-edge-source-node,

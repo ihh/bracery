@@ -123,10 +123,12 @@ class MapView extends Component {
   
   deleteNode (selected, nodeId, nodes) {
     this.graph.deleteNode (selected);
+    this.setSelected({});
   }
 
   deleteEdge (selectedEdge, edges) {
-    this.graph.deleteEdge (selectedEdge);
+    this.graph.deleteEdges (selectedEdge);
+    this.setSelected({});
   }
 
   assertSelectionValid() {

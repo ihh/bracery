@@ -202,6 +202,16 @@ class ParseGraph {
     this.nodes = this.nodes.filter ((n) => n.id !== id);
     this.edges = this.edges.filter ((e) => e.source !== id);
     this.deleteEdges ({ target: id }, nodeByID);
+    this.removeDetached (nodeByID);
+  }
+
+  // Remove detached nodes
+  // Generally we call this after "delete" operations, but not generic edit operations that happen to delete nodes
+  // (e.g. editing, edge target-swapping)
+  removeDetached (nodeByID) {
+    this.nodes = this.filterOutDetachedNodes (this.nodes,
+                                              this.edges,
+                                              { nodeByID });
   }
   
   // Can we delete an edge?
@@ -222,6 +232,7 @@ class ParseGraph {
         break;
       this.replaceIncludeEdgeText (foundEdge, '');
     } while (target.nodeType !== this.implicitNodeType);
+    this.removeDetached (nodeByID);
   }
   
   // Replace an include edge, or the entirety of a link edge
@@ -385,10 +396,6 @@ class ParseGraph {
         updatePos (entity.pos);
         updatePos (entity.linkTextPos);
       });
-    // remove detached nodes
-    this.nodes = this.filterOutDetachedNodes (this.nodes,
-                                              this.edges,
-                                              { nodeByID });
   }
 
   // Delete a node's implicit subgraph. Returns the list of deleted nodes, whose (x,y) coords will be needed by the rebuild

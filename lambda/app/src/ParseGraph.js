@@ -169,7 +169,6 @@ class ParseGraph {
       this.swapLinkEdge (source, target, edge);
     else
       this.swapIncludeEdge (source, target, edge);
-    this.selected = {};
   }
 
   swapIncludeEdge (source, target, edge) {
@@ -196,7 +195,6 @@ class ParseGraph {
 
   // Delete a node
   deleteNode (id) {
-    console.warn ('deleteNode', id);
     let nodeByID = this.getNodesByID();
     let node = nodeByID[id];
     this.deleteSubgraph (node, nodeByID);
@@ -214,7 +212,6 @@ class ParseGraph {
   // The edge can be partially specified (target only),
   // in which case we'll delete all the edges that match. Beware.
   deleteEdges (edge, nodeByID) {
-    console.warn ('deleteEdge', edge);
     nodeByID = nodeByID || this.getNodesByID();
     let target = nodeByID[edge.target];
     do {  // if target is an implicit node, only delete one edge, to avoid deleting later implicit nodes that get auto-renamed to the same thing
@@ -233,22 +230,23 @@ class ParseGraph {
   replaceIncludeEdgeText (edge, newText) {
     let nodeByID = this.getNodesByID();
     let source = nodeByID[edge.source];
-    console.warn('replaceIncludeEdgeText',source,edge.pos);
     this.replaceDefTextSubstr ({ edge,
                                  node: source,
                                  pos: edge.pos,
                                  nodeByID,
                                  newSubstr: newText,
-                                 escape: true,
                                  rebuild: true });
   }
 
   // Edit an edge. Delegate depending on whether it's a link or include edge
+  // If it was an include edge, return true so that consumer can select the source.
   replaceEdgeText (edge, newText) {
-    if (edge.edgeType === this.linkEdgeType)
-      this.replaceLinkEdgeText (edge, newText);
-    else
+    const isInclude = edge.edgeType === this.includeEdgeType;
+    if (isInclude)
       this.replaceEdgeSourceText (edge, newText);
+    else
+      this.replaceLinkEdgeText (edge, newText);
+    return isInclude;
   }
 
   // Edit include edge (replace parent node definition, i.e. local text in ancestral node; rebuild ancestor's subgraph)
@@ -260,9 +258,7 @@ class ParseGraph {
                                  pos: source.linkTargetPos,
                                  nodeByID,
                                  newSubstr: newText,
-                                 escape: true,
                                  rebuild: true });
-    this.selected = { node: edge.source };
   }
 
   // Edit link edge (replace local text in ancestral node, replace edge; no rebuild needed)
@@ -300,8 +296,7 @@ class ParseGraph {
                                          newSubstr: newText,
                                          rebuild: true },
                                        (node.nodeType === this.implicitNodeType
-                                        ? { escape: true,
-                                            pos: node.linkTargetPos }
+                                        ? { pos: node.linkTargetPos }
                                         : {})));
   }
 
@@ -337,7 +332,7 @@ class ParseGraph {
     let { newSubstr,  // required
           node, edge,      // specify either node or edge, but not both
           pos,  // if omitted, will use node pos
-          newLinkTextPos, escape, rebuild, nodeByID,  // optional
+          newLinkTextPos, rebuild, nodeByID,  // optional
         } = config;
     const updateEntity = edge || node;
     nodeByID = nodeByID || this.getNodesByID();
@@ -346,12 +341,17 @@ class ParseGraph {
     const oldEndOffset = pos[0] + pos[1];
     const ancNode = this.getAncestor (node, nodeByID);
     const newRhs = ParseTree.parseRhs (newSubstr);
-    const newText = (escape
-                     ? this.escapeTopLevelBraces (newSubstr, { rhs: newRhs })
-                     : newSubstr);
-    const delta = newText.length - pos[1];
     const oldAncDefText = ancNode.defText || '';
+    const replacingEntireAncDefText = (pos[0] === 0 && pos[1] === oldAncDefText.length);
+    const escaped = this.escapeTopLevelBraces (newSubstr, { rhs: newRhs }),
+          newText = escaped.text,
+          isAlternation = escaped.isAlternation;
+    const delta = newText.length - pos[1];
     ancNode.defText = oldAncDefText.slice(0,pos[0]) + newText + oldAncDefText.slice(oldEndOffset);
+    if (replacingEntireAncDefText && isAlternation)
+      ancNode.isAlternation = true;
+    else
+      delete ancNode.isAlternation;
     const newAncRhs = ParseTree.parseRhs (ancNode.defText);
     let updateSubgraph = null, getUpdateSubgraph = () => { updateSubgraph = this.getImplicitSubgraph (ancNode); };
     if (rebuild) {
@@ -386,7 +386,6 @@ class ParseGraph {
         updatePos (entity.pos);
         updatePos (entity.linkTextPos);
       });
-//    console.warn('replaceDefTextSubstr exit', updateEntity, edge ? node : null, updateSubgraph, this.nodes);
   }
 
   // Delete a node's implicit subgraph. Returns the list of deleted nodes, whose (x,y) coords will be needed by the rebuild
@@ -416,7 +415,6 @@ class ParseGraph {
 
   // Rebuild a link to an implicit node
   replaceLinkEdge (edge, newText, newTarget) {
-//    console.warn('replaceLinkEdge', edge, newText);
     const nodeByID = this.getNodesByID();
     const source = nodeByID[edge.source], oldTarget = nodeByID[edge.target];
     const isImplicit = oldTarget.nodeType === this.implicitNodeType;
@@ -430,7 +428,6 @@ class ParseGraph {
     this.replaceDefTextSubstr ({ node: source,
                                  pos: edge.pos,
                                  newSubstr: newLinkText,
-                                 escape: false,
                                  rebuild: true });
   }
 
@@ -454,7 +451,7 @@ class ParseGraph {
     case this.startNodeType:
       return (xy ? (xy + ':START\n') : '') + node.defText;
     case this.definedNodeType:
-      return '[' + node.id + xy + '=>' + this.escapeTopLevelBraces (node.defText, { removeBracketsFromAlt: true }) + ']\n';
+      return '[' + node.id + xy + '=>' + (node.isAlternation ? node.defText.substr(1,node.defText.length-2) : node.defText) + ']\n';
     case this.implicitNodeType:
     default:
       return '';
@@ -465,9 +462,9 @@ class ParseGraph {
   makeMarkdownStyleLink (node, newLinkText, newLinkTarget) {
     const xy = this.makeCoord(node);
     return '['
-      + this.escapeTopLevelBraces (newLinkText)
+      + this.escapeTopLevelBraces(newLinkText).text
       + ']' + xy + '{'
-      + this.escapeTopLevelBraces (newLinkTarget)
+      + this.escapeTopLevelBraces(newLinkTarget).text
       + '}';
   }
 
@@ -527,15 +524,15 @@ class ParseGraph {
   escapeTopLevelRegex (text, regex, config) {
     config = config || {};
     const rhs = config.rhs || ParseTree.parseRhs(text);
-    let result = rhs
-	  .map ((node) => (typeof(node) === 'string'
-			   ? (config.noEscape
-			      ? node
-			      : node.replace (regex, (m) => '\\'+m))
-			   : this.parseTreeNodeText(node,text)))
-	  .join('');
-    if (config.removeBracketsFromAlt && rhs.length === 1 && typeof(rhs[0]) === 'object' && rhs[0].type === 'alt')
-      result = result.substr(1,result.length-2);
+    let result = { text: rhs
+	           .map ((node) => (typeof(node) === 'string'
+			            ? (config.noEscape
+			               ? node
+			               : node.replace (regex, (m) => '\\'+m))
+			            : this.parseTreeNodeText(node,text)))
+	           .join('') };
+    if (this.parseTreeRhsIsAlternation (rhs))
+      result.isAlternation = true;
     return result;
   }
 
@@ -721,7 +718,8 @@ class ParseGraph {
     const offset = (rhsParentNode && rhsParentNode.pos) ? rhsParentNode.pos[0] : 0;
     return (config.addBracketsToAlt && this.parseTreeRhsIsAlternation(rhs)  // x|y|z
             ? { text: (ParseTree.leftSquareBraceChar + text + ParseTree.rightSquareBraceChar),  // [x|y|z]
-                offset: offset - 1 }
+                offset: offset - 1,
+                isAlternation: true }
             : { text: text,
                 offset: offset + (origText.charAt(offset) === ParseTree.leftBraceChar  // remove enclosing braces
                                   && origText.charAt(offset) !== text.charAt(0)
@@ -981,7 +979,10 @@ class ParseGraph {
         const linkTargetRhs = ParseTree.getLinkTargetRhs (actualLinkNode);
         const linkTargetRhsNode = ParseTree.getLinkTargetRhsNode (actualLinkNode);
         const linkTargetTextOffset = this.parseTreeRhsTextOffset (linkTargetRhs, linkTargetRhsNode, text);
-        let uniqueTarget = null, defText = linkTargetTextOffset.text;
+        let uniqueTarget = null;
+        let escaped = this.escapeTopLevelBraces(linkTargetTextOffset.text),
+            defText = escaped.text,
+            isAlternation = escaped.isAlternation;
         if (linkTargetRhs.length === 1) {
           const linkTargetNode = linkTargetRhs[0];
           if (ParseTree.isEvalVar(linkTargetNode)) {
@@ -1011,11 +1012,11 @@ class ParseGraph {
             linkTargetPos,
             defText,
           },
+          isAlternation ? {isAlternation} : {},
           uniqueTarget ? {uniqueTarget} : {},
           (isLayoutLink
            ? this.parseCoord (ParseTree.getLayoutCoord (linkNode))
            : {}));
-//        console.warn({linkTargetTextOffset,implicitNode});
         pushNode (implicitNodes, implicitNode, linkNode, linkTargetRhs);
       });
     
@@ -1119,7 +1120,6 @@ class ParseGraph {
 	layoutChildren[parent.id].push (node);
       }
       for (let n = node; layoutParent[n.id]; n = layoutParent[n.id]) {
-//        console.warn(n,node);
 	++layoutDepth[node.id];
       }
     });
@@ -1249,9 +1249,15 @@ class ParseGraph {
           }
           return true;
         });
-        const defTextOffset = this.parseTreeRhsTextOffset (braceryNodeRhs, braceryDefNode, text, { addBracketsToAlt: true });
-        extend (node, { defText: defTextOffset.text });
-        braceryNodeOffset[node.id] = defTextOffset.offset;
+        const parsed = this.parseTreeRhsTextOffset (braceryNodeRhs,
+                                                    braceryDefNode,
+                                                    text,
+                                                    { addBracketsToAlt: true });
+        extend (node,
+                { defText: parsed.text },
+                parsed.isAlternation ? { isAlternation: true } : {},
+               );
+        braceryNodeOffset[node.id] = parsed.offset;
 	pushNode (topLevelNodes,
 		  node,
 		  braceryNode,

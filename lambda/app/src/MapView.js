@@ -59,9 +59,12 @@ class MapView extends Component {
                                 .map ((prop) => ['editor'+prop[0].toUpperCase()+prop.slice(1),
                                                  newEditorState[prop]]));
     if (newState.hasOwnProperty('editorContent')) {
-      if (selectedEdge)
-        this.graph.replaceEdgeText (selectedEdge, newState.editorContent);
-      else if (selectedNode)
+      if (selectedEdge) {
+        if (this.graph.replaceEdgeText (selectedEdge, newState.editorContent)) {
+          newState.selected = { node: selectedEdge.source };
+          console.warn ('selecting ' + selectedEdge.source);
+        }
+      } else if (selectedNode)
         this.graph.replaceNodeText (selectedNode, newState.editorContent);
       else
         console.error('oops: editor content with no selected node or edge');

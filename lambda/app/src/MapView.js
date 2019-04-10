@@ -34,7 +34,8 @@ class MapView extends Component {
   graphState() {
     return { text: this.graph.bracery(),
              nodes: cloneDeep (this.graph.nodes),
-             edges: cloneDeep (this.graph.edges) };
+             edges: cloneDeep (this.graph.edges),
+             selected: this.graph.selected };
   }
 
   updateGraph() {
@@ -44,7 +45,6 @@ class MapView extends Component {
   setSelected (selected) {
     this.graph.selected = selected;  // setter automatically updates graph selection markers
     this.setState (extend (this.graphState(),
-                           { selected },
                            this.graph.getEditorState()));
   }
 
@@ -59,12 +59,9 @@ class MapView extends Component {
                                 .map ((prop) => ['editor'+prop[0].toUpperCase()+prop.slice(1),
                                                  newEditorState[prop]]));
     if (newState.hasOwnProperty('editorContent')) {
-      if (selectedEdge) {
-        if (this.graph.replaceEdgeText (selectedEdge, newState.editorContent)) {
-          newState.selected = { node: selectedEdge.source };
-          console.warn ('selecting ' + selectedEdge.source);
-        }
-      } else if (selectedNode)
+      if (selectedEdge)
+        this.graph.replaceEdgeText (selectedEdge, newState.editorContent);
+      else if (selectedNode)
         this.graph.replaceNodeText (selectedNode, newState.editorContent);
       else
         console.error('oops: editor content with no selected node or edge');
@@ -247,11 +244,11 @@ class MapView extends Component {
     const selected = this.state.selected;
     if (selected.node) {
       return (<div className="editor-banner editor-banner-node">
-              {this.nodeBanner (this.graph.selectedNode())}
+              {this.nodeBanner (this.graph.selectedNode(selected))}
               </div>);
     } else if (selected.edge) {
       return (<div className="editor-banner editor-banner-edge">
-              {this.edgeBanner (this.graph.selectedEdge())}
+              {this.edgeBanner (this.graph.selectedEdge(selected))}
               </div>);
     }
     return (<div className="editor-banner editor-banner-no-selection"></div>);
@@ -270,7 +267,7 @@ class MapView extends Component {
                        <button onClick={() => this.props.openSymPage (this.graph.removeSymPrefix (node.id))}>
                        view or edit</button> it there.</span>);
     case this.graph.startNodeType:
-      return theSelectedScene ('is the starting text. You can edit it below:');
+      return theSelectedScene ('is the first scene. You can edit it below:');
     case this.graph.placeholderNodeType:
       return theSelectedScene ('has no definition yet. You can start it below:');
     case this.graph.implicitNodeType:

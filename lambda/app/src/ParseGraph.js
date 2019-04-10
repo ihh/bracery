@@ -169,6 +169,7 @@ class ParseGraph {
       this.swapLinkEdge (source, target, edge);
     else
       this.swapIncludeEdge (source, target, edge);
+    this.selected = { edge: { source, target } };
   }
 
   swapIncludeEdge (source, target, edge) {
@@ -221,9 +222,6 @@ class ParseGraph {
         break;
       this.replaceIncludeEdgeText (foundEdge, '');
     } while (target.nodeType !== this.implicitNodeType);
-    this.nodes = this.filterOutDetachedNodes (this.nodes,
-                                              this.edges,
-                                              { nodeByID });
   }
   
   // Replace an include edge, or the entirety of a link edge
@@ -259,6 +257,7 @@ class ParseGraph {
                                  nodeByID,
                                  newSubstr: newText,
                                  rebuild: true });
+    this.selected = { node: edge.source };
   }
 
   // Edit link edge (replace local text in ancestral node, replace edge; no rebuild needed)
@@ -386,6 +385,10 @@ class ParseGraph {
         updatePos (entity.pos);
         updatePos (entity.linkTextPos);
       });
+    // remove detached nodes
+    this.nodes = this.filterOutDetachedNodes (this.nodes,
+                                              this.edges,
+                                              { nodeByID });
   }
 
   // Delete a node's implicit subgraph. Returns the list of deleted nodes, whose (x,y) coords will be needed by the rebuild

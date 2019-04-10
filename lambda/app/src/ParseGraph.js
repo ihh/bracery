@@ -9,8 +9,8 @@ import { extend, fromEntries } from './bracery-web';
 
 // TODO:
 // Undo slider button (keep in localStorage)
-// Rename node (tightly controlled input & button)
-// Name node (convert implicit node to defined node)
+// Rename node (tightly controlled input & link; parses, replaces Tracery, lookup, assign)
+// Name node (link, convert implicit node to defined node with new var name)
 // Duplicate node
 
 // Save slider button (publish to server using username/symbol format)
@@ -197,7 +197,6 @@ class ParseGraph {
   deleteNode (id) {
     console.warn ('deleteNode', id);
     let nodeByID = this.getNodesByID();
-    let { incoming } = this.getEdgesByNode();
     let node = nodeByID[id];
     this.deleteSubgraph (node, nodeByID);
     this.deleteEdges ({ target: id }, nodeByID);
@@ -211,7 +210,7 @@ class ParseGraph {
   }
 
   // Delete edges
-  // The edge can be partially specified (source or target only),
+  // The edge can be partially specified (target only),
   // in which case we'll delete all the edges that match. Beware.
   deleteEdges (edge, nodeByID) {
     console.warn ('deleteEdge', edge);
@@ -227,7 +226,7 @@ class ParseGraph {
            || target.nodeType === this.externalNodeType)
           && this.nodeIsDetached (edge.target))
         this.deleteNode (edge.target);
-    } while (target.nodeType !== this.implicitNodeType)
+    } while (target.nodeType !== this.implicitNodeType);
   }
   
   // Replace an include edge, or the entirety of a link edge

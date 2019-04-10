@@ -61,7 +61,7 @@ class ParseGraph {
   get placeholderNodeType() { return 'placeholder'; }
 
   get placeholderNodeText() { return 'Click to edit'; }
-  get implicitNodeTitle() { return '(unnamed)'; }
+  get implicitNodeTitle() { return 'unnamed'; }
   get emptyNodeText() { return ' '; }
 
   get includeEdgeType() { return 'include'; }
@@ -150,7 +150,7 @@ class ParseGraph {
       link = this.makeTwineStyleLink (target.id);
 
     const sourceNode = this.findNodeByID (source.id);
-    this.replaceNodeText (sourceNode, sourceNode.defText + link);
+    this.replaceNodeText (sourceNode, sourceNode.defText + '\n' + link);
   }
 
   // Can we swap an edge target?
@@ -176,6 +176,30 @@ class ParseGraph {
     this.replaceLinkEdgeTarget (edge, target);
   }
 
+  // Can we delete a node?
+  canDeleteNode (id) {
+    const node = this.findNodeByID (id);
+    return node
+      && node.nodeType !== this.startNodeType
+      && node.nodeType !== this.placeholderNodeType
+      && node.nodeType !== this.externalNodeType;
+  }
+
+  // Delete a node
+  deleteNode (id) {
+    console.warn ('deleteNode', id);
+  }
+  
+  // Can we delete an edge?
+  canDeleteEdge (edge) {
+    return true;
+  }
+
+  // Delete an edge
+  deleteEdge (edge) {
+    console.warn ('deleteEdge', edge);
+  }
+  
   // Replace include edge
   replaceIncludeEdgeText (edge, newText) {
     let nodeByID = this.getNodesByID();
@@ -442,9 +466,9 @@ class ParseGraph {
     return this.SYM_PREFIX + symName;
   }
 
-  titleForID (id) {
+  titleForID (id, defaultTitle) {
     return (id.indexOf (this.LINK_SUFFIX) >= 0
-            ? this.implicitNodeTitle
+            ? (defaultTitle || this.implicitNodeTitle)
             : id.replace (this.SYM_PREFIX, ParseTree.symChar));
   }
 

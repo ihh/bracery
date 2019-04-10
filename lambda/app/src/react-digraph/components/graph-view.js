@@ -127,6 +127,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
   renderEdgesTimeout: any;
   zoom: any;
   viewWrapper: React.RefObject<HTMLDivElement>;
+  graphWrapper: React.RefObject<HTMLDivElement>;
   graphSvg: React.RefObject<SVGElement>;
   entities: any;
   selectedView: any;
@@ -142,6 +143,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
     this.renderNodesTimeout = null;
     this.renderEdgesTimeout = null;
     this.viewWrapper = React.createRef();
+    this.graphWrapper = React.createRef();
     this.graphControls = React.createRef();
     this.graphSvg = React.createRef();
 
@@ -165,7 +167,8 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
       selectingNode: false,
       documentClicked: false,
       svgClicked: false,
-      focused: true
+      focused: true,
+      nodesCreatedSinceLastZoom: 0
     };
   }
 
@@ -183,7 +186,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
       .on('end', this.handleZoomEnd);
 
     d3
-      .select(this.viewWrapper.current)
+      .select(this.graphWrapper.current)
       .on('touchstart', this.containZoom)
       .on('touchmove', this.containZoom)
       .on('click', this.handleSvgClicked) // handle element click in the element components
@@ -249,7 +252,8 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
     // add new edges
     this.addNewEdges(this.state.edges, prevState.edgesMap, selectedEdgeObj, prevState.selectedEdgeObj, forceReRender);
 
-    // render the graph controls every time because we have contextual buttons that appear/disappear when things are selected
+    // Re-render the graph controls after every update,
+    // since we have contextual buttons that appear/disappear when nodes & edges are selected/unselected
     this.renderGraphControls();
 
     this.setState({
@@ -458,7 +462,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
     const { selected, onUndo, onCopySelected, onPasteSelected } = this.props;
     const { focused, selectedNodeObj } = this.state;
     // Conditionally ignore keypress events on the window
-    if (!focused) {
+    if (!focused || this.props.ignoreKeyboardEvents) {
       return;
     }
     switch (d.key) {
@@ -845,7 +849,8 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
         this.setState({
           viewTransform: transform,
           draggedEdge: null,
-          draggingEdge: false
+          draggingEdge: false,
+          nodesCreatedSinceLastZoom: 0
         }, () => {
           // force the child components which are related to zoom level to update
           this.renderGraphControls();
@@ -918,19 +923,37 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
   }
 
   // Create a node through graph controls
-  handleCreateNode = () => {
+  handleCreateNodeButtonClick = () => {
     const transform = this.state.viewTransform;
-
     const parent = d3.select(this.viewWrapper.current).node();
-    const width = parent.clientWidth;
-    const height = parent.clientHeight;
 
-    const entities = d3.select(this.entities).node();
-    const viewBBox = entities.getBBox ? entities.getBBox() : null;
+    const viewRect = { xMin: Math.floor (-transform.x / transform.k),
+                       xMax: Math.ceil ((-transform.x + parent.clientWidth) / transform.k),
+                       yMin: Math.floor (-transform.y / transform.k),
+                       yMax: Math.ceil ((-transform.y + parent.clientHeight) / transform.k) };
 
-    console.warn (viewBBox, transform, width, height);
+    const nodeSize = this.props.nodeSize;
+    const margin = 0.05, pixStep = nodeSize/4;  // these determine the placement of the first & successive nodes
+    
+    const width = viewRect.xMax - viewRect.xMin,
+          height = viewRect.yMax - viewRect.yMin,
+          xOffset = margin * width,
+          yOffset = margin * height,
+          nCreated = this.state.nodesCreatedSinceLastZoom,
+          x = viewRect.xMin + xOffset + ((nCreated * pixStep) % (width - 2*xOffset - nodeSize)) + nodeSize/2,
+          y = viewRect.yMin + yOffset + ((nCreated * pixStep) % (height - 2*yOffset - nodeSize) + nodeSize/2);
+          
+    this.props.onCreateNode(x,y);
+    this.setState ({ nodesCreatedSinceLastZoom: nCreated + 1 });
+  }
 
-    this.props.onCreateNode(0,0);
+  // Delete a node or edge through graph controls
+  handleDeleteSelectedButtonClick = () => {
+    const selected = this.props.selected;
+    if (selected.source)
+      this.deleteEdge(selected);
+    else
+      this.deleteNode(selected);
   }
   
   // Zooms to contents of this.refs.entities
@@ -1248,6 +1271,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
 
     const graphControlsWrapper = this.viewWrapper.current.querySelector('.graph-controls-wrapper')
     if (graphControlsWrapper) {
+      const selected = this.props.selected;
       ReactDOM.render(
         <GraphControls
           ref={this.graphControls}
@@ -1255,9 +1279,13 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
           maxZoom={this.props.maxZoom}
           zoomLevel={this.state.viewTransform ? this.state.viewTransform.k : 1}
           zoomToFit={this.handleZoomToFit}
-          createNode={this.handleCreateNode}
-          selected={Object.keys(this.props.selected || {}).length > 0}
           modifyZoom={this.modifyZoom}
+          createNode={this.handleCreateNodeButtonClick}
+          deleteSelected={this.handleDeleteSelectedButtonClick}
+          canDeleteSelected={(selected &&
+                              (selected.source
+                               ? (this.props.canDeleteEdge ? this.props.canDeleteEdge(selected) : true)
+                               : (this.props.canDeleteNode ? this.props.canDeleteNode(selected) : true)))}
         />,
         graphControlsWrapper
       );
@@ -1270,6 +1298,11 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
       <div
         className="view-wrapper"
         ref={this.viewWrapper}
+        style={{position:'relative'}}
+        >
+      <div
+        className="graph-wrapper"
+        ref={this.graphWrapper}
       >
         <svg className="graph" ref={this.graphSvg}>
           <Defs
@@ -1287,8 +1320,9 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
             <g className="entities" ref={(el) => (this.entities = el)} />
           </g>
         </svg>
+        </div>
         <div className="graph-controls-wrapper" />
-      </div>
+        </div>
     );
   }
 }

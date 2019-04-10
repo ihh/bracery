@@ -113,14 +113,20 @@ class MapView extends Component {
                       : {});
   }
 
-  unreachableDeleteNode (selected, nodeId, nodes) {
-    console.warn ('deleteNode',{selected,nodeId,nodes})
-    console.error ('deleteNode should be unreachable through the UI');
+  canDeleteNode (selected) {
+    return this.graph.canDeleteNode (selected);
   }
 
-  unreachableDeleteEdge (selectedEdge, edges) {
-    console.warn ('deleteEdge',{selectedEdge, edges})
-    console.error ('deleteEdge should be unreachable through the UI');
+  canDeleteEdge (selected) {
+    return this.graph.canDeleteEdge (selected);
+  }
+  
+  deleteNode (selected, nodeId, nodes) {
+    this.graph.deleteNode (selected);
+  }
+
+  deleteEdge (selectedEdge, edges) {
+    this.graph.deleteEdge (selectedEdge);
   }
 
   assertSelectionValid() {
@@ -222,11 +228,12 @@ class MapView extends Component {
             onSwapEdge={this.swapEdge.bind(this)}
             canSwapEdge={this.canSwapEdge.bind(this)}
             canCreateEdge={this.canCreateEdge.bind(this)}
-            canDeleteNode={() => false}
-            canDeleteEdge={() => false}
-            onDeleteNode={this.unreachableDeleteNode.bind(this)}
-            onDeleteEdge={this.unreachableDeleteEdge.bind(this)}
+            canDeleteNode={this.canDeleteNode.bind(this)}
+            canDeleteEdge={this.canDeleteEdge.bind(this)}
+            onDeleteNode={this.deleteNode.bind(this)}
+            onDeleteEdge={this.deleteEdge.bind(this)}
 	    zoomLevel="1"
+            ignoreKeyboardEvents={true}
 	    />
             </div>);
   }
@@ -245,42 +252,42 @@ class MapView extends Component {
     return (<div className="editor-banner editor-banner-no-selection"></div>);
   }
 
-  makeNodeSelector (id, text) {
-    text = text || this.graph.titleForID (id);
+  makeNodeSelector (id, alt, text) {
+    text = text || this.graph.titleForID (id, alt);
     return (<button onClick={() => this.setSelected ({ node: id })}>{text}</button>);
   }
   
   nodeBanner (node) {
-    const showName = (info) => (<span>Selected scene: {this.graph.titleForID (node.id)}. {info}</span>);
+    const theSelectedScene = (info) => (<span>The selected scene ({this.graph.titleForID (node.id)}) {info}</span>);
     switch (node.nodeType) {
     case this.graph.externalNodeType:
-      return showName (<span><span>This scene is defined on another page. </span>
+      return theSelectedScene (<span><span>is defined on another page. You can </span>
                        <button onClick={() => this.props.openSymPage (this.graph.removeSymPrefix (node.id))}>
-                       View definition</button></span>);
+                       view or edit</button> it there.</span>);
     case this.graph.startNodeType:
-      return showName ('This is the starting scene for this story. You can edit it below:');
+      return theSelectedScene ('is the starting text. You can edit it below:');
     case this.graph.placeholderNodeType:
-      return showName ('This scene has no definition yet. You can start it below:');
+      return theSelectedScene ('has no definition yet. You can start it below:');
     case this.graph.implicitNodeType:
-      return (<span>This scene is unnamed (it is part of {this.makeNodeSelector (node.topLevelAncestorID)}). You can edit it below:</span>);
+      return (<span>The selected scene is unnamed (it is part of {this.makeNodeSelector (node.topLevelAncestorID)}). You can edit it below:</span>);
     default:
-      return showName (node.defText
-                       ? 'You can edit this scene below:'
-                       : 'This scene has no text yet. You can start it below:');
+      return theSelectedScene (node.defText
+                       ? 'can be edited below:'
+                       : 'has no text yet. You can start it below:');
     }
   }
 
   edgeBanner (edge) {
     const isLink = edge.edgeType === this.graph.linkEdgeType;
     return (<span>
-            Scene {this.makeNodeSelector (edge.source)}
+            A scene ({this.makeNodeSelector (edge.source, 'unnamed')})
             {isLink
              ? ' links to '
              : ' includes '}
-            {this.makeNodeSelector (edge.target)}
+            {this.makeNodeSelector (edge.target, 'an unnamed scene')}
             {isLink
              ? ' with the following link text'
-             : ('. The full definition of ' + this.graph.titleForID (edge.source) + ' is')}:
+             : ('. The full definition of ' + this.graph.titleForID (edge.source, 'the first scene') + ' is')}:
             </span>);
   }
 

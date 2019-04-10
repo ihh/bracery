@@ -21,6 +21,7 @@
 
 import React from 'react';
 import Parse from 'html-react-parser';
+
 import faExpand from '../icons/expand';
 import faNew from '../icons/plus';
 import faDelete from '../icons/trash-can';
@@ -39,7 +40,9 @@ type IGraphControlProps = {
   zoomLevel: number;
   zoomToFit: (event: SyntheticMouseEvent<HTMLButtonElement>) => void;
   modifyZoom: (delta: number) => boolean;
-  onCreateNode: (x: number, y: number) => void;
+  createNode: (x: number, y: number) => void;
+  deleteSelected: () => void;
+  canDeleteSelected: boolean;
 }
 
 class GraphControls extends React.Component<IGraphControlProps> {
@@ -103,15 +106,15 @@ class GraphControls extends React.Component<IGraphControlProps> {
         <button
           type="button"
           className="slider-button"
-          onClick={(evt) => { evt.stopPropagation(); this.props.createNode() }}
+          onClick={this.props.createNode}
         >
           <NewIcon />
         </button>
-        {this.props.selected
+        {this.props.canDeleteSelected
          ? (<button
             type="button"
             className="slider-button"
-            onClick={this.props.deleteNode}
+            onClick={this.props.deleteSelected}
             >
             <DeleteIcon />
             </button>)

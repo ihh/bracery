@@ -185,8 +185,9 @@ class ParseGraph {
     const node = this.findNodeByID (id);
     return node
       && node.nodeType !== this.startNodeType
-      && node.nodeType !== this.externalNodeType
-      && node.nodeType !== this.placeholderNodeType;
+      && ((node.nodeType !== this.externalNodeType
+           && node.nodeType !== this.placeholderNodeType)
+          || this.nodeIsDetached(id));
   }
 
   nodeIsDetached (id) {
@@ -199,9 +200,9 @@ class ParseGraph {
     let nodeByID = this.getNodesByID();
     let node = nodeByID[id];
     this.deleteSubgraph (node, nodeByID);
-    this.deleteEdges ({ target: id }, nodeByID);
     this.nodes = this.nodes.filter ((n) => n.id !== id);
-    this.edges = this.edges.filter ((e) => e.source !== id && e.target !== id);
+    this.edges = this.edges.filter ((e) => e.source !== id);
+    this.deleteEdges ({ target: id }, nodeByID);
   }
   
   // Can we delete an edge?
@@ -222,11 +223,10 @@ class ParseGraph {
       if (!foundEdge)
         break;
       this.replaceIncludeEdgeText (foundEdge, '');
-      if ((target.nodeType === this.placeholderNodeType
-           || target.nodeType === this.externalNodeType)
-          && this.nodeIsDetached (edge.target))
-        this.deleteNode (edge.target);
     } while (target.nodeType !== this.implicitNodeType);
+    this.nodes = this.filterOutDetachedNodes (this.nodes,
+                                              this.edges,
+                                              { nodeByID });
   }
   
   // Replace an include edge, or the entirety of a link edge

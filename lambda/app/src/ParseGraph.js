@@ -8,11 +8,12 @@ import { extend, fromEntries } from './bracery-web';
 //  - is readily serializable (no circular references, at least in this.nodes & this.edges)
 
 // TODO:
-// Undo slider button (keep in localStorage)
 // Rename node (tightly controlled input & link; parses, replaces Tracery, lookup, assign)
 // Name node (link, convert implicit node to defined node with new var name)
 // Duplicate node
+// Search
 
+// Undo slider button (keep in localStorage)
 // Save slider button (publish to server using username/symbol format)
 // User preference: by default, all pages start off unlocked (i.e. can be edited by any user)
 // (guest account has this preference checked; key pages like guest/welcome can then be locked again)
@@ -183,11 +184,7 @@ class ParseGraph {
   // Can we delete a node?
   canDeleteNode (id) {
     const node = this.findNodeByID (id);
-    return node
-      && node.nodeType !== this.startNodeType
-      && ((node.nodeType !== this.externalNodeType
-           && node.nodeType !== this.placeholderNodeType)
-          || this.nodeIsDetached(id));
+    return node && node.nodeType !== this.startNodeType;
   }
 
   nodeIsDetached (id) {

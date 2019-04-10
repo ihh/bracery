@@ -38,10 +38,6 @@ class App extends Component {
 
       mapText: props.SYMBOL_DEFINITION,
       mapSelection: {},
-      editorContent: '',
-      editorSelection: this.emptyEditorSelection(),
-      editorFocus: false,
-      editorDisabled: true,
       
       loggedIn: !!props.USER,
       editing: !!props.EDITING || true,  // DEBUG
@@ -291,9 +287,6 @@ class App extends Component {
 		       currentSourceText: text,
 		       evalTextEdited: true,
                        mapSelection: {},
-                       editorFocus: false,
-                       editorContent: '',
-                       editorSelection: this.emptyEditorSelection(),
 		       warning: this.warning.unsaved
 		   });
       return this.debounceEvalChangedUpdate();

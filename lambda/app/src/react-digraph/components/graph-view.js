@@ -1083,6 +1083,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
         renderNode={renderNode}
         renderNodeText={renderNodeText}
         isSelected={this.state.selectedNodeObj.node === node}
+        isHighlighted={node.highlighted}
         layoutEngine={this.layoutEngine}
         viewWrapperElem={this.viewWrapper.current}
       />
@@ -1158,6 +1159,10 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
       this.state.selectedEdgeObj.edge.target === edge.target;
   }
 
+  isEdgeHighlighted = (edge: IEdge) => {
+    return edge.highlighted;
+  }
+
   getEdgeComponent = (edge: IEdge | any) => {
     const sourceNodeMapNode = this.getNodeById(edge.source);
     const sourceNode = sourceNodeMapNode ? sourceNodeMapNode.node : null;
@@ -1180,6 +1185,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
         nodeKey={nodeKey}
         viewWrapperElem={this.viewWrapper.current}
         isSelected={this.isEdgeSelected(edge)}
+        isHighlighted={this.isEdgeHighlighted(edge)}
         edgeType={edge.edgeType}
       />
     );
@@ -1300,6 +1306,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
         ref={this.viewWrapper}
         style={{position:'relative'}}
         >
+	{this.props.renderSearch && this.props.renderSearch()}
       <div
         className="graph-wrapper"
         ref={this.graphWrapper}

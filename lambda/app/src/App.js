@@ -447,10 +447,6 @@ class App extends Component {
           text={this.state.evalText}
           rhs={this.state.parsedEvalText}
           selected={this.state.mapSelection}
-          editorContent={this.state.editorContent}
-          editorSelection={this.state.editorSelection}
-          editorFocus={this.state.editorFocus}
-          editorDisabled={this.state.editorDisabled}
           />)
        : ''}
 	<div>

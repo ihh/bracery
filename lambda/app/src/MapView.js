@@ -2,14 +2,14 @@ import React, { Component } from 'react';
 import { ParseTree } from 'bracery';
 import { extend, fromEntries, cloneDeep } from './bracery-web';
 import GraphView from './react-digraph/components/graph-view';
-import NodeEditor from './NodeEditor';
+import ControlledInput from './ControlledInput';
 import ParseGraph from './ParseGraph';
 
 import './MapView.css';
 
 // const canonicalStringify = require('canonical-json');
 
-// MapView has a ParseGraph and controls a GraphView & NodeEditor
+// MapView has a ParseGraph and controls a GraphView & ControlledInput
 class MapView extends Component {
   constructor(props) {
     super(props);
@@ -23,12 +23,21 @@ class MapView extends Component {
                    nodes: cloneDeep (this.graph.nodes),
                    edges: cloneDeep (this.graph.edges),
                    selected: props.selected,
+
                    editorContent: '',
                    editorSelection: extend ({}, props.editorSelection),
                    editorFocus: props.editorFocus || false,
                    editorDisabled: props.hasOwnProperty('editorDisabled') ? props.editorDisabled : true,
+
+		   searchContent: '',
+		   searchSelection: {},
+		   searchFocus: false,
+		   searchDisabled: false,
                  };
   }
+
+  // Constants
+  get hasNothingYet() { return ' has nothing yet:'; }  // space at start is deliberate
   
   // State modification
   graphState() {
@@ -48,16 +57,37 @@ class MapView extends Component {
                            this.graph.getEditorState()));
   }
 
+  // setSearchState is called by the (tightly-controlled) search input, to update its own state
+  setSearchState (newSearchState) {
+    const newState = this.prependInputName (newSearchState, 'search');
+    this.highlightMatches (newState.searchContent);
+    this.setState (extend (newState, this.graphState()));
+  }
+
+  highlightMatches (searchText) {
+    searchText = (searchText || this.state.searchContent).toLowerCase();
+    const match = (text) => (text.toLowerCase().indexOf(searchText) >= 0);
+    if (searchText)
+      this.graph.markHighlighted ((node, text, nodeByID) => (match (node.id) || match (text)),
+				  (edge, text, nodeByID) => match (text));
+    else
+      this.graph.clearHighlighted();
+  }
+
+  prependInputName (state, prefix) {
+    return fromEntries (['content','focus','disabled','selection']
+                        .filter ((prop) => state.hasOwnProperty(prop))
+                        .map ((prop) => [prefix+prop[0].toUpperCase()+prop.slice(1),
+                                         state[prop]]));
+  }
+  
   // setEditorState is called by the (tightly-controlled) node editor, to update its own state
   // We use this opportunity to update the graph as well
   setEditorState (newEditorState) {
     let graph = this.graph;
     let selectedNode = graph.selectedNode(),
         selectedEdge = graph.selectedEdge();
-    let newState = fromEntries (['content','focus','disabled','selection']
-                                .filter ((prop) => newEditorState.hasOwnProperty(prop))
-                                .map ((prop) => ['editor'+prop[0].toUpperCase()+prop.slice(1),
-                                                 newEditorState[prop]]));
+    let newState = this.prependInputName (newEditorState, 'editor');
     if (newState.hasOwnProperty('editorContent')) {
       if (selectedEdge)
         this.graph.replaceEdgeText (selectedEdge, newState.editorContent);
@@ -153,7 +183,10 @@ class MapView extends Component {
                      ? ' selected-edge-source-node'
                      :(node.selectedIncomingEdge
                        ? ' selected-edge-target-node'
-                       : '')));
+                       : '')))
+		+ (node.highlighted
+		   ? ' highlighted-node'
+		   : '');
           return [
             node.type,
             ({ shapeId: '#' + node.type,
@@ -178,24 +211,30 @@ class MapView extends Component {
   }
 
   edgeTypes() {
-    return fromEntries (['',this.graph.selectedEdgeTypeSuffix].reduce ((a, selectedSuffix) => a.concat ([
-      ['include'+selectedSuffix, {
-	shapeId: '#includeEdge'+selectedSuffix,
-	shape: (
-            <symbol viewBox="0 0 60 60" id={'includeEdgeHandle'+selectedSuffix} key="0">
-            </symbol>
-	)
-      }],
-      ['link'+selectedSuffix, {
-	shapeId: '#linkEdge'+selectedSuffix,
-	shape: (
-            <symbol viewBox="0 0 60 60" id={'linkEdge'+selectedSuffix} key="1">
-            <ellipse cx="22" cy="30" rx="10" ry="8" className={'linkEdgeHandle'+selectedSuffix}></ellipse>
-            <ellipse cx="38" cy="30" rx="10" ry="8" className={'linkEdgeHandle'+selectedSuffix}></ellipse>
-            <ellipse cx="22" cy="30" rx="10" ry="8" className={'linkEdgeHandle'+selectedSuffix} style={{fill:'none'}}></ellipse>
-            </symbol>
-	)
-      }]]), []));
+    return fromEntries (
+      ['', this.graph.highlightedEdgeTypeSuffix]
+	.reduce ((arr, highlightSuffix) => arr.concat (
+	  ['', this.graph.selectedEdgeTypeSuffix]
+	    .map ((selectSuffix) => highlightSuffix + selectSuffix)),
+		 [])
+	.reduce ((a, highlightSelectSuffix) => a.concat ([
+	  ['include'+highlightSelectSuffix, {
+	    shapeId: '#includeEdge'+highlightSelectSuffix,
+	    shape: (
+		<symbol viewBox="0 0 60 60" id={'includeEdgeHandle'+highlightSelectSuffix} key="0">
+		</symbol>
+	    )
+	  }],
+	  ['link'+highlightSelectSuffix, {
+	    shapeId: '#linkEdge'+highlightSelectSuffix,
+	    shape: (
+		<symbol viewBox="0 0 60 60" id={'linkEdge'+highlightSelectSuffix} key="1">
+		<ellipse cx="22" cy="30" rx="10" ry="8" className={'linkEdgeHandle'+highlightSelectSuffix}></ellipse>
+		<ellipse cx="38" cy="30" rx="10" ry="8" className={'linkEdgeHandle'+highlightSelectSuffix}></ellipse>
+		<ellipse cx="22" cy="30" rx="10" ry="8" className={'linkEdgeHandle'+highlightSelectSuffix} style={{fill:'none'}}></ellipse>
+		</symbol>
+	    )
+	  }]]), []));
   }
   
   // Render graph
@@ -204,7 +243,7 @@ class MapView extends Component {
     return (<div>
             {this.renderGraphView()}
             {this.renderEditorBanner()}
-            {this.renderNodeEditor()}
+            {this.renderEditor()}
             {this.renderCurrentText()}
             </div>);
   }
@@ -236,10 +275,25 @@ class MapView extends Component {
             onDeleteEdge={this.deleteEdge.bind(this)}
 	    zoomLevel="1"
             ignoreKeyboardEvents={true}
+	    renderSearch={this.renderSearchBox.bind(this)}
 	    />
             </div>);
   }
 
+  renderSearchBox() {
+    return (<div className="search-container">
+            <ControlledInput
+	    placeholder={this.state.searchDisabled?'':'Search...'}
+	    elementType="input"
+	    className="search"
+            setInputState={this.setSearchState.bind(this)}
+            content={this.state.searchContent}
+            selection={this.state.searchSelection}
+            disabled={this.state.searchDisabled}
+            focus={this.state.searchFocus} />
+            </div>);
+  }
+  
   renderEditorBanner() {
     const selected = this.state.selected;
     if (selected.node) {
@@ -260,22 +314,21 @@ class MapView extends Component {
   }
   
   nodeBanner (node) {
-    const theSelectedScene = (info) => (<span>The selected scene ({this.graph.titleForID (node.id)}) {info}</span>);
+    //    const theSelectedScene = (info) => (<span>The selected scene ({this.graph.titleForID (node.id)}) {info}</span>);
+    const theSelectedScene = (info) => (<span>{ this.graph.titleForID(node.id) }{ info || '' }</span>);
     switch (node.nodeType) {
     case this.graph.externalNodeType:
-      return theSelectedScene (<span><span>is defined on another page. You can </span>
-                       <button onClick={() => this.props.openSymPage (this.graph.removeSymPrefix (node.id))}>
-                       view or edit</button> it there.</span>);
+      return theSelectedScene (<span> is defined <button onClick={() => this.props.openSymPage (this.graph.removeSymPrefix (node.id))}>
+			       elsewhere
+			       </button></span>);
     case this.graph.startNodeType:
-      return theSelectedScene ('is the first scene. You can edit it below:');
+      return theSelectedScene(' is the opening scene:');
     case this.graph.placeholderNodeType:
-      return theSelectedScene ('has no definition yet. You can start it below:');
+      return theSelectedScene (this.hasNothingYet);
     case this.graph.implicitNodeType:
-      return (<span>The selected scene is unnamed (it is part of {this.makeNodeSelector (node.topLevelAncestorID)}). You can edit it below:</span>);
+      return (<span>Scene (part of {this.makeNodeSelector (node.topLevelAncestorID)})</span>);
     default:
-      return theSelectedScene (node.defText
-                       ? 'can be edited below:'
-                       : 'has no text yet. You can start it below:');
+      return theSelectedScene (node.defText ? '' : this.hasNothingYet);
     }
   }
 
@@ -293,10 +346,13 @@ class MapView extends Component {
             </span>);
   }
 
-  renderNodeEditor() {
+  renderEditor() {
     return (<div className="editor-container">
-            <NodeEditor
-            setEditorState={this.setEditorState.bind(this)}
+            <ControlledInput
+	    placeholder={this.state.editorDisabled?'':'Enter text...'}
+	    elementType="textarea"
+	    className="editor"
+            setInputState={this.setEditorState.bind(this)}
             content={this.state.editorContent}
             selection={this.state.editorSelection}
             disabled={this.state.editorDisabled}

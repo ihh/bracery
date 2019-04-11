@@ -23,7 +23,8 @@ type IArrowheadMarkerProps = {
 
 class ArrowheadMarker extends React.Component<IArrowheadMarkerProps> {
   static defaultProps = {
-    edgeArrowSize: 8
+    edgeArrowSize: 8,
+    className: 'arrow'
   };
 
   render() {
@@ -34,8 +35,8 @@ class ArrowheadMarker extends React.Component<IArrowheadMarkerProps> {
 
     return (
       <marker
-        id="end-arrow"
-        key="end-arrow"
+        id={"end-"+this.props.className}
+        key={"end-"+this.props.className}
         viewBox={`0 -${edgeArrowSize / 2} ${edgeArrowSize} ${edgeArrowSize}`}
         refX={`${edgeArrowSize / 2}`}
         markerWidth={`${edgeArrowSize}`}
@@ -43,7 +44,7 @@ class ArrowheadMarker extends React.Component<IArrowheadMarkerProps> {
         orient="auto"
       >
         <path
-          className="arrow"
+          className={this.props.className}
           d={`M0,-${(edgeArrowSize) / 2}L${edgeArrowSize},0L0,${(edgeArrowSize) / 2}`}
         />
       </marker>

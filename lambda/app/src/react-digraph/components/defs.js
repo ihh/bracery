@@ -71,7 +71,8 @@ class Defs extends React.Component<IDefsProps, IDefsState> {
       <defs>
         {this.state.graphConfigDefs}
 
-        <ArrowheadMarker edgeArrowSize={edgeArrowSize} />
+        <ArrowheadMarker className="arrow" edgeArrowSize={edgeArrowSize} />
+        <ArrowheadMarker className="arrow-highlighted" edgeArrowSize={edgeArrowSize} />
 
         <BackgroundPattern gridSpacing={gridSpacing} gridDotSize={gridDotSize} />
 

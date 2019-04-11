@@ -8,10 +8,10 @@ import { extend, fromEntries } from './bracery-web';
 //  - is readily serializable (no circular references, at least in this.nodes & this.edges)
 
 // TODO:
+// Simplify edge banner
 // Rename node (tightly controlled input & link; parses, replaces Tracery, lookup, assign)
 // Name node (link, convert implicit node to defined node with new var name)
 // Duplicate node
-// Search
 
 // Undo slider button (keep in localStorage)
 // Save slider button (publish to server using username/symbol format)
@@ -41,7 +41,7 @@ class ParseGraph {
 
   set nodes (n) { this.state.nodes = n; }
   set edges (e) { this.state.edges = e; }
-  set selected (s) { this.state.selected = s; this.unselectAll(); this.markSelected(); }
+  set selected (s) { this.state.selected = s; this.clearSelected(); this.markSelected(); }
   
   // Constants
   get newVarPrefix() { return 'scene' }
@@ -71,7 +71,9 @@ class ParseGraph {
 
   get includeEdgeType() { return 'include'; }
   get linkEdgeType() { return 'link'; }
+
   get selectedEdgeTypeSuffix() { return 'Selected'; }
+  get highlightedEdgeTypeSuffix() { return 'Highlighted'; }
 
   // Main build method: constructs graph (or rooted subgraph) by analyzing parsed Bracery expression
   buildGraphFromParseTree (props) {
@@ -112,7 +114,7 @@ class ParseGraph {
     this.bridgeNodesToStyles (nodes, pta);
 
     // Mark selected node/edge
-    this.unselectAll (nodes, edges);
+    this.clearSelected (nodes, edges);
     this.markSelected (selected, edges, pta);
     
     // We now have the graph
@@ -316,7 +318,7 @@ class ParseGraph {
       const selectedEdge = this.selectedEdge (selected);
       const selectedSource = this.selectedEdgeSourceNode (selected);
       editorContent = (selectedEdge.edgeType === this.linkEdgeType
-                       ? this.edgeText (nodeByID, selectedEdge)
+                       ? this.edgeText (selectedEdge, nodeByID)
                        : this.selectedNodeText (selected, selectedSource));
       if (selectedEdge.edgeType === this.includeEdgeType)
         editorSelection = this.calculateSelectionRange (selectedEdge.pos);
@@ -427,7 +429,7 @@ class ParseGraph {
     const isImplicit = oldTarget.nodeType === this.implicitNodeType;
     newTarget = (!isImplicit && newTarget) || oldTarget;
     const newLinkText = this.makeMarkdownStyleLink (isImplicit ? newTarget : null,
-                                                    newText || this.edgeText (nodeByID, edge),
+                                                    newText || this.edgeText (edge, nodeByID),
                                                     (isImplicit
                                                      ? newTarget.defText
                                                      : this.makeLinkTargetBracery (newTarget)));
@@ -824,7 +826,7 @@ class ParseGraph {
   }
 
   // Text for a graph node, or substring associated with a node (pos is optional, defaults to node pos)
-  nodeText (nodeByID, node, pos) {
+  nodeText (node, pos, nodeByID) {
     if (node.defText && !pos)
       return node.defText;
     let ancestor = this.getAncestor (node, nodeByID);
@@ -841,10 +843,14 @@ class ParseGraph {
   }
   
   // Text for a graph edge
-  edgeText (nodeByID, edge) {
+  // For link edges, this defaults to just the link text, unless config.useFullEdge is truthy.
+  edgeText (edge, nodeByID, config) {
+    nodeByID = nodeByID || this.getNodesByID();
+    const useFullEdge = config && config.useFullEdge;
     let source = nodeByID[edge.source];
     let ancestor = this.getAncestor (source, nodeByID);
-    return this.getPosSubstr (ancestor.defText, edge.linkTextPos || edge.pos);
+    const pos = (!useFullEdge && edge.linkTextPos) || edge.pos;
+    return this.getPosSubstr (ancestor.defText, pos);
   }
 
   // Detect if a graph node is another node's ancestor
@@ -1183,8 +1189,8 @@ class ParseGraph {
         title = this.placeholderNodeText;
         break;
       case this.implicitNodeType:
-        typeText = ''; // this.nodeText (nodeByID, node, node.linkTextPos);
-        title = this.nodeText (nodeByID, node, node.linkTargetPos);
+        typeText = '';
+        title = this.nodeText (node, node.linkTargetPos, nodeByID);
         break;
       case this.startNodeType:
         typeText = ParseTree.symChar + pta.symName + ' ';
@@ -1304,13 +1310,50 @@ class ParseGraph {
     return topLevelNodes;
   }
 
-  unselectAll (nodes, edges) {
+  // Clear highlights
+  clearHighlighted() {
+    this.nodes.forEach ((node) => { delete node.highlighted; });
+    ((config) => {
+      this.edges.forEach ((edge) => { delete edge.highlighted; edge.type = edge.type.replace (config.regex, config.replace); });
+    }) ({
+      regex: new RegExp ('^(.*)' + this.highlightedEdgeTypeSuffix + '(' + this.selectedEdgeTypeSuffix + '|)$'),
+      replace: (_match, prefix, suffix) => prefix + suffix,
+    });
+  }
+
+  // Mark highlighted nodes & edges
+  markHighlighted (nodePredicate, edgePredicate, nodeByID) {
+    nodeByID = nodeByID || this.getNodesByID();
+    this.clearHighlighted();
+    const highlightedNodes = this.nodes.filter ((n) => nodePredicate (n,
+								      this.nodeText (n, n.linkTargetPos, nodeByID),
+								      nodeByID)),
+	  highlightedEdges = this.edges.filter ((e) => edgePredicate (e,
+								      (e.edgeType === this.linkEdgeType
+								       ? this.edgeText (e, nodeByID)
+								       : this.getPosSubstr (this.nodeText (nodeByID[e.source],
+													   null,
+													   nodeByID),
+											    e.pos)),
+								      nodeByID));
+
+    highlightedNodes.forEach ((n) => { n.highlighted = true; });
+    ((config) => {
+      highlightedEdges.forEach ((edge) => { edge.highlighted = true; edge.type = edge.type.replace (config.regex, config.replace); }); }
+    ) ({
+      regex: new RegExp ('^(.*?)(' + this.selectedEdgeTypeSuffix + '|)$'),
+      replace: (_match, prefix, suffix) => prefix + this.highlightedEdgeTypeSuffix + suffix,
+    });
+  }
+  
+  // Clear selection
+  clearSelected (nodes, edges) {
     nodes = nodes || this.nodes;
     edges = edges || this.edges;
     nodes.forEach ((node) => { delete node.selectedOutgoingEdge; delete node.selectedIncomingEdge; delete node.selected; });
-    (
-      (regex) => edges.forEach ((edge) => { delete edge.selected; edge.type = edge.type.replace (regex, ''); })
-    ) (new RegExp (this.selectedEdgeTypeSuffix + '$', 'g'));
+    ((regex) => {
+      edges.forEach ((edge) => { delete edge.selected; edge.type = edge.type.replace (regex, ''); });
+    }) (new RegExp (this.selectedEdgeTypeSuffix + '$', 'g'));
   }
 
   // Mark selected node/edge
@@ -1327,6 +1370,7 @@ class ParseGraph {
       edges
         .filter ((edge) => edge.source === selected.edge.source)
         .filter ((edge) => edge.target === selected.edge.target)
+        .filter ((edge) => !edge.selected)  // newly-selected edges only
         .forEach ((edge) => {
           edge.selected = true;
           edge.type += this.selectedEdgeTypeSuffix;

@@ -21,13 +21,14 @@
     opacity: .7;
 }
 
-.selected-edge-source-node,
-.selected-edge-target-node {
-    fill: #eee;
-}
-
 .selected-node {
     stroke: #00f;
+}
+
+.selected-edge-source-node,
+.selected-edge-target-node,
+.selected-node.external-node {
+    fill: #eee;
 }
 
 .selected-node.start-node,
@@ -37,34 +38,47 @@
     fill: #ccf;
 }
 
-.selected-node.external-node {
-    fill: #eee;
+.highlighted-node:not(.selected-node) {
+    fill: mistyrose;
 }
 
-.linkEdgeHandle,
-.includeEdgeHandle {
+.linkEdgeHandle, .linkEdgeHandleHighlighted,
+.includeEdgeHandle, .includeEdgeHandleHighlighted {
     stroke-width: 1;
     fill: white;
 }
 
-.includeEdgeHandle {
+.includeEdgeHandle, .includeEdgeHandleHighlighted {
     stroke: #88f;
 }
 
-.linkEdgeHandle {
+.linkEdgeHandle, .linkEdgeHandleHighlighted {
     stroke: #00f;
 }
 
-.includeEdgeHandle,
-.includeEdgeHandleSelected {
+.includeEdgeHandle, .includeEdgeHandleHighlighted,
+.includeEdgeHandleSelected, .includeEdgeHandleHighlightedSelected {
     marker-end: none;
+}
+
+.linkEdgeHandleSelected, .linkEdgeHandleHighlightedSelected,
+.includeEdgeHandleSelected, .includeEdgeHandleHighlightedSelected {
+    fill: #ccf;
 }
 
 .linkEdgeHandleSelected,
 .includeEdgeHandleSelected {
     stroke-width: 1;
     stroke: #00f;
-    fill: #ccf;
+}
+
+.highlighted-node,
+.linkEdgeHandleHighlighted,
+.includeEdgeHandleHighlighted,
+.linkEdgeHandleHighlightedSelected,
+.includeEdgeHandleHighlightedSelected {
+    stroke-width: 2;
+    stroke: purple;
 }
 
 .editor-enabled {

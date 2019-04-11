@@ -37,9 +37,9 @@ class NodeText extends React.Component<INodeTextProps> {
   }
 
   render() {
-    const { data, nodeTypes, isSelected } = this.props;
+    const { data, nodeTypes, isSelected, isHighlighted } = this.props;
     const title = data.title;
-    const className = GraphUtils.classNames('node-text', { selected: isSelected });
+    const className = GraphUtils.classNames('node-text', { selected: isSelected, highlighted: isHighlighted });
     const typeText = this.getTypeText(data, nodeTypes);
     const lineOffset = typeText ? 18 : 5;
 

@@ -52,6 +52,7 @@ type INodeProps = {
     data: any,
     id: string,
     selected: boolean,
+    highlighted: boolean,
     hovered: boolean
   ) => any;
   renderNodeText?: (data: any, id: string | number, isSelected: boolean) => any;
@@ -65,6 +66,7 @@ type INodeState = {
   x: number;
   y: number;
   selected: boolean;
+  highlighted: boolean,
   mouseDown: boolean;
   drawingEdge: boolean;
 };
@@ -88,6 +90,7 @@ class Node extends React.Component<INodeProps, INodeState> {
   static getDerivedStateFromProps(nextProps: INodeProps, prevState: INodeState) {
     return {
       selected: nextProps.isSelected,
+      highlighted: nextProps.isHighlighted,
       x: nextProps.data.x,
       y: nextProps.data.y
     };
@@ -104,6 +107,7 @@ class Node extends React.Component<INodeProps, INodeState> {
       hovered: false,
       mouseDown: false,
       selected: false,
+      highlighted: false,
       x: props.data.x || 0,
       y: props.data.y || 0
     };
@@ -229,14 +233,14 @@ class Node extends React.Component<INodeProps, INodeState> {
 
   renderShape() {
     const { renderNode, data, index, nodeTypes, nodeSubtypes, nodeKey } = this.props;
-    const { hovered, selected } = this.state;
+    const { hovered, selected, highlighted } = this.state;
     const props = {
       height: this.props.nodeSize || 0,
       width: this.props.nodeSize || 0
     };
     const nodeShapeContainerClassName = GraphUtils.classNames('shape');
-    const nodeClassName = GraphUtils.classNames('node', { selected, hovered });
-    const nodeSubtypeClassName = GraphUtils.classNames('subtype-shape', { selected: this.state.selected });
+    const nodeClassName = GraphUtils.classNames('node', { selected, highlighted, hovered });
+    const nodeSubtypeClassName = GraphUtils.classNames('subtype-shape', { selected, highlighted });
     const nodeTypeXlinkHref = Node.getNodeTypeXlinkHref(data, nodeTypes) || '';
     const nodeSubtypeXlinkHref = Node.getNodeSubtypeXlinkHref(data, nodeSubtypes) || '';
 
@@ -284,7 +288,7 @@ class Node extends React.Component<INodeProps, INodeState> {
     if (renderNodeText) {
       return renderNodeText(data, id, isSelected);
     }
-    return (<NodeText data={data} nodeTypes={nodeTypes} isSelected={this.state.selected} />);
+    return (<NodeText data={data} nodeTypes={nodeTypes} isSelected={this.state.selected} isHighlighted={this.state.highlighted} />);
   }
 
   render() {

@@ -33,6 +33,11 @@ class MapView extends Component {
 		   searchSelection: {},
 		   searchFocus: false,
 		   searchDisabled: false,
+
+		   renamerContent: '',
+		   renamerSelection: {},
+		   renamerFocus: false,
+		   renamerDisabled: false,
                  };
   }
 
@@ -53,8 +58,15 @@ class MapView extends Component {
 
   setSelected (selected) {
     this.graph.selected = selected;  // setter automatically updates graph selection markers
-    this.setState (extend (this.graphState(),
+    this.setState (extend ({ renamerContent: '' },
+			   this.graphState(),
                            this.graph.getEditorState()));
+  }
+
+  // setRenamerState is called by the (tightly-controlled) rename input, to update its own state
+  setRenamerState (newRenamerState) {
+    const newState = this.prependInputName (newRenamerState, 'renamer');
+    this.setState (newState);
   }
 
   // setSearchState is called by the (tightly-controlled) search input, to update its own state
@@ -297,12 +309,15 @@ class MapView extends Component {
   renderEditorBanner() {
     const selected = this.state.selected;
     if (selected.node) {
+      const node = this.graph.selectedNode (selected);
       return (<div className="editor-banner editor-banner-node">
-              {this.nodeBanner (this.graph.selectedNode(selected))}
+              {this.nodeBanner (node)}
+              {this.nodeRenamer (node)}
               </div>);
     } else if (selected.edge) {
+      const edge = this.graph.selectedEdge (selected);
       return (<div className="editor-banner editor-banner-edge">
-              {this.edgeBanner (this.graph.selectedEdge(selected))}
+              {this.edgeBanner (edge)}
               </div>);
     }
     return (<div className="editor-banner editor-banner-no-selection"></div>);
@@ -330,6 +345,22 @@ class MapView extends Component {
     default:
       return theSelectedScene (node.defText ? '' : this.hasNothingYet);
     }
+  }
+
+  nodeRenamer (node) {
+    return this.graph.canRenameNode (node.id)
+      && (<span className="renamer-container">
+            <ControlledInput
+	    placeholder={this.state.renamerDisabled?'':'Rename'}
+	    elementType="input"
+	    className="renamer"
+            setInputState={this.setRenamerState.bind(this)}
+            content={this.state.renamerContent}
+            selection={this.state.renamerSelection}
+            disabled={this.state.renamerDisabled}
+            focus={this.state.renamerFocus} />
+	  </span>);
+    
   }
 
   edgeBanner (edge) {

@@ -41,7 +41,7 @@ describe('parse tree methods', function() {
   it('should find symbol nodes', function (done) {
     var rhs = bracery.ParseTree.parseRhs ('~x &uc{~y} &if{~a}{~b}{~c} &call~z{~foo}')
     var nodes = bracery.ParseTree.getSymbolNodes (rhs)
-    assertJsonEqual (nodes, [['x',[0,2]],['y',[7,2]],['a',[15,2]],['b',[19,2]],['c',[23,2]],['z',[32,2]],['foo',[35,4]]].map (function (name_pos) { return { type: 'sym', name: name_pos[0], pos: name_pos[1], bind: null, method: 'expand' } }))
+    assertJsonEqual (nodes, [['x',[0,2]],['y',[7,2]],['a',[15,2]],['b',[19,2]],['c',[23,2]],['z',[32,2]],['foo',[35,4]]].map (function (name_pos) { return { type: 'sym', name: name_pos[0], pos: name_pos[1], sympos: [name_pos[1][0]+1,name_pos[1][1]-1], bind: null, method: 'expand' } }))
     done()
   })
 

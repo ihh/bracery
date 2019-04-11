@@ -184,8 +184,8 @@ class ParseGraph {
   }
 
   // Can we delete a node?
-  canDeleteNode (id) {
-    const node = this.findNodeByID (id);
+  canDeleteNode (id, nodeByID) {
+    const node = this.findNodeByID (id, nodeByID);
     return node && node.nodeType !== this.startNodeType;
   }
 
@@ -204,6 +204,68 @@ class ParseGraph {
     this.removeDetached (nodeByID);
   }
 
+
+  // Can we rename a node?
+  canRenameNode (oldID, newID, nodeByID) {
+    oldID = oldID.toLowerCase();
+    newID = newID && newID.toLowerCase();
+    nodeByID = nodeByID || this.getNodesByID();
+    const node = nodeByID[oldID];
+    return node
+      && (node.nodeType === this.definedNodeType || node.nodeType === this.placeholderNodeType)
+      && (!newID || (!this.isVarName()[newID] && !nodeByID[newID]));
+  }
+
+  // Rename a node
+  renameNode (oldID, newID, nodeByID) {
+    oldID = oldID.toLowerCase();
+    newID = newID.toLowerCase();
+    nodeByID = nodeByID || this.getNodesByID();
+    const renamedNode = nodeByID[oldID];
+    renamedNode.id = newID;
+    delete nodeByID[oldID];
+    nodeByID[newID] = renamedNode;
+    let text = renamedNode.defText;
+    this.nodes
+      .filter ((node) => (node.nodeType === this.definedNodeType || node.nodeType === this.startNodeType))
+      .forEach ((node) => {
+	const rhs = ParseTree.parseRhs (text);
+	const replacements = this.getVarNodes (rhs)
+	      .map ((varNode) => (varNode.isShortcut
+				  ? { pos: varNode.pos,
+				      newText: this.makeMarkdownStyleLink (null,
+									   this.parseTreeNodeText (this.getLinkText (varNode), text),
+									   this.makeLinkTargetBracery (renamedNode))
+				    }
+				  : (ParseTree.isTraceryExpr(varNode)
+				     ? { pos: varNode.pos,
+					 newText: this.makeLinkTargetBracery (renamedNode)
+				       }
+				     : { pos: varNode.varpos,
+					 newText: newID })))
+	      .filter ((r) => r.pos && r.pos[1])
+	      .sort ((a, b) => a.pos[0] - b.pos[0]);
+	replacements.forEach ((r, n) => {
+	  if (n) {
+	    const prev = replacements[n-1];
+	    if (r.pos[0] < prev.pos[0] + prev.pos[1])
+	      throw new Error ('overlapping replacements');
+	  }
+	})
+	const newDefText = replacements
+	  .reverse()
+	  .concat ({ pos: [0, 0], newText: '' })
+	  .reduce ((info, rep) => {
+	    const endOffset = rep.pos[0] + rep.pos[1];
+	    return { text: rep.newText + text.substr (endOffset, info.startOffset - endOffset) + info.suffix,
+		     startOffset: rep.pos[0] };
+	  }, { suffix: '',
+	       startOffset: text.length });
+	this.replaceNodeText (node, newDefText);
+      });
+  }
+  
+  
   // Remove detached nodes
   // Generally we call this after "delete" operations, but not generic edit operations that happen to delete nodes
   // (e.g. editing, edge target-swapping)
@@ -308,7 +370,7 @@ class ParseGraph {
                                         ? { pos: node.linkTargetPos }
                                         : {})));
   }
-
+  
   // getEditorState
   getEditorState() {
     const selected = this.selected;
@@ -618,7 +680,7 @@ class ParseGraph {
   // Specialized version of ParseTree.findNodes for checking if a tree contains no variable lookups, symbols, or links
   isStaticExpr (rhs) {
     return ParseTree.findNodes (rhs, {
-      nodePredicate: function (nodeConfig, node) {
+      nodePredicate: (nodeConfig, node) => {
         return (typeof(node) === 'object'
                 && (node.type === 'sym'
                     || node.type === 'lookup'
@@ -631,7 +693,7 @@ class ParseGraph {
   // Specialized version of ParseTree.findNodes that returns names of variables (assignments and lookups) and symbols
   symAndVarNames (rhs) {
     return Object.keys (fromEntries (ParseTree.findNodes (rhs, {
-      nodePredicate: function (nodeConfig, node) {
+      nodePredicate: (nodeConfig, node) => {
         if (typeof(node) === 'object') {
           if (node.type === 'sym')
             return node.name;
@@ -641,6 +703,24 @@ class ParseGraph {
         return false;
       }
     }).map ((name) => [name, true]))).sort();
+  }
+
+  // Specialized version of ParseTree.findNodes that returns names of variables (assignments and lookups) and symbols,
+  getVarNodes (rhs) {
+    return ParseTree.findNodes (rhs, {
+      nodePredicate: (nodeConfig, node) => {
+	return (node
+		&& typeof(node) === 'object'
+		&& ((node.type === 'lookup' || node.type === 'assign')
+		    || node.isShortcut
+		    || ParseTree.isTraceryExpr (node)));
+      },
+      makeChildConfig: (nodeConfig, node, nChild) => {
+	return (node.isShortCut || ParseTree.isTraceryExpr (node)
+		? { excludeSubtree: true }
+		: nodeConfig);
+      }
+    });
   }
 
   // Wrappers for ParseTree.getSymbolNodes that find various types of nodes

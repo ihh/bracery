@@ -47,10 +47,25 @@ function pseudoFunction (tag, builder) {
 }
 
 function makeRep (unit, min, max) { return makeNode ('rep', { unit: unit, min: min, max: max }) }
-function makeSymbolMethod (name, method, args) { return makeNode ('sym', { name: name.toLowerCase(), method: method, bind: args }) }
-function makeLookup (name) { return makeNode ('lookup', { varname: name }) }
-function makeAssign (name, value, visible) { return makeNode ('assign', { varname: name, value: value, visible: visible }) }
-function makeLocalAssign (name, value, scope) { return makeNode ('assign', { varname: name, value: value, local: scope }) }
+function makeSymbolMethod (name, method, args) {
+  return makeNode ('sym',
+		   extend (getLocatedSymName (name),
+			   { method: method,
+			     bind: args }));
+}
+function makeLookup (name) { return makeNode ('lookup', getLocatedVarName (name)) }
+function makeAssign (name, value, visible) {
+  return makeNode ('assign',
+		   extend (getLocatedVarName (name),
+			   { value: value,
+			     visible: visible }));
+}
+function makeLocalAssign (name, value, scope) {
+  return makeNode ('assign',
+		   extend (getLocatedVarName (name),
+			   { value: value,
+			     local: scope }));
+}
 function makeAlternation (opts) { return makeNode ('alt', { opts: opts }) }
 function makeConditional (testArg, trueArg, falseArg) { return makeNode ('cond', { test: testArg, t: trueArg, f: falseArg }) }
 function makeFunction (name, args, useArgPos) {
@@ -68,6 +83,25 @@ function makeRoot (args) {
   if (args.pos)
     node.pos = args.pos
   return node
+}
+
+function wrapIdentifier (name) { return addLocation ({ text: name }) }
+function getLocatedVarName (wrappedIdentifier) {
+  return (typeof(wrappedIdentifier) === 'object'
+	  ? { varname: wrappedIdentifier.text.toLowerCase(),
+	      varpos: wrappedIdentifier.pos }
+	  : { varname: wrappedIdentifier });
+}
+function getLocatedSymName (wrappedIdentifier) {
+  return (typeof(wrappedIdentifier) === 'object'
+	  ? { name: wrappedIdentifier.text.toLowerCase(),
+	      sympos: wrappedIdentifier.pos }
+	  : { name: wrappedIdentifier.toLowerCase() });
+}
+function getLocatedText (wrappedIdentifier) {
+  return (typeof(wrappedIdentifier) === 'object'
+	  ? wrappedIdentifier.text
+	  : wrappedIdentifier);
 }
 
 function makeValue (args) { return makeFunction ('value', args) }
@@ -113,10 +147,11 @@ function makeLinkShortcut (text) {
       .replace(/[^a-z0-9_]+/g,'_');
   var loc = addLocation({})
   return (symName.length
-	  ? makeFunction ('link',
-                          [makeRoot ([text]),
-                           makeQuote ([copyLocation (makeTraceryExpr (symName, []),
-                                                     { pos: [loc.pos[0]+2, loc.pos[1]-4] })])])
+	  ? extend (makeFunction ('link',
+				  [makeRoot ([text]),
+				   makeQuote ([copyLocation (makeTraceryExpr (symName, []),
+							     { pos: [loc.pos[0]+2, loc.pos[1]-4] })])]),
+		    { isShortcut: true })  // this flag is just for convenience of parse tree analysis, it is not strictly needed
 	  : ('[[' + text + ']]'))
 }
 
@@ -151,9 +186,10 @@ function makeUpperCase (args) { return makeFunction ('uc', args) }
 
 function sugarize (makeNode, name, args) {
   var node = makeNode (name, args)
-  if (name.match(/^[0-9_]*[A-Z].*[a-z]/))
+  var text = getLocatedText (name)
+  if (text.match(/^[0-9_]*[A-Z].*[a-z]/))
     return makeCapped ([node])
-  else if (name.match(/[A-Z]/) && !name.match(/[a-z]/))
+  else if (text.match(/[A-Z]/) && !text.match(/[a-z]/))
     return makeUpperCase ([node])
   return node
 }

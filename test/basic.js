@@ -76,7 +76,7 @@ function doTests (testRunner) {
   expectExpandQuote ('&eval{&eval{&quote{~}test1}}', 'testing')
   expectExpand ('\\~test1', '~test1')
   expectExpand ('&eval{\\~test1}', 'testing')
-  expectExpandQuote ('&quote{#heroPet#}', '#heroPet#')
+  expectExpandQuote ('&quote{#heroPet#}', '#heropet#')
   expectExpandQuote ('&quote[a=>b]', '$a={&quote{b}}')
   expectExpandQuote ('&quote[a=>b|c]', '$a={&quote[b|c]}')
   expectExpandQuote ('$heropet={freddy}&eval&quote{#heroPet#}', 'freddy')

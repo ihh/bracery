@@ -74,7 +74,7 @@ SymbolFunction
   = PlainSymbol
   / sym:CallSymbol args:ArgList { return makeSugaredSymbol (sym, makeArgList (args)) }
   / sym:ApplySymbol args:FunctionArg { return makeSugaredSymbol (sym, args) }
-  / "#" sym:Identifier mods:TraceryModifiers "#" { return makeTraceryExpr (sym, mods) }
+  / "#" sym:LocatedIdentifier mods:TraceryModifiers "#" { return makeTraceryExpr (sym, mods) }
   / sym:GetSymbol { return makeGetSymbol (sym) }
   / sym:SetSymbol args:FunctionArg { return makeSetSymbol (sym, args) }
 
@@ -97,11 +97,11 @@ SetSymbol
 SymIdentifier
   = PrefixedSymIdentifier
   / "{" sym:PrefixedSymIdentifier "}" { return sym }
-  / "{" sym:Identifier "}" { return sym }
+  / "{" sym:LocatedIdentifier "}" { return sym }
 
 PrefixedSymIdentifier
-  = "~" sym:Identifier { return sym }
-  / "~{" _ sym:Identifier _ "}" { return sym }
+  = "~" sym:LocatedIdentifier { return sym }
+  / "~{" _ sym:LocatedIdentifier _ "}" { return sym }
 
 TraceryModifiers
   = mod:TraceryModifier mods:TraceryModifiers { return [mod].concat (mods) }
@@ -316,19 +316,19 @@ VarAssignmentList
   / head:VarAssignment { return [head] }
 
 VarAssignment
-  = "&set$" varname:Identifier args:FunctionArg _ { return makeAssign (varname, args) }
-  / "&set{" ("$" / "") varname:Identifier "}" args:FunctionArg { return makeAssign (varname, args) }
-  / "[" varname:Identifier ":" args:NodeList "]" _ { return makeAssign (varname, args) }
-  / "[" varname:Identifier "=>" opts:AltList "]" _ { return makeAssign (varname, arrayWithPos (pseudoQuote (makeAltAssignRhs(opts)))) }
-  / "[" varname:Identifier "@" coord:XYCoord "=>" opts:AltList "]" _ { return makeAssign (varname, arrayWithPos (makeLayout (coord, makeAltAssignRhs(opts)))) }
-  / "[" varname:Identifier "@(" coord:XYCoord ")=>" opts:AltList "]" _ { return makeAssign (varname, arrayWithPos (makeLayout (coord, makeAltAssignRhs(opts)))) }
-  / "$" varname:Identifier "=" target:VarAssignmentTarget { return makeAssign (varname, target) }
-  / "$" varname:Identifier ":=" target:VarAssignmentTarget { return makeAssign (varname, target, true) }
-  / "$" varname:Identifier "+=" delta:VarAssignmentTarget { return makeModify (varname, 'add', delta) }
-  / "$" varname:Identifier "-=" delta:VarAssignmentTarget { return makeModify (varname, 'subtract', delta) }
-  / "$" varname:Identifier "*=" scale:VarAssignmentTarget { return makeModify (varname, 'multiply', scale) }
-  / "$" varname:Identifier "/=" scale:VarAssignmentTarget { return makeModify (varname, 'divide', scale) }
-  / "$" varname:Identifier ".=" suffix:VarAssignmentTarget { return makeModifyConcat (varname, suffix) }
+  = "&set$" varname:LocatedIdentifier args:FunctionArg _ { return makeAssign (varname, args) }
+  / "&set{" ("$" / "") varname:LocatedIdentifier "}" args:FunctionArg { return makeAssign (varname, args) }
+  / "[" varname:LocatedIdentifier ":" args:NodeList "]" _ { return makeAssign (varname, args) }
+  / "[" varname:LocatedIdentifier "=>" opts:AltList "]" _ { return makeAssign (varname, arrayWithPos (pseudoQuote (makeAltAssignRhs(opts)))) }
+  / "[" varname:LocatedIdentifier "@" coord:XYCoord "=>" opts:AltList "]" _ { return makeAssign (varname, arrayWithPos (makeLayout (coord, makeAltAssignRhs(opts)))) }
+  / "[" varname:LocatedIdentifier "@(" coord:XYCoord ")=>" opts:AltList "]" _ { return makeAssign (varname, arrayWithPos (makeLayout (coord, makeAltAssignRhs(opts)))) }
+  / "$" varname:LocatedIdentifier "=" target:VarAssignmentTarget { return makeAssign (varname, target) }
+  / "$" varname:LocatedIdentifier ":=" target:VarAssignmentTarget { return makeAssign (varname, target, true) }
+  / "$" varname:LocatedIdentifier "+=" delta:VarAssignmentTarget { return makeModify (varname, 'add', delta) }
+  / "$" varname:LocatedIdentifier "-=" delta:VarAssignmentTarget { return makeModify (varname, 'subtract', delta) }
+  / "$" varname:LocatedIdentifier "*=" scale:VarAssignmentTarget { return makeModify (varname, 'multiply', scale) }
+  / "$" varname:LocatedIdentifier "/=" scale:VarAssignmentTarget { return makeModify (varname, 'divide', scale) }
+  / "$" varname:LocatedIdentifier ".=" suffix:VarAssignmentTarget { return makeModifyConcat (varname, suffix) }
   / "&tag" tag:FunctionArg _ { return makeModifyConcat ('tags', [' '].concat (tag)) }
   / "&" varname:VarAssignFunctionName arg:QuotedFunctionArg _ { return makeAssign (varname, arg) }
 
@@ -348,8 +348,8 @@ PlainVarLookup
   = varname:VarIdentifier { return makeLookup (varname) }
 
 VarIdentifier
-  = "$" varname:Identifier { return varname }
-  / "${" _ varname:Identifier _ "}" { return varname }
+  = "$" varname:LocatedIdentifier { return varname }
+  / "${" _ varname:LocatedIdentifier _ "}" { return varname }
 
 Alternation
   = "{" head:NodeList "|" tail:AltList "}" { return makeAlternation ([head].concat(tail)) }
@@ -378,7 +378,13 @@ SignedNumber
   = ("+" _ / "") n:Number { return n }
   / "-" n:Number { return -n }
 
+LocatedIdentifier
+  = id:RawIdentifier { return wrapIdentifier(id) }
+
 Identifier
+  = RawIdentifier
+
+RawIdentifier
   = firstChar:[A-Za-z_] rest:[A-Za-z_0-9]* { return firstChar + rest.join("") }
 
 _ "whitespace"

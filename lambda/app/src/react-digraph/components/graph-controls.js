@@ -105,6 +105,7 @@ class GraphControls extends React.Component<IGraphControlProps> {
 
         <button
           type="button"
+          title="Zoom to fit"
           className="slider-button"
           onMouseDown={this.props.zoomToFit}
         >
@@ -114,6 +115,7 @@ class GraphControls extends React.Component<IGraphControlProps> {
       {this.props.onUndo
        && (<button
            type="button"
+           title="Undo"
            className={"slider-button"+(this.props.canUndo?"":" disabled")}
            onClick={() => this.props.canUndo && this.props.onUndo()}
            >
@@ -123,6 +125,7 @@ class GraphControls extends React.Component<IGraphControlProps> {
       {this.props.onRedo
        && (<button
            type="button"
+           title="Redo"
            className={"slider-button"+(this.props.canRedo?"":" disabled")}
            onClick={() => this.props.canRedo && this.props.onRedo()}
            >
@@ -131,6 +134,7 @@ class GraphControls extends React.Component<IGraphControlProps> {
 
 	<button
           type="button"
+          title="New scene"
           className="slider-button"
           onClick={this.props.createNode}
         >
@@ -140,6 +144,7 @@ class GraphControls extends React.Component<IGraphControlProps> {
         {this.props.canDeleteSelected
          && (<button
              type="button"
+             title="Delete"
              className="slider-button"
              onClick={this.props.deleteSelected}
              >

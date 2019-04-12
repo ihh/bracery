@@ -7,7 +7,7 @@ import ParseGraph from './ParseGraph';
 
 import './MapView.css';
 
-// const canonicalStringify = require('canonical-json');
+const canonicalStringify = require('canonical-json');
 
 // MapView has a ParseGraph and controls a GraphView & ControlledInput
 class MapView extends Component {
@@ -18,14 +18,13 @@ class MapView extends Component {
                                    rhs: props.rhs,
                                    name: props.name,
                                    selected: props.selected });
-    console.warn(this.graph.state);
     this.state = { text: props.text,
                    nodes: cloneDeep (this.graph.nodes),
                    edges: cloneDeep (this.graph.edges),
                    selected: props.selected,
 
-		   history: [],  // undo
-		   historyPopped: [],  // redo
+		   braceryHistory: [],  // undo
+		   braceryFuture: [],  // redo
 		   
                    editorContent: '',
                    editorSelection: extend ({}, props.editorSelection),
@@ -46,6 +45,7 @@ class MapView extends Component {
 
   // Constants
   maxUndos() { return 1024; }  // nice deep undo history
+  minTimeBetweenSimilarHistoryEvents() { return 400; }  // milliseconds
   
   // State modification
   graphState() {
@@ -120,12 +120,15 @@ class MapView extends Component {
           console.error('oops: editor content with no selected node or edge');
       }
       return extend (newState, this.graphState());
-    });
+    }, { source: 'editor',
+	 selected: this.graph.selected });
   }
 
   createNode (x, y) {
-    const newNode = this.graph.createNode (x || 0, y || 0);
-    this.updateSelection ({ node: newNode.id });
+    this.newHistoryEvent (() => {
+      const newNode = this.graph.createNode (x || 0, y || 0);
+      return this.graphStateForSelection ({ node: newNode.id });
+    });
   }
 
   canCreateEdge (source, target) {
@@ -133,9 +136,11 @@ class MapView extends Component {
   }
 
   createEdge (source, target) {
-    this.graph.createEdge (source, target);
-    this.updateSelection ({ edge: { source: source.id,
-                                    target: target.id } });
+    this.newHistoryEvent (() => {
+      this.graph.createEdge (source, target);
+      return this.graphStateForSelection ({ edge: { source: source.id,
+						    target: target.id } });
+    });
   }
 
   canSwapEdge (source, target, edge) {
@@ -143,9 +148,11 @@ class MapView extends Component {
   }
   
   swapEdge (source, target, edge) {
-    this.graph.swapEdge (source, target, edge);
-    this.updateSelection ({ edge: { source: source.id,
-                                    target: target.id } });
+    this.newHistoryEvent (() => {
+      this.graph.swapEdge (source, target, edge);
+      return this.graphStateForSelection ({ edge: { source: source.id,
+						    target: target.id } });
+    });
   }
 
   updateNode (node) {
@@ -213,30 +220,86 @@ class MapView extends Component {
   }
 
   canUndo() {
-    return this.state.history.length > 0;
+    return this.state.braceryHistory.length > 0;
   }
 
   canRedo() {
-    return this.state.historyPopped.length > 0;
+    return this.state.braceryFuture.length > 0;
   }
   
   undo() {
-    // WRITE ME
+    let history = this.state.braceryHistory, future = this.state.braceryFuture;
+    const bracery = this.graph.bracery(), undoEvent = history.pop();
+    this.addToHistory (future, bracery);
+
+    this.graph = new ParseGraph ({ text: undoEvent.bracery,
+                                   name: this.props.name,
+                                   selected: {} });
+
+    this.setState (extend ({ braceryHistory: history,
+			     braceryFuture: future },
+			   this.graphState(),
+			   this.disableInputState()));
   }
 
   redo() {
-    // WRITE ME
+    let history = this.state.braceryHistory, future = this.state.braceryFuture;
+    const bracery = this.graph.bracery(), redoEvent = future.pop();
+    this.addToHistory (history, bracery);
+    
+    this.graph = new ParseGraph ({ text: redoEvent.bracery,
+                                   name: this.props.name,
+                                   selected: {} });
+    
+    this.setState (extend ({ braceryHistory: history,
+			     braceryFuture: future },
+			   this.graphState(),
+			   this.disableInputState()));
   }
 
-  newHistoryEvent (newStateGetter) {
-    let history = this.state.history;
-    const bracery = this.graph.bracery();
-    if (!history.length || history[history.length-1] !== bracery)
-      history.push (bracery);
+  disableInputState() {
+    return { editorContent: '',
+	     editorFocus: false,
+	     editorDisabled: true,
+	     renamerContent: '',
+	     renamerFocus: false,
+	     renamerDisabled: true,
+	     searchContent: '',
+	     searchFocus: false };
+	     
+  }
+
+  addToHistory (history, bracery, type) {
+    const timestamp = Date.now();
+    const typeJson = type && canonicalStringify(type);
+    const historyEvent = extend ({ bracery },
+				 type ? {typeJson,timestamp} : {});
+    if (history.length) {
+      const lastEvent = history[history.length - 1];
+      if (lastEvent.bracery !== bracery) {
+	if (type
+	    && lastEvent.typeJson === typeJson
+	    && lastEvent.timestamp
+	    && timestamp < lastEvent.timestamp + this.minTimeBetweenSimilarHistoryEvents())
+	  history.pop();
+	history.push (historyEvent);
+      }
+    } else
+      history.push (historyEvent);
+  }
+  
+  newHistoryEvent (newStateGetter, type) {
+    let history = this.state.braceryHistory;
+    const oldBracery = this.graph.bracery();
+    const newState = newStateGetter();
+    const newBracery = this.graph.bracery();
+    if (oldBracery !== newBracery)
+      this.addToHistory (history, oldBracery, type);
     if (history.length > this.maxUndos)
       history = history.slice(1);
-    console.warn(history);
-    this.setState (extend ({ history }, newStateGetter()));
+    this.setState (extend ({ braceryHistory: history,
+			     braceryFuture: [] },
+			   newState));
   }
 
   // Shapes

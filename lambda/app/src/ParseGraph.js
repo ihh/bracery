@@ -26,7 +26,7 @@ class ParseGraph {
   constructor (props) {
     this.ParseTree = ParseTree;
     this.state = this.buildGraphFromParseTree ({ text: props.text,
-                                                 rhs: props.rhs,
+                                                 rhs: props.rhs || ParseTree.parseRhs (props.text),
                                                  name: props.name,
                                                  selected: props.selected });
     this.symName = props.name;

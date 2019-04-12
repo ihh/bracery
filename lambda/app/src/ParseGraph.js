@@ -204,7 +204,6 @@ class ParseGraph {
     this.removeDetached (nodeByID);
   }
 
-
   // Can we rename a node?
   canRenameNode (oldID, newID, nodeByID) {
     oldID = oldID.toLowerCase();
@@ -216,25 +215,64 @@ class ParseGraph {
       && (!newID || (!this.isVarName()[newID] && !nodeByID[newID]));
   }
 
-  // Rename a node
+  // Rename a node (or, more generally, a variable)
   renameNode (oldID, newID, nodeByID) {
     oldID = oldID.toLowerCase();
     newID = newID.toLowerCase();
     nodeByID = nodeByID || this.getNodesByID();
-    const renamedNode = nodeByID[oldID];
-    renamedNode.id = newID;
-    delete nodeByID[oldID];
-    nodeByID[newID] = renamedNode;
-    let text = renamedNode.defText;
+
+    // Rename all edge objects
+    const renameGraphNode = (oldID, newID) => {
+
+      // Find and rename the node object
+      let renamedNode = nodeByID[oldID];
+      delete nodeByID[oldID];
+      nodeByID[newID] = renamedNode;
+
+      // Generic replacer
+      const replaceProp = (obj, prop) => {
+	if (obj[prop] === oldID)
+	  obj[prop] = newID;
+      };
+
+      // Replace IDs
+      replaceProp (renamedNode, 'id');
+      this.nodes.forEach ((node) => { replaceProp (node, 'topLevelAncestorID'); });
+
+      // Rename edge sources & targets
+      this.edges.forEach ((edge) => {
+	replaceProp (edge, 'source');
+	replaceProp (edge, 'target');
+      });
+
+      // Rename the selection
+      if (this.selected.node)
+	replaceProp (this.selected, 'node');
+      else if (this.selected.edge) {
+	replaceProp (this.selected.edge, 'source');
+	replaceProp (this.selected.edge, 'target');
+      }
+    };
+
+    // Rename the node, and any implicit nodes that have its name as a prefix
+    let renamedNode = nodeByID[oldID];
+    renameGraphNode (oldID, newID);
+    this.nodes
+      .filter ((node) => node.topLevelAncestorID === oldID)
+      .forEach ((descendant) => renameGraphNode (descendant.id, descendant.id.replace (oldID, newID)));
+
+    // Rename all references, crawling the Bracery parse tree for each definedNode (and the startNode)
     this.nodes
       .filter ((node) => (node.nodeType === this.definedNodeType || node.nodeType === this.startNodeType))
       .forEach ((node) => {
+	let text = node.defText;
 	const rhs = ParseTree.parseRhs (text);
-	const replacements = this.getVarNodes (rhs)
+	// Find replacement locations and sort by increasing startpoint
+	const replacements = this.getVarNodes (rhs, oldID)
 	      .map ((varNode) => (varNode.isShortcut
 				  ? { pos: varNode.pos,
 				      newText: this.makeMarkdownStyleLink (null,
-									   this.parseTreeNodeText (this.getLinkText (varNode), text),
+									   this.getPosSubstr (text, this.getLinkTextPos (varNode, text)),
 									   this.makeLinkTargetBracery (renamedNode))
 				    }
 				  : (ParseTree.isTraceryExpr(varNode)
@@ -245,24 +283,36 @@ class ParseGraph {
 					 newText: newID })))
 	      .filter ((r) => r.pos && r.pos[1])
 	      .sort ((a, b) => a.pos[0] - b.pos[0]);
+	// Check that replacement locations do not overlap, that would be bad
 	replacements.forEach ((r, n) => {
 	  if (n) {
 	    const prev = replacements[n-1];
-	    if (r.pos[0] < prev.pos[0] + prev.pos[1])
+	    if (r.pos[0] < prev.pos[0] + prev.pos[1]) {
+	      console.error (text, rhs, this.getVarNodes(rhs,oldID), replacements);
 	      throw new Error ('overlapping replacements');
+	    }
 	  }
 	})
+	// Apply the replacements efficiently in reverse order
 	const newDefText = replacements
-	  .reverse()
-	  .concat ({ pos: [0, 0], newText: '' })
-	  .reduce ((info, rep) => {
-	    const endOffset = rep.pos[0] + rep.pos[1];
-	    return { text: rep.newText + text.substr (endOffset, info.startOffset - endOffset) + info.suffix,
-		     startOffset: rep.pos[0] };
-	  }, { suffix: '',
-	       startOffset: text.length });
+	      .reverse()
+	      .concat ({ pos: [0, 0], newText: '' })
+	      .reduce (
+		(info, rep) => {
+		  const endOffset = rep.pos[0] + rep.pos[1];
+		  const result = { suffix: rep.newText + text.substr (endOffset, info.startOffset - endOffset) + info.suffix,
+				   startOffset: rep.pos[0] };
+		  return result;
+		},
+		{ suffix: '',
+		  startOffset: text.length }
+	      ).suffix;
+	// Store the new node text
 	this.replaceNodeText (node, newDefText);
       });
+
+    // Update the node styles (just to update the buried type & styleInfo.typeText properties)
+    this.bridgeNodesToStyles();
   }
   
   
@@ -611,36 +661,40 @@ class ParseGraph {
     return this.escapeTopLevelRegex (text, new RegExp ('[@{}[\\]|\\\\]', 'g'), config);
   }
   
-  // getLinkTextPos - get the text for a link
-  getLinkTextPos (linkBracery, linkTextNode, topOffset) {
-    // It is a bit ragged getting the text for a link,
-    // due to all the different syntactical forms we have for links:
-    //  [[Twine style]]
-    //  [Markdown]{style}
-    //  &link{Bracery function}{style}
-    // The parser currently handles each one of these slightly differently,
-    // in terms of returning the co-ordinates of the text substring,
-    // which is something we should probably try to fix.
+  // getLinkTextPos - get the co-ordinates ('pos') for the text portion of a link,
+  // given the Bracery parse tree node.
+  // It is a bit awkward getting the text for a link,
+  // due to all the different syntactical forms we have for links:
+  //  [[Twine style]]
+  //  [Markdown]{style}
+  //  &link{Bracery function}{style}
+  // The parser currently handles each one of these differently (and inconsistently),
+  // in terms of returning the co-ordinates of the substring corresponding to
+  // the Bracery source code of the the text hint that is displayed to the player.
+  // This is something we should probably try to fix.
+  getLinkTextPos (linkNode, text, topOffset) {
+    topOffset = topOffset || 0;
+    const linkTextNode = ParseTree.getLinkText (linkNode);
+    const linkBracery = this.parseTreeNodeText (linkNode, text);
+    // First, get the coordinates the parser reports for the text node.
     let pos = [linkTextNode.pos[0] - topOffset,
                linkTextNode.pos[1]];
-    if (this.isTwineStyleLink (linkBracery)) {
+    if (linkNode.isShortcut) {
       // [[Twine style]]
-      // Needs correction to remove double square braces
-      pos[0] += 2;
-      pos[1] -= 4;
+      // The parser-reported text node includes the double square braces [[...]], which need to be removed
+      pos = this.twineStyleLinkInteriorPos (pos);
     } else if (this.isBraceryStyleLink (linkBracery)) {
       //  &link{Bracery function}{style}
       //  &link@123,-456{Positioned Bracery function}{style}
-      // Needs correction to remove curly braces
-      pos[0] += 1;
-      pos[1] -= 2;
+      // The parser-reported text node includes the curly braces {...}, which need to be removed
+      pos = this.braceryFunctionArgInteriorPos (pos);
     } else if (this.isMarkdownStyleLink (linkBracery)) {
       // [Markdown]{style}
       // Parser gets co-ordinates right for this one, so do nothing
     }
     return pos;
   }
-
+  
   // [[Twine style]]
   isTwineStyleLink (linkBracery) {
     return linkBracery.match(/^\[\[.*\]\]$/);
@@ -656,16 +710,28 @@ class ParseGraph {
     return linkBracery.match(/^\[/);
   }
 
-  // getLinkTargetPos - get the target text for a link
+  // Interior of a [[Twine style link]]
+  // Bracery 'pos' format is [start,length]
+  twineStyleLinkInteriorPos (linkBraceryPos) {
+    return [linkBraceryPos[0] + 2,
+	    linkBraceryPos[1] - 4];
+  }
+
+  // Interior of a {Bracery expression}
+  // Bracery 'pos' format is [start,length]
+  braceryFunctionArgInteriorPos (functionArgBraceryPos) {
+    return [functionArgBraceryPos[0] + 1,
+	    functionArgBraceryPos[1] - 2];
+  }
+
+  // getLinkTargetPosForBracery - get the target text for a link
   // This is a little easier than getLinkTextPos, as we can ignore Twine-style links
   // (where the link target is synthesized from the link text, and not actually present in the parsed text)
-  getLinkTargetPos (linkBracery, linkTargetNode, topOffset) {
+  getLinkTargetPosForBracery (linkBracery, linkTargetNode, topOffset) {
     let pos = [linkTargetNode.pos[0] - topOffset,
                linkTargetNode.pos[1]];
-    if (this.isBraceryStyleLink (linkBracery)) {
-      pos[0] += 1;
-      pos[1] -= 2;
-    }
+    if (this.isBraceryStyleLink (linkBracery))
+      pos = this.braceryFunctionArgInteriorPos (pos);
     return pos;
   }
 
@@ -705,20 +771,25 @@ class ParseGraph {
     }).map ((name) => [name, true]))).sort();
   }
 
-  // Specialized version of ParseTree.findNodes that returns names of variables (assignments and lookups) and symbols,
-  getVarNodes (rhs) {
+  // Specialized version of ParseTree.findNodes that searches the parse tree for $id (assignments and lookups) or #id#
+  getVarNodes (rhs, id) {
     return ParseTree.findNodes (rhs, {
       nodePredicate: (nodeConfig, node) => {
 	return (node
 		&& typeof(node) === 'object'
-		&& ((node.type === 'lookup' || node.type === 'assign')
-		    || node.isShortcut
-		    || ParseTree.isTraceryExpr (node)));
+		&& (((node.type === 'lookup' || node.type === 'assign')
+		     && node.varname === id)
+		    || (node.isShortcut
+			&& ParseTree.traceryVarName (ParseTree.getLinkTargetRhs (node)[0]) === id)
+		    || (ParseTree.isTraceryExpr (node)
+			&& ParseTree.traceryVarName (node) === id))
+		&& node);  // must return node
       },
       makeChildConfig: (nodeConfig, node, nChild) => {
-	return (node.isShortCut || ParseTree.isTraceryExpr (node)
-		? { excludeSubtree: true }
-		: nodeConfig);
+	const result = ((node.isShortcut || ParseTree.isTraceryExpr (node))
+			? { excludeSubtree: true }
+			: nodeConfig);
+	return result;
       }
     });
   }
@@ -898,7 +969,8 @@ class ParseGraph {
     return prefix + (this.maxVarSuffix (prefix) + 1);
   }
 
-  // Text for a graph entity
+  // Text for a substring
+  // Bracery 'pos' format for substrings is [start,length]
   getPosSubstr (text, pos) {
     return (text && pos
             ? text.substr (pos[0], pos[1])
@@ -910,6 +982,8 @@ class ParseGraph {
     if (node.defText && !pos)
       return node.defText;
     let ancestor = this.getAncestor (node, nodeByID);
+    if (!ancestor)
+      console.error ("can't find ancestor", node, nodeByID);
     return this.getPosSubstr (ancestor.defText, pos || node.pos);
   }
 
@@ -1068,7 +1142,6 @@ class ParseGraph {
                                    ? ParseTree.getLayoutLink(linkNode)
                                    : null));
         const linkBracery = this.parseTreeNodeText (actualLinkNode, text);
-        const linkTextNode = ParseTree.getLinkText (actualLinkNode);
         const linkTargetRhs = ParseTree.getLinkTargetRhs (actualLinkNode);
         const linkTargetRhsNode = ParseTree.getLinkTargetRhsNode (actualLinkNode);
         const linkTargetTextOffset = this.parseTreeRhsTextOffset (linkTargetRhs, linkTargetRhsNode, text);
@@ -1089,8 +1162,8 @@ class ParseGraph {
           }
         }
         const topOffset = braceryNodeOffset[rootNode.id] || 0;
-        const linkTextPos = this.getLinkTextPos (linkBracery, linkTextNode, topOffset);
-        const linkTargetPos = this.getLinkTargetPos (linkBracery, linkTargetRhsNode, topOffset);
+        const linkTextPos = this.getLinkTextPos (actualLinkNode, text, topOffset);
+        const linkTargetPos = this.getLinkTargetPosForBracery (linkBracery, linkTargetRhsNode, topOffset);
         const implicitNodeID = linkNode.graphNodeName;
         braceryNodeOffset[implicitNodeID] = linkTargetTextOffset.offset;
         layoutParent[implicitNodeID] = parent;
@@ -1256,7 +1329,9 @@ class ParseGraph {
   // However, while a 'title' (i.e. subtitle) can be specified at the node level,
   // the 'typeText' (i.e. title) must be specified in the styling information.
   bridgeNodesToStyles (nodes, pta) {
-    let { nodeByID } = pta;
+    nodes = nodes || this.nodes;
+    const nodeByID = pta ? pta.nodeByID : this.getNodesByID();
+    const symName = pta ? pta.symName : this.symName;
     nodes.forEach ((node) => {
       let typeText = null, title = null;
       switch (node.nodeType) {
@@ -1273,7 +1348,7 @@ class ParseGraph {
         title = this.nodeText (node, node.linkTargetPos, nodeByID);
         break;
       case this.startNodeType:
-        typeText = ParseTree.symChar + pta.symName + ' ';
+        typeText = ParseTree.symChar + symName + ' ';
         title = node.defText;
         break;
       default:

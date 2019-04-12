@@ -173,6 +173,16 @@ class MapView extends Component {
     this.setSelected({});
   }
 
+  canRenameNode (oldID, newID) {
+    return this.graph.canRenameNode (oldID, newID);
+  }
+  
+  renameNode (oldID, newID) {
+    this.graph.renameNode (oldID, newID);
+    this.setState (extend ({ renamerContent: '' },
+			   this.graphState()));
+  }
+  
   assertSelectionValid() {
     if (this.props && this.props.selected) {
       if (this.props.selected.node && !this.graph.selectedNode (this.props.selected))
@@ -350,15 +360,19 @@ class MapView extends Component {
   nodeRenamer (node) {
     return this.graph.canRenameNode (node.id)
       && (<span className="renamer-container">
-            <ControlledInput
-	    placeholder={this.state.renamerDisabled?'':'Rename'}
-	    elementType="input"
-	    className="renamer"
-            setInputState={this.setRenamerState.bind(this)}
-            content={this.state.renamerContent}
-            selection={this.state.renamerSelection}
-            disabled={this.state.renamerDisabled}
-            focus={this.state.renamerFocus} />
+          <ControlledInput
+	  placeholder={this.state.renamerDisabled?'':'Rename'}
+	  elementType="input"
+	  className="renamer"
+          setInputState={this.setRenamerState.bind(this)}
+          content={this.state.renamerContent}
+          selection={this.state.renamerSelection}
+          disabled={this.state.renamerDisabled}
+          focus={this.state.renamerFocus} />
+	  {this.state.renamerContent
+	   && (this.graph.canRenameNode (node.id, this.state.renamerContent)
+	       ? (<button onClick={() => this.renameNode (node.id, this.state.renamerContent)}>Rename</button>)
+	       : (<span className="renamer-warning">This name is already in use.</span>))}
 	  </span>);
     
   }

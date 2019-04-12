@@ -40,9 +40,6 @@ class MapView extends Component {
 		   renamerDisabled: false,
                  };
   }
-
-  // Constants
-  get hasNothingYet() { return ' has nothing yet:'; }  // space at start is deliberate
   
   // State modification
   graphState() {
@@ -78,9 +75,12 @@ class MapView extends Component {
 
   highlightMatches (searchText) {
     searchText = (searchText || this.state.searchContent).toLowerCase();
-    const match = (text) => (text.toLowerCase().indexOf(searchText) >= 0);
+    const match = (text) => { console.warn(searchText,text);return (text.toLowerCase().indexOf(searchText) >= 0);
+			    };
     if (searchText)
-      this.graph.markHighlighted ((node, text, nodeByID) => (match (node.id) || match (text)),
+      this.graph.markHighlighted ((node, text, nodeByID) => (match(text)
+							     || (node.nodeType !== this.graph.implicitNodeType
+								 && match (this.graph.titleForNode(node)))),
 				  (edge, text, nodeByID) => match (text));
     else
       this.graph.clearHighlighted();
@@ -199,6 +199,7 @@ class MapView extends Component {
       this.state.nodes.map (
         (node) => {
           const nodeClass = node.nodeType + '-node'
+                + ((node.nodeType === this.graph.externalNodeType || node.defText) ? '' : ' empty-node')
                 + (node.selected
                    ? ' selected-node'
                    :(node.selectedOutgoingEdge
@@ -347,13 +348,13 @@ class MapView extends Component {
 			       elsewhere
 			       </button></span>);
     case this.graph.startNodeType:
-      return theSelectedScene(' is the opening scene:');
+      return theSelectedScene(' is the opening scene');
     case this.graph.placeholderNodeType:
-      return theSelectedScene (this.hasNothingYet);
+      return theSelectedScene();
     case this.graph.implicitNodeType:
       return (<span>Scene (part of {this.makeNodeSelector (node.topLevelAncestorID)})</span>);
     default:
-      return theSelectedScene (node.defText ? '' : this.hasNothingYet);
+      return theSelectedScene();
     }
   }
 

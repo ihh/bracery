@@ -42,6 +42,10 @@
     fill: mistyrose;
 }
 
+.empty-node:not(.selected-node):not(.highlighted-node) {
+    fill: #efe;
+}
+
 .linkEdgeHandle, .linkEdgeHandleHighlighted,
 .includeEdgeHandle, .includeEdgeHandleHighlighted {
     stroke-width: 1;
@@ -108,4 +112,12 @@
     border-style: solid;
     white-space: pre-wrap;
     word-break: break-all;
+}
+
+.renamer-container {
+    margin-left: 1em;
+}
+
+.renamer-warning {
+    color: red;
 }

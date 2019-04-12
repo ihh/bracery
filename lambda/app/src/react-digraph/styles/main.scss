@@ -232,6 +232,11 @@ $highlight-color: purple;
 	    cursor: pointer;
 	    margin: 0;
 	    pointer-events: all;
+
+	    &.disabled {
+		stroke-opacity: .5;
+		fill-opacity: .5;
+	    }
 	}
     }
 

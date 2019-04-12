@@ -23,12 +23,14 @@ import React from 'react';
 import Parse from 'html-react-parser';
 
 import faExpand from '../icons/expand';
+import faUndo from '../icons/undo';
+import faRedo from '../icons/redo';
 import faNew from '../icons/plus';
 import faDelete from '../icons/trash-can';
 
 const steps = 100; // Slider steps
-const [ExpandIcon, NewIcon, DeleteIcon]
-      = [faExpand, faNew, faDelete]
+const [ExpandIcon, UndoIcon, RedoIcon, NewIcon, DeleteIcon]
+      = [faExpand, faUndo, faRedo, faNew, faDelete]
       .map ((svgStr) => {
         const parsedSvg = Parse(svgStr); //  parse SVG once
         return () => parsedSvg; // convert SVG to react component
@@ -42,7 +44,11 @@ type IGraphControlProps = {
   modifyZoom: (delta: number) => boolean;
   createNode: (x: number, y: number) => void;
   deleteSelected: () => void;
-  canDeleteSelected: boolean;
+  canDeleteSelected?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: () => boolean;
+  canRedo?: () => boolean;
 }
 
 class GraphControls extends React.Component<IGraphControlProps> {
@@ -96,6 +102,7 @@ class GraphControls extends React.Component<IGraphControlProps> {
           />
           <span>+</span>
         </div>
+
         <button
           type="button"
           className="slider-button"
@@ -103,23 +110,41 @@ class GraphControls extends React.Component<IGraphControlProps> {
         >
           <ExpandIcon />
         </button>
-        <button
+
+      {this.props.onUndo
+       && (<button
+           type="button"
+           className={"slider-button"+(this.props.canUndo?"":" disabled")}
+           onClick={() => this.props.canUndo && this.props.onUndo()}
+           >
+           <UndoIcon />
+           </button>)}
+
+      {this.props.onRedo
+       && (<button
+           type="button"
+           className={"slider-button"+(this.props.canRedo?"":" disabled")}
+           onClick={() => this.props.canRedo && this.props.onRedo()}
+           >
+           <RedoIcon />
+           </button>)}
+
+	<button
           type="button"
           className="slider-button"
           onClick={this.props.createNode}
         >
           <NewIcon />
         </button>
+
         {this.props.canDeleteSelected
-         ? (<button
-            type="button"
-            className="slider-button"
-            onClick={this.props.deleteSelected}
-            >
-            <DeleteIcon />
-            </button>)
-         : ''
-        }
+         && (<button
+             type="button"
+             className="slider-button"
+             onClick={this.props.deleteSelected}
+             >
+             <DeleteIcon />
+             </button>)}
       </div>
     );
   }

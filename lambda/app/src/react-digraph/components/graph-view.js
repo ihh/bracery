@@ -459,7 +459,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
   }
 
   handleWrapperKeydown: KeyboardEventListener = (d) => {
-    const { selected, onUndo, onCopySelected, onPasteSelected } = this.props;
+    const { selected, canUndo, onUndo, onCopySelected, onPasteSelected } = this.props;
     const { focused, selectedNodeObj } = this.state;
     // Conditionally ignore keypress events on the window
     if (!focused || this.props.ignoreKeyboardEvents) {
@@ -473,7 +473,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
         }
         break;
       case 'z':
-        if ((d.metaKey || d.ctrlKey) && onUndo) {
+      if ((d.metaKey || d.ctrlKey) && onUndo && (!canUndo || canUndo())) {
           onUndo();
         }
         break;
@@ -1288,6 +1288,10 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
           modifyZoom={this.modifyZoom}
           createNode={this.handleCreateNodeButtonClick}
           deleteSelected={this.handleDeleteSelectedButtonClick}
+	  canUndo={this.props.canUndo}
+	  onUndo={this.props.onUndo}
+	  canRedo={this.props.canRedo}
+	  onRedo={this.props.onRedo}
           canDeleteSelected={(selected &&
                               (selected.source
                                ? (this.props.canDeleteEdge ? this.props.canDeleteEdge(selected) : true)

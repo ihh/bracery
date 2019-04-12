@@ -24,6 +24,9 @@ class MapView extends Component {
                    edges: cloneDeep (this.graph.edges),
                    selected: props.selected,
 
+		   history: [],  // undo
+		   historyPopped: [],  // redo
+		   
                    editorContent: '',
                    editorSelection: extend ({}, props.editorSelection),
                    editorFocus: props.editorFocus || false,
@@ -40,6 +43,9 @@ class MapView extends Component {
 		   renamerDisabled: false,
                  };
   }
+
+  // Constants
+  maxUndos() { return 1024; }  // nice deep undo history
   
   // State modification
   graphState() {
@@ -49,15 +55,19 @@ class MapView extends Component {
              selected: this.graph.selected };
   }
 
+  graphStateForSelection (selected) {
+    this.graph.selected = selected;  // setter automatically updates graph selection markers
+    return extend ({ renamerContent: '' },
+		   this.graphState(),
+                   this.graph.getEditorState());
+  }
+
   updateGraph() {
     this.setState (this.graphState());
   }
 
-  setSelected (selected) {
-    this.graph.selected = selected;  // setter automatically updates graph selection markers
-    this.setState (extend ({ renamerContent: '' },
-			   this.graphState(),
-                           this.graph.getEditorState()));
+  updateSelection (selected) {
+    this.setState (this.graphStateForSelection (selected));
   }
 
   // setRenamerState is called by the (tightly-controlled) rename input, to update its own state
@@ -96,25 +106,26 @@ class MapView extends Component {
   // setEditorState is called by the (tightly-controlled) node editor, to update its own state
   // We use this opportunity to update the graph as well
   setEditorState (newEditorState) {
-    let graph = this.graph;
-    let selectedNode = graph.selectedNode(),
-        selectedEdge = graph.selectedEdge();
-    let newState = this.prependInputName (newEditorState, 'editor');
-    if (newState.hasOwnProperty('editorContent')) {
-      if (selectedEdge)
-        this.graph.replaceEdgeText (selectedEdge, newState.editorContent);
-      else if (selectedNode)
-        this.graph.replaceNodeText (selectedNode, newState.editorContent);
-      else
-        console.error('oops: editor content with no selected node or edge');
-    }
-    extend (newState, this.graphState());
-    this.setState (newState);
+    this.newHistoryEvent (() => {
+      let graph = this.graph;
+      let selectedNode = graph.selectedNode(),
+          selectedEdge = graph.selectedEdge();
+      let newState = this.prependInputName (newEditorState, 'editor');
+      if (newState.hasOwnProperty('editorContent')) {
+	if (selectedEdge)
+          this.graph.replaceEdgeText (selectedEdge, newState.editorContent);
+	else if (selectedNode)
+          this.graph.replaceNodeText (selectedNode, newState.editorContent);
+	else
+          console.error('oops: editor content with no selected node or edge');
+      }
+      return extend (newState, this.graphState());
+    });
   }
 
   createNode (x, y) {
     const newNode = this.graph.createNode (x || 0, y || 0);
-    this.setSelected ({ node: newNode.id });
+    this.updateSelection ({ node: newNode.id });
   }
 
   canCreateEdge (source, target) {
@@ -123,8 +134,8 @@ class MapView extends Component {
 
   createEdge (source, target) {
     this.graph.createEdge (source, target);
-    this.setSelected ({ edge: { source: source.id,
-                                target: target.id } });
+    this.updateSelection ({ edge: { source: source.id,
+                                    target: target.id } });
   }
 
   canSwapEdge (source, target, edge) {
@@ -133,26 +144,28 @@ class MapView extends Component {
   
   swapEdge (source, target, edge) {
     this.graph.swapEdge (source, target, edge);
-    this.setSelected ({ edge: { source: source.id,
-                                target: target.id } });
+    this.updateSelection ({ edge: { source: source.id,
+                                    target: target.id } });
   }
 
   updateNode (node) {
-    this.graph.updateNodeCoord (node);
-    this.updateGraph();
+    this.newHistoryEvent (() => {
+      this.graph.updateNodeCoord (node);
+      return this.graphState();
+    });
   }
 
   selectNode (node) {
-    this.setSelected (node
-                      ? { node: node.id }
-                      : {});
+    this.updateSelection (node
+			  ? { node: node.id }
+			  : {});
   }
   
   selectEdge (edge) {
-    this.setSelected (edge
-                      ? { edge: { source: edge.source,
-                                  target: edge.target } }
-                      : {});
+    this.updateSelection (edge
+			  ? { edge: { source: edge.source,
+                                      target: edge.target } }
+			  : {});
   }
 
   canDeleteNode (selected) {
@@ -164,13 +177,17 @@ class MapView extends Component {
   }
   
   deleteNode (selected, nodeId, nodes) {
-    this.graph.deleteNode (selected);
-    this.setSelected({});
+    this.newHistoryEvent (() => {
+      this.graph.deleteNode (selected);
+      return this.graphStateForSelection({});
+    });
   }
 
   deleteEdge (selectedEdge, edges) {
-    this.graph.deleteEdges (selectedEdge);
-    this.setSelected({});
+    this.newHistoryEvent (() => {
+      this.graph.deleteEdges (selectedEdge);
+      return this.graphStateForSelection({});
+    });
   }
 
   canRenameNode (oldID, newID) {
@@ -178,9 +195,11 @@ class MapView extends Component {
   }
   
   renameNode (oldID, newID) {
-    this.graph.renameNode (oldID, newID);
-    this.setState (extend ({ renamerContent: '' },
-			   this.graphState()));
+    this.newHistoryEvent (() => {
+      this.graph.renameNode (oldID, newID);
+      return extend ({ renamerContent: '' },
+		     this.graphState());
+    });
   }
   
   assertSelectionValid() {
@@ -191,6 +210,33 @@ class MapView extends Component {
         console.error("Lost selected.edge",this.props.selected.edge);
     } else
       throw new Error ('no props.selected');
+  }
+
+  canUndo() {
+    return this.state.history.length > 0;
+  }
+
+  canRedo() {
+    return this.state.historyPopped.length > 0;
+  }
+  
+  undo() {
+    // WRITE ME
+  }
+
+  redo() {
+    // WRITE ME
+  }
+
+  newHistoryEvent (newStateGetter) {
+    let history = this.state.history;
+    const bracery = this.graph.bracery();
+    if (!history.length || history[history.length-1] !== bracery)
+      history.push (bracery);
+    if (history.length > this.maxUndos)
+      history = history.slice(1);
+    console.warn(history);
+    this.setState (extend ({ history }, newStateGetter()));
   }
 
   // Shapes
@@ -296,6 +342,10 @@ class MapView extends Component {
             canDeleteEdge={this.canDeleteEdge.bind(this)}
             onDeleteNode={this.deleteNode.bind(this)}
             onDeleteEdge={this.deleteEdge.bind(this)}
+	    canUndo={this.canUndo()}
+	    onUndo={this.undo.bind(this)}
+	    canRedo={this.canRedo()}
+	    onRedo={this.redo.bind(this)}
 	    zoomLevel="1"
             ignoreKeyboardEvents={true}
 	    renderSearch={this.renderSearchBox.bind(this)}
@@ -336,7 +386,7 @@ class MapView extends Component {
 
   makeNodeSelector (id, alt, text) {
     text = text || this.graph.titleForID (id, alt);
-    return (<button onClick={() => this.setSelected ({ node: id })}>{text}</button>);
+    return (<button onClick={() => this.updateSelection ({ node: id })}>{text}</button>);
   }
   
   nodeBanner (node) {

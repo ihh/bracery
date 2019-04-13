@@ -97,11 +97,12 @@ SetSymbol
 SymIdentifier
   = PrefixedSymIdentifier
   / "{" sym:PrefixedSymIdentifier "}" { return sym }
-  / "{" sym:LocatedIdentifier "}" { return sym }
+  / "{" sym:LocatedIdentifier "}" { return {name:sym} }
 
 PrefixedSymIdentifier
-  = "~" sym:LocatedIdentifier { return sym }
-  / "~{" _ sym:LocatedIdentifier _ "}" { return sym }
+  = "~" sym:LocatedIdentifier { return {name:sym} }
+  / "~{" _ sym:LocatedIdentifier _ "}" { return {name:sym} }
+  / "~{" _ user:LocatedIdentifier _ "/" _ sym:LocatedIdentifier _ "}" { return { user: user, name: sym } }
 
 TraceryModifiers
   = mod:TraceryModifier mods:TraceryModifiers { return [mod].concat (mods) }

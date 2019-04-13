@@ -47,9 +47,9 @@ function pseudoFunction (tag, builder) {
 }
 
 function makeRep (unit, min, max) { return makeNode ('rep', { unit: unit, min: min, max: max }) }
-function makeSymbolMethod (name, method, args) {
+function makeSymbolMethod (symInfo, method, args) {
   return makeNode ('sym',
-		   extend (getLocatedSymName (name),
+		   extend (getLocatedSymName (symInfo),
 			   { method: method,
 			     bind: args }));
 }
@@ -92,11 +92,22 @@ function getLocatedVarName (wrappedIdentifier) {
 	      varpos: wrappedIdentifier.pos }
 	  : { varname: wrappedIdentifier });
 }
-function getLocatedSymName (wrappedIdentifier) {
-  return (typeof(wrappedIdentifier) === 'object'
-	  ? { name: wrappedIdentifier.text.toLowerCase(),
-	      sympos: wrappedIdentifier.pos }
-	  : { name: wrappedIdentifier.toLowerCase() });
+function getLocatedSymName (symInfo) {
+  var user = symInfo.user, name = symInfo.name;
+  var result = {};
+  if (typeof(name) === 'object') {
+    result.name = name.text.toLowerCase();
+    result.sympos = name.pos;
+  } else
+    result.name = name.toLowerCase();
+  if (user) {
+    if (typeof(user) === 'object') {
+      result.user = user.text.toLowerCase();
+      result.userpos = user.pos;
+    } else
+      result.user = user.toLowerCase();
+  }
+  return result;
 }
 function getLocatedText (wrappedIdentifier) {
   return (typeof(wrappedIdentifier) === 'object'
@@ -135,9 +146,9 @@ function pseudoAlternation (opts) {
   return alt
 }
 
-function makeSymbol (name, args) { return makeSymbolMethod (name, 'expand', args) }
-function makeGetSymbol (name) { return makeSymbolMethod (name, 'get') }
-function makeSetSymbol (name, args) { return makeSymbolMethod (name, 'set', args) }
+function makeSymbol (symInfo, args) { return makeSymbolMethod (symInfo, 'expand', args) }
+function makeGetSymbol (symInfo) { return makeSymbolMethod (symInfo, 'get') }
+function makeSetSymbol (symInfo, args) { return makeSymbolMethod (symInfo, 'set', args) }
 
 function makeLinkShortcut (text) {
   var symName = text.toLowerCase()
@@ -184,8 +195,8 @@ function makeLocalAssignChain (assigns, scope) {
 function makeCapped (args) { return makeFunction ('cap', args) }
 function makeUpperCase (args) { return makeFunction ('uc', args) }
 
-function sugarize (makeNode, name, args) {
-  var node = makeNode (name, args)
+function sugarize (makeNode, info, name, args) {
+  var node = makeNode (info, args)
   var text = getLocatedText (name)
   if (text.match(/^[0-9_]*[A-Z].*[a-z]/))
     return makeCapped ([node])
@@ -194,18 +205,18 @@ function sugarize (makeNode, name, args) {
   return node
 }
 
-function makeSugaredSymbol (name, args) {
-  return sugarize (makeSymbol, name, args)
+function makeSugaredSymbol (symInfo, args) {
+  return sugarize (makeSymbol, symInfo, symInfo.name, args)
 }
 
 function makeSugaredLookup (name) {
-  return sugarize (makeLookup, name)
+  return sugarize (makeLookup, name, name)
 }
 
 function makeTraceryExpr (sym, mods) {
   return mods.reduce (function (expr, mod) {
     return makeFunction (mod, [expr])
-  }, makeConditional ([makeLookup(sym)], [makeFunction('eval',[makeLookup(sym)])], [makeSymbol(sym)]))
+  }, makeConditional ([makeLookup(sym)], [makeFunction('eval',[makeLookup(sym)])], [makeSymbol({name:sym})]))
 }
 
 function makeProbExpr (probArg, trueArg, falseArg) {

@@ -20,7 +20,8 @@ $dark-color: black;
 $light-grey: lightgrey;
 $background-color: #f9f9f9;
 
-$highlight-color: purple;
+$highlight-color: #e5b72d;
+$dark-highlight-color: #72580a;
 
 .view-wrapper {
     height: 100%;
@@ -78,17 +79,20 @@ $highlight-color: purple;
 
 	    .node-text {
 
+		cursor: pointer;
+		user-select: none;
+
 		&:not(.highlighted) {
 		    fill: $dark-color;
 		}
-		&.highlighted {
-		    fill: $highlight-color;
+		&.highlighted:not(.selected) {
+		    fill: $dark-color;
 		}
-		cursor: pointer;
-		user-select: none;
+		&.highlighted.selected {
+		    fill: $dark-highlight-color;
+		}
 		&.selected {
-		    fill: $light-color;
-		    stroke: $light-color;
+		    fill: $dark-color;
 		}
 	    }
 	}

@@ -6,6 +6,7 @@ var extend = bracery.ParseTree.extend
 var initJson = { abc: 'def',
                  hello: '[hello|hi]',
                  world: ['world', 'planet'],
+                 show_user: function (config) { return 'user=' + config.node.user },
                  dynamo: function (config) { return [config.random() < .5 ? 'dynamik' : 'DYNAMIC'] },
                  lambda: function (config, x, y) { return x + 'world' + y },
                  json: function (config, x, y, z) { return 'x=' + JSON.stringify(x) + ' y=' + JSON.stringify(y) + ' z=' + JSON.stringify(z) },
@@ -28,7 +29,7 @@ function doTests (testRunner) {
   expectExpand ('$Theo:={[dad|mom]} $theo $theo come to [Africa|our house|nowhere] [just kidding |seriously] ha ha ha ha ha ',
                 'dad dad dad come to nowhere just kidding  ha ha ha ha ha ',
                 { maxTries: maxTries })
-  
+
   // the tests themselves
   expectExpand ('~hello ~world', 'hello world', {maxTries:maxTries})
   expectExpand ('~hello ~world', 'hello planet', {maxTries:maxTries})
@@ -95,7 +96,12 @@ function doTests (testRunner) {
 
   expectExpandQuote ('&quote{&xapply~{ lambda }{$y}}', '&xapply~lambda$y')
   expectExpandQuote ('&quote{&xcall~a{b}{cd}{e}}', '&~a{b}{cd}{e}')
-  
+
+  // user namespaces
+  expectExpand ('~{testuser/show_user}', 'user=testuser',)
+  expectExpand ('~{testuser/abc}', 'def',)
+  expectExpand ('&quote~{testuser/abc}', '~{testuser/abc}',)
+
   // case manipulation
   expectExpand ('&quote{~TEST1}', '~TEST1')
   expectExpand ('&quote{~Test1}', '~Test1')

@@ -247,7 +247,7 @@ function sampleParseTree (rhs, config) {
       default:
       case 'sym':
 	result = { type: 'sym' };
-        ['name','id','method'].forEach (function (key) {
+        ['name','id','method','user'].forEach (function (key) {
           if (typeof(node[key]) !== 'undefined')
             result[key] = node[key]
         })
@@ -812,7 +812,7 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
       default:
       case 'sym':
         if (tok.method === 'get' || tok.method === 'set') {
-          result = [funcChar, 'x' + tok.method, [symChar, (nextIsAlpha
+          result = [funcChar, 'x' + tok.method, [symChar, ((nextIsAlpha || tok.user)
                                                            ? [leftBraceChar, makeSymbolName(tok), rightBraceChar]
                                                            : makeSymbolName(tok))]]
         } else {
@@ -821,7 +821,7 @@ function makeRhsTree (rhs, makeSymbolName, nextSiblingIsAlpha) {
           var isApply = tok.bind && !hasArgList
           result = (isApply
                     ? [funcChar + 'xapply' + symChar, makeSymbolName(tok), makeFuncArgTree (pt, tok.bind, nextIsAlpha)]
-                    : (nextIsAlpha && !hasNonemptyArgList
+                    : (((nextIsAlpha && !hasNonemptyArgList) || tok.user)
                        ? [symChar, [leftBraceChar, makeSymbolName(tok), rightBraceChar]]
                        : (hasNonemptyArgList ? [funcChar] : []).concat ([symChar, makeSymbolName(tok)], [makeArgList.call (pt, tok.bind, 0, makeSymbolName)])))
         }
@@ -884,7 +884,7 @@ function summarizeRhs (rhs, makeSymbolName, summaryLen) {
 }
 
 function defaultMakeSymbolName (node) {
-  return node.name
+  return (node.user ? (node.user + '/') : '') + node.name
 }
 
 function throwSymbolError (method, config) {

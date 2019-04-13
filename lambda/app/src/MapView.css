@@ -39,7 +39,7 @@
 }
 
 .highlighted-node:not(.selected-node) {
-    fill: mistyrose;
+    fill: #fce7a9;
 }
 
 .empty-node:not(.selected-node):not(.highlighted-node) {
@@ -82,7 +82,7 @@
 .linkEdgeHandleHighlightedSelected,
 .includeEdgeHandleHighlightedSelected {
     stroke-width: 2;
-    stroke: purple;
+    stroke: #ffbf00;
 }
 
 .editor-enabled {

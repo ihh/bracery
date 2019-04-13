@@ -1082,7 +1082,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
         onNodeSelected={this.handleNodeSelected}
         renderNode={renderNode}
         renderNodeText={renderNodeText}
-        isSelected={this.state.selectedNodeObj.node === node}
+        isSelected={node.selected}
         isHighlighted={node.highlighted}
         layoutEngine={this.layoutEngine}
         viewWrapperElem={this.viewWrapper.current}

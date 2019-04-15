@@ -17044,6 +17044,7 @@ function makeExpansionPromise (config) {
             var symbolExpansionPromise
             var expr = symChar + (node.name || node.id)
             var method = node.method || 'expand'
+	    var symOwner = node.user || config.defaultUser || 'guest'
             if (!node.rhs && config[method])
               symbolExpansionPromise = handlerPromise ([node, varVal, depth], resolve(), config.before, method)
               .then (function() {
@@ -17093,8 +17094,13 @@ function makeExpansionPromise (config) {
             else
               symbolExpansionPromise = resolve()
             promise = symbolExpansionPromise.then (function() {
+	      var oldDefaultUser = config.defaultUser
+	      config.defaultUser = node.user || symOwner
               return makeRhsExpansionPromiseFor (node.rhs || [], expr)
-                .then (addExpansionNodes)
+		.then (function (result) {
+		  config.defaultUser = oldDefaultUser
+		  return result
+		}).then (addExpansionNodes)
             })
             break
           case 'root':

@@ -26,7 +26,7 @@ exports.handler = async (event, context, callback) => {
 
   // Query the database for the given name
   try {
-    let res = await util.getBracery (name, revision, dynamoPromise);
+    let res = await util.getBracery (user, name, revision, dynamoPromise);
     const result = res.Items && res.Items.length && res.Items[0];
     const resultLocked = (result && result.locked && (!session || !session.loggedIn || (result.owner !== session.user)));
     // Handle the HTTP methods

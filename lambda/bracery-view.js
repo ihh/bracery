@@ -77,7 +77,7 @@ exports.handler = async (event, context, callback) => {
 	      ? parsedSessionState
 	      : util.getParams (event)));
     const { name, initText, evalText, vars, expansion } = appState;
-    
+
     // Add the name & a dummy empty definition to the template var->val map
     let tmpMap = util.extend ({}, templateVarValMap);
     let bots = {};
@@ -129,7 +129,8 @@ exports.handler = async (event, context, callback) => {
       });
 
     // Query the database for the given symbol definition
-    let symbolPromise = util.getBracery (name, revision, dynamoPromise)
+    const user = 'guest';   // TODO: get real username from session, default to 'guest'
+    let symbolPromise = util.getBracery (user, name, revision, dynamoPromise)
         .then ((res) => {
           const result = res.Items && res.Items.length && res.Items[0];
 	  if (result) {

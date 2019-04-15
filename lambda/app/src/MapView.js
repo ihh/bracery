@@ -85,8 +85,7 @@ class MapView extends Component {
 
   highlightMatches (searchText) {
     searchText = (searchText || this.state.searchContent).toLowerCase();
-    const match = (text) => { console.warn(searchText,text);return (text.toLowerCase().indexOf(searchText) >= 0);
-			    };
+    const match = (text) => (text.toLowerCase().indexOf(searchText) >= 0);
     if (searchText)
       this.graph.markHighlighted ((node, text, nodeByID) => (match(text)
 							     || (node.nodeType !== this.graph.implicitNodeType

@@ -1645,6 +1645,9 @@ function makeExpansionPromise (config) {
       var expansionPromise = resolve (expansion), promise = expansionPromise
       var makeRhsExpansionPromiseFor = makeRhsExpansionReducer (pt, config, textReducer, {})
       var makeListExpansionPromiseFor = makeRhsExpansionReducer (pt, config, listReducer, { value: [] })
+      var makeRhsExpansionPromiseForOwner = function (owner, rhs, contextKey) {
+	return makeRhsExpansionReducer (pt, extend ({}, config, { defaultUser: owner }), textReducer, {}) (rhs, contextKey)
+      }
       function addExpansionNodes (x) { x.nodes += expansion.nodes; return extend (expansion, x) }
       if (node) {
         if (typeof(node) === 'string') {
@@ -2170,6 +2173,7 @@ function makeExpansionPromise (config) {
             var symbolExpansionPromise
             var expr = symChar + (node.name || node.id)
             var method = node.method || 'expand'
+	    var symOwner = node.user || config.defaultUser || 'guest'
             if (!node.rhs && config[method])
               symbolExpansionPromise = handlerPromise ([node, varVal, depth], resolve(), config.before, method)
               .then (function() {
@@ -2219,8 +2223,8 @@ function makeExpansionPromise (config) {
             else
               symbolExpansionPromise = resolve()
             promise = symbolExpansionPromise.then (function() {
-              return makeRhsExpansionPromiseFor (node.rhs || [], expr)
-                .then (addExpansionNodes)
+              return makeRhsExpansionPromiseForOwner (symOwner, node.rhs || [], expr)
+		.then (addExpansionNodes)
             })
             break
           case 'root':

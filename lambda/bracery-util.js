@@ -246,12 +246,14 @@ function getVars (event, body) {
   return vars;
 }
 
-async function getBracery (name, revision, dynamoPromise) {
-  const query = ({ KeyConditionExpression: '#n = :n',
+async function getBracery (user, name, revision, dynamoPromise) {
+  const query = ({ KeyConditionExpression: '#u = :u AND #n = :n',
 		   ExpressionAttributeNames: {
+		     '#u': 'username',
 		     '#n': 'name'
 		   },
 		   ExpressionAttributeValues: {
+		     ':u': user,
 		     ':n': name
 		   }});
   if (revision) {

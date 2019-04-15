@@ -197,11 +197,23 @@ async function getBookmarkedParams (event, dynamoPromise) {
   return params;
 }
 
+function getOwner (event) {
+  const body = getBody (event);
+
+  const user = ((event && event.pathParameters)
+		? (event.pathParameters.name ? event.pathParameters.user_or_name : ParseTree.defaultUser)
+		: ((event && event.queryStringParameters)
+		   ? (event.queryStringParameters.name ? event.queryStringParameters.user_or_name : ParseTree.defaultUser)
+		   : (body.user || ParseTree.defaultUser)));
+
+  return user;
+}
+
 function getName (event) {
   const body = getBody (event);
   
-  const name = ((event && event.pathParameters && event.pathParameters.name)
-		|| (event && event.queryStringParameters && event.queryStringParameters.name)
+  const name = ((event && event.pathParameters && (event.pathParameters.name || event.pathParameters.user_or_name))
+		|| (event && event.queryStringParameters && (event.queryStringParameters.name || event.queryStringParameters.user_or_name))
 		|| body.name
 		|| defaultSymbolName);
 
@@ -211,6 +223,9 @@ function getName (event) {
 function getParams (event) {
   const body = getBody (event);
   
+  // Get the user
+  const owner = getOwner (event);
+
   // Get the symbol name
   const name = getName (event);
 
@@ -233,7 +248,7 @@ function getParams (event) {
   const vars = getVars (event, body);
   
   // Return
-  return { name, initText, evalText, vars, expansion };
+  return { owner, name, initText, evalText, vars, expansion };
 }
 
 function getVars (event, body) {
@@ -246,14 +261,12 @@ function getVars (event, body) {
   return vars;
 }
 
-async function getBracery (user, name, revision, dynamoPromise) {
-  const query = ({ KeyConditionExpression: '#u = :u AND #n = :n',
+async function getBracery (name, revision, dynamoPromise) {
+  const query = ({ KeyConditionExpression: '#n = :n',
 		   ExpressionAttributeNames: {
-		     '#u': 'username',
 		     '#n': 'name'
 		   },
 		   ExpressionAttributeValues: {
-		     ':u': user,
 		     ':n': name
 		   }});
   if (revision) {
@@ -478,6 +491,7 @@ module.exports = {
   getVars,
   getSession,
   getParams,
+  getOwner,
   getName,
   getBookmarkedParams,
   clearSession,

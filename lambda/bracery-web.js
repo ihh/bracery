@@ -135,7 +135,7 @@ function countWords (text, ParseTree, isWord) {
         node.reps.forEach (countWordsAtNodes);
         break
       case 'sym':
-	countWord (ParseTree.symChar + node.name);
+	countWord (ParseTree.symChar + ParseTree.leftBraceChar + (node.user || ParseTree.defaultUser) + '/' + node.name + ParseTree.rightBraceChar);
         countWordsAtNodes (node.rhs);
         countWordsAtNodes (node.bind);
         break

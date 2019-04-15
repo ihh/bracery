@@ -129,8 +129,8 @@ exports.handler = async (event, context, callback) => {
       });
 
     // Query the database for the given symbol definition
-    const user = 'guest';   // TODO: get real username from session, default to 'guest'
-    let symbolPromise = util.getBracery (user, name, revision, dynamoPromise)
+    const user = node.user || ParseTree.defaultUser;
+    let symbolPromise = util.getBracery (user + '/' + name, revision, dynamoPromise)
         .then ((res) => {
           const result = res.Items && res.Items.length && res.Items[0];
 	  if (result) {
@@ -155,7 +155,7 @@ exports.handler = async (event, context, callback) => {
     ({ TableName: config.wordTableName,
        KeyConditionExpression: "#word = :word",
        ExpressionAttributeNames: { "#word": "word" },
-       ExpressionAttributeValues: { ":word": ParseTree.symChar + name } })
+       ExpressionAttributeValues: { ":word": ParseTree.symChar + ParseTree.leftBraceChar + user + '/' + node.name + ParseTree.rightBraceChar } })
       .then ((res) => {
         const result = res.Items && res.Items.length && res.Items[0];
 	if (result)

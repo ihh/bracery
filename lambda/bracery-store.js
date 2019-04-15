@@ -14,11 +14,13 @@ const dynamoPromise = util.dynamoPromise();
 exports.handler = async (event, context, callback) => {
   //console.log('Received event:', JSON.stringify(event, null, 2));
 
-  // Get symbol name, and body if we have it
-  const name = event.pathParameters.name;
+  // Get username (of symbol owner), symbol name, and body if we have it
+  const user = event.pathParameters.user;
+  const sym = event.pathParameters.sym;
+  const name = user + '/' + sym;
   const body = util.getBody (event);
   const revision = event.httpMethod === 'GET' && event.queryStringParameters && event.queryStringParameters.rev;
-  
+
   // Set up some returns
   let session = await util.getSession (event, dynamoPromise);
   const respond = util.respond (callback, event, session);
@@ -26,7 +28,7 @@ exports.handler = async (event, context, callback) => {
 
   // Query the database for the given name
   try {
-    let res = await util.getBracery (user, name, revision, dynamoPromise);
+    let res = await util.getBracery (name, revision, dynamoPromise);
     const result = res.Items && res.Items.length && res.Items[0];
     const resultLocked = (result && result.locked && (!session || !session.loggedIn || (result.owner !== session.user)));
     // Handle the HTTP methods
@@ -35,7 +37,7 @@ exports.handler = async (event, context, callback) => {
       if (resultLocked)
         return respond.forbidden();
       if (result) {
-	let item = { name: name,
+	let item = { name,
                      bracery: ' ',  // DynamoDB doesn't like empty strings...
 		     updated: Date.now(),
 		     revision: result.revision,
@@ -60,7 +62,7 @@ exports.handler = async (event, context, callback) => {
       {
         if (resultLocked)
           return respond.forbidden();
-	let item = { name: name,
+	let item = { name,
                      bracery: body.bracery,
 		     updated: Date.now(),
 		     revision: result.revision };

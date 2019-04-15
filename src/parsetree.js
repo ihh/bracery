@@ -132,6 +132,7 @@ function parseTextDefs (text) {
 var symChar = '~', varChar = '$', funcChar = '&', leftBraceChar = '{', rightBraceChar = '}', leftSquareBraceChar = '[', rightSquareBraceChar = ']', pipeChar = '|', assignChar = '=', traceryChar = '#', defaultMapVar = '_'
 var nodeArgKeys = ['rhs','args','unit','value','local','cond','t','f','bind']
 var nodeListArgKeys = ['opts']
+var defaultUser = 'guest'
 
 // Footers
 var defaultFooterVarName = 'footer'
@@ -2173,7 +2174,7 @@ function makeExpansionPromise (config) {
             var symbolExpansionPromise
             var expr = symChar + (node.name || node.id)
             var method = node.method || 'expand'
-	    var symOwner = node.user || config.defaultUser || 'guest'
+	    var symOwner = node.user || config.defaultUser || pt.defaultUser
             if (!node.rhs && config[method])
               symbolExpansionPromise = handlerPromise ([node, varVal, depth], resolve(), config.before, method)
               .then (function() {
@@ -2527,6 +2528,7 @@ module.exports = {
   assignChar: assignChar,
   traceryChar: traceryChar,
   defaultMapVar: defaultMapVar,
+  defaultUser: defaultUser,
   
   // parse tree manipulations
   sampleParseTree: sampleParseTree,

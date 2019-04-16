@@ -4,7 +4,8 @@ include Makefile.keys
 
 ZIP = zip
 
-FUNCTIONS = bracery-store bracery-view bracery-asset bracery-expand bracery-login bracery-twitter bracery-bot bracery-news bracery-index bracery-bookmark bracery-react
+#FUNCTIONS = bracery-store bracery-view bracery-asset bracery-expand bracery-login bracery-twitter bracery-bot bracery-news bracery-index bracery-bookmark bracery-react
+FUNCTIONS = bracery-store bracery-asset bracery-login bracery-twitter bracery-bot bracery-news bracery-index bracery-bookmark bracery-react
 ZIPFILES = $(addsuffix .zip,$(FUNCTIONS))
 PUBLISH_PSEUDOTARGETS = $(addsuffix .publish,$(FUNCTIONS))
 

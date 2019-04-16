@@ -9,11 +9,10 @@ import { extend, fromEntries } from './bracery-web';
 
 // TODO:
 // Simplify edge banner
-// Rename node (tightly controlled input & link; parses, replaces Tracery, lookup, assign)
 // Name node (link, convert implicit node to defined node with new var name)
 // Duplicate node
 
-// Undo slider button (keep in localStorage)
+// Preserve state in localStorage
 // Save slider button (publish to server using username/symbol format)
 // User preference: by default, all pages start off unlocked (i.e. can be edited by any user)
 // (guest account has this preference checked; key pages like guest/welcome can then be locked again)
@@ -49,6 +48,7 @@ class ParseGraph {
   get START() { return 'START'; }
   get SYM_PREFIX() { return 'SYM_'; }
   get LINK_SUFFIX() { return '_LINK'; }
+  get SLASH_MARKER() { return '_SLASH_'; }
 
   get nodeSize() { return 150; }
   get edgeHandleSize() { return 50; }
@@ -142,7 +142,7 @@ class ParseGraph {
   canCreateEdge (source, target) {
     if (!target) {
       source = typeof(source) === 'object' ? source : this.findNodeByID (source);
-      return source && source.nodeType !== this.placeholderNodeType;
+      return source && source.nodeType !== this.placeholderNodeType && source.nodeType !== this.externalNodeType;
     }
     return target.nodeType !== this.implicitNodeType;
   }
@@ -150,9 +150,9 @@ class ParseGraph {
   // Create an edge
   createEdge (source, target) {
     let link = null;
-    if (target.nodeType === this.externalNodeType) {
-      const sym = this.removeSymPrefix (target.id);
-      link = this.makeMarkdownStyleLink (null, sym, ParseTree.symChar + sym);
+    if (target.nodeType === this.externalNodeType || target.nodeType === this.startNodeType) {
+      const sym = this.nodeIdToSymbol (target.id);
+      link = this.makeMarkdownStyleLink (null, this.removeUserPrefix(sym), ParseTree.symChar + ParseTree.leftBraceChar + sym + ParseTree.rightBraceChar);
     } else
       link = this.makeTwineStyleLink (target.id);
 
@@ -566,7 +566,7 @@ class ParseGraph {
     const xy = this.makeCoord(node);
     switch (node.nodeType) {
     case this.externalNodeType:
-      return xy && (xy + ParseTree.symChar + this.removeSymPrefix (node.id) + '\n');
+      return xy && (xy + ParseTree.symChar + ParseTree.leftBraceChar + this.nodeIdToSymbol (node.id) + ParseTree.rightBraceChar + '\n');
     case this.placeholderNodeType:
       return xy && (xy + ParseTree.varChar + node.id + '\n');
     case this.startNodeType:
@@ -599,7 +599,7 @@ class ParseGraph {
     switch (node.nodeType) {
     case this.externalNodeType:
     case this.startNodeType:
-      return ParseTree.symChar + this.removeSymPrefix (node.id);
+      return ParseTree.symChar + this.nodeIdToSymbol (node.id);
     case this.definedNodeType:
     case this.placeholderNodeType:
       return ParseTree.traceryChar + node.id + ParseTree.traceryChar;
@@ -610,18 +610,27 @@ class ParseGraph {
   }
 
   // Convert a node ID to/from displayable form
-  removeSymPrefix (id) {
-    return id.replace (this.SYM_PREFIX, '');
+  nodeIdToSymbol (id) {
+    return id.replace (this.SYM_PREFIX, '').replace (this.SLASH_MARKER, '/');
   }
 
-  addSymPrefix (symName) {
-    return this.SYM_PREFIX + symName;
+  symbolToNodeId (symName) {
+    return this.SYM_PREFIX + symName.replace ('/', this.SLASH_MARKER);
   }
 
+  makeUserSymbol (user, name) {
+    return (user ? (user + '/') : '') + name;
+  }
+
+  removeUserPrefix (symbol) {
+    return symbol.replace (/^.*\//, '');
+  }
+  
   titleForID (id, defaultTitle) {
     return (id.indexOf (this.LINK_SUFFIX) >= 0
             ? (defaultTitle || this.implicitNodeTitle)
-            : id.replace (this.SYM_PREFIX, ParseTree.symChar));
+            : (id.replace (this.SYM_PREFIX, ParseTree.symChar)
+	       .replace (this.SLASH_MARKER, '/')));
   }
 
   titleForNode (node) {
@@ -797,7 +806,7 @@ class ParseGraph {
   // Wrappers for ParseTree.getSymbolNodes that find various types of nodes
   getTargetNodes (rhs, config, namer) {
     return ParseTree.getSymbolNodes (rhs, config)
-      .map ((target) => extend (target, { graphNodeName: namer(target) }))
+      .map ((target) => extend (target, { graphNodeId: namer(target) }))
   }
 
   getLinkedNodes (prefix, rhs) {
@@ -827,7 +836,7 @@ class ParseGraph {
     return this.getTargetNodes (rhs,
                                 { ignoreTracery: true,
                                   ignoreLinkSubtrees: true },
-                                (n) => this.addSymPrefix (n.name));
+                                (n) => this.symbolToNodeId (this.makeUserSymbol (n.user, n.name)));
   }
 
   // Detect if a node in a Bracery parse tree represents an expression of the form #xxx# (a "Tracery-style expression"),
@@ -945,7 +954,7 @@ class ParseGraph {
       this.nodes
         .filter ((node) => node.nodeType !== this.implicitNodeType)
         .reduce ((names, node) => names
-                 .concat ([this.removeSymPrefix (node.id)])
+                 .concat (this.nodeIdToSymbol(node.id).split('/'))
                  .concat (node.symAndVarNames || []),
                  [])
         .map ((name) => [name, true]));
@@ -1134,7 +1143,7 @@ class ParseGraph {
         const isLink = ParseTree.isLinkExpr(linkNode);
         const isLayoutLink = ParseTree.isLayoutLinkExpr(linkNode);
         const parent = (linkNode.inLink && linkNode.link
-                        ? nodeByID[linkNode.link.graphNodeName]
+                        ? nodeByID[linkNode.link.graphNodeId]
                         : rootNode);
         const actualLinkNode = (isLink
                                 ? linkNode
@@ -1154,7 +1163,7 @@ class ParseGraph {
           if (ParseTree.isEvalVar(linkTargetNode)) {
             uniqueTarget = ParseTree.getEvalVar(linkTargetNode);
           } else if (linkTargetNode.type === 'sym') {
-            uniqueTarget = this.addSymPrefix (linkTargetNode.name);
+            uniqueTarget = this.symbolToNodeId (this.makeUserSymbol (linkTargetNode.user, linkTargetNode.name));
           } else if (ParseTree.isTraceryExpr(linkTargetNode)) {
             uniqueTarget = ParseTree.traceryVarName (linkTargetNode);
             if (this.isTwineStyleLink (linkBracery))
@@ -1164,7 +1173,7 @@ class ParseGraph {
         const topOffset = braceryNodeOffset[rootNode.id] || 0;
         const linkTextPos = this.getLinkTextPos (actualLinkNode, text, topOffset);
         const linkTargetPos = this.getLinkTargetPosForBracery (linkBracery, linkTargetRhsNode, topOffset);
-        const implicitNodeID = linkNode.graphNodeName;
+        const implicitNodeID = linkNode.graphNodeId;
         braceryNodeOffset[implicitNodeID] = linkTargetTextOffset.offset;
         layoutParent[implicitNodeID] = parent;
         const implicitNode = extend (
@@ -1198,7 +1207,7 @@ class ParseGraph {
         this.getIncludedNodes (nodeRhs)
           .concat (this.getExternalNodes (nodeRhs))
           .map ((target) => addEdge ({ source: node.id,
-                                       target: target.graphNodeName,
+                                       target: target.graphNodeId,
                                        type: this.includeEdgeType,
                                        pos: [target.pos[0] - srcOffset,
                                              target.pos[1]] }))
@@ -1222,14 +1231,14 @@ class ParseGraph {
     let placeholderNodes = [];
     const createPlaceholders = (nodes, attrs) => {
       nodes.forEach ((target) => {
-	const targetNode = nodeByID[target.graphNodeName];
+	const targetNode = nodeByID[target.graphNodeId];
         if (targetNode) {
 	  if (!layoutParent[targetNode.id]
               && targetNode.nodeType !== this.startNodeType
               && !this.nodeInSubtree (node, targetNode, layoutParent))
 	    layoutParent[targetNode.id] = node;
 	} else {
-	  const newNode = extend ({ id: target.graphNodeName },
+	  const newNode = extend ({ id: target.graphNodeId },
 				  attrs);
           layoutParent[newNode.id] = node;
           pushNode (placeholderNodes, newNode);
@@ -1348,7 +1357,7 @@ class ParseGraph {
         title = this.nodeText (node, node.linkTargetPos, nodeByID);
         break;
       case this.startNodeType:
-        typeText = ParseTree.symChar + symName + ' ';
+        typeText = ParseTree.symChar + this.removeUserPrefix(symName)+ ' ';
         title = node.defText;
         break;
       default:
@@ -1366,7 +1375,7 @@ class ParseGraph {
   // of the form $variable=&quote{...} or $variable=&layout{x,y}&quote{...}
   parseTopLevel (pta) {
     let { symName, rhs, text, nodeByID, braceryNodeOffset, braceryNodeRhsByID, pushNode } = pta;
-    const startNodeID = this.addSymPrefix (symName);
+    const startNodeID = this.symbolToNodeId (this.removeUserPrefix (symName));
     let topLevelNodes = [], startDefText = '';
     // We will not keep these references to the originally parsed text and the Bracery parse tree,
     // but we use them for analysis when building the graph
@@ -1387,7 +1396,7 @@ class ParseGraph {
 	    node.id = heldNode.varname;
 	    node.nodeType = this.placeholderNodeType;
 	  } else if (heldNodeType === 'sym') {
-	    node.id = this.addSymPrefix (heldNode.name);
+	    node.id = this.symbolToNodeId (this.makeUserSymbol (heldNode.user, heldNode.name));
 	    node.nodeType = this.externalNodeType;
 	  } else {
 	    node.id = startNodeID;
@@ -1434,10 +1443,13 @@ class ParseGraph {
 	startOffset = braceryNode.pos[0] + braceryNode.pos[1];
       } else if (this.isStaticExpr ([braceryNode])) {
 	braceryStartNodeRhs.push (braceryNode);
-        startDefText += text.substr (braceryNode.pos[0], braceryNode.pos[1]);
-	startOffset = (typeof(braceryNode) === 'string'
-		       ? braceryNode.length
-		       : (braceryNode.pos[0] + braceryNode.pos[1]));
+	if (typeof(braceryNode) === 'string') {
+          startDefText += braceryNode;
+	  startOffset += braceryNode.length;
+	} else {
+	  startDefText += text.substr (braceryNode.pos[0], braceryNode.pos[1]);
+	  startOffset = braceryNode.pos[0] + braceryNode.pos[1];
+	}
       } else {
         break;
       }

@@ -55,7 +55,7 @@ const templateWarningVar = 'INITIAL_WARNING';
 
 // The Lambda function
 exports.handler = async (event, context, callback) => {
-  //console.log('Received event:', JSON.stringify(event, null, 2));
+  console.log('Received event:', JSON.stringify(event, null, 2));
 
   // Set up some returns
   let session = await util.getSession (event, dynamoPromise);
@@ -77,6 +77,7 @@ exports.handler = async (event, context, callback) => {
 	      ? parsedSessionState
 	      : util.getParams (event)));
     const { name, initText, evalText, vars, expansion } = appState;
+    console.log({appState});
 
     // Add the name & a dummy empty definition to the template var->val map
     let tmpMap = util.extend ({}, templateVarValMap);
@@ -129,8 +130,7 @@ exports.handler = async (event, context, callback) => {
       });
 
     // Query the database for the given symbol definition
-    const user = node.user || ParseTree.defaultUser;
-    let symbolPromise = util.getBracery (user + '/' + name, revision, dynamoPromise)
+    let symbolPromise = util.getBracery (name, revision, dynamoPromise)
         .then ((res) => {
           const result = res.Items && res.Items.length && res.Items[0];
 	  if (result) {
@@ -155,7 +155,7 @@ exports.handler = async (event, context, callback) => {
     ({ TableName: config.wordTableName,
        KeyConditionExpression: "#word = :word",
        ExpressionAttributeNames: { "#word": "word" },
-       ExpressionAttributeValues: { ":word": ParseTree.symChar + ParseTree.leftBraceChar + user + '/' + node.name + ParseTree.rightBraceChar } })
+       ExpressionAttributeValues: { ":word": ParseTree.symChar + ParseTree.leftBraceChar + name + ParseTree.rightBraceChar } })
       .then ((res) => {
         const result = res.Items && res.Items.length && res.Items[0];
 	if (result)

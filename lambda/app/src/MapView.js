@@ -15,7 +15,6 @@ class MapView extends Component {
     super(props);
     this.ParseTree = ParseTree;
     this.graph = new ParseGraph ({ text: props.text,
-                                   rhs: props.rhs,
                                    name: props.name,
                                    selected: props.selected });
     this.state = { text: props.text,
@@ -439,6 +438,7 @@ class MapView extends Component {
               </div>);
     } else if (selected.edge) {
       const edge = this.graph.selectedEdge (selected);
+      console.warn({edge,selected},this.graph.edges);
       return (<div className="editor-banner editor-banner-edge">
               {this.edgeBanner (edge)}
               </div>);
@@ -456,7 +456,7 @@ class MapView extends Component {
     const theSelectedScene = (info) => (<span>{ this.graph.titleForID(node.id) }{ info || '' }</span>);
     switch (node.nodeType) {
     case this.graph.externalNodeType:
-      return theSelectedScene (<span> is defined <button onClick={() => this.props.openSymPage (this.graph.removeSymPrefix (node.id))}>
+      return theSelectedScene (<span> is defined <button onClick={() => this.props.openSymPage (this.graph.nodeIdToSymbol (node.id))}>
 			       elsewhere
 			       </button></span>);
     case this.graph.startNodeType:

@@ -171,6 +171,7 @@ module.exports = {
   getWords: getWords,
 
   // Special pages
+  defaultUserName: 'guest',
   defaultSymbolName: 'welcome',
   suggestionsSymbolName: 'editor_suggestions',
 

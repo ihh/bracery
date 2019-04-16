@@ -8,6 +8,7 @@ const expandMarkdown = braceryWeb.expandMarkdown;
 const digestText = braceryWeb.digestText;
 const getWords = braceryWeb.getWords;
 const defaultSymbolName = braceryWeb.defaultSymbolName;
+const defaultUserName = braceryWeb.defaultUserName;
 const bookmarkRegex = braceryWeb.bookmarkRegex;
 
 const config = require ('./bracery-config');
@@ -197,34 +198,26 @@ async function getBookmarkedParams (event, dynamoPromise) {
   return params;
 }
 
-function getOwner (event) {
-  const body = getBody (event);
-
-  const user = ((event && event.pathParameters)
-		? (event.pathParameters.name ? event.pathParameters.user_or_name : ParseTree.defaultUser)
-		: ((event && event.queryStringParameters)
-		   ? (event.queryStringParameters.name ? event.queryStringParameters.user_or_name : ParseTree.defaultUser)
-		   : (body.user || ParseTree.defaultUser)));
-
-  return user;
-}
-
 function getName (event) {
   const body = getBody (event);
-  
-  const name = ((event && event.pathParameters && (event.pathParameters.name || event.pathParameters.user_or_name))
-		|| (event && event.queryStringParameters && (event.queryStringParameters.name || event.queryStringParameters.user_or_name))
-		|| body.name
-		|| defaultSymbolName);
+  let name = body.name || (defaultUserName + '/' + defaultSymbolName);
+
+  if (event) {
+    const params = event.pathParameters || event.queryStringParameters;
+    if (params && params.user) {
+      name = params.user;
+      if (params.symbol)
+	name = name + '/' + params.symbol;
+      else
+	name = defaultUserName + '/' + name;
+    }
+  }
 
   return name;
 }
 
 function getParams (event) {
   const body = getBody (event);
-  
-  // Get the user
-  const owner = getOwner (event);
 
   // Get the symbol name
   const name = getName (event);
@@ -248,7 +241,7 @@ function getParams (event) {
   const vars = getVars (event, body);
   
   // Return
-  return { owner, name, initText, evalText, vars, expansion };
+  return { name, initText, evalText, vars, expansion };
 }
 
 function getVars (event, body) {
@@ -491,7 +484,6 @@ module.exports = {
   getVars,
   getSession,
   getParams,
-  getOwner,
   getName,
   getBookmarkedParams,
   clearSession,

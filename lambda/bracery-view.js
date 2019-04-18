@@ -59,6 +59,7 @@ exports.handler = async (event, context, callback) => {
 
   // Set up some returns
   let session = await util.getSession (event, dynamoPromise);
+  console.log('Session:', JSON.stringify(session, null, 2));
   const respond = util.respond (callback, event, session);
 
   // Wrap all downstream calls (to dynamo etc) in try...catch
@@ -201,8 +202,8 @@ exports.handler = async (event, context, callback) => {
     await resetPromise;
     
     // Do the %VAR%->val template substitutions
-    if (session && session.loggedIn && session.email)
-      tmpMap[templateUserVar] = session.email.replace(/(\w)[^@\.]+([@\.])/g,(m,c,s)=>c+'**'+s);  // obfuscate email for username in view
+    if (session && session.loggedIn && session.username)
+      tmpMap[templateUserVar] = session.username;
     const finalHtml = util.expandTemplate (templateHtmlBuf.toString(), tmpMap);
 
     // And return

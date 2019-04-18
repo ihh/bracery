@@ -95,17 +95,17 @@ exports.handler = async (event, context, callback) => {
         await dynamoPromise('updateItem')
         ({ TableName: config.sessionTableName,
            Key: { cookie: session.cookie },
-           UpdateExpression: 'SET #l = :l, #e = :e, #u = :u, #a = :a, #r = :r',
+           UpdateExpression: 'SET #l = :l, #n = :n, #u = :u, #a = :a, #r = :r',
            ExpressionAttributeNames: {
              '#l': 'loggedIn',
-             '#e': 'email',
+             '#n': 'username',
              '#u': 'user',
              '#a': 'accessToken',
              '#r': 'refreshToken'
            },
            ExpressionAttributeValues: {
 	     ':l': true,
-             ':e': infoResBody.email,
+             ':n': infoResBody.username,
              ':u': infoResBody.sub,
              ':a': tokenResBody.access_token,
              ':r': tokenResBody.refresh_token

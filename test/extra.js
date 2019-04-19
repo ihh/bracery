@@ -41,6 +41,11 @@ describe('parse tree methods', function() {
   it('should find symbol nodes', function (done) {
     var rhs = bracery.ParseTree.parseRhs ('~x &uc{~y} &if{~a}{~b}{~c} &call~z{~foo}')
     var nodes = bracery.ParseTree.getSymbolNodes (rhs)
+    // actual
+    // [{"bind":null,"method":"expand","name":"x","pos":[0,2],"type":"sym"},{"bind":null,"method":"expand","name":"y","pos":[7,2],"type":"sym"},{"bind":null,"method":"expand","name":"a","pos":[15,2],"type":"sym"},{"bind":null,"method":"expand","name":"b","pos":[19,2],"type":"sym"},{"bind":null,"method":"expand","name":"c","pos":[23,2],"type":"sym"},{"bind":null,"method":"expand","name":"z","pos":[32,2],"type":"sym"},{"bind":null,"method":"expand","name":"foo","pos":[35,4],"type":"sym"}]
+
+    // expected
+    // [{"bind":null,"method":"expand","name":"x","pos":[0,2],"sympos":[1,1],"type":"sym"},{"bind":null,"method":"expand","name":"y","pos":[7,2],"sympos":[8,1],"type":"sym"},{"bind":null,"method":"expand","name":"a","pos":[15,2],"sympos":[16,1],"type":"sym"},{"bind":null,"method":"expand","name":"b","pos":[19,2],"sympos":[20,1],"type":"sym"},{"bind":null,"method":"expand","name":"c","pos":[23,2],"sympos":[24,1],"type":"sym"},{"bind":null,"method":"expand","name":"z","pos":[32,2],"sympos":[33,1],"type":"sym"},{"bind":null,"method":"expand","name":"foo","pos":[35,4],"sympos":[36,3],"type":"sym"}]
     assertJsonEqual (nodes, [['x',[0,2]],['y',[7,2]],['a',[15,2]],['b',[19,2]],['c',[23,2]],['z',[32,2]],['foo',[35,4]]].map (function (name_pos) { return { type: 'sym', name: name_pos[0], pos: name_pos[1], sympos: [name_pos[1][0]+1,name_pos[1][1]-1], bind: null, method: 'expand' } }))
     done()
   })

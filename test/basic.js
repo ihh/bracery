@@ -99,8 +99,10 @@ function doTests (testRunner) {
 
   // user namespaces
   expectExpand ('~{testuser/show_user}', 'user=testuser',)
+  expectExpand ('~testuser/show_user', 'user=testuser',)
   expectExpand ('~{testuser/abc}', 'def',)
   expectExpand ('&quote~{testuser/abc}', '~{testuser/abc}',)
+  expectExpand ('&quote{~testuser/abc}', '~{testuser/abc}',)
 
   // case manipulation
   expectExpand ('&quote{~TEST1}', '~TEST1')

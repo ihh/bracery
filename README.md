@@ -380,7 +380,7 @@ so heavily recursive Bracery code can quickly max out the JavaScript stack.
 The main constraints that Bracery enforces are maximum parse tree depth, parse tree node count, recursion depth, and output length.
 For the `&parse` function, constraints on the parsed sequence and subsequence lengths are also enforced.
 
-## Comparison with Twine
+## Comparison with Markdown and Twine
 
 The syntax `&link{hint}{destination}` will be rendered in an implementation-determined way
 (the default implementation just passes it through unchanged);
@@ -390,6 +390,9 @@ At [bracery.org](https://bracery.org/), both are modeled as anchor elements:
 so that an interactive fiction-style pattern is `&link{Doorway description}{~next_room}`
 where the tilde-prefixed symbol `~next_room` plays a similar role to a Twine [passage](https://twinery.org/wiki/passage);
 whereas `revelation` is pre-expanded text that is revealed when the `hint` is clicked (replacing the clicked element).
+
+The Markdown-inspired syntax `[Next room.]{You enter the next room... #next_room#}` is a shortcut for `&link{Next room.}{You enter the next room... #next_room#}`.
+(Note that Bracery is orthogonal to most of Markdown; a Markdown postprocessing step is a common addition.)
 
 The Twine-inspired syntax `[[Next room.]]` is a shortcut for `&link{Next room.}{#next_room#}`.
 (The symbol name is derived from the link text by lower-casing and replacing some interior characters with underscores.)

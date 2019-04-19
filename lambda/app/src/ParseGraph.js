@@ -152,7 +152,7 @@ class ParseGraph {
     let link = null;
     if (target.nodeType === this.externalNodeType || target.nodeType === this.startNodeType) {
       const sym = this.nodeIdToSymbol (target.id);
-      link = this.makeMarkdownStyleLink (null, this.removeUserPrefix(sym), ParseTree.symChar + ParseTree.leftBraceChar + sym + ParseTree.rightBraceChar);
+      link = this.makeMarkdownStyleLink (null, this.removeUserPrefix(sym), ParseTree.symChar + sym);
     } else
       link = this.makeTwineStyleLink (target.id);
 
@@ -566,7 +566,7 @@ class ParseGraph {
     const xy = this.makeCoord(node);
     switch (node.nodeType) {
     case this.externalNodeType:
-      return xy && (xy + ParseTree.symChar + ParseTree.leftBraceChar + this.nodeIdToSymbol (node.id) + ParseTree.rightBraceChar + '\n');
+      return xy && (xy + ParseTree.symChar + this.nodeIdToSymbol (node.id) + '\n');
     case this.placeholderNodeType:
       return xy && (xy + ParseTree.varChar + node.id + '\n');
     case this.startNodeType:

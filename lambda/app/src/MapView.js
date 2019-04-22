@@ -366,7 +366,7 @@ class MapView extends Component {
 	    )
 	  }]]), []));
   }
-  
+
   // Render graph
   render() {
     this.assertSelectionValid();

@@ -57,14 +57,14 @@ class App extends Component {
 
     };
 
-    const urlParams = this.decodeURIParams();
+    const urlParams = braceryWeb.decodeURIParams();
     if (urlParams.edit)
       this.state.editing = true;
     if (urlParams.debug)
       this.state.debugging = true;
     if (urlParams.redirect || urlParams.reset)
-      window.history.pushState ({}, '', this.encodeURIParams (window.location.origin + window.location.pathname,
-							      extend (urlParams, { redirect: null, reset: null })));
+      window.history.pushState ({}, '', braceryWeb.encodeURIParams (window.location.origin + window.location.pathname,
+							            extend (urlParams, { redirect: null, reset: null })));
 
     this.domParser = new DOMParser();
     this.bracery = new Bracery (null, { rita: RiTa });
@@ -129,11 +129,11 @@ class App extends Component {
     url = this.addHostPrefix(url);
     params = params || {};
     const bigParams = extend (this.sessionState(true), params);
-    const bigUrl = this.encodeURIParams (url, bigParams);
+    const bigUrl = braceryWeb.encodeURIParams (url, bigParams);
     if (bigUrl.length < this.maxUrlLength)
       this.redirect (bigUrl);
     else {
-      const smallUrl = this.encodeURIParams (url, params);
+      const smallUrl = braceryWeb.encodeURIParams (url, params);
       this.saveAppStateToServer()
 	.then (this.redirect.bind (this, smallUrl));
     }
@@ -158,7 +158,7 @@ class App extends Component {
   }
 
   addHostPrefix (path, params) {
-    return (window.location.host === this.state.base ? '' : this.state.base) + this.encodeURIParams (path, params);
+    return (window.location.host === this.state.base ? '' : this.state.base) + braceryWeb.encodeURIParams (path, params);
   }
 
   viewURL (name, params) {
@@ -223,9 +223,9 @@ class App extends Component {
       .then ((bookmark) => {
 	return braceryWeb.digestText (this.getTextContent(html), this.maxTweetLen - (bookmark.url.length + 1))
 	  .then ((tweet) => {
-            const webIntentUrl = this.encodeURIParams ('https://twitter.com/intent/tweet',
-						      { text: tweet,
-							url: bookmark.url });
+            const webIntentUrl = braceryWeb.encodeURIParams ('https://twitter.com/intent/tweet',
+						             { text: tweet,
+							       url: bookmark.url });
             this.openTab (webIntentUrl);
 	  });
       });
@@ -267,9 +267,9 @@ class App extends Component {
 			    headers: { 'Content-Type': 'application/json;charset=UTF-8' },
 			    body: JSON.stringify (data) }))
       .then (() => this.setState ({ warning: this.warning.saved,
-				   evalTextEdited: false,
-				   rerollMeansRestart: false,
-				   name: saveAsName }));
+				    evalTextEdited: false,
+				    rerollMeansRestart: false,
+				    name: saveAsName }));
   }
 
   // Editor open page callback
@@ -288,7 +288,7 @@ class App extends Component {
 		       evalTextEdited: true,
                        mapSelection: {},
 		       warning: this.warning.unsaved
-		   });
+		     });
       return this.debounceEvalChangedUpdate();
     }
     return Promise.resolve();
@@ -353,11 +353,11 @@ class App extends Component {
       }
     }).then ((expansion) => {
       this.setState (extend ({ currentSourceText: text,
-			      varsBeforeCurrentExpansion: varsBefore,
-			      currentExpansionText: expansion.text,
-			      varsAfterCurrentExpansion: expansion.vars,
-			      linkRevealed: {} },
-			    newState || {}));
+			       varsBeforeCurrentExpansion: varsBefore,
+			       currentExpansionText: expansion.text,
+			       varsAfterCurrentExpansion: expansion.vars,
+			       linkRevealed: {} },
+			     newState || {}));
       return expansion;
     });
   }
@@ -394,52 +394,52 @@ class App extends Component {
 
   render() {
     return (
-      <div className="main">
+        <div className="main">
         <div className="banner">
-	  <span>
-	    <a href={this.viewURL()}>bracery</a> <span> / </span>
-	    <span>{this.state.name}</span>
-	  </span>
-	  <span>{(this.state.rerollMeansRestart
-		  ? <button onClick={()=>(window.confirm('Really restart? You will lose your progress.') && this.reroll())}>Restart</button>
-		  : <button onClick={()=>this.reroll()}>Re-roll</button>)}</span>
-	  <span><button onClick={()=>this.tweet()}>Tweet</button></span>
-	  <span className="loginout">
-	    {this.state.loggedIn
-	     ? (<span>{this.state.user} / <button onClick={()=>this.logout()}>Logout</button></span>)
-	     : (<span><button onClick={()=>this.login()}>Login / Signup</button></span>)
-	    }
-          </span>
+	<span>
+	<a href={this.viewURL()}>bracery</a> <span> / </span>
+	<span>{this.state.name}</span>
+	</span>
+	<span>{(this.state.rerollMeansRestart
+		? <button onClick={()=>(window.confirm('Really restart? You will lose your progress.') && this.reroll())}>Restart</button>
+		: <button onClick={()=>this.reroll()}>Re-roll</button>)}</span>
+	<span><button onClick={()=>this.tweet()}>Tweet</button></span>
+	<span className="loginout">
+	{this.state.loggedIn
+	 ? (<span>{this.state.user} / <button onClick={()=>this.logout()}>Logout</button></span>)
+	 : (<span><button onClick={()=>this.login()}>Login / Signup</button></span>)
+	}
+      </span>
 	</div>
 	{this.state.debugging
 	 ? (<Vars vars={this.state.varsBeforeCurrentExpansion} className="varsbefore" />)
 	 : ''}
-        {this.state.debugging
-         ? (<div className="source">{this.state.currentSourceText}</div>)
-         : ''}
+      {this.state.debugging
+       ? (<div className="source">{this.state.currentSourceText}</div>)
+       : ''}
 	<div className="expansion" dangerouslySetInnerHTML={{__html:this.expandMarkdown()}}></div>
 	{this.state.debugging
 	 ? (<Vars vars={this.state.varsAfterCurrentExpansion} className="varsafter" />)
 	 : ''}
 	<p>
-	  {(this.state.editing
-	    ? (<span>
-	         Editing (<button onClick={()=>this.setState({editing:false})}>hide</button>
-		 <span> / </span> <button onClick={()=>this.erase()}>erase</button>
-		 <span> / </span> <button onClick={()=>this.reload()}>reload</button>
-		 <span> / </span> <button onClick={()=>this.setState({debugging:!this.state.debugging})}>debug{this.state.debugging?' off':''}</button>
-		 <span> / </span> <button onClick={()=>this.suggest()}>suggest</button>
-		 <span> / </span> <a href="https://github.com/ihh/bracery#Bracery" target="_blank" rel="noopener noreferrer">docs</a>):</span>)
-	    : (<span><button onClick={()=>this.setState({editing:true})}>Edit</button></span>))}
-        </p>
+	{(this.state.editing
+	  ? (<span>
+	     Editing (<button onClick={()=>this.setState({editing:false})}>hide</button>
+		      <span> / </span> <button onClick={()=>this.erase()}>erase</button>
+		      <span> / </span> <button onClick={()=>this.reload()}>reload</button>
+		      <span> / </span> <button onClick={()=>this.setState({debugging:!this.state.debugging})}>debug{this.state.debugging?' off':''}</button>
+		      <span> / </span> <button onClick={()=>this.suggest()}>suggest</button>
+		      <span> / </span> <a href="https://github.com/ihh/bracery#Bracery" target="_blank" rel="noopener noreferrer">docs</a>):</span>)
+	  : (<span><button onClick={()=>this.setState({editing:true})}>Edit</button></span>))}
+      </p>
 	<div>
-	  {this.state.suggestions
-	   ? (<div>
-	        <div className="suggestions" dangerouslySetInnerHTML={{__html:this.state.suggestions}} />
-	        <button onClick={()=>this.setState({suggestions:''})}>Clear suggestions</button>
-	      </div>)
-	   : ''}
-        </div>
+	{this.state.suggestions
+	 ? (<div>
+	    <div className="suggestions" dangerouslySetInnerHTML={{__html:this.state.suggestions}} />
+	    <button onClick={()=>this.setState({suggestions:''})}>Clear suggestions</button>
+	    </div>)
+	 : ''}
+      </div>
 
       {this.state.editing
        ? (<MapView
@@ -451,63 +451,63 @@ class App extends Component {
           />)
        : ''}
 	<div>
-	  {this.state.editing
-	   ? (<div>
-	        <div className="sourcepanel">
-	          <div className="revision">Revision: {this.state.revision}
-	            <span>{this.state.revision > 1
-		           ? (<span> (<a href={this.viewURL(this.state.name,{edit:'true',rev:this.state.revision-1})}>{this.state.revision-1}</a>)</span>)
-		           : ''}</span></div>
-	          <div className="eval-container">
-	            <textarea className="eval" value={this.state.evalText} onChange={(event)=>this.evalChanged(event)}></textarea>
-	          </div>
-	          <Refs className="refs" prefix="References" view={this.viewURL()} refSets={this.usingRefSets()} />
-	          <Refs className="referring" prefix="Used by" view={this.viewURL()} refSets={[{ symbols: this.state.referring }]} />
-	          <br/>
-	          <p>
-	            <span>{this.viewURL()}</span>
-	            <input type="text" className="name" name="name" size="20" value={this.state.saveAsName} onChange={(event)=>this.nameChanged(event)}></input>
-	            <button onClick={()=>this.publish()}>Publish</button>
-	          </p>
-	          <div>
-	            {(this.state.loggedIn
-	              ? (<div>
- 		           <label>
-	   	             <input type="checkbox" name="lock" checked={this.state.locked} onChange={(event)=>this.lockChanged(event)}></input>
-		             Prevent other users from editing</label>
-		         </div>)
-	              : '')}
-	          </div>
-	          <div className="error">{this.state.warning}</div>
-	        </div>
-	      </div>)
-	   : ''}
-        </div>
+	{this.state.editing
+	 ? (<div>
+	    <div className="sourcepanel">
+	    <div className="revision">Revision: {this.state.revision}
+	    <span>{this.state.revision > 1
+		   ? (<span> (<a href={this.viewURL(this.state.name,{edit:'true',rev:this.state.revision-1})}>{this.state.revision-1}</a>)</span>)
+		   : ''}</span></div>
+	    <div className="eval-container">
+	    <textarea className="eval" value={this.state.evalText} onChange={(event)=>this.evalChanged(event)}></textarea>
+	    </div>
+	    <Refs className="refs" prefix="References" view={this.viewURL()} refSets={this.usingRefSets()} />
+	    <Refs className="referring" prefix="Used by" view={this.viewURL()} refSets={[{ symbols: this.state.referring }]} />
+	    <br/>
+	    <p>
+	    <span>{this.viewURL()}</span>
+	    <input type="text" className="name" name="name" size="20" value={this.state.saveAsName} onChange={(event)=>this.nameChanged(event)}></input>
+	    <button onClick={()=>this.publish()}>Publish</button>
+	    </p>
+	    <div>
+	    {(this.state.loggedIn
+	      ? (<div>
+ 		 <label>
+	   	 <input type="checkbox" name="lock" checked={this.state.locked} onChange={(event)=>this.lockChanged(event)}></input>
+		 Prevent other users from editing</label>
+		 </div>)
+	      : '')}
+	    </div>
+	    <div className="error">{this.state.warning}</div>
+	    </div>
+	    </div>)
+	 : ''}
+      </div>
 	
 	<div className="bots">
-	  <hr/>
-	  {(Object.keys(this.state.bots).length
-            ? (<div>
-	         <span>Current auto-tweets </span>
-                 (<button onClick={()=>this.revokeAll()}>revoke all</button>)
-	         <ul>{Object.keys (this.state.bots).map ((botName, j) => {
-	           return (<li key={'bots'+j}>As <span> @<a href={'https://twitter.com/' + botName}>{botName}</a></span>
-		  <ul>{this.state.bots[botName].map ((sym, k) => {
-		    return (<li key={'bots'+j+'_'+k}><span>~<a href={this.viewURL(sym)}>{sym}</a> </span>
-			      (<button onClick={()=>this.revoke(sym)}>revoke</button>)
-	                    </li>);
-		             })}</ul>
-               </li>);})}</ul>
-	       </div>)
-	    : '')}
-	</div>
+	<hr/>
+	{(Object.keys(this.state.bots).length
+          ? (<div>
+	     <span>Current auto-tweets </span>
+             (<button onClick={()=>this.revokeAll()}>revoke all</button>)
+	     <ul>{Object.keys (this.state.bots).map ((botName, j) => {
+	       return (<li key={'bots'+j}>As <span> @<a href={'https://twitter.com/' + botName}>{botName}</a></span>
+		       <ul>{this.state.bots[botName].map ((sym, k) => {
+		         return (<li key={'bots'+j+'_'+k}><span>~<a href={this.viewURL(sym)}>{sym}</a> </span>
+			         (<button onClick={()=>this.revoke(sym)}>revoke</button>)
+	                         </li>);
+		       })}</ul>
+                       </li>);})}</ul>
+	     </div>)
+	  : '')}
+      </div>
 	<div className="auto">
-	  <button onClick={()=>this.autotweet()}>Add this page</button>
-	  <span> to auto-tweets</span>
+	<button onClick={()=>this.autotweet()}>Add this page</button>
+	<span> to auto-tweets</span>
 	</div>
 	<hr/>
 	<Refs className="recent" prefix="Recently updated" view={this.viewURL()} refSets={[{ symbols: this.state.recent }]} />
-      </div>
+        </div>
     );
   }
 }

@@ -64,6 +64,23 @@ function expandMarkdown (text, marked, isRevealed) {
   return expandInternalLinks (html, isRevealed || {});
 }
 
+function decodeURIParams (url) {
+  url = url || window.location.href;
+  let params = {};
+  url.replace (/[?&]+([^=&]+)=([^&]*)/gi, (m,key,value) => {
+    params[key] = window.decodeURIComponent (value);
+  });
+  return params;
+}
+
+function encodeURIParams (url, params) {
+  params = params || {};
+  let paramNames = Object.keys(params).filter ((p) => params[p]);
+  return url + (paramNames.length
+		? ('?' + paramNames.map ((p) => (p + '=' + window.encodeURIComponent (params[p]))).join('&'))
+		: '');
+}
+
 function digestText (text, maxDigestChars, link, alwaysIncludeLink) {
   var digested = text.replace(/^\s*/,'').replace(/\s*$/,'');
   var linkNeeded = ((typeof(link) === 'string' && link.match(/\S/))
@@ -178,6 +195,8 @@ module.exports = {
   fromEntries: fromEntries,
   escapeHTML: escapeHTML,
   expandMarkdown: expandMarkdown,
+  decodeURIParams: decodeURIParams,
+  encodeURIParams: encodeURIParams,
   digestText: digestText,
   clickHandlerName: clickHandlerName,
   makeInternalLink: makeInternalLink,

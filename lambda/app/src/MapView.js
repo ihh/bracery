@@ -297,7 +297,8 @@ class MapView extends Component {
       history = history.slice(1);
     this.setState (extend ({ braceryHistory: history,
 			     braceryFuture: [] },
-			   newState));
+			   newState),
+		   () => this.props.setText (newBracery));
   }
 
   // Shapes
@@ -365,6 +366,15 @@ class MapView extends Component {
 		</symbol>
 	    )
 	  }]]), []));
+  }
+
+  // Lifecycle methods
+  shouldComponentUpdate (nextProps, nextState) {
+    const update = nextProps.text !== this.state.text;
+    console.warn('shouldComponentUpdate props',this.props,nextProps);
+    console.warn('shouldComponentUpdate state',this.state,nextState);
+    console.warn('shouldComponentUpdate update',update);
+    return update;
   }
 
   // Render graph

@@ -443,6 +443,7 @@ class App extends Component {
 
       {this.state.editing
        ? (<MapView
+	  setText={(text)=>this.setState({evalText:text})}
           openSymPage={this.openSymPage.bind(this)}
           name={this.state.name}
           text={this.state.evalText}

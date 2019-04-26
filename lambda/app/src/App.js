@@ -90,7 +90,7 @@ class App extends Component {
   }
   
   // Global methods
-  handleBraceryLink = (newEvalText, linkType, linkName) => {
+  handleBraceryLink (newEvalText, linkType, linkName) {
     window.event.preventDefault();
     if (linkType === 'reveal') {
       let newLinkRevealed = extend ({}, this.state.linkRevealed);
@@ -294,7 +294,7 @@ class App extends Component {
     return Promise.resolve();
   }
 
-  evalChangedUpdate = () => {
+  evalChangedUpdate() {
     this.promiseBraceryExpansion (this.state.evalText, this.state.initVars, { rerollMeansRestart: false });
   }
   

@@ -66,7 +66,8 @@ class MapView extends Component {
 
   graphStateForSelection (selected) {
     this.graph.selected = selected;  // setter automatically updates graph selection markers
-    return extend ({ renamerContent: '' },
+    return extend ({ renamerContent: '',
+                     renamerDisabled: false },
 		   this.graphState(),
                    this.graph.getEditorState());
   }
@@ -77,6 +78,8 @@ class MapView extends Component {
 
   // setRenamerState is called by the (tightly-controlled) rename input, to update its own state
   setRenamerState (newRenamerState) {
+    if (newRenamerState.content)
+      newRenamerState.content = newRenamerState.content.toLowerCase().replace(/\s/g,'_').replace(/[^a-z0-9_]/g,'');
     const newState = this.prependInputName (newRenamerState, 'renamer');
     this.setState (newState);
   }

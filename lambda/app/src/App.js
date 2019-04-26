@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { Bracery, ParseTree } from 'bracery';
-import braceryWeb, { extend, defaultUserName } from './bracery-web';
+import braceryWeb, { extend } from './bracery-web';
 import RiTa from 'rita';
 import marked from 'marked';
 import DebouncePromise from 'awesome-debounce-promise';
@@ -334,7 +334,7 @@ class App extends Component {
 
   getSymbol (config) {
     return this.getBracery (config.symbolName
-			    || ((config.node.user || config.defaultUser || defaultUserName) + '/' + config.node.name))
+			    || ((config.node.user || config.defaultUser || this.ParseTree.defaultUser) + '/' + config.node.name))
       .then ((bracery) => [bracery]);
   }
   setSymbol() { return []; }

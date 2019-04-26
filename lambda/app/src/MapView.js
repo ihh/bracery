@@ -14,9 +14,7 @@ class MapView extends Component {
   constructor(props) {
     super(props);
     this.ParseTree = ParseTree;
-    this.graph = new ParseGraph ({ text: props.text,
-                                   name: props.name,
-                                   selected: props.selected });
+    this.initGraph (props);
     this.state = { text: props.text,
                    nodes: cloneDeep (this.graph.nodes),
                    edges: cloneDeep (this.graph.edges),
@@ -45,6 +43,18 @@ class MapView extends Component {
   // Constants
   maxUndos() { return 1024; }  // nice deep undo history
   minTimeBetweenSimilarHistoryEvents() { return 400; }  // milliseconds
+
+  // Graph initialization & external update
+  initGraph (props) {
+    this.graph = new ParseGraph (extend ({}, this.props, props));
+  }
+
+  updateGraph (text) {
+    this.initGraph ({ text,
+		      selected: {} });
+    this.setState (extend (this.graphState(),
+			   this.disableInputState()));
+  }
   
   // State modification
   graphState() {
@@ -59,10 +69,6 @@ class MapView extends Component {
     return extend ({ renamerContent: '' },
 		   this.graphState(),
                    this.graph.getEditorState());
-  }
-
-  updateGraph() {
-    this.setState (this.graphState());
   }
 
   updateSelection (selected) {
@@ -227,32 +233,34 @@ class MapView extends Component {
   
   undo() {
     let history = this.state.braceryHistory, future = this.state.braceryFuture;
-    const bracery = this.graph.bracery(), undoEvent = history.pop();
+    const bracery = this.graph.bracery(), undoEvent = history.pop(), restoredBracery = undoEvent.bracery;
     this.addToHistory (future, bracery);
 
-    this.graph = new ParseGraph ({ text: undoEvent.bracery,
+    this.graph = new ParseGraph ({ text: restoredBracery,
                                    name: this.props.name,
                                    selected: {} });
 
     this.setState (extend ({ braceryHistory: history,
 			     braceryFuture: future },
 			   this.graphState(),
-			   this.disableInputState()));
+			   this.disableInputState()),
+		   () => this.props.setText (restoredBracery));
   }
 
   redo() {
     let history = this.state.braceryHistory, future = this.state.braceryFuture;
-    const bracery = this.graph.bracery(), redoEvent = future.pop();
+    const bracery = this.graph.bracery(), redoEvent = future.pop(), restoredBracery = redoEvent.bracery;
     this.addToHistory (history, bracery);
     
-    this.graph = new ParseGraph ({ text: redoEvent.bracery,
+    this.graph = new ParseGraph ({ text: restoredBracery,
                                    name: this.props.name,
                                    selected: {} });
     
     this.setState (extend ({ braceryHistory: history,
 			     braceryFuture: future },
 			   this.graphState(),
-			   this.disableInputState()));
+			   this.disableInputState()),
+		   () => this.props.setText (restoredBracery));
   }
 
   disableInputState() {
@@ -368,15 +376,6 @@ class MapView extends Component {
 	  }]]), []));
   }
 
-  // Lifecycle methods
-  shouldComponentUpdate (nextProps, nextState) {
-    const update = nextProps.text !== this.state.text;
-    console.warn('shouldComponentUpdate props',this.props,nextProps);
-    console.warn('shouldComponentUpdate state',this.state,nextState);
-    console.warn('shouldComponentUpdate update',update);
-    return update;
-  }
-
   // Render graph
   render() {
     this.assertSelectionValid();
@@ -384,7 +383,6 @@ class MapView extends Component {
             {this.renderGraphView()}
             {this.renderEditorBanner()}
             {this.renderEditor()}
-            {this.renderCurrentText()}
             </div>);
   }
 
@@ -448,7 +446,6 @@ class MapView extends Component {
               </div>);
     } else if (selected.edge) {
       const edge = this.graph.selectedEdge (selected);
-      console.warn({edge,selected},this.graph.edges);
       return (<div className="editor-banner editor-banner-edge">
               {this.edgeBanner (edge)}
               </div>);
@@ -526,12 +523,6 @@ class MapView extends Component {
             disabled={this.state.editorDisabled}
             focus={this.state.editorFocus} />
             </div>);
-  }
-
-  renderCurrentText() {
-    return (<div style={{'fontSize':'small'}}>
-            {this.state.text}
-            </div>)
   }
 }
 

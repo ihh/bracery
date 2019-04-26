@@ -66,12 +66,14 @@ class App extends Component {
       window.history.pushState ({}, '', braceryWeb.encodeURIParams (window.location.origin + window.location.pathname,
 							            extend (urlParams, { redirect: null, reset: null })));
 
+    this.mapView = React.createRef();
+
     this.domParser = new DOMParser();
     this.bracery = new Bracery (null, { rita: RiTa });
     this.ParseTree = ParseTree;  // a convenience, for debugging
     this.braceryCache = {};
-    this.debounceEvalChangedUpdate = DebouncePromise (this.evalChangedUpdate, this.evalChangedUpdateDelay);
-    window[braceryWeb.clickHandlerName] = this.handleBraceryLink;
+    this.debounceMapChanged = DebouncePromise (this.mapChanged.bind(this), this.mapChangedDelay);
+    window[braceryWeb.clickHandlerName] = this.handleBraceryLink.bind(this);
   }
 
   // Constants
@@ -81,7 +83,7 @@ class App extends Component {
 			   saving: 'Saving...',
 			   saved: 'Saved.' }; }
   get maxUrlLength() { return 2000; }  // a lower bound...
-  get evalChangedUpdateDelay() { return 400; }
+  get mapChangedDelay() { return 400; }
   get maxTweetLen() { return 280; }
 
   // Helpers
@@ -281,21 +283,27 @@ class App extends Component {
   evalChanged (event) {
     let text = event.target.value;
     if (text !== this.state.evalText) {
-      this.setState ({ initText: text,
-		       evalText: text,
-                       parsedEvalText: this.parseBracery(text),
-		       currentSourceText: text,
+      this.setState ({ evalText: text,
+                       initText: text,
+		       parsedEvalText: this.parseBracery(text),
 		       evalTextEdited: true,
                        mapSelection: {},
-		       warning: this.warning.unsaved
-		     });
-      return this.debounceEvalChangedUpdate();
+		       warning: this.warning.unsaved,
+		       rerollMeansRestart: false,
+		     },
+		     () => (this.mapMounted() && this.mapView.updateGraph (text)));
     }
-    return Promise.resolve();
   }
 
-  evalChangedUpdate() {
-    this.promiseBraceryExpansion (this.state.evalText, this.state.initVars, { rerollMeansRestart: false });
+  mapChanged (text) {
+    this.setState ({ evalText: text,
+                     initText: text,
+		     parsedEvalText: this.parseBracery(text) });
+		     
+  }
+
+  mapMounted() {
+    return this.state.editing;
   }
   
   nameChanged (event) {
@@ -364,9 +372,9 @@ class App extends Component {
 
   // Bracery parsing & analysis
   parseBracery (text) {
-    const now = Date.now();
+//    const now = Date.now();
     const rhs = ParseTree.parseRhs (text);
-    console.warn ('parsed in ' + (Date.now() - now) + 'ms');
+//    console.warn ('parsed in ' + (Date.now() - now) + 'ms');
     return rhs;
   }
   
@@ -443,7 +451,8 @@ class App extends Component {
 
       {this.state.editing
        ? (<MapView
-	  setText={(text)=>this.setState({evalText:text})}
+	  ref={(mv) => { this.mapView = mv; }}
+	  setText={this.mapChanged.bind(this)}
           openSymPage={this.openSymPage.bind(this)}
           name={this.state.name}
           text={this.state.evalText}
@@ -462,8 +471,8 @@ class App extends Component {
 	    <div className="eval-container">
 	    <textarea className="eval" value={this.state.evalText} onChange={(event)=>this.evalChanged(event)}></textarea>
 	    </div>
-	    <Refs className="refs" prefix="References" view={this.viewURL()} refSets={this.usingRefSets()} />
-	    <Refs className="referring" prefix="Used by" view={this.viewURL()} refSets={[{ symbols: this.state.referring }]} />
+	    {false && (<Refs className="refs" prefix="References" view={this.viewURL()} refSets={this.usingRefSets()} />)}
+	    {false && (<Refs className="referring" prefix="Used by" view={this.viewURL()} refSets={[{ symbols: this.state.referring }]} />)}
 	    <br/>
 	    <p>
 	    <span>{this.viewURL()}</span>
@@ -507,7 +516,7 @@ class App extends Component {
 	<span> to auto-tweets</span>
 	</div>
 	<hr/>
-	<Refs className="recent" prefix="Recently updated" view={this.viewURL()} refSets={[{ symbols: this.state.recent }]} />
+	{false && (<Refs className="recent" prefix="Recently updated" view={this.viewURL()} refSets={[{ symbols: this.state.recent }]} />)}
         </div>
     );
   }

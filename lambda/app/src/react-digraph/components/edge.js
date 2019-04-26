@@ -393,8 +393,7 @@ class Edge extends React.Component<IEdgeProps> {
     // Conditionally trying to select the element in other ways is faster than trying to
     // do the selection.
     const defSvgPathElement: SVGPathElement | null = (
-      // eslint-disable-next-line
-      !defSvgPathElement ?
+      !defSvgRectElement ?
         viewWrapperElem.querySelector(`defs>${xlinkHref} path`) :
         null
     );

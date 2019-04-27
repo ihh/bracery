@@ -11,32 +11,44 @@ import './App.css';
 class App extends Component {
   constructor(props) {
     super(props);
+
+    const storage = localStorage.getItem (this.localStorageKey);
+    const savedState = storage && JSON.parse(storage)[props.SYMBOL_NAME];
+
+    const evalText = savedState ? savedState.eval : props.SYMBOL_DEFINITION;
+    const initText = savedState ? savedState.initText : (props.INIT_TEXT || evalText);
+    const currentSourceText = savedState ? savedState.text : initText;
+    const initVars = savedState ? JSON.parse(savedState.initVars) : (props.INIT_VARS || {});
+    const varsBeforeCurrentExpansion = savedState ? savedState.vars : initVars;
+    const currentExpansionText = savedState ? savedState.expansion.text : '';
+    const varsAfterCurrentExpansion = savedState ? savedState.expansion.vars : {};
+
     this.state = {
       user: props.USER,
       bots: props.BOTS,
 
       name: props.SYMBOL_NAME,
-      evalText: props.SYMBOL_DEFINITION,  // text entered into evaluation window
+      evalText,  // text entered into evaluation window
       evalTextEdited: false,
-      parsedEvalText: this.parseBracery (props.SYMBOL_DEFINITION),
+      parsedEvalText: this.parseBracery (evalText),
       revision: props.REVISION,
       locked: !!props.LOCKED_BY_USER,
       saveAsName: props.SYMBOL_NAME,
 
-      initText: props.INIT_TEXT || props.SYMBOL_DEFINITION,  // value to reset text to
-      initVars: props.INIT_VARS || {},  // value to reset vars to
+      initText,  // value to reset text to
+      initVars,  // value to reset vars to
 
-      varsBeforeCurrentExpansion: props.INIT_VARS,
-      currentSourceText: props.INIT_TEXT || props.SYMBOL_DEFINITION,
+      varsBeforeCurrentExpansion,
+      currentSourceText,
 
-      currentExpansionText: (props.EXPANSION && props.EXPANSION.text) || '',
-      varsAfterCurrentExpansion: (props.EXPANSION && props.EXPANSION.vars) || {},
+      currentExpansionText,
+      varsAfterCurrentExpansion,
 
       linkRevealed: {},
 
       warning: props.INITIAL_WARNING,
 
-      mapText: props.SYMBOL_DEFINITION,
+      mapText: evalText,
       mapSelection: {},
       
       loggedIn: !!props.USER,
@@ -86,6 +98,8 @@ class App extends Component {
   get mapChangedDelay() { return 400; }
   get maxTweetLen() { return 280; }
 
+  get localStorageKey() { return 'bracery_app'; }
+  
   // Helpers
   emptyEditorSelection() {
     return { startOffset: 0, endOffset: 0 };
@@ -101,15 +115,17 @@ class App extends Component {
     } else {
       // linkType === 'link'
       this.promiseBraceryExpansion (newEvalText, this.state.varsAfterCurrentExpansion, { rerollMeansRestart: true })
-	.then (() => { this.saveAppStateToServer(false); });
+	.then (() => { this.saveAppStateToLocalStorage(); });
     }
   }
 
   // State persistence
-  sessionState (includeExpansion) {
+  currentPersistentState (includeExpansion) {
     var state = { name: this.state.name,
 		  text: this.state.currentSourceText,
 		  vars: JSON.stringify (this.state.varsBeforeCurrentExpansion),
+		  initText: this.state.initText,
+		  initVars: JSON.stringify (this.state.initVars),
 		  eval: this.state.evalText };
     if (includeExpansion)
       state.expansion = JSON.stringify ({ text: this.state.currentExpansionText || '',
@@ -117,9 +133,17 @@ class App extends Component {
     return state;
   }
 
-  saveAppStateToServer (createBookmark) {
-    const data = extend ({ link: !!createBookmark },
-			 this.sessionState(true));
+  saveAppStateToLocalStorage() {
+    const data = this.currentPersistentState (true);
+    const key = this.localStorageKey;
+    let storage = JSON.parse (localStorage.getItem(key) || '{}');
+    storage[data.name] = data;
+    localStorage.setItem (key, JSON.stringify (storage));
+  }
+
+  createBookmark() {
+    const data = extend ({ link: true },
+			 this.currentPersistentState (true));
     return fetch (this.addHostPrefix (this.state.bookmark),
 		  { method: 'POST',
 		    headers: { 'Content-Type': 'application/json;charset=UTF-8' },
@@ -128,17 +152,10 @@ class App extends Component {
   }
 
   saveStateAndRedirect (url, params) {
-    url = this.addHostPrefix(url);
     params = params || {};
-    const bigParams = extend (this.sessionState(true), params);
-    const bigUrl = braceryWeb.encodeURIParams (url, bigParams);
-    if (bigUrl.length < this.maxUrlLength)
-      this.redirect (bigUrl);
-    else {
-      const smallUrl = braceryWeb.encodeURIParams (url, params);
-      this.saveAppStateToServer()
-	.then (this.redirect.bind (this, smallUrl));
-    }
+    const redirectUrl = braceryWeb.encodeURIParams (this.addHostPrefix(url), params);
+    this.saveAppStateToLocalStorage();
+    this.redirect (redirectUrl);
   }
 
   // URL management
@@ -221,7 +238,7 @@ class App extends Component {
   
   tweet() {
     const html = this.expandMarkdown();
-    this.saveAppStateToServer(true)
+    this.createBookmark()
       .then ((bookmark) => {
 	return braceryWeb.digestText (this.getTextContent(html), this.maxTweetLen - (bookmark.url.length + 1))
 	  .then ((tweet) => {
@@ -298,8 +315,8 @@ class App extends Component {
   mapChanged (text) {
     this.setState ({ evalText: text,
                      initText: text,
-		     parsedEvalText: this.parseBracery(text) });
-		     
+		     parsedEvalText: this.parseBracery(text) },
+                   this.saveAppStateToLocalStorage.bind (this));
   }
 
   mapMounted() {

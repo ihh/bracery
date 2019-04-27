@@ -152,3 +152,7 @@ button {
     height: 50vh;
     position: relative;
 }
+
+.hidden {
+    opacity: .5;
+}

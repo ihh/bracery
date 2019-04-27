@@ -18,10 +18,10 @@ class App extends Component {
     const evalText = savedState ? savedState.eval : props.SYMBOL_DEFINITION;
     const initText = savedState ? savedState.initText : (props.INIT_TEXT || evalText);
     const currentSourceText = savedState ? savedState.text : initText;
-    const initVars = savedState ? JSON.parse(savedState.initVars) : (props.INIT_VARS || {});
-    const varsBeforeCurrentExpansion = savedState ? savedState.vars : initVars;
+    const initVars = (savedState ? JSON.parse(savedState.initVars) : props.INIT_VARS) || {};
+    const varsBeforeCurrentExpansion = (savedState && JSON.parse(savedState.vars)) || initVars;
     const currentExpansionText = savedState ? savedState.expansion.text : '';
-    const varsAfterCurrentExpansion = savedState ? savedState.expansion.vars : {};
+    const varsAfterCurrentExpansion = (savedState && savedState.expansion.vars) || {};
 
     this.state = {
       user: props.USER,
@@ -33,7 +33,10 @@ class App extends Component {
       parsedEvalText: this.parseBracery (evalText),
       revision: props.REVISION,
       locked: !!props.LOCKED_BY_USER,
-      saveAsName: props.SYMBOL_NAME,
+      hidden: !!props.HIDDEN_BY_USER,
+
+      saveAsUser: this.userPartOfName (props.SYMBOL_NAME),
+      saveAsSymbol: this.symbolPartOfName (props.SYMBOL_NAME),
 
       initText,  // value to reset text to
       initVars,  // value to reset vars to
@@ -68,7 +71,7 @@ class App extends Component {
       bookmark: props.BOOKMARK_PATH_PREFIX,
 
     };
-
+    
     const urlParams = braceryWeb.decodeURIParams();
     if (urlParams.edit)
       this.state.editing = true;
@@ -93,7 +96,8 @@ class App extends Component {
 			   noName: 'Please enter a name.',
 			   noDef: 'You cannot save an empty definition. Please enter some text.',
 			   saving: 'Saving...',
-			   saved: 'Saved.' }; }
+			   saved: 'Saved.',
+                           pleaseFork: 'You don\'t have write permission for this symbol. Fork to make your own version.' }; }
   get maxUrlLength() { return 2000; }  // a lower bound...
   get mapChangedDelay() { return 400; }
   get maxTweetLen() { return 280; }
@@ -103,6 +107,18 @@ class App extends Component {
   // Helpers
   emptyEditorSelection() {
     return { startOffset: 0, endOffset: 0 };
+  }
+
+  userPartOfName (name) {
+    name = name || this.state.name;
+    const i = name.indexOf('/');
+    return i < 0 ? braceryWeb.defaultUserName : name.substr(0,i);
+  }
+  
+  symbolPartOfName (name) {
+    name = name || this.state.name;
+    const i = name.indexOf('/');
+    return i < 0 ? braceryWeb.defaultSymbolName : name.slice(i+1);
   }
   
   // Global methods
@@ -214,7 +230,7 @@ class App extends Component {
     const name = this.state.name;
     this.getBracery (name)
       .then ((text) => {
-	this.setState ({ saveAsName: name,
+	this.setState ({ saveAsSymbol: name,
 			 initText: text,
 			 initVars: {},
 			 evalText: text,
@@ -270,18 +286,33 @@ class App extends Component {
     this.saveStateAndRedirect (this.state.twitter, { source: this.state.name });
   }
 
-  publish() {
-    const saveAsName = this.state.saveAsName;
-    if (!saveAsName)
+  saveAs (user, symbol) {
+    const saveAsUser = user || this.state.saveAsUser;
+    const saveAsSymbol = symbol || this.state.saveAsSymbol;
+    const saveAsName = saveAsUser + '/' + saveAsSymbol;
+    const nameOwned = this.state.loggedIn && this.state.user === saveAsUser;
+
+    if (!saveAsSymbol)
       return this.setState ({ warning: this.warning.noName });
+
     if (!this.state.evalText)
       return this.setState ({ warning: this.warning.noDef });
 
-    const data = { bracery: this.state.evalText,
-		   locked: this.state.locked };
+    if (!nameOwned && this.state.locked)
+      return this.setState ({ warning: this.warning.pleaseFork });
 
-    return Promise.promisify (this.setState.bind(this)) ({ warning: this.warning.saving })
-      .then (() => fetch (this.addHostPrefix (this.state.store + saveAsName),
+    let data = { bracery: this.state.evalText };
+    if (this.state.locked)
+      data.locked = true;
+    if (this.state.hidden)
+      data.hidden = true;
+
+    return new Promise ((resolve) => {
+      this.setState ({ saveAsUser,
+                       saveAsSymbol,
+                       warning: this.warning.saving },
+                     resolve);
+    }).then (() => fetch (this.addHostPrefix (this.state.store + saveAsName),
 			  { method: 'PUT',
 			    headers: { 'Content-Type': 'application/json;charset=UTF-8' },
 			    body: JSON.stringify (data) }))
@@ -326,14 +357,20 @@ class App extends Component {
   nameChanged (event) {
     let name = event.target.value
 	.replace(/ /g,'_').replace(/[^A-Za-z_0-9]/g,'');
-    this.setState ({ saveAsName: name });
+    this.setState (extend ({ saveAsSymbol: name },
+                           this.state.loggedIn ? { saveAsUser: this.state.user } : {}));
   }
 
-  lockChanged (event) {
-    let locked = event.target.checked;
-    this.setState ({ locked: locked });
+  editPermissionChanged (event) {
+    let locked = !event.target.checked;
+    this.setState ({ locked });
   }
-  
+
+  readPermissionChanged (event) {
+    let hidden = !event.target.checked;
+    this.setState ({ hidden });
+  }
+
   // Interactions with store
   getBracery (symbolName) {
     if (this.braceryCache[symbolName])
@@ -422,8 +459,8 @@ class App extends Component {
         <div className="main">
         <div className="banner">
 	<span>
-	<a href={this.viewURL()}>bracery</a> <span> / </span>
-	<span>{this.state.name}</span>
+	<a href={this.viewURL()}>bracery</a>
+	<span>{' / ' + this.userPartOfName() + ' / ' + this.symbolPartOfName()}</span>
 	</span>
 	<span>{(this.state.rerollMeansRestart
 		? <button onClick={()=>(window.confirm('Really restart? You will lose your progress.') && this.reroll())}>Restart</button>
@@ -492,18 +529,22 @@ class App extends Component {
 	    {false && (<Refs className="referring" prefix="Used by" view={this.viewURL()} refSets={[{ symbols: this.state.referring }]} />)}
 	    <br/>
 	    <p>
-	    <span>{this.viewURL()}</span>
-	    <input type="text" className="name" name="name" size="20" value={this.state.saveAsName} onChange={(event)=>this.nameChanged(event)}></input>
-	    <button onClick={()=>this.publish()}>Publish</button>
+	    <span>{this.viewURL() + this.state.saveAsUser + '/'}</span>
+	    <input type="text" className="name" name="name" size="20" value={this.state.saveAsSymbol} onChange={(event)=>this.nameChanged(event)}></input>
+	    <button onClick={()=>this.saveAs()}>Save</button>
+	    {this.state.loggedIn && (this.state.user !== this.state.saveAsUser) && (<span><span> </span><button onClick={()=>this.saveAs (this.state.user)}>Borrow</button></span>)}
 	    </p>
 	    <div>
-	    {(this.state.loggedIn
-	      ? (<div>
+	    {this.state.loggedIn
+	     && (<div><div>
  		 <label>
-	   	 <input type="checkbox" name="lock" checked={this.state.locked} onChange={(event)=>this.lockChanged(event)}></input>
-		 Prevent other users from editing</label>
-		 </div>)
-	      : '')}
+	   	 <input type="checkbox" name="lock" checked={!this.state.hidden} onChange={(event)=>this.readPermissionChanged(event)}></input>
+		 Anyone can borrow</label>
+                 </div><div>
+ 		 <label className={this.state.hidden?'hidden':''}>
+	   	 <input disabled={this.state.hidden} type="checkbox" name="lock" checked={!this.state.hidden && !this.state.locked} onChange={(event)=>this.editPermissionChanged(event)}></input>
+		 Anyone can save</label>
+		 </div></div>)}
 	    </div>
 	    <div className="error">{this.state.warning}</div>
 	    </div>

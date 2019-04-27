@@ -531,19 +531,19 @@ class App extends Component {
 	    <p>
 	    <span>{this.viewURL() + this.state.saveAsUser + '/'}</span>
 	    <input type="text" className="name" name="name" size="20" value={this.state.saveAsSymbol} onChange={(event)=>this.nameChanged(event)}></input>
-	    <button onClick={()=>this.saveAs()}>Save</button>
-	    {this.state.loggedIn && (this.state.user !== this.state.saveAsUser) && (<span><span> </span><button onClick={()=>this.saveAs (this.state.user)}>Borrow</button></span>)}
+	    {(!this.state.locked || (this.state.loggedIn && this.state.user === this.state.saveAsUser)) && <button onClick={()=>this.saveAs()}>Save</button>}
+	    {this.state.loggedIn && this.state.user !== this.state.saveAsUser && (<span><span> </span><button onClick={()=>this.saveAs (this.state.user)}>Borrow</button></span>)}
 	    </p>
 	    <div>
-	    {this.state.loggedIn
+	    {this.state.loggedIn && this.state.user === this.state.saveAsUser
 	     && (<div><div>
  		 <label>
 	   	 <input type="checkbox" name="lock" checked={!this.state.hidden} onChange={(event)=>this.readPermissionChanged(event)}></input>
-		 Anyone can borrow</label>
+		 Anyone can borrow {this.state.hidden && (<span style={{fontStyle:'italic'}}>(Nope. This is private)</span>)}</label>
                  </div><div>
  		 <label className={this.state.hidden?'hidden':''}>
 	   	 <input disabled={this.state.hidden} type="checkbox" name="lock" checked={!this.state.hidden && !this.state.locked} onChange={(event)=>this.editPermissionChanged(event)}></input>
-		 Anyone can save</label>
+		 Anyone can save {this.state.locked && !this.state.hidden && (<span style={{fontStyle:'italic'}}>(Nope. Read-only)</span>)}</label>
 		 </div></div>)}
 	    </div>
 	    <div className="error">{this.state.warning}</div>

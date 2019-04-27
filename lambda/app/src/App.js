@@ -487,11 +487,8 @@ class App extends Component {
 	{(this.state.editing
 	  ? (<span>
 	     Editing (<button onClick={()=>this.setState({editing:false})}>hide</button>
-		      <span> / </span> <button onClick={()=>this.erase()}>erase</button>
-		      <span> / </span> <button onClick={()=>this.reload()}>reload</button>
 		      <span> / </span> <button onClick={()=>this.setState({debugging:!this.state.debugging})}>debug{this.state.debugging?' off':''}</button>
-		      <span> / </span> <button onClick={()=>this.suggest()}>suggest</button>
-		      <span> / </span> <a href="https://github.com/ihh/bracery#Bracery" target="_blank" rel="noopener noreferrer">docs</a>):</span>)
+                      <span> / </span> <button onClick={()=>this.reload()}>reset</button>):</span>)
 	  : (<span><button onClick={()=>this.setState({editing:true})}>Edit</button></span>))}
       </p>
 	<div>
@@ -515,7 +512,7 @@ class App extends Component {
           />)
        : ''}
 	<div>
-	{this.state.editing
+	{this.state.editing && this.state.debugging
 	 ? (<div>
 	    <div className="sourcepanel">
 	    <div className="revision">Revision: {this.state.revision}

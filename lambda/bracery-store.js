@@ -21,8 +21,12 @@ exports.handler = async (event, context, callback) => {
   const body = util.getBody (event);
   const revision = event.httpMethod === 'GET' && event.queryStringParameters && event.queryStringParameters.rev;
 
-  // Set up some returns
+  // Get session
   let session = await util.getSession (event, dynamoPromise);
+  const loggedIn = session && session.loggedIn;
+  const symIsOwned = loggedIn && session.user === user;
+
+  // Set up some returns
   const respond = util.respond (callback, event, session);
   const corsHeader = { 'Access-Control-Allow-Origin': '*' };
 
@@ -30,11 +34,13 @@ exports.handler = async (event, context, callback) => {
   try {
     let res = await util.getBracery (name, revision, dynamoPromise);
     const result = res.Items && res.Items.length && res.Items[0];
-    const resultLocked = (result && result.locked && (!session || !session.loggedIn || (result.owner !== session.user)));
+    const symIsNew = !result;
+    const symIsLocked = result && result.locked;
+    const symIsHidden = result && result.hidden;
     // Handle the HTTP methods
     switch (event.httpMethod) {
     case 'DELETE':
-      if (resultLocked)
+      if (!symIsOwned)
         return respond.forbidden();
       if (result) {
 	let item = { name,
@@ -48,34 +54,34 @@ exports.handler = async (event, context, callback) => {
         return respond.notFound();
       break;
     case 'GET':
-      if (result && result.bracery) {
+      if (result && result.bracery && (symIsOwned || !symIsHidden)) {
         let ret = { bracery: result.bracery };
-        if (result.locked) {
+        if (symIsLocked)
           ret.locked = true;
-          ret.owned = (result.owner === session.user);
-        }
+        if (symIsHidden)
+          ret.hidden = true;
+        if (symIsOwned)
+          ret.owned = true;
         respond.ok (ret, corsHeader);
       } else
         respond.notFound();
       break;
     case 'PUT':
       {
-        if (resultLocked)
+        if ((symIsLocked || symIsHidden || symIsNew) && !symIsOwned)
           return respond.forbidden();
 	let item = { name,
                      bracery: body.bracery,
 		     updated: Date.now(),
 		     revision: result.revision };
-        if (session.loggedIn)
+        if (symIsOwned)
           util.extend (item,
-                       { locked: body.locked,
-                         owner: session.user } );
+                       { locked: !!body.locked,
+                         hidden: !!body.hidden } );
         let putResult = await
 	(result
          ? util.updateBracery (item, dynamoPromise)
          : util.createBracery (item, dynamoPromise));
-
-        await util.clearSession (session, dynamoPromise);
         
         respond.ok ({ revision: putResult.revision }, corsHeader);
       }

@@ -44,6 +44,7 @@ const templateDefVar = 'SYMBOL_DEFINITION';
 const templateRevVar = 'REVISION';
 const templateRefsVar = 'REFERRING_SYMBOLS';
 const templateLockedVar = 'LOCKED_BY_USER';
+const templateHiddenVar = 'HIDDEN_BY_USER';
 const templateInitVar = 'INIT_TEXT';
 const templateVarsVar = 'INIT_VARS';
 const templateRecentVar = 'RECENT_SYMBOLS';
@@ -59,24 +60,18 @@ exports.handler = async (event, context, callback) => {
 
   // Set up some returns
   let session = await util.getSession (event, dynamoPromise);
-  console.log('Session:', JSON.stringify(session, null, 2));
   const respond = util.respond (callback, event, session);
 
   // Wrap all downstream calls (to dynamo etc) in try...catch
   try {
     // Get app state parameters
     const isRedirect = event && event.queryStringParameters && event.queryStringParameters.redirect;
-    const isReset = event && event.queryStringParameters && event.queryStringParameters.reset;
     const revision = event.queryStringParameters && event.queryStringParameters.rev;
-    const gotSessionState = session && !!session.state && !isReset && !revision;
-    const parsedSessionState = gotSessionState && JSON.parse (session.state);
     const isBookmark = event && event.queryStringParameters && event.queryStringParameters.id;
     const appState =
 	  (isBookmark
            ? await util.getBookmarkedParams (event, dynamoPromise)
-           : (parsedSessionState && (isRedirect || parsedSessionState.name === util.getName(event))
-	      ? parsedSessionState
-	      : util.getParams (event)));
+           : util.getParams (event));
     const { name, initText, evalText, vars, expansion } = appState;
     console.log({appState});
 
@@ -95,9 +90,7 @@ exports.handler = async (event, context, callback) => {
     tmpMap[templateUserVar] = null;
     tmpMap[templateExpVar] = expansion;
     tmpMap[templateExpHtmlVar] = '<i>' + '...bracing...' + '</i>';
-    tmpMap[templateWarningVar] = (!isBookmark && !isRedirect && parsedSessionState && (evalText || initText || expansion)
-				  ? ('Loaded from auto-save (<a href="' + config.viewPrefix + name + '?reset=true" id="clear_autosave">clear auto-save</a>)')
-				  : '');
+    tmpMap[templateWarningVar] = '';
 
     const populateExpansionTemplates = (expansion) => {
       if (expansion) {
@@ -136,8 +129,10 @@ exports.handler = async (event, context, callback) => {
           const result = res.Items && res.Items.length && res.Items[0];
 	  if (result) {
             tmpMap[templateRevVar] = result.revision;
-            if (result.locked && result.owner === session.user)
+            if (result.locked)
               tmpMap[templateLockedVar] = ' checked';
+            if (result.hidden)
+              tmpMap[templateHiddenVar] = ' checked';
 	  }
 	  if (!result || (typeof(evalText) === 'string' && !revision))
 	    return expansion;
@@ -186,12 +181,6 @@ exports.handler = async (event, context, callback) => {
             }))
          : Promise.resolve());
 
-    // Reset the session, if requested
-    let resetPromise =
-	(isReset
-	 ? util.clearSession (session, dynamoPromise)
-	 : Promise.resolve());
-    
     // Read the template HTML file
     const templateHtmlBuf = await util.promisify (fs.readFile) (config.templateHtmlFilename, config.stringEncoding);
 
@@ -199,7 +188,6 @@ exports.handler = async (event, context, callback) => {
     await newsPromise;
     await symbolPromise;
     await botPromise;
-    await resetPromise;
     
     // Do the %VAR%->val template substitutions
     if (session && session.loggedIn && session.username)

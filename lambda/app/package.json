@@ -13,6 +13,7 @@
     "babel-loader": "8.0.5",
     "babel-plugin-named-asset-import": "^0.3.2",
     "babel-preset-react-app": "^8.0.0",
+    "bfj": "^6.1.1",
     "bracery": "file:../../",
     "canonical-json": "0.0.4",
     "case-sensitive-paths-webpack-plugin": "2.2.0",

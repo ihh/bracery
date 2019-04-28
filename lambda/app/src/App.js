@@ -547,11 +547,11 @@ class App extends Component {
 	      && (<div><div>
  		  <label>
 	   	  <input type="checkbox" name="lock" checked={!this.state.hidden} onChange={(event)=>this.readPermissionChanged(event)}></input>
-		  Anyone can copy {this.state.hidden && (<span style={{fontStyle:'italic'}}>(Nope. This is private)</span>)}</label>
+		  Anyone can view {this.state.hidden && (<span style={{fontStyle:'italic'}}>(Nope. This is private)</span>)}</label>
                   </div><div>
  		  <label className={this.state.hidden?'hidden':''}>
 	   	  <input disabled={this.state.hidden} type="checkbox" name="lock" checked={!this.state.hidden && !this.state.locked} onChange={(event)=>this.editPermissionChanged(event)}></input>
-		  Anyone can save {this.state.locked && !this.state.hidden && (<span style={{fontStyle:'italic'}}>(Nope. Read-only)</span>)}</label>
+		  Anyone can edit {this.state.locked && !this.state.hidden && (<span style={{fontStyle:'italic'}}>(Nope. Read-only)</span>)}</label>
 		  </div></div>)}
 	     </div>
 	     <div className="error">{this.state.warning}</div>

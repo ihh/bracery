@@ -457,6 +457,7 @@ class App extends Component {
   render() {
     return (
         <div className="main">
+
         <div className="banner">
 	<span>
 	<a href={this.viewURL()}>bracery</a>
@@ -473,24 +474,25 @@ class App extends Component {
 	}
       </span>
 	</div>
-	{this.state.debugging
-	 ? (<Vars vars={this.state.varsBeforeCurrentExpansion} className="varsbefore" />)
-	 : ''}
+
       {this.state.debugging
-       ? (<div className="source">{this.state.currentSourceText}</div>)
-       : ''}
+       && (<Vars vars={this.state.varsBeforeCurrentExpansion} className="varsbefore" />)}
+
+      {this.state.debugging
+       && (<div className="source">{this.state.currentSourceText}</div>)}
 	<div className="expansion" dangerouslySetInnerHTML={{__html:this.expandMarkdown()}}></div>
 	{this.state.debugging
-	 ? (<Vars vars={this.state.varsAfterCurrentExpansion} className="varsafter" />)
-	 : ''}
+	 && (<Vars vars={this.state.varsAfterCurrentExpansion} className="varsafter" />)}
+
 	<p>
-	{(this.state.editing
-	  ? (<span>
+      {(this.state.editing
+	? (<span>
 	     Editing (<button onClick={()=>this.setState({editing:false})}>hide</button>
 		      <span> / </span> <button onClick={()=>this.setState({debugging:!this.state.debugging})}>debug{this.state.debugging?' off':''}</button>
                       <span> / </span> <button onClick={()=>this.reload()}>reset</button>):</span>)
 	  : (<span><button onClick={()=>this.setState({editing:true})}>Edit</button></span>))}
       </p>
+
 	<div>
 	{this.state.suggestions
 	 ? (<div>
@@ -500,55 +502,62 @@ class App extends Component {
 	 : ''}
       </div>
 
+      <div>
       {this.state.editing
-       ? (<MapView
-	  ref={(mv) => { this.mapView = mv; }}
-	  setText={this.mapChanged.bind(this)}
-          openSymPage={this.openSymPage.bind(this)}
-          name={this.state.name}
-          text={this.state.evalText}
-          rhs={this.state.parsedEvalText}
-          selected={this.state.mapSelection}
-          />)
-       : ''}
-	<div>
-	{this.state.editing && this.state.debugging
-	 ? (<div>
-	    <div className="sourcepanel">
-	    <div className="revision">Revision: {this.state.revision}
-	    <span>{this.state.revision > 1
-		   ? (<span> (<a href={this.viewURL(this.state.name,{edit:'true',rev:this.state.revision-1})}>{this.state.revision-1}</a>)</span>)
-		   : ''}</span></div>
-	    <div className="eval-container">
-	    <textarea className="eval" value={this.state.evalText} onChange={(event)=>this.evalChanged(event)}></textarea>
-	    </div>
-	    {false && (<Refs className="refs" prefix="References" view={this.viewURL()} refSets={this.usingRefSets()} />)}
-	    {false && (<Refs className="referring" prefix="Used by" view={this.viewURL()} refSets={[{ symbols: this.state.referring }]} />)}
-	    <br/>
-	    <p>
-	    <span>{this.viewURL() + this.state.saveAsUser + '/'}</span>
-	    <input type="text" className="name" name="name" size="20" value={this.state.saveAsSymbol} onChange={(event)=>this.nameChanged(event)}></input>
-	    {(!this.state.locked || (this.state.loggedIn && this.state.user === this.state.saveAsUser)) && <button onClick={()=>this.saveAs()}>Save</button>}
-	    {this.state.loggedIn && this.state.user !== this.state.saveAsUser && (<span><span> </span><button onClick={()=>this.saveAs (this.state.user)}>Borrow</button></span>)}
-	    </p>
-	    <div>
-	    {this.state.loggedIn && this.state.user === this.state.saveAsUser
-	     && (<div><div>
- 		 <label>
-	   	 <input type="checkbox" name="lock" checked={!this.state.hidden} onChange={(event)=>this.readPermissionChanged(event)}></input>
-		 Anyone can borrow {this.state.hidden && (<span style={{fontStyle:'italic'}}>(Nope. This is private)</span>)}</label>
-                 </div><div>
- 		 <label className={this.state.hidden?'hidden':''}>
-	   	 <input disabled={this.state.hidden} type="checkbox" name="lock" checked={!this.state.hidden && !this.state.locked} onChange={(event)=>this.editPermissionChanged(event)}></input>
-		 Anyone can save {this.state.locked && !this.state.hidden && (<span style={{fontStyle:'italic'}}>(Nope. Read-only)</span>)}</label>
-		 </div></div>)}
-	    </div>
-	    <div className="error">{this.state.warning}</div>
-	    </div>
-	    </div>)
-	 : ''}
+       && (<MapView
+	   ref={(mv) => { this.mapView = mv; }}
+	   setText={this.mapChanged.bind(this)}
+           openSymPage={this.openSymPage.bind(this)}
+           name={this.state.name}
+           text={this.state.evalText}
+           rhs={this.state.parsedEvalText}
+           selected={this.state.mapSelection}
+           />)}
       </div>
-	
+      
+        <div>
+	{this.state.editing
+         && this.state.debugging
+	 && (<div className="sourcepanel">
+
+	     <div className="revision">Revision: {this.state.revision}
+	     <span>{this.state.revision > 1
+		    && (<span> (<a href={this.viewURL(this.state.name,{edit:'true',rev:this.state.revision-1})}>{this.state.revision-1}</a>)</span>)}</span>
+             </div>
+
+	     <div className="eval-container">
+	     <textarea className="eval" value={this.state.evalText} onChange={(event)=>this.evalChanged(event)}></textarea>
+	     </div>
+
+	     <br/>
+             </div>)}
+      </div>
+        
+        <div>
+	{this.state.editing
+	 && (<div>
+	     <p>
+	     <span>{this.viewURL() + this.state.saveAsUser + '/'}</span>
+	     <input type="text" className="name" name="name" size="20" value={this.state.saveAsSymbol} onChange={(event)=>this.nameChanged(event)}></input>
+	     {(!this.state.locked || (this.state.loggedIn && this.state.user === this.state.saveAsUser)) && <button onClick={()=>this.saveAs()}>Save</button>}
+	     {this.state.loggedIn && this.state.user !== this.state.saveAsUser && (<span><span> </span><button onClick={()=>this.saveAs (this.state.user)}>Copy</button></span>)}
+	     </p>
+	     <div>
+	     {this.state.loggedIn && this.state.user === this.state.saveAsUser
+	      && (<div><div>
+ 		  <label>
+	   	  <input type="checkbox" name="lock" checked={!this.state.hidden} onChange={(event)=>this.readPermissionChanged(event)}></input>
+		  Anyone can copy {this.state.hidden && (<span style={{fontStyle:'italic'}}>(Nope. This is private)</span>)}</label>
+                  </div><div>
+ 		  <label className={this.state.hidden?'hidden':''}>
+	   	  <input disabled={this.state.hidden} type="checkbox" name="lock" checked={!this.state.hidden && !this.state.locked} onChange={(event)=>this.editPermissionChanged(event)}></input>
+		  Anyone can save {this.state.locked && !this.state.hidden && (<span style={{fontStyle:'italic'}}>(Nope. Read-only)</span>)}</label>
+		  </div></div>)}
+	     </div>
+	     <div className="error">{this.state.warning}</div>
+	     </div>)}
+      </div>
+
 	<div className="bots">
 	<hr/>
 	{(Object.keys(this.state.bots).length
@@ -566,13 +575,15 @@ class App extends Component {
 	     </div>)
 	  : '')}
       </div>
+        
 	<div className="auto">
 	<button onClick={()=>this.autotweet()}>Add this page</button>
 	<span> to auto-tweets</span>
 	</div>
 	<hr/>
 	{false && (<Refs className="recent" prefix="Recently updated" view={this.viewURL()} refSets={[{ symbols: this.state.recent }]} />)}
-        </div>
+      </div>
+        
     );
   }
 }

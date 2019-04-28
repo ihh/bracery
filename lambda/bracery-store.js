@@ -15,9 +15,10 @@ exports.handler = async (event, context, callback) => {
   //console.log('Received event:', JSON.stringify(event, null, 2));
 
   // Get username (of symbol owner), symbol name, and body if we have it
-  const user = event.pathParameters.user;
-  const sym = event.pathParameters.sym;
-  const name = user + '/' + sym;
+  const path = event.pathParameters;
+  const user = (path && path.user) || 'guest';
+  const symbol = (path && path.symbol) || 'welcome';
+  const name = user + '/' + symbol;
   const body = util.getBody (event);
   const revision = event.httpMethod === 'GET' && event.queryStringParameters && event.queryStringParameters.rev;
 
@@ -34,6 +35,7 @@ exports.handler = async (event, context, callback) => {
   try {
     let res = await util.getBracery (name, revision, dynamoPromise);
     const result = res.Items && res.Items.length && res.Items[0];
+    console.log(user,symbol,event.httpMethod,result); // DEBUG
     const symIsNew = !result;
     const symIsLocked = result && result.locked;
     const symIsHidden = result && result.hidden;

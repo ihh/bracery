@@ -7,6 +7,18 @@ function extend (dest) {
   return dest;
 }
 
+function cloneDeep (obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function fromEntries (props_values) {
+  var obj = {};
+  props_values.forEach (function (prop_value) {
+    obj[prop_value[0]] = prop_value[1];
+  });
+  return obj;
+}
+
 function escapeHTML (str) {
   if (typeof(str) !== 'string')
     return str;
@@ -50,6 +62,23 @@ function expandMarkdown (text, marked, isRevealed) {
   var safeText = text.replace(bookmarkRegex,'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   var html = marked (safeText);  // Markdown expansion
   return expandInternalLinks (html, isRevealed || {});
+}
+
+function decodeURIParams (url) {
+  url = url || window.location.href;
+  let params = {};
+  url.replace (/[?&]+([^=&]+)=([^&]*)/gi, (m,key,value) => {
+    params[key] = window.decodeURIComponent (value);
+  });
+  return params;
+}
+
+function encodeURIParams (url, params) {
+  params = params || {};
+  let paramNames = Object.keys(params).filter ((p) => params[p]);
+  return url + (paramNames.length
+		? ('?' + paramNames.map ((p) => (p + '=' + window.encodeURIComponent (params[p]))).join('&'))
+		: '');
 }
 
 function digestText (text, maxDigestChars, link, alwaysIncludeLink) {
@@ -135,7 +164,7 @@ function countWords (text, ParseTree, isWord) {
         node.reps.forEach (countWordsAtNodes);
         break
       case 'sym':
-	countWord (ParseTree.symChar + ParseTree.leftBraceChar + (node.user || ParseTree.defaultUser) + '/' + node.name + ParseTree.rightBraceChar);
+	countWord (ParseTree.symChar + node.name);
         countWordsAtNodes (node.rhs);
         countWordsAtNodes (node.bind);
         break
@@ -160,18 +189,33 @@ function getWords (text, ParseTree) {
   return Object.keys (countWords (text, ParseTree, {})).sort();
 }
 
+function userPartOfName (name) {
+  var i = name.indexOf('/')
+  return i < 0 ? '' : name.substr(0,i)
+}
+  
+function symbolPartOfName (name) {
+  var i = name.indexOf('/')
+  return i < 0 ? '' : name.slice(i+1)
+}
+
 module.exports = {
   extend: extend,
+  cloneDeep: cloneDeep,
+  fromEntries: fromEntries,
   escapeHTML: escapeHTML,
   expandMarkdown: expandMarkdown,
+  decodeURIParams: decodeURIParams,
+  encodeURIParams: encodeURIParams,
   digestText: digestText,
   clickHandlerName: clickHandlerName,
   makeInternalLink: makeInternalLink,
   countWords: countWords,
   getWords: getWords,
+  userPartOfName: userPartOfName,
+  symbolPartOfName: symbolPartOfName,
 
   // Special pages
-  defaultUserName: 'guest',
   defaultSymbolName: 'welcome',
   suggestionsSymbolName: 'editor_suggestions',
 

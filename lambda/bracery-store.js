@@ -16,8 +16,8 @@ exports.handler = async (event, context, callback) => {
 
   // Get username (of symbol owner), symbol name, and body if we have it
   const path = event.pathParameters;
-  const user = (path && path.user) || 'guest';
-  const symbol = (path && path.symbol) || 'welcome';
+  const user = (path && path.user) || util.defaultUserName;
+  const symbol = (path && path.symbol) || util.defaultSymbolName;
   const name = user + '/' + symbol;
   const body = util.getBody (event);
   const revision = event.httpMethod === 'GET' && event.queryStringParameters && event.queryStringParameters.rev;
@@ -26,6 +26,7 @@ exports.handler = async (event, context, callback) => {
   let session = await util.getSession (event, dynamoPromise);
   const loggedIn = session && session.loggedIn;
   const symIsOwned = loggedIn && session.user === user;
+  const symOwnerIsGuest = user === util.defaultUserName;
 
   // Set up some returns
   const respond = util.respond (callback, event, session);
@@ -70,9 +71,11 @@ exports.handler = async (event, context, callback) => {
       break;
     case 'PUT':
       {
-        if ((symIsLocked || symIsHidden || symIsNew) && !symIsOwned)
+        if ((symIsLocked || symIsHidden || (symIsNew && !symOwnerIsGuest)) && !symIsOwned)
           return respond.forbidden();
 	let item = { name,
+		     user: util.userPartOfName (name),
+		     symbol: util.symbolPartOfName (name),
                      bracery: body.bracery,
 		     updated: Date.now(),
 		     revision: result.revision };

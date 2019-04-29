@@ -9,6 +9,8 @@ const digestText = braceryWeb.digestText;
 const getWords = braceryWeb.getWords;
 const defaultSymbolName = braceryWeb.defaultSymbolName;
 const defaultUserName = braceryWeb.defaultUserName;
+const userPartOfName = braceryWeb.userPartOfName;
+const symbolPartOfName = braceryWeb.symbolPartOfName;
 const bookmarkRegex = braceryWeb.bookmarkRegex;
 
 const config = require ('./bracery-config');
@@ -457,6 +459,10 @@ module.exports = {
   digestText,
   getWords,
   bookmarkRegex,
+  defaultUserName,
+  defaultSymbolName,
+  userPartOfName,
+  symbolPartOfName,
 
   // From this file
   promiseDelay,

@@ -110,15 +110,11 @@ class App extends Component {
   }
 
   userPartOfName (name) {
-    name = name || this.state.name;
-    const i = name.indexOf('/');
-    return i < 0 ? braceryWeb.defaultUserName : name.substr(0,i);
+    return braceryWeb.userPartOfName (name || this.state.name) || braceryWeb.defaultUserName;
   }
   
   symbolPartOfName (name) {
-    name = name || this.state.name;
-    const i = name.indexOf('/');
-    return i < 0 ? braceryWeb.defaultSymbolName : name.slice(i+1);
+    return braceryWeb.symbolPartOfName (name || this.state.name) || braceryWeb.defaultSymbolName;
   }
   
   // Global methods

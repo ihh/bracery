@@ -1,0 +1,41 @@
+# Bracery
+
+Bracery.org is a wiki-like website for collaboratively experimenting with procedural text generation recipes, publishing them, and turning them into Twitter bots.
+
+The underlying engine of this site is the [Bracery language](https://github.com/ihh/bracery#Usage) for randomized procedural text generation.
+As a programming language, Bracery follows the basic model of [Tracery](http://tracery.io/) by [Kate Compton](http://www.galaxykate.com/),
+while adding a few new features. 
+
+This is the welcome page.
+The Bracery source code for this page is visible if you click the \"Edit\" link, at the foot of this page.
+The page's code is first randomly expanded by the Bracery interpreter,
+then converted from [Markdown](https://daringfireball.net/projects/markdown/syntax) to HTML.
+
+## How to write Bracery scripts
+
+Bracery uses a [grammar](https://en.wikipedia.org/wiki/Probabilistic_context-free_grammar)-based approach to procedural text generation, which means that you have to specify a template containing lists of words and phrases. You write your template as you want the final text to look, but wherever you want Bracery to use a random phrase, you write out the phrase lists between square brackets (`\\[` and `\\]`) with each option separated by a vertical bar (`\\|`). Bracery recognizes this syntax and then picks one of these options at random when using your template to generate text.
+
+For example, `&quote{[Apple|Orange|Pear|Banana|Persimmon]}` will expand to a random fruit. Today, your lucky fruit is: `[Apple|Orange|Pear|Banana|Persimmon]`.
+
+These lists can be nested within one another, as in `&quote{[[Pink|Red] Apple|[Bosc|Anjou] Pear]}` (random expansion: `[[Pink|Red] Apple|[Bosc|Anjou] Pear]`).
+If you click the \"Re-roll\" link, below, you should see these random expansions change.
+
+The code on any Bracery page can be recursively included from any other Bracery page.
+For example, if you include the text `&quote{#common_fruit#}` (or `&quote{~common_fruit}`) in your page, it will include the [common_fruit](/common_fruit?edit=true) page, which expands to one of a number of common fruits defined by [Darius Kazemi](http://tinysubversions.com/)'s [corpora](/dariusk_corpora) for procedural text generation. &reveal{(more...)}{
+
+&reveal{Really? It's technical...}{
+The two pieces of Bracery code `&quote{#common_fruit#}` and `&quote{~common_fruit}` are not _entirely_ equivalent, but the distinction is a bit technical... essentially, `&quote{~common_fruit}` always involves at least one call to the bracery.org server to resolve the definition of the symbol the first time it is used; while `&quote{#common_fruit#}` first tests to see if a variable `&quote{$common_fruit}` has been locally defined, and if so, it evaluates that as a Bracery expression without calling the server.}}
+
+## How to make Twitter bots
+
+Bracery.org aims to make it easy to prototype and build Twitter bots, again inspired by Tracery and by [Cheap Bots Done Quick](https://cheapbotsdonequick.com/) by [George Buckingham](https://v21.io/).
+
+The basic idea is that each page on bracery.org can, in theory, correspond to a \"script\" for a bot. (That might not make much sense for this page, which is too long to fit in a tweet; but for examples of other pages on this site, that look a bit more like typical Twitter bots, see [cpac_news](/cpac_news), [eco_war](/eco_war), or [brexit_facts](/brexit_facts).)
+
+As a one-off, you can tweet any page you're looking at (including the randomly-generated text currently visible) by clicking on the \"Tweet\" link.
+
+For a regular automatic hourly randomized tweet-out, that you can edit and update at any time, first create an account by clicking on the \"Login or signup\" link.
+Creating an account allows you to protect pages so they can't be edited by others.
+Note that an \"Add this page to auto-tweets\" link now appears at the bottom of the page.
+
+Over on Twitter, create an account for your bot. Come back to Bracery, navigate to the page you want the bot to tweet, and click the auto-tweet link. Tell Twitter that you authorize Bracery to tweet. Twitter should redirect you back to Bracery, where you will see a link to control your bot now appears on the page.

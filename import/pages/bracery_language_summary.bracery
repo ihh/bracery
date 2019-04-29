@@ -1,0 +1,12 @@
+Bracery is a grammar-based language for procedural text generation.
+It uses dollar-sign prefixes for variables (as in `&'{$x}`),
+equals for assignment (`&'{$x=value}`),
+curly-brace delimiters (`&'{$x={longer value}}`),
+square-bracket alternations (`&'[first option|another option|third option]`) which can be nested (`&'[comme [çi|ca]|like [this|that]]`),
+ampersands for built-in function names (`&add`, `&subtract`, `&plural`, etc.),
+conditionals (`&if`),
+lists (`&map`, `&join`, `&reduce`),
+access to several parsers (`&eval`, `&quote`, `&syntax`, `&parse`),
+and a few other [features](https://github.com/ihh/bracery#Usage).
+
+

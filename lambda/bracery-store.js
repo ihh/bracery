@@ -13,7 +13,7 @@ const dynamoPromise = util.dynamoPromise();
 // The Lambda function
 exports.handler = async (event, context, callback) => {
   console.log('Received event:', JSON.stringify(event, null, 2));  // DEBUG
-
+  
   // Get username (of symbol owner), symbol name, and body if we have it
   const path = event.pathParameters;
   const user = (path && path.user) || util.defaultUserName;

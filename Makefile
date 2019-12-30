@@ -31,5 +31,5 @@ web/bracery.min.js: web/bracery.nocompromise.js
 	cat $< >>$@
 
 %.md:
-	node -e 'var n = 0;console.log (fs.readFileSync("$@").toString().replace(/(~~~~\n)([^~]+)(\n~~~~\n\n<\!--DEMO-->).*/g,function(_m,b,c,e){return b+c+e+" <em> <a style=\"float:right;\" href=\"https://bracery.org/guest/github_readme_example"+(++n)+"?edit=true&reset=true&enableParse=true&eval="+encodeURIComponent(c)+"\">Try this</a> </em>"}))' >$@.tmp
+	node -e 'var n = 0;console.log (fs.readFileSync("$@").toString().replace(/(~~~~\n)([^~]+)(\n~~~~\n\n<\!--DEMO-->).*/g,function(_m,b,c,e){return b+c+e+" <em> <a style=\"float:right;\" href=\"https://bracery.org/guest/readme_example"+(++n)+"?edit=true&reset=true&enableParse=true&eval="+encodeURIComponent(c)+"\">Try this</a> </em>"}))' >$@.tmp
 	mv $@.tmp $@

@@ -419,7 +419,7 @@ function braceryExpandConfig (bracery, vars, dp) {
          ":nval": symbolName.toLowerCase()
        }});
     const result = res.Items && res.Items.length && res.Items[0];
-    return (braceryCache[symbolName] = (result && result.bracery) ? [result.bracery] : '');
+    return (braceryCache[symbolName] = (result && result.bracery) ? [result.bracery] : ['']);
   };
 
   // Create an expandSymbol function that queries the database for the given name, and expands it as Bracery

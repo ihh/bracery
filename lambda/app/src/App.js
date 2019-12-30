@@ -462,7 +462,7 @@ class App extends Component {
 	<span>{(this.state.rerollMeansRestart
 		? <button onClick={()=>(window.confirm('Really restart? You will lose your progress.') && this.reroll())}>Restart</button>
 		: <button onClick={()=>this.reroll()}>Re-roll</button>)}</span>
-	<span><button onClick={()=>this.tweet()}>Tweet</button></span>
+	<span style="display:none;"><button onClick={()=>this.tweet()}>Tweet</button></span>
 	<span className="loginout">
 	{this.state.loggedIn
 	 ? (<span>{this.state.user} / <button onClick={()=>this.logout()}>Logout</button></span>)
@@ -572,7 +572,7 @@ class App extends Component {
 	  : '')}
       </div>
         
-	<div className="auto">
+	<div className="auto" style="display:none;">
 	<button onClick={()=>this.autotweet()}>Add this page</button>
 	<span> to auto-tweets</span>
 	</div>

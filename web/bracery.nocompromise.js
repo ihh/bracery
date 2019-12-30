@@ -3327,7 +3327,7 @@ module.exports = {
   isEvalVar: isEvalVar,
   getEvalVar: getEvalVar,
   funcType: funcType,
-  
+
   makeSugaredName: makeSugaredName,
   makeRhsText: makeRhsText,
   makeRhsTree: makeRhsTree,

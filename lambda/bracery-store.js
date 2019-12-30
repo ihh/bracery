@@ -16,8 +16,19 @@ exports.handler = async (event, context, callback) => {
   
   // Get username (of symbol owner), symbol name, and body if we have it
   const path = event.pathParameters;
-  const user = (path && path.user) || util.defaultUserName;
-  const symbol = (path && path.symbol) || util.defaultSymbolName;
+  let user, symbol;
+  if (path && path.user) {
+    if (path.symbol) {
+      user = path.user;
+      symbol = path.symbol;
+    } else {
+      user = util.defaultUserName;
+      symbol = path.user;
+    }
+  } else {
+    user = util.defaultUserName;
+    symbol = util.defaultSymbolName;
+  }
   const name = user + '/' + symbol;
   const body = util.getBody (event);
   const revision = event.httpMethod === 'GET' && event.queryStringParameters && event.queryStringParameters.rev;

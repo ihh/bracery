@@ -95,7 +95,7 @@ class App extends Component {
     window[braceryWeb.clickHandlerName] = this.handleBraceryLink.bind(this);
 
     if (!savedState)
-      this.reroll();
+      this.promiseBraceryExpansion();
   }
 
   // Constants
@@ -157,6 +157,13 @@ class App extends Component {
     const key = this.localStorageKey;
     let storage = JSON.parse (localStorage.getItem(key) || '{}');
     storage[data.name] = data;
+    localStorage.setItem (key, JSON.stringify (storage));
+  }
+
+  deleteAppStateFromLocalStorage() {
+    const key = this.localStorageKey;
+    let storage = JSON.parse (localStorage.getItem(key) || '{}');
+    delete storage[this.state.name];
     localStorage.setItem (key, JSON.stringify (storage));
   }
 
@@ -242,6 +249,7 @@ class App extends Component {
 			 evalTextEdited: false,
 			 rerollMeansRestart: false,
 			 warning: '' });
+        this.deleteAppStateFromLocalStorage();
 	return this.promiseBraceryExpansion();
       });
   }

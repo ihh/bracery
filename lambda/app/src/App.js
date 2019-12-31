@@ -55,8 +55,9 @@ class App extends Component {
       mapSelection: {},
       
       loggedIn: !!props.USER,
-      editing: !!props.EDITING || true,  // DEBUG
+      editing: !!props.EDITING,
       debugging: !!props.DEBUGGING,
+      hideMap: !!props.HIDEMAP,
       suggestions: props.SUGGESTIONS,
       rerollMeansRestart: false,
 
@@ -81,6 +82,9 @@ class App extends Component {
       window.history.pushState ({}, '', braceryWeb.encodeURIParams (window.location.origin + window.location.pathname,
 							            extend (urlParams, { redirect: null, reset: null })));
 
+    if (urlParams.demo)
+      this.state.editing = this.state.debugging = this.state.hideMap = true;
+
     this.mapView = React.createRef();
 
     this.domParser = new DOMParser();
@@ -89,10 +93,13 @@ class App extends Component {
     this.braceryCache = {};
     this.debounceMapChanged = DebouncePromise (this.mapChanged.bind(this), this.mapChangedDelay);
     window[braceryWeb.clickHandlerName] = this.handleBraceryLink.bind(this);
+
+    if (!savedState)
+      this.reroll();
   }
 
   // Constants
-  get warning() { return { unsaved: 'Changes will not be final until saved.',
+  get warning() { return { unsaved: 'Changes are stored on your computer. Click Save to upload them to the server.',
 			   noName: 'Please enter a name.',
 			   noDef: 'You cannot save an empty definition. Please enter some text.',
 			   saving: 'Saving...',
@@ -347,7 +354,7 @@ class App extends Component {
   }
 
   mapMounted() {
-    return this.state.editing;
+    return this.state.editing && !this.state.hideMap;
   }
   
   nameChanged (event) {
@@ -500,6 +507,7 @@ class App extends Component {
 
       <div>
       {this.state.editing
+       && !this.state.hideMap
        && (<MapView
 	   ref={(mv) => { this.mapView = mv; }}
 	   setText={this.mapChanged.bind(this)}

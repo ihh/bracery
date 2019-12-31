@@ -73,7 +73,6 @@ exports.handler = async (event, context, callback) => {
            ? await util.getBookmarkedParams (event, dynamoPromise)
            : util.getParams (event));
     const { name, initText, evalText, vars, expansion } = appState;
-    console.log({appState});
 
     // Add the name & a dummy empty definition to the template var->val map
     let tmpMap = util.extend ({}, templateVarValMap);

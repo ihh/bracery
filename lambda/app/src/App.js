@@ -257,7 +257,10 @@ class App extends Component {
   suggest() {
     this.getBracery (braceryWeb.suggestionsSymbolName)
       .then ((suggestions) => {
-	return this.bracery.expand (suggestions, extend ({ vars: {} }, this.braceryExpandCallbacks));
+	return this.bracery.expand (suggestions,
+                                    extend ({ vars: {} },
+                                            this.braceryWeb.braceryLimits,
+                                            this.braceryExpandCallbacks));
       }).then ((expansion) => {
 	this.setState ({ suggestions: braceryWeb.expandMarkdown (expansion.text, marked) });
       });

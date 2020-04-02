@@ -36,7 +36,7 @@ exports.handler = async (event, context, callback) => {
   // Get session
   let session = await util.getSession (event, dynamoPromise);
   const loggedIn = session && session.loggedIn;
-  const symIsOwned = loggedIn && session.user === user;
+  const symIsOwned = loggedIn && session.username === user;
   const symOwnerIsGuest = user === util.defaultUserName;
 
   // Set up some returns
@@ -82,6 +82,7 @@ exports.handler = async (event, context, callback) => {
       break;
     case 'PUT':
       {
+        console.warn ({symIsLocked,symIsHidden,symIsNew,symOwnerIsGuest,symIsOwned,name,user,symbol,loggedIn,session})
         if ((symIsLocked || symIsHidden || (symIsNew && !symOwnerIsGuest)) && !symIsOwned)
           return respond.forbidden();
 	let item = { name,

@@ -17,13 +17,17 @@ publish: $(PUBLISH_PSEUDOTARGETS)
 	@echo Publishing $* '('`stat -f %z $<` 'bytes)'
 	@AWS_ACCESS_KEY_ID=$(AWS_ACCESS_KEY_ID) AWS_SECRET_ACCESS_KEY=$(AWS_SECRET_ACCESS_KEY) aws lambda update-function-code --region $(AWS_DEFAULT_REGION) --publish --zip-file fileb://$< --function-name $* >$@
 
+STAGING_DIR = stage
+STORE_NPM_DEPS = dynamodb-doc
 COMMON = bracery-config.js bracery-web.js bracery-util.js
 bracery-store.zip: bracery-store.js $(COMMON)
-	cp $< index.js
-	$(ZIP) $@ index.js $(COMMON)
-	rm index.js
+	(test -e $(STAGING_DIR) && rm -rf $(STAGING_DIR)) || true
+	mkdir -p $(STAGING_DIR)/node_modules
+	cp $^ $(STAGING_DIR)
+	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
+	cd $(STAGING_DIR); npm install $(STORE_NPM_DEPS)
+	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
-STAGING_DIR = stage
 OAUTH_NPM_DEPS = oauth
 TWITTER_NPM_DEPS = twit
 bracery-twitter.zip: bracery-twitter.js $(COMMON)
@@ -31,7 +35,7 @@ bracery-twitter.zip: bracery-twitter.js $(COMMON)
 	mkdir -p $(STAGING_DIR)/node_modules
 	cp $^ $(STAGING_DIR)
 	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
-	cd $(STAGING_DIR); npm install $(OAUTH_NPM_DEPS) $(TWITTER_NPM_DEPS)
+	cd $(STAGING_DIR); npm install $(OAUTH_NPM_DEPS) $(TWITTER_NPM_DEPS) $(STORE_NPM_DEPS)
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
 bracery-login.zip: bracery-login.js $(COMMON)
@@ -64,7 +68,7 @@ bracery-view.zip: bracery-view.js $(COMMON) view.html $(EXPAND_DEPS)
 	cp $^ $(STAGING_DIR)
 	mv $(STAGING_DIR)/view.html $(STAGING_DIR)/index.html
 	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
-	cd $(STAGING_DIR); npm install $(VIEW_NPM_DEPS)
+	cd $(STAGING_DIR); npm install $(VIEW_NPM_DEPS) $(STORE_NPM_DEPS)
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
 bracery-react.zip: bracery-view.js $(COMMON) main.html $(EXPAND_DEPS)
@@ -73,7 +77,7 @@ bracery-react.zip: bracery-view.js $(COMMON) main.html $(EXPAND_DEPS)
 	cp $^ $(STAGING_DIR)
 	mv $(STAGING_DIR)/main.html $(STAGING_DIR)/index.html
 	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
-	cd $(STAGING_DIR); npm install $(VIEW_NPM_DEPS)
+	cd $(STAGING_DIR); npm install $(VIEW_NPM_DEPS) $(STORE_NPM_DEPS)
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
 ASSETS = asset/bracery-view.js asset/bracery-view.css asset/app.js asset/app.css asset/manifest.json
@@ -123,7 +127,7 @@ bracery-bot.zip: bracery-bot.js $(COMMON) $(EXPAND_DEPS)
 	cp $(COMPROMISE_DEP) $(STAGING_DIR)
 	cp $(RITA_DEP) $(STAGING_DIR)
 	cp $(BRACERY_DEPS) $(STAGING_DIR)
-	cd $(STAGING_DIR); npm install $(TWITTER_NPM_DEPS) $(BOT_NPM_DEPS)
+	cd $(STAGING_DIR); npm install $(TWITTER_NPM_DEPS) $(BOT_NPM_DEPS) $(STORE_NPM_DEPS)
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
 bracery-news.zip: bracery-news.js $(COMMON)

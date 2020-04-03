@@ -306,6 +306,9 @@ function doTests (testRunner) {
   expectExpand ('$x=&list{&quote{2}&quote{4}&quote{6}&quote{0}}&filter$n$x&gt{$n}{3}', '46')
   expectExpand ('$x=&list{&quote{2}&quote{4}&quote{6}&quote{0}}&reduce$n$x$r={0}&add$n$r', '12')
   expectExpand ('$x=&list{&quote{2}&quote{4}&quote{6}&quote{0}}&reduce$n:$x$r={zero dogs}&add$r$n', 'twelve dogs')
+  
+  expectExpand ('$x=&{A&,B&,C&,D}&indexof{C}{$x}', '2')
+  expectExpand ('$x=&{A&,B&,C&,D}&indexof{E}{$x}', '')
 
   expectExpand ('$x={1}$a1={verily}$a2={in troth}&eval&quote{$a&unquote$x indeed}', 'verily indeed')
   expectExpand ('&quote&unquote&quote&infinitive$y', '&infinitive$y')

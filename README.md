@@ -551,6 +551,7 @@ Language features include
 	 - the `&parse` function uses this feature
 - lists:
    - `&list{...}` or just `&{...}` creates an explicit nested list context, vs the default string context
+      - e.g. `$a=&list{&quote{1}&quote{2}&quote{3}}` creates a list, as does `$b=&list{1&,2&,3}` or `$c=&{1&,2&,3}` or `$d=&makelist{1}{2}{3}`
       - `&{}` is the empty list, equivalent to `&list{}`
       - beginning a string context with `{}` (or any other list) makes it a list context
       - beginning a string context with a string, or wrapping it in `&quote{...}` makes it a string context
@@ -560,6 +561,7 @@ Language features include
       - `&first{list}`, `&last{list}` return individual list items (can be strings or nested lists)
       - `&notfirst{list}`, `&notlast{list}` return lists
       - `&nth{index}{list}` returns item number `index` (0-based) from `list`
+      - `&indexof{item}{list}` returns index of `item` in `list`, or the (falsy) empty string if `item` is not in `list`
       - `&cat{list1}{list2}` returns a list
       - `&join{list}{item}` returns a string
       - `&map$varname:{list}{expr}` and `&filter$varname:{list}{expr}` return lists

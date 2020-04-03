@@ -1404,6 +1404,12 @@ var binaryFunction = {
     var i = Math.floor (toNumber(l)), a = makeArray(rv)
     return (i < 0 || i >= a.length) ? '' : a[i]
   },
+  indexof: function (l, r, lv, rv) {
+    var idx = makeArray(rv).findIndex (function (element) {
+      return valuesEqual (element, lv)
+    })
+    return idx >= 0 ? idx.toString() : falseVal
+  },
   parse: function (l, r, lv, rv, config) {
     if (!unableToParse (this, config, r)) {
       try {

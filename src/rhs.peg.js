@@ -253,7 +253,7 @@ BinaryFunctionName
   / "min" / "max"
   / "same"
   / "and" / "or"
-  / "cat" / "prepend" / "append" / "join" / "nth"
+  / "cat" / "prepend" / "append" / "join" / "nth" / "indexof"
   / "apply" / "xapply"
   / "assonance"
 

@@ -65,6 +65,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
     canCreateEdge: (startNode?:INode, endNode?:INode) => true,
     canDeleteEdge: () => true,
     canDeleteNode: () => true,
+    bidirectionalEdgesAllowed: false,
     edgeArrowSize: 8,
     gridSpacing: 36,
     layoutEngineType: 'None',
@@ -604,7 +605,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
   }
 
   createNewEdge() {
-    const { canCreateEdge, nodeKey, onCreateEdge } = this.props;
+    const { canCreateEdge, nodeKey, onCreateEdge, bidirectionalEdgesAllowed } = this.props;
     const { edgesMap, edgeEndNode, hoveredNodeData } = this.state;
     if (!hoveredNodeData) {
       return;
@@ -619,7 +620,7 @@ class GraphView extends React.Component<IGraphViewProps, IGraphViewState> {
         canCreateEdge &&
         canCreateEdge(hoveredNodeData, edgeEndNode) &&
         !edgesMap[mapId1] &&
-        !edgesMap[mapId2]
+        (!edgesMap[mapId2] || bidirectionalEdgesAllowed)
       ) {
         this.setState({
           componentUpToDate: false,

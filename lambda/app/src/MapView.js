@@ -419,6 +419,7 @@ class MapView extends Component {
 	    canRedo={this.canRedo()}
 	    onRedo={this.redo.bind(this)}
 	    zoomLevel="1"
+            bidirectionalEdgesAllowed={true}
             ignoreKeyboardEvents={true}
 	    renderSearch={this.renderSearchBox.bind(this)}
 	    />

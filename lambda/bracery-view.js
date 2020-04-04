@@ -138,6 +138,7 @@ exports.handler = async (event, context, callback) => {
           if (result.bracery)
             tmpMap[templateDefVar] = result.bracery;
           // If no expansion, call expandFull
+          return expansion;  // since parser seems to hang on AWS (but not locally), just bypass the server expansion for now... sigh  IH 4/3/2020
           return (expansion
                   ? expansion
                   : (util

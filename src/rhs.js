@@ -8644,7 +8644,6 @@ function peg$parse(input, options) {
     return makeFunction ('placeholder', [pseudoQuote (args), coord])
   }
 
-
   peg$result = peg$startRuleFunction();
 
   if (peg$result !== peg$FAILED && peg$currPos === input.length) {

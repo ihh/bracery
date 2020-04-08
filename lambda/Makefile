@@ -43,6 +43,7 @@ bracery-login.zip: bracery-login.js $(COMMON)
 	mkdir -p $(STAGING_DIR)/node_modules
 	cp $^ $(STAGING_DIR)
 	mv $(STAGING_DIR)/$< $(STAGING_DIR)/index.js
+	cd $(STAGING_DIR); npm install $(STORE_NPM_DEPS)
 	cd $(STAGING_DIR); $(ZIP) -r ../$@ *
 
 NODE_MODULES = ../node_modules
